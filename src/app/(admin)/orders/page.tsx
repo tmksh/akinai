@@ -122,68 +122,69 @@ export default function OrdersPage() {
   ).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* ページヘッダー */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">注文管理</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">注文管理</h1>
+          <p className="text-sm text-muted-foreground hidden sm:block">
             注文の確認・処理・発送管理を行います
           </p>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" size="sm">
           <Download className="mr-2 h-4 w-4" />
-          CSVエクスポート
+          <span className="hidden sm:inline">CSVエクスポート</span>
+          <span className="sm:hidden">CSV</span>
         </Button>
       </div>
 
       {/* 統計カード */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
         <Card className="widget-card-pink border-0 shadow-lg">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-white/80">総売上（支払済）</CardDescription>
-            <CardTitle className="text-3xl font-bold text-white">{formatCurrency(totalRevenue)}</CardTitle>
+          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
+            <CardDescription className="text-white/80 text-[10px] sm:text-sm">総売上（支払済）</CardDescription>
+            <CardTitle className="text-lg sm:text-3xl font-bold text-white">{formatCurrency(totalRevenue)}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="widget-card-purple border-0 shadow-lg">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-white/80">全注文数</CardDescription>
-            <CardTitle className="text-3xl font-bold text-white">{mockOrders.length}</CardTitle>
+          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
+            <CardDescription className="text-white/80 text-[10px] sm:text-sm">全注文数</CardDescription>
+            <CardTitle className="text-lg sm:text-3xl font-bold text-white">{mockOrders.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="widget-card-orange border-0 shadow-lg">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-white/80">未処理</CardDescription>
-            <CardTitle className="text-3xl font-bold text-white">
+          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
+            <CardDescription className="text-white/80 text-[10px] sm:text-sm">未処理</CardDescription>
+            <CardTitle className="text-lg sm:text-3xl font-bold text-white">
               {pendingOrders}
             </CardTitle>
           </CardHeader>
         </Card>
         <Card className="widget-card-cyan border-0 shadow-lg">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-white/80">処理中</CardDescription>
-            <CardTitle className="text-3xl font-bold text-white">{processingOrders}</CardTitle>
+          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
+            <CardDescription className="text-white/80 text-[10px] sm:text-sm">処理中</CardDescription>
+            <CardTitle className="text-lg sm:text-3xl font-bold text-white">{processingOrders}</CardTitle>
           </CardHeader>
         </Card>
       </div>
 
       {/* フィルター・検索 */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative flex-1 max-w-sm">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="注文番号・顧客名・メールで検索..."
+                placeholder="注文番号・顧客名で検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-9 text-sm"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 overflow-x-auto">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <Filter className="mr-2 h-4 w-4" />
+                <SelectTrigger className="w-[120px] sm:w-[140px] text-sm">
+                  <Filter className="mr-1 sm:mr-2 h-4 w-4" />
                   <SelectValue placeholder="ステータス" />
                 </SelectTrigger>
                 <SelectContent>
@@ -197,7 +198,7 @@ export default function OrdersPage() {
                 </SelectContent>
               </Select>
               <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-[120px] sm:w-[140px] text-sm">
                   <SelectValue placeholder="支払状況" />
                 </SelectTrigger>
                 <SelectContent>
@@ -211,9 +212,9 @@ export default function OrdersPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[700px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>注文番号</TableHead>

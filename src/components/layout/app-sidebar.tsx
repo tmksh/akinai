@@ -21,6 +21,8 @@ import {
   Bell,
   Moon,
   Sun,
+  Building2,
+  History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,8 +69,8 @@ const navigationItems = [
     title: '商品管理',
     icon: Package,
     href: '/products',
-    color: 'text-orange-500',
-    hoverClass: 'sidebar-hover-orange',
+    color: 'text-blue-500',
+    hoverClass: 'sidebar-hover-blue',
     items: [
       { title: '商品一覧', href: '/products' },
       { title: '商品登録', href: '/products/new' },
@@ -81,6 +83,11 @@ const navigationItems = [
     href: '/inventory',
     color: 'text-amber-500',
     hoverClass: 'sidebar-hover-amber',
+    items: [
+      { title: '在庫一覧', href: '/inventory' },
+      { title: '入出庫履歴', href: '/inventory/movements' },
+      { title: 'ロット管理', href: '/inventory/lots' },
+    ],
   },
   {
     title: 'コンテンツ',
@@ -99,8 +106,8 @@ const navigationItems = [
     title: '注文管理',
     icon: ShoppingCart,
     href: '/orders',
-    color: 'text-teal-500',
-    hoverClass: 'sidebar-hover-teal',
+    color: 'text-purple-500',
+    hoverClass: 'sidebar-hover-purple',
   },
   {
     title: '見積管理',
@@ -113,8 +120,15 @@ const navigationItems = [
     title: '顧客管理',
     icon: Users,
     href: '/customers',
-    color: 'text-blue-500',
-    hoverClass: 'sidebar-hover-blue',
+    color: 'text-orange-500',
+    hoverClass: 'sidebar-hover-orange',
+  },
+  {
+    title: '代理店管理',
+    icon: Building2,
+    href: '/agents',
+    color: 'text-indigo-500',
+    hoverClass: 'sidebar-hover-indigo',
   },
 ];
 
@@ -137,7 +151,10 @@ const settingsItems = [
     hoverClass: 'sidebar-hover-slate',
     items: [
       { title: '基本設定', href: '/settings' },
+      { title: '組織設定', href: '/settings/organization' },
       { title: 'ユーザー管理', href: '/settings/users' },
+      { title: 'ロール管理', href: '/settings/roles' },
+      { title: '権限マトリクス', href: '/settings/permissions' },
       { title: '機能設定', href: '/settings/features' },
     ],
   },

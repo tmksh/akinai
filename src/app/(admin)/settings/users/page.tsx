@@ -79,7 +79,7 @@ export default function UsersSettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-500">
-              {mockUsers.filter((u) => u.status === 'active').length}
+              {mockUsers.filter((u) => u.isActive).length}
             </div>
           </CardContent>
         </Card>
@@ -128,8 +128,8 @@ export default function UsersSettingsPage() {
                   <Badge variant={getRoleBadgeVariant(user.role)}>
                     {getRoleLabel(user.role)}
                   </Badge>
-                  <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                    {user.status === 'active' ? 'アクティブ' : '無効'}
+                  <Badge variant={user.isActive ? 'default' : 'secondary'}>
+                    {user.isActive ? 'アクティブ' : '無効'}
                   </Badge>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -154,5 +154,6 @@ export default function UsersSettingsPage() {
     </div>
   );
 }
+
 
 

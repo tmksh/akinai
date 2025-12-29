@@ -28,7 +28,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const category = mockCategories.find((c) => c.id === product.categoryId);
+  const category = mockCategories.find((c) => product.categoryIds?.includes(c.id));
   
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ja-JP', {
@@ -74,8 +74,8 @@ export default function ProductDetailPage() {
             <CardContent className="p-0">
               <div className="relative aspect-video">
                 <Image
-                  src={product.images[0] || '/placeholder.png'}
-                  alt={product.name}
+                  src={product.images[0]?.url || '/placeholder.png'}
+                  alt={product.images[0]?.alt || product.name}
                   fill
                   className="object-cover"
                 />
@@ -157,13 +157,13 @@ export default function ProductDetailPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">販売価格</span>
-                <span className="text-xl font-bold">{formatCurrency(product.price)}</span>
+                <span className="text-xl font-bold">{formatCurrency(product.variants[0]?.price || 0)}</span>
               </div>
-              {product.compareAtPrice && (
+              {product.variants[0]?.compareAtPrice && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">参考価格</span>
                   <span className="text-muted-foreground line-through">
-                    {formatCurrency(product.compareAtPrice)}
+                    {formatCurrency(product.variants[0].compareAtPrice)}
                   </span>
                 </div>
               )}
@@ -178,12 +178,12 @@ export default function ProductDetailPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">総在庫数</span>
-                <span className="font-bold">{product.stock}</span>
+                <span className="font-bold">{product.variants.reduce((sum, v) => sum + v.stock, 0)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">SKU</span>
                 <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded">
-                  {product.sku}
+                  {product.variants[0]?.sku || '-'}
                 </span>
               </div>
             </CardContent>
@@ -206,5 +206,6 @@ export default function ProductDetailPage() {
     </div>
   );
 }
+
 
 

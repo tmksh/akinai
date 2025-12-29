@@ -374,30 +374,6 @@ export const mockOrders: Order[] = [
   },
 ];
 
-// ----- 見積 -----
-export const mockQuotes: Quote[] = [
-  {
-    id: 'quote-1',
-    quoteNumber: 'QT-2024-0001',
-    customerId: 'cust-2',
-    customerName: '田中 花子',
-    customerCompany: '株式会社サンプル',
-    items: [
-      { id: 'qi-1', productId: 'prod-1', variantId: 'var-2', productName: 'オーガニックコットンTシャツ', variantName: 'ホワイト / M', quantity: 50, unitPrice: 4980, discount: 10, totalPrice: 224100 },
-    ],
-    subtotal: 249000,
-    discount: 24900,
-    tax: 22410,
-    total: 246510,
-    status: 'sent',
-    validUntil: '2024-02-15T00:00:00Z',
-    notes: '社員用ユニフォームとして検討中',
-    terms: '納期：ご注文から2週間以内\n支払条件：月末締め翌月末払い',
-    createdAt: '2024-01-10T00:00:00Z',
-    updatedAt: '2024-01-10T00:00:00Z',
-  },
-];
-
 // ----- ダッシュボード -----
 export const mockDashboardStats: DashboardStats = {
   totalRevenue: 2580000,
@@ -448,6 +424,369 @@ export const mockFeatureFlags: FeatureFlag[] = [
   { key: 'content_scheduling', name: 'コンテンツ予約公開', description: '記事・ニュースの予約公開機能', enabled: true, module: 'content' },
   { key: 'ai_assist', name: 'AI支援機能', description: '文章生成・校正などのAI機能', enabled: false, module: 'ai' },
   { key: 'multi_currency', name: '多通貨対応', description: '複数通貨での価格設定・表示', enabled: false, module: 'settings' },
+];
+
+// ----- 見積 -----
+export const mockQuotes: Quote[] = [
+  {
+    id: 'quote-1',
+    quoteNumber: 'QT-2024-0001',
+    customerId: 'cust-1',
+    customerName: '山田 太郎',
+    customerCompany: '株式会社サンプル商事',
+    items: [
+      { id: 'qi-1', productId: 'prod-1', variantId: 'var-1', productName: 'オーガニックコットンTシャツ', variantName: 'ホワイト / M', quantity: 100, unitPrice: 4980, discount: 10, totalPrice: 448200, notes: '名入れ対応希望' },
+      { id: 'qi-2', productId: 'prod-2', variantId: 'var-5', productName: '手作り革財布', variantName: 'ブラウン', quantity: 50, unitPrice: 18000, discount: 15, totalPrice: 765000, notes: '' },
+    ],
+    subtotal: 1213200,
+    discount: 121320,
+    tax: 109188,
+    total: 1201068,
+    status: 'sent',
+    validUntil: '2024-02-15T23:59:59Z',
+    notes: '大口注文のため特別割引を適用',
+    terms: '納期：発注後2週間以内\n支払条件：月末締め翌月末払い',
+    createdAt: '2024-01-10T10:00:00Z',
+    updatedAt: '2024-01-10T14:00:00Z',
+  },
+  {
+    id: 'quote-2',
+    quoteNumber: 'QT-2024-0002',
+    customerId: 'cust-2',
+    customerName: '田中 花子',
+    customerCompany: '田中建材株式会社',
+    items: [
+      { id: 'qi-3', productId: 'prod-3', variantId: 'var-7', productName: '陶器マグカップ', variantName: 'ホワイト', quantity: 200, unitPrice: 3200, discount: 5, totalPrice: 608000, notes: '' },
+    ],
+    subtotal: 608000,
+    discount: 30400,
+    tax: 57760,
+    total: 635360,
+    status: 'negotiating',
+    validUntil: '2024-02-20T23:59:59Z',
+    notes: '仕様について協議中',
+    createdAt: '2024-01-12T09:00:00Z',
+    updatedAt: '2024-01-14T11:00:00Z',
+  },
+  {
+    id: 'quote-3',
+    quoteNumber: 'QT-2024-0003',
+    customerId: 'cust-3',
+    customerName: '佐藤 健一',
+    customerCompany: 'A1Next株式会社',
+    items: [
+      { id: 'qi-4', productId: 'prod-4', variantId: 'var-8', productName: '特選日本茶セット', variantName: '贈答用', quantity: 30, unitPrice: 6180, discount: 0, totalPrice: 185400, notes: 'のし対応必須' },
+      { id: 'qi-5', productId: 'prod-1', variantId: 'var-2', productName: 'オーガニックコットンTシャツ', variantName: 'ネイビー / L', quantity: 50, unitPrice: 4980, discount: 5, totalPrice: 236550, notes: '' },
+    ],
+    subtotal: 421950,
+    discount: 0,
+    tax: 42195,
+    total: 464145,
+    status: 'accepted',
+    validUntil: '2024-02-28T23:59:59Z',
+    notes: '承認済み。発注待ち',
+    createdAt: '2024-01-08T14:00:00Z',
+    updatedAt: '2024-01-13T16:00:00Z',
+  },
+  {
+    id: 'quote-4',
+    quoteNumber: 'QT-2024-0004',
+    customerId: 'cust-1',
+    customerName: '山田 太郎',
+    customerCompany: '株式会社サンプル商事',
+    items: [
+      { id: 'qi-6', productId: 'prod-2', variantId: 'var-6', productName: '手作り革財布', variantName: 'ブラック', quantity: 20, unitPrice: 18000, discount: 10, totalPrice: 324000, notes: '' },
+    ],
+    subtotal: 324000,
+    discount: 32400,
+    tax: 29160,
+    total: 320760,
+    status: 'ordered',
+    validUntil: '2024-01-31T23:59:59Z',
+    notes: '',
+    orderId: 'order-5',
+    createdAt: '2024-01-05T11:00:00Z',
+    updatedAt: '2024-01-07T10:00:00Z',
+  },
+  {
+    id: 'quote-5',
+    quoteNumber: 'QT-2024-0005',
+    customerId: 'cust-4',
+    customerName: '鈴木 美咲',
+    customerCompany: '鈴木設備工業',
+    items: [
+      { id: 'qi-7', productId: 'prod-3', variantId: 'var-7', productName: '陶器マグカップ', variantName: 'ホワイト', quantity: 100, unitPrice: 3200, discount: 8, totalPrice: 294400, notes: '' },
+    ],
+    subtotal: 294400,
+    discount: 23552,
+    tax: 27085,
+    total: 297933,
+    status: 'draft',
+    validUntil: '2024-03-01T23:59:59Z',
+    notes: '作成中',
+    createdAt: '2024-01-14T15:00:00Z',
+    updatedAt: '2024-01-14T15:00:00Z',
+  },
+  {
+    id: 'quote-6',
+    quoteNumber: 'QT-2024-0006',
+    customerId: 'cust-5',
+    customerName: '高橋 誠',
+    customerCompany: '高橋物産',
+    items: [
+      { id: 'qi-8', productId: 'prod-1', variantId: 'var-1', productName: 'オーガニックコットンTシャツ', variantName: 'ホワイト / S', quantity: 30, unitPrice: 4980, discount: 0, totalPrice: 149400, notes: '' },
+    ],
+    subtotal: 149400,
+    discount: 0,
+    tax: 14940,
+    total: 164340,
+    status: 'rejected',
+    validUntil: '2024-01-20T23:59:59Z',
+    notes: '予算オーバーのためお断り',
+    createdAt: '2024-01-03T09:00:00Z',
+    updatedAt: '2024-01-06T14:00:00Z',
+  },
+  {
+    id: 'quote-7',
+    quoteNumber: 'QT-2024-0007',
+    customerId: 'cust-6',
+    customerName: '伊藤 裕子',
+    customerCompany: '伊藤商店',
+    items: [
+      { id: 'qi-9', productId: 'prod-4', variantId: 'var-8', productName: '特選日本茶セット', variantName: '贈答用', quantity: 15, unitPrice: 6180, discount: 0, totalPrice: 92700, notes: '' },
+    ],
+    subtotal: 92700,
+    discount: 0,
+    tax: 9270,
+    total: 101970,
+    status: 'expired',
+    validUntil: '2024-01-10T23:59:59Z',
+    notes: '',
+    createdAt: '2023-12-25T10:00:00Z',
+    updatedAt: '2023-12-25T10:00:00Z',
+  },
+];
+
+// ----- 代理店 -----
+export interface Agent {
+  id: string;
+  code: string;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  address: string;
+  commissionRate: number;
+  status: 'active' | 'inactive' | 'pending';
+  totalSales: number;
+  totalCommission: number;
+  ordersCount: number;
+  joinedAt: string;
+  lastOrderAt?: string;
+}
+
+export const mockAgents: Agent[] = [
+  {
+    id: 'agent-1',
+    code: 'AG-001',
+    name: '田村 正明',
+    company: '田村商事株式会社',
+    email: 'tamura@tamura-shoji.co.jp',
+    phone: '03-1234-5678',
+    address: '東京都港区芝公園1-1-1',
+    commissionRate: 10,
+    status: 'active',
+    totalSales: 8500000,
+    totalCommission: 850000,
+    ordersCount: 45,
+    joinedAt: '2023-04-01T00:00:00Z',
+    lastOrderAt: '2024-01-12T10:00:00Z',
+  },
+  {
+    id: 'agent-2',
+    code: 'AG-002',
+    name: '中村 由美',
+    company: '中村物流',
+    email: 'nakamura@nakamura-logistics.jp',
+    phone: '06-9876-5432',
+    address: '大阪府大阪市北区梅田2-2-2',
+    commissionRate: 8,
+    status: 'active',
+    totalSales: 5200000,
+    totalCommission: 416000,
+    ordersCount: 28,
+    joinedAt: '2023-06-15T00:00:00Z',
+    lastOrderAt: '2024-01-10T14:00:00Z',
+  },
+  {
+    id: 'agent-3',
+    code: 'AG-003',
+    name: '小林 健太',
+    company: '小林エージェンシー',
+    email: 'kobayashi@k-agency.co.jp',
+    phone: '052-1111-2222',
+    address: '愛知県名古屋市中区栄3-3-3',
+    commissionRate: 12,
+    status: 'active',
+    totalSales: 12800000,
+    totalCommission: 1536000,
+    ordersCount: 67,
+    joinedAt: '2023-02-01T00:00:00Z',
+    lastOrderAt: '2024-01-14T09:00:00Z',
+  },
+  {
+    id: 'agent-4',
+    code: 'AG-004',
+    name: '渡辺 美穂',
+    company: '渡辺販売',
+    email: 'watanabe@watanabe-sales.jp',
+    phone: '011-3333-4444',
+    address: '北海道札幌市中央区大通4-4-4',
+    commissionRate: 10,
+    status: 'inactive',
+    totalSales: 2100000,
+    totalCommission: 210000,
+    ordersCount: 12,
+    joinedAt: '2023-08-01T00:00:00Z',
+    lastOrderAt: '2023-11-20T11:00:00Z',
+  },
+  {
+    id: 'agent-5',
+    code: 'AG-005',
+    name: '加藤 隆',
+    company: '加藤貿易',
+    email: 'kato@kato-trading.com',
+    phone: '092-5555-6666',
+    address: '福岡県福岡市博多区博多駅前5-5-5',
+    commissionRate: 15,
+    status: 'pending',
+    totalSales: 0,
+    totalCommission: 0,
+    ordersCount: 0,
+    joinedAt: '2024-01-10T00:00:00Z',
+  },
+];
+
+// ----- 入出庫履歴 -----
+export interface StockMovement {
+  id: string;
+  productId: string;
+  variantId: string;
+  productName: string;
+  variantName: string;
+  sku: string;
+  type: 'in' | 'out' | 'adjustment' | 'transfer';
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  reason: string;
+  reference?: string;
+  lotNumber?: string;
+  expiryDate?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export const mockStockMovements: StockMovement[] = [
+  {
+    id: 'sm-1',
+    productId: 'prod-1',
+    variantId: 'var-1',
+    productName: 'オーガニックコットンTシャツ',
+    variantName: 'ホワイト / S',
+    sku: 'OCT-WH-S',
+    type: 'in',
+    quantity: 50,
+    previousStock: 0,
+    newStock: 50,
+    reason: '初期入庫',
+    reference: 'PO-2024-001',
+    lotNumber: 'LOT-20240101',
+    createdBy: '管理者',
+    createdAt: '2024-01-01T09:00:00Z',
+  },
+  {
+    id: 'sm-2',
+    productId: 'prod-1',
+    variantId: 'var-1',
+    productName: 'オーガニックコットンTシャツ',
+    variantName: 'ホワイト / S',
+    sku: 'OCT-WH-S',
+    type: 'out',
+    quantity: -25,
+    previousStock: 50,
+    newStock: 25,
+    reason: '販売出庫',
+    reference: 'AK-2024-0001',
+    createdBy: '管理者',
+    createdAt: '2024-01-08T15:30:00Z',
+  },
+  {
+    id: 'sm-3',
+    productId: 'prod-2',
+    variantId: 'var-5',
+    productName: '手作り革財布',
+    variantName: 'ブラウン',
+    sku: 'HLW-BR',
+    type: 'in',
+    quantity: 20,
+    previousStock: 0,
+    newStock: 20,
+    reason: '仕入入庫',
+    reference: 'PO-2024-002',
+    lotNumber: 'LOT-20240105',
+    createdBy: '管理者',
+    createdAt: '2024-01-05T10:00:00Z',
+  },
+  {
+    id: 'sm-4',
+    productId: 'prod-2',
+    variantId: 'var-5',
+    productName: '手作り革財布',
+    variantName: 'ブラウン',
+    sku: 'HLW-BR',
+    type: 'out',
+    quantity: -12,
+    previousStock: 20,
+    newStock: 8,
+    reason: '販売出庫',
+    reference: 'AK-2024-0002',
+    createdBy: '管理者',
+    createdAt: '2024-01-12T10:00:00Z',
+  },
+  {
+    id: 'sm-5',
+    productId: 'prod-3',
+    variantId: 'var-7',
+    productName: '陶器マグカップ',
+    variantName: 'ホワイト',
+    sku: 'CMC-WH',
+    type: 'adjustment',
+    quantity: -3,
+    previousStock: 35,
+    newStock: 32,
+    reason: '棚卸調整（破損）',
+    createdBy: '管理者',
+    createdAt: '2024-01-10T16:00:00Z',
+  },
+  {
+    id: 'sm-6',
+    productId: 'prod-4',
+    variantId: 'var-8',
+    productName: '特選日本茶セット',
+    variantName: '贈答用',
+    sku: 'JTS-GIFT',
+    type: 'in',
+    quantity: 100,
+    previousStock: 0,
+    newStock: 100,
+    reason: '仕入入庫',
+    reference: 'PO-2024-003',
+    lotNumber: 'LOT-20240110',
+    expiryDate: '2025-01-10T00:00:00Z',
+    createdBy: '管理者',
+    createdAt: '2024-01-10T09:00:00Z',
+  },
 ];
 
 // ----- 設定 -----

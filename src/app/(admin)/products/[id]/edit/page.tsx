@@ -27,14 +27,15 @@ export default function ProductEditPage() {
   
   const product = mockProducts.find((p) => p.id === productId);
   
+  const firstVariant = product?.variants?.[0];
   const [formData, setFormData] = useState({
     name: product?.name || '',
     description: product?.description || '',
-    price: product?.price || 0,
-    compareAtPrice: product?.compareAtPrice || 0,
-    sku: product?.sku || '',
-    stock: product?.stock || 0,
-    categoryId: product?.categoryId || '',
+    price: firstVariant?.price || 0,
+    compareAtPrice: firstVariant?.compareAtPrice || 0,
+    sku: firstVariant?.sku || '',
+    stock: firstVariant?.stock || 0,
+    categoryId: product?.categoryIds?.[0] || '',
     status: product?.status || 'draft',
   });
 
@@ -119,10 +120,10 @@ export default function ProductEditPage() {
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {product.images.map((image, index) => (
-                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden border group">
+                  <div key={image.id || index} className="relative aspect-square rounded-lg overflow-hidden border group">
                     <Image
-                      src={image}
-                      alt={`商品画像 ${index + 1}`}
+                      src={image.url}
+                      alt={image.alt || `商品画像 ${index + 1}`}
                       fill
                       className="object-cover"
                     />
@@ -265,7 +266,7 @@ export default function ProductEditPage() {
                 <Label>ステータス</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                  onValueChange={(value: 'draft' | 'published' | 'archived') => setFormData({ ...formData, status: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="ステータスを選択" />
@@ -339,5 +340,6 @@ export default function ProductEditPage() {
     </div>
   );
 }
+
 
 

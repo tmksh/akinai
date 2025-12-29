@@ -54,7 +54,7 @@ export default function NewsPage() {
                   <div className="flex-1">
                     <div className="font-medium">{news.title}</div>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(news.publishedAt).toLocaleDateString('ja-JP')} • {news.author}
+                      {news.publishedAt ? new Date(news.publishedAt).toLocaleDateString('ja-JP') : '-'} • {news.authorId}
                     </div>
                   </div>
                   <Badge variant={news.status === 'published' ? 'default' : 'secondary'}>
@@ -85,5 +85,6 @@ export default function NewsPage() {
     </div>
   );
 }
+
 
 

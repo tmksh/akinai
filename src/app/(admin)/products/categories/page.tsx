@@ -3,7 +3,12 @@
 import { FolderTree, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { mockCategories } from '@/lib/mock-data';
+import { mockCategories, mockProducts } from '@/lib/mock-data';
+
+// カテゴリごとの商品数を計算
+const getCategoryProductCount = (categoryId: string) => {
+  return mockProducts.filter(p => p.categoryIds?.includes(categoryId)).length;
+};
 
 export default function CategoriesPage() {
   return (
@@ -48,7 +53,7 @@ export default function CategoriesPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <div className="font-medium">{category.productCount}</div>
+                    <div className="font-medium">{getCategoryProductCount(category.id)}</div>
                     <div className="text-sm text-muted-foreground">商品数</div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -68,5 +73,6 @@ export default function CategoriesPage() {
     </div>
   );
 }
+
 
 

@@ -213,84 +213,79 @@ export default function InventoryPage() {
       {/* 在庫一覧（カード形式） */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredInventory.length === 0 ? (
-          <Card className="col-span-full">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
+          <div className="col-span-full rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border shadow-lg p-12">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 mb-4">
+                <Package className="h-8 w-8 text-slate-500" />
+              </div>
               <p className="text-muted-foreground">該当する在庫がありません</p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ) : (
           filteredInventory.map((item) => {
             const stockLevel = getStockLevel(item);
             const stockPercentage = getStockPercentage(item.availableStock);
             
+            const gradientClasses = {
+              ok: "from-emerald-500/10 via-transparent to-teal-500/10",
+              low: "from-amber-500/10 via-transparent to-orange-500/10",
+              out: "from-red-500/10 via-transparent to-rose-500/10"
+            };
+            
+            const iconGradients = {
+              ok: "from-emerald-500 to-teal-500 shadow-emerald-500/25",
+              low: "from-amber-500 to-orange-500 shadow-amber-500/25",
+              out: "from-red-500 to-rose-500 shadow-red-500/25"
+            };
+            
             return (
-              <Card 
+              <div 
                 key={`${item.productId}-${item.variantId}`}
-                className={cn(
-                  "card-hover overflow-hidden",
-                  stockLevel === 'out' && "border-red-200 bg-red-50/30",
-                  stockLevel === 'low' && "border-amber-200 bg-amber-50/30"
-                )}
+                className="group rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                {/* ステータスバー */}
-                <div className={cn(
-                  "h-1",
-                  stockLevel === 'ok' && "bg-emerald-500",
-                  stockLevel === 'low' && "bg-amber-500",
-                  stockLevel === 'out' && "bg-red-500"
-                )} />
-                
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base truncate">{item.productName}</CardTitle>
-                      <CardDescription className="truncate">{item.variantName}</CardDescription>
+                {/* ヘッダー */}
+                <div className={cn("p-4 border-b bg-gradient-to-r", gradientClasses[stockLevel])}>
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-lg transition-transform group-hover:scale-110",
+                      iconGradients[stockLevel]
+                    )}>
+                      <Package className="h-5 w-5 text-white" />
                     </div>
-                    <Badge 
-                      variant="outline" 
-                      className={cn(
-                        "shrink-0",
-                        stockLevel === 'ok' && "border-emerald-500 text-emerald-600 bg-emerald-50",
-                        stockLevel === 'low' && "border-amber-500 text-amber-600 bg-amber-50",
-                        stockLevel === 'out' && "border-red-500 text-red-600 bg-red-50"
-                      )}
-                    >
-                      {stockLevel === 'ok' && (
-                        <>
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          在庫あり
-                        </>
-                      )}
-                      {stockLevel === 'low' && (
-                        <>
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          在庫少
-                        </>
-                      )}
-                      {stockLevel === 'out' && (
-                        <>
-                          <XCircle className="h-3 w-3 mr-1" />
-                          在庫切れ
-                        </>
-                      )}
-                    </Badge>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="font-semibold text-sm leading-tight">{item.productName}</h3>
+                        <Badge 
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] border-0 shadow-md",
+                            stockLevel === 'ok' && "bg-gradient-to-r from-emerald-500 to-teal-500 text-white",
+                            stockLevel === 'low' && "bg-gradient-to-r from-amber-500 to-orange-500 text-white",
+                            stockLevel === 'out' && "bg-gradient-to-r from-red-500 to-rose-500 text-white"
+                          )}
+                        >
+                          {stockLevel === 'ok' && "在庫あり"}
+                          {stockLevel === 'low' && "在庫少"}
+                          {stockLevel === 'out' && "在庫切れ"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{item.variantName}</p>
+                    </div>
                   </div>
-                </CardHeader>
+                </div>
                 
-                <CardContent className="space-y-4">
+                <div className="p-4 space-y-4">
                   {/* SKU */}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">SKU</span>
-                    <span className="font-mono bg-muted px-2 py-0.5 rounded">{item.sku}</span>
+                    <span className="font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-xs">{item.sku}</span>
                   </div>
                   
-                  {/* 在庫数 */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
+                  {/* 在庫数 - メイン */}
+                  <div className="rounded-xl bg-gradient-to-br from-slate-100/80 to-slate-50 dark:from-slate-800/80 dark:to-slate-900 p-4">
+                    <div className="flex items-center justify-between mb-3">
                       <span className="text-sm text-muted-foreground">利用可能在庫</span>
                       <span className={cn(
-                        "text-2xl font-bold",
+                        "text-3xl font-bold",
                         stockLevel === 'ok' && "text-emerald-600",
                         stockLevel === 'low' && "text-amber-600",
                         stockLevel === 'out' && "text-red-600"
@@ -300,13 +295,13 @@ export default function InventoryPage() {
                     </div>
                     
                     {/* 在庫バー */}
-                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div className="h-3 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                       <div 
                         className={cn(
                           "h-full transition-all rounded-full",
-                          stockLevel === 'ok' && "bg-gradient-to-r from-emerald-400 to-emerald-500",
-                          stockLevel === 'low' && "bg-gradient-to-r from-amber-400 to-amber-500",
-                          stockLevel === 'out' && "bg-gradient-to-r from-red-400 to-red-500"
+                          stockLevel === 'ok' && "bg-gradient-to-r from-emerald-400 to-teal-500",
+                          stockLevel === 'low' && "bg-gradient-to-r from-amber-400 to-orange-500",
+                          stockLevel === 'out' && "bg-gradient-to-r from-red-400 to-rose-500"
                         )}
                         style={{ width: `${stockPercentage}%` }}
                       />
@@ -314,21 +309,21 @@ export default function InventoryPage() {
                   </div>
                   
                   {/* 詳細数値 */}
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-muted/50 rounded-lg p-2 text-center">
-                      <div className="text-muted-foreground text-xs">現在庫</div>
-                      <div className="font-semibold">{item.currentStock}</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-xl p-3 text-center border border-blue-100 dark:border-blue-900/30">
+                      <div className="text-muted-foreground text-xs mb-1">現在庫</div>
+                      <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{item.currentStock}</div>
                     </div>
-                    <div className="bg-muted/50 rounded-lg p-2 text-center">
-                      <div className="text-muted-foreground text-xs">予約済</div>
-                      <div className="font-semibold">{item.reservedStock}</div>
+                    <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 rounded-xl p-3 text-center border border-purple-100 dark:border-purple-900/30">
+                      <div className="text-muted-foreground text-xs mb-1">予約済</div>
+                      <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{item.reservedStock}</div>
                     </div>
                   </div>
                   
                   {/* 在庫調整ボタン */}
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full">
+                      <Button variant="outline" className="w-full rounded-xl h-11 border-2 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-50 dark:hover:from-slate-800 dark:hover:to-slate-900">
                         <ArrowUpDown className="mr-2 h-4 w-4" />
                         在庫を調整
                       </Button>
@@ -341,7 +336,7 @@ export default function InventoryPage() {
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
-                        <div className="flex items-center justify-between rounded-lg bg-muted p-4">
+                        <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 p-4">
                           <span className="text-sm text-muted-foreground">
                             現在の在庫数
                           </span>
@@ -354,7 +349,7 @@ export default function InventoryPage() {
                           <div className="flex gap-2">
                             <Button
                               variant={adjustmentType === 'in' ? 'default' : 'outline'}
-                              className={cn("flex-1", adjustmentType === 'in' && "bg-emerald-500 hover:bg-emerald-600")}
+                              className={cn("flex-1 rounded-xl", adjustmentType === 'in' && "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600")}
                               onClick={() => setAdjustmentType('in')}
                             >
                               <Plus className="mr-2 h-4 w-4" />
@@ -362,7 +357,7 @@ export default function InventoryPage() {
                             </Button>
                             <Button
                               variant={adjustmentType === 'out' ? 'default' : 'outline'}
-                              className={cn("flex-1", adjustmentType === 'out' && "bg-amber-500 hover:bg-amber-600")}
+                              className={cn("flex-1 rounded-xl", adjustmentType === 'out' && "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600")}
                               onClick={() => setAdjustmentType('out')}
                             >
                               <Minus className="mr-2 h-4 w-4" />
@@ -379,46 +374,59 @@ export default function InventoryPage() {
                             onChange={(e) =>
                               setAdjustmentQuantity(e.target.value)
                             }
+                            className="rounded-xl"
                           />
                         </div>
                         <div className="space-y-2">
                           <Label>理由</Label>
-                          <Input placeholder="調整理由を入力" />
+                          <Input placeholder="調整理由を入力" className="rounded-xl" />
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button variant="outline">キャンセル</Button>
-                        <Button className="gradient-brand text-white">
+                        <Button variant="outline" className="rounded-xl">キャンセル</Button>
+                        <Button className="gradient-brand text-white rounded-xl">
                           調整を実行
                         </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })
         )}
       </div>
 
       {/* 合計在庫数 */}
-      <Card className="card-hover">
-        <CardContent className="flex items-center justify-between p-6">
+      <div className="rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border shadow-lg">
+        <div className="p-4 border-b bg-gradient-to-r from-indigo-500/10 via-transparent to-purple-500/10">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <Package className="h-6 w-6 text-muted-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/25">
+              <Boxes className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">総在庫数</p>
-              <p className="text-2xl font-bold">{totalStock.toLocaleString()} 点</p>
+            <h3 className="font-semibold">在庫サマリー</h3>
+          </div>
+        </div>
+        <div className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-1">総在庫数</p>
+              <p className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{totalStock.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">点</p>
+            </div>
+            <div className="h-12 w-px bg-border"></div>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-1">管理SKU数</p>
+              <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{totalItems}</p>
+              <p className="text-xs text-muted-foreground">SKU</p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">管理SKU数</p>
-            <p className="text-2xl font-bold">{totalItems} SKU</p>
-          </div>
-        </CardContent>
-      </Card>
+          <Button variant="outline" className="rounded-xl">
+            <ArrowUpDown className="mr-2 h-4 w-4" />
+            詳細レポート
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

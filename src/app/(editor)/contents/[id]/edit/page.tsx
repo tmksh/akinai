@@ -78,7 +78,7 @@ export default function ContentEditorPage() {
     setContent(prev => ({
       ...prev,
       blocks: prev.blocks.map(block => 
-        block.id === blockId ? { ...block, ...updates } : block
+        block.id === blockId ? { ...block, ...updates } as ContentBlock : block
       ),
     }));
   }, []);
@@ -860,5 +860,6 @@ function createNewBlock(type: ContentBlock['type']): ContentBlock {
       return { ...base, type: 'paragraph', content: '' };
   }
 }
+
 
 

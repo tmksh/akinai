@@ -1,0 +1,393 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  RefreshCw,
+  Truck,
+  Search,
+  Filter,
+  Calendar,
+  Package,
+  Plus,
+  Download,
+  FileText,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { mockStockMovements, mockInventorySummary } from '@/lib/mock-data';
+import { cn } from '@/lib/utils';
+
+const typeConfig = {
+  in: { label: '入庫', color: 'text-emerald-600', bgColor: 'bg-emerald-100', icon: ArrowDownLeft },
+  out: { label: '出庫', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: ArrowUpRight },
+  adjustment: { label: '調整', color: 'text-amber-600', bgColor: 'bg-amber-100', icon: RefreshCw },
+  transfer: { label: '移動', color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Truck },
+};
+
+const formatDate = (dateString: string) =>
+  new Date(dateString).toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' });
+
+const formatDateTime = (dateString: string) =>
+  new Date(dateString).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+export default function StockMovementsPage() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [showNewMovementDialog, setShowNewMovementDialog] = useState(false);
+  const [movementType, setMovementType] = useState<'in' | 'out'>('in');
+
+  // フィルタリング
+  const filteredMovements = mockStockMovements.filter((movement) => {
+    const matchesSearch =
+      movement.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      movement.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (movement.reference?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+    const matchesType = typeFilter === 'all' || movement.type === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  // 統計
+  const stats = {
+    totalIn: mockStockMovements.filter(m => m.type === 'in').reduce((sum, m) => sum + m.quantity, 0),
+    totalOut: Math.abs(mockStockMovements.filter(m => m.type === 'out').reduce((sum, m) => sum + m.quantity, 0)),
+    adjustments: mockStockMovements.filter(m => m.type === 'adjustment').length,
+    today: mockStockMovements.filter(m => {
+      const today = new Date().toDateString();
+      return new Date(m.createdAt).toDateString() === today;
+    }).length,
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* ヘッダー */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">入出庫履歴</h1>
+          <p className="text-muted-foreground">
+            在庫の入出庫記録を管理します
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline">
+            <Download className="mr-2 h-4 w-4" />
+            エクスポート
+          </Button>
+          <Dialog open={showNewMovementDialog} onOpenChange={setShowNewMovementDialog}>
+            <DialogTrigger asChild>
+              <Button className="gradient-brand text-white">
+                <Plus className="mr-2 h-4 w-4" />
+                入出庫登録
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>入出庫登録</DialogTitle>
+                <DialogDescription>
+                  在庫の入庫または出庫を登録します
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label>種別</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={movementType === 'in' ? 'default' : 'outline'}
+                      className={cn(movementType === 'in' && 'bg-emerald-600 hover:bg-emerald-700')}
+                      onClick={() => setMovementType('in')}
+                    >
+                      <ArrowDownLeft className="mr-2 h-4 w-4" />
+                      入庫
+                    </Button>
+                    <Button
+                      variant={movementType === 'out' ? 'default' : 'outline'}
+                      className={cn(movementType === 'out' && 'bg-blue-600 hover:bg-blue-700')}
+                      onClick={() => setMovementType('out')}
+                    >
+                      <ArrowUpRight className="mr-2 h-4 w-4" />
+                      出庫
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>商品</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="商品を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mockInventorySummary.map((item) => (
+                        <SelectItem key={`${item.productId}-${item.variantId}`} value={item.variantId}>
+                          {item.productName} - {item.variantName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>数量</Label>
+                    <Input type="number" min="1" placeholder="10" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ロット番号</Label>
+                    <Input placeholder="LOT-20240115" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>参照番号（任意）</Label>
+                  <Input placeholder="PO-2024-001 など" />
+                </div>
+                <div className="space-y-2">
+                  <Label>理由・備考</Label>
+                  <Textarea placeholder="入出庫の理由を入力..." />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowNewMovementDialog(false)}>
+                  キャンセル
+                </Button>
+                <Button onClick={() => setShowNewMovementDialog(false)}>
+                  登録
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* 統計カード */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-emerald-400 via-emerald-500 to-green-500 p-4 shadow-lg">
+          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
+          </svg>
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="flex items-center justify-between">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
+                <ArrowDownLeft className="h-3.5 w-3.5 text-white" />
+              </div>
+              <p className="text-white/80 text-xs font-medium">総入庫数</p>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-white">{stats.totalIn}</div>
+              <p className="text-white/70 text-xs">個</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-500 p-4 shadow-lg">
+          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
+          </svg>
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="flex items-center justify-between">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
+                <ArrowUpRight className="h-3.5 w-3.5 text-white" />
+              </div>
+              <p className="text-white/80 text-xs font-medium">総出庫数</p>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-white">{stats.totalOut}</div>
+              <p className="text-white/70 text-xs">個</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 p-4 shadow-lg">
+          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
+          </svg>
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="flex items-center justify-between">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
+                <RefreshCw className="h-3.5 w-3.5 text-white" />
+              </div>
+              <p className="text-white/80 text-xs font-medium">在庫調整</p>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-white">{stats.adjustments}</div>
+              <p className="text-white/70 text-xs">件</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-violet-500 via-purple-500 to-purple-600 p-4 shadow-lg">
+          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
+          </svg>
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="flex items-center justify-between">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
+                <Calendar className="h-3.5 w-3.5 text-white" />
+              </div>
+              <p className="text-white/80 text-xs font-medium">本日の処理</p>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-white">{stats.today}</div>
+              <p className="text-white/70 text-xs">件</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 履歴一覧 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>入出庫履歴</CardTitle>
+          <CardDescription>在庫の入出庫記録を確認できます</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* 検索・フィルター */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="商品名・SKU・参照番号で検索..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-[140px]">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="種別" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">すべて</SelectItem>
+                <SelectItem value="in">入庫</SelectItem>
+                <SelectItem value="out">出庫</SelectItem>
+                <SelectItem value="adjustment">調整</SelectItem>
+                <SelectItem value="transfer">移動</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* テーブル */}
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>日時</TableHead>
+                  <TableHead>種別</TableHead>
+                  <TableHead>商品</TableHead>
+                  <TableHead className="text-right">数量</TableHead>
+                  <TableHead className="text-right">在庫変動</TableHead>
+                  <TableHead>理由</TableHead>
+                  <TableHead>参照</TableHead>
+                  <TableHead>担当者</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMovements.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-32 text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <FileText className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                        <p className="text-muted-foreground">該当する履歴がありません</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredMovements.map((movement) => {
+                    const config = typeConfig[movement.type];
+                    const TypeIcon = config.icon;
+
+                    return (
+                      <TableRow key={movement.id}>
+                        <TableCell className="text-sm">
+                          <div>
+                            <p className="font-medium">{formatDate(movement.createdAt)}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(movement.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={cn("gap-1", config.bgColor, config.color, "border-0")}>
+                            <TypeIcon className="h-3 w-3" />
+                            {config.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-sm">{movement.productName}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{movement.variantName}</span>
+                              <Badge variant="outline" className="text-xs">{movement.sku}</Badge>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className={cn(
+                            "font-semibold",
+                            movement.quantity > 0 ? "text-emerald-600" : "text-blue-600"
+                          )}>
+                            {movement.quantity > 0 ? '+' : ''}{movement.quantity}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          <div className="flex items-center justify-end gap-1">
+                            <span className="text-muted-foreground">{movement.previousStock}</span>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="font-medium">{movement.newStock}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm max-w-[200px] truncate">
+                          {movement.reason}
+                        </TableCell>
+                        <TableCell>
+                          {movement.reference ? (
+                            <Badge variant="secondary" className="text-xs">
+                              {movement.reference}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {movement.createdBy}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+

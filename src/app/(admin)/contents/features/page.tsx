@@ -54,7 +54,7 @@ export default function FeaturesPage() {
                   <div className="flex-1">
                     <div className="font-medium">{feature.title}</div>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(feature.publishedAt).toLocaleDateString('ja-JP')} • {feature.author}
+                      {feature.publishedAt ? new Date(feature.publishedAt).toLocaleDateString('ja-JP') : '-'} • {feature.authorId}
                     </div>
                   </div>
                   <Badge variant={feature.status === 'published' ? 'default' : 'secondary'}>
@@ -85,5 +85,6 @@ export default function FeaturesPage() {
     </div>
   );
 }
+
 
 
