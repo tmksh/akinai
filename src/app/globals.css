@@ -1,0 +1,421 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* アキナイ CMS カスタムスタイル */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+:root {
+  --radius: 0.5rem;
+  /* アキナイブランドカラー - オレンジ系 */
+  --brand: oklch(0.7 0.18 50);
+  --brand-foreground: oklch(1 0 0);
+  --brand-light: oklch(0.95 0.05 50);
+  --brand-dark: oklch(0.55 0.2 45);
+  
+  /* ライトテーマ - クリーンで業務的 */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.15 0.01 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.01 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.01 250);
+  --primary: oklch(0.7 0.18 50);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0.01 250);
+  --secondary-foreground: oklch(0.2 0.01 250);
+  --muted: oklch(0.96 0.005 250);
+  --muted-foreground: oklch(0.5 0.01 250);
+  --accent: oklch(0.95 0.03 50);
+  --accent-foreground: oklch(0.55 0.2 45);
+  --destructive: oklch(0.6 0.22 25);
+  --border: oklch(0.92 0.005 250);
+  --input: oklch(0.92 0.005 250);
+  --ring: oklch(0.7 0.18 50);
+  
+  /* チャートカラー */
+  --chart-1: oklch(0.7 0.18 50);
+  --chart-2: oklch(0.65 0.15 180);
+  --chart-3: oklch(0.55 0.12 280);
+  --chart-4: oklch(0.75 0.14 90);
+  --chart-5: oklch(0.6 0.18 340);
+  
+  /* サイドバー - ライト系 + オレンジアクセント */
+  --sidebar: oklch(0.99 0 0);
+  --sidebar-foreground: oklch(0.35 0.02 250);
+  --sidebar-primary: oklch(0.7 0.18 45);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.96 0.01 50);
+  --sidebar-accent-foreground: oklch(0.35 0.02 250);
+  --sidebar-border: oklch(0.92 0 0);
+  --sidebar-ring: oklch(0.7 0.18 45);
+}
+
+.dark {
+  --background: oklch(0.12 0.015 250);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.16 0.015 250);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.16 0.015 250);
+  --popover-foreground: oklch(0.95 0 0);
+  --primary: oklch(0.75 0.18 50);
+  --primary-foreground: oklch(0.12 0.02 250);
+  --secondary: oklch(0.22 0.015 250);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.22 0.015 250);
+  --muted-foreground: oklch(0.65 0.01 250);
+  --accent: oklch(0.25 0.02 50);
+  --accent-foreground: oklch(0.85 0.15 50);
+  --destructive: oklch(0.65 0.22 25);
+  --border: oklch(0.25 0.015 250);
+  --input: oklch(0.25 0.015 250);
+  --ring: oklch(0.75 0.18 50);
+  --chart-1: oklch(0.75 0.18 50);
+  --chart-2: oklch(0.7 0.15 180);
+  --chart-3: oklch(0.65 0.12 280);
+  --chart-4: oklch(0.8 0.14 90);
+  --chart-5: oklch(0.7 0.18 340);
+  --sidebar: oklch(0.18 0.01 250);
+  --sidebar-foreground: oklch(0.9 0 0);
+  --sidebar-primary: oklch(0.72 0.18 45);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.25 0.01 250);
+  --sidebar-accent-foreground: oklch(0.9 0 0);
+  --sidebar-border: oklch(0.25 0.01 250);
+  --sidebar-ring: oklch(0.72 0.18 45);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', 'Noto Sans JP', sans-serif;
+  }
+}
+
+/* メインコンテンツの背景グラデーション - 薄いウォームグレー */
+@layer components {
+  .main-gradient-bg {
+    background: linear-gradient(135deg, 
+      oklch(0.97 0.005 80) 0%, 
+      oklch(0.96 0.008 60) 50%,
+      oklch(0.95 0.01 50) 100%);
+  }
+  
+  .dark .main-gradient-bg {
+    background: linear-gradient(135deg, 
+      oklch(0.16 0.01 250) 0%, 
+      oklch(0.14 0.01 260) 50%,
+      oklch(0.13 0.01 270) 100%);
+  }
+  
+  /* カードのホバーエフェクト - クリーンな白カード */
+  .card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: oklch(1 0 0) !important;
+    box-shadow: 0 2px 12px oklch(0.5 0.02 250 / 0.08);
+    border: none !important;
+    cursor: pointer;
+  }
+  .card-hover:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px oklch(0.7 0.18 50 / 0.15), 0 8px 16px oklch(0.5 0.02 250 / 0.1);
+  }
+  .card-hover:active {
+    transform: translateY(-4px) scale(1.01);
+  }
+  
+  .dark .card-hover {
+    background: oklch(0.22 0.01 250) !important;
+    box-shadow: 0 2px 12px oklch(0 0 0 / 0.3);
+  }
+  .dark .card-hover:hover {
+    box-shadow: 0 20px 40px oklch(0.7 0.18 50 / 0.2), 0 8px 16px oklch(0 0 0 / 0.3);
+  }
+  
+  /* 統計カード専用のインタラクティブなホバーエフェクト */
+  .stat-card-interactive {
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: grab;
+  }
+  .stat-card-interactive:hover {
+    transform: translateY(-12px) rotate(-1deg);
+    box-shadow: 
+      0 25px 50px oklch(0.7 0.18 50 / 0.2),
+      0 15px 30px oklch(0.5 0.02 250 / 0.1);
+  }
+  .stat-card-interactive:hover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, oklch(1 0 0 / 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .stat-card-interactive:active {
+    transform: translateY(-6px) rotate(0deg) scale(0.98);
+    cursor: grabbing;
+  }
+  
+  /* グラデーションボーダー */
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(var(--background), var(--background)) padding-box,
+                linear-gradient(135deg, oklch(0.75 0.18 55), oklch(0.65 0.2 45)) border-box;
+    border: 1px solid transparent;
+  }
+  
+  /* オレンジグローエフェクト */
+  .orange-glow {
+    box-shadow: 0 0 40px oklch(0.7 0.18 50 / 0.2);
+  }
+  
+  /* アニメーション付きグラデーションバッジ */
+  .gradient-badge {
+    background: linear-gradient(135deg, oklch(0.75 0.18 55) 0%, oklch(0.65 0.2 45) 100%);
+    color: white;
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px oklch(0.7 0.18 50 / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 20px oklch(0.7 0.18 50 / 0.6);
+    }
+  }
+  
+  /* ヘッダー - クリーンな白/透明 */
+  .header-gradient {
+    background: oklch(1 0 0 / 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid oklch(0.9 0 0);
+  }
+  
+  .dark .header-gradient {
+    background: oklch(0.16 0.01 250 / 0.9);
+    border-bottom: 1px solid oklch(0.25 0.01 250);
+  }
+  
+  /* 統計カードのアクセント - オレンジ/コーラル */
+  .stat-card-accent {
+    position: relative;
+    overflow: hidden;
+    border: none !important;
+    border-radius: 16px !important;
+  }
+  .stat-card-accent::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, oklch(0.72 0.18 50), oklch(0.65 0.2 35));
+  }
+  
+  /* サイドバーのアクセント */
+  .sidebar-accent-line {
+    position: relative;
+  }
+  .sidebar-accent-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, oklch(1 0 0 / 0.3), oklch(1 0 0 / 0.1), transparent);
+  }
+  
+  /* サイドバー - 白背景 + 左端オレンジアクセント */
+  .sidebar-gradient {
+    background: linear-gradient(180deg, 
+      oklch(0.98 0.03 50) 0%, 
+      oklch(0.96 0.04 45) 50%,
+      oklch(0.98 0.02 55) 100%
+    ) !important;
+    position: relative;
+    box-shadow: 6px 0 32px -6px rgba(0, 0, 0, 0.15), 
+                3px 0 12px -3px rgba(0, 0, 0, 0.1),
+                1px 0 0 0 rgba(0, 0, 0, 0.03);
+  }
+  
+  
+  .dark .sidebar-gradient {
+    background: linear-gradient(180deg, 
+      oklch(0.18 0.03 45) 0%, 
+      oklch(0.15 0.025 50) 50%,
+      oklch(0.17 0.02 45) 100%
+    ) !important;
+    box-shadow: 4px 0 24px -4px rgba(0, 0, 0, 0.4), 
+                2px 0 8px -2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* カスタムスクロールバー */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.7 0.18 50 / 0.3) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: oklch(0.7 0.18 50 / 0.3);
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.7 0.18 50 / 0.5);
+  }
+  
+  /* グラデーションユーティリティ */
+  .gradient-brand {
+    background: linear-gradient(135deg, oklch(0.75 0.18 55) 0%, oklch(0.65 0.2 45) 100%);
+  }
+  .gradient-brand-light {
+    background: linear-gradient(135deg, oklch(0.95 0.05 55) 0%, oklch(0.9 0.08 45) 100%);
+  }
+}
+
+/* サイドバーメニューのカラフルホバー効果（高優先度） */
+.sidebar-hover-rose:hover {
+  background-color: rgba(244, 63, 94, 0.2) !important;
+}
+.sidebar-hover-rose[data-active="true"] {
+  background-color: rgba(244, 63, 94, 0.25) !important;
+}
+.sidebar-hover-orange:hover {
+  background-color: rgba(249, 115, 22, 0.2) !important;
+}
+.sidebar-hover-orange[data-active="true"] {
+  background-color: rgba(249, 115, 22, 0.25) !important;
+}
+.sidebar-hover-amber:hover {
+  background-color: rgba(245, 158, 11, 0.2) !important;
+}
+.sidebar-hover-amber[data-active="true"] {
+  background-color: rgba(245, 158, 11, 0.25) !important;
+}
+.sidebar-hover-emerald:hover {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+}
+.sidebar-hover-emerald[data-active="true"] {
+  background-color: rgba(16, 185, 129, 0.25) !important;
+}
+.sidebar-hover-teal:hover {
+  background-color: rgba(20, 184, 166, 0.2) !important;
+}
+.sidebar-hover-teal[data-active="true"] {
+  background-color: rgba(20, 184, 166, 0.25) !important;
+}
+.sidebar-hover-cyan:hover {
+  background-color: rgba(6, 182, 212, 0.2) !important;
+}
+.sidebar-hover-cyan[data-active="true"] {
+  background-color: rgba(6, 182, 212, 0.25) !important;
+}
+.sidebar-hover-blue:hover {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+}
+.sidebar-hover-blue[data-active="true"] {
+  background-color: rgba(59, 130, 246, 0.25) !important;
+}
+.sidebar-hover-violet:hover {
+  background-color: rgba(139, 92, 246, 0.2) !important;
+}
+.sidebar-hover-violet[data-active="true"] {
+  background-color: rgba(139, 92, 246, 0.25) !important;
+}
+.sidebar-hover-slate:hover {
+  background-color: rgba(100, 116, 139, 0.15) !important;
+}
+.sidebar-hover-slate[data-active="true"] {
+  background-color: rgba(100, 116, 139, 0.2) !important;
+}
+
+/* ウィジェットカード グラデーション */
+.widget-card-pink {
+  background: linear-gradient(135deg, #f43f5e 0%, #ec4899 50%, #be185d 100%);
+  color: white;
+}
+.widget-card-purple {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #7c3aed 100%);
+  color: white;
+}
+.widget-card-blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #0891b2 100%);
+  color: white;
+}
+.widget-card-orange {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 50%, #ea580c 100%);
+  color: white;
+}
+.widget-card-green {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #059669 100%);
+  color: white;
+}
+.widget-card-cyan {
+  background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #0891b2 100%);
+  color: white;
+}
+.widget-card-red {
+  background: linear-gradient(135deg, #ef4444 0%, #f87171 50%, #dc2626 100%);
+  color: white;
+}
+.widget-card-amber {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #d97706 100%);
+  color: white;
+}
