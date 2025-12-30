@@ -212,7 +212,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             </>
           )}
           {quote.status === 'accepted' && (
-            <Button onClick={handleConvertToOrder} className="gradient-brand text-white">
+            <Button onClick={handleConvertToOrder} className="btn-premium">
               <ShoppingCart className="mr-2 h-4 w-4" />
               注文に変換
             </Button>
@@ -475,4 +475,5 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     </div>
   );
 }
+
 

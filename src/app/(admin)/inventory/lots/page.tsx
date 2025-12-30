@@ -189,7 +189,7 @@ export default function LotsPage() {
         </div>
         <Dialog open={showNewLotDialog} onOpenChange={setShowNewLotDialog}>
           <DialogTrigger asChild>
-            <Button className="gradient-brand text-white">
+            <Button className="btn-premium">
               <Plus className="mr-2 h-4 w-4" />
               ロット登録
             </Button>
@@ -257,78 +257,54 @@ export default function LotsPage() {
         </Dialog>
       </div>
 
-      {/* 統計カード */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-slate-400 via-slate-500 to-slate-600 p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
-                <Layers className="h-3.5 w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-xs font-medium">総ロット数</p>
+      {/* 統計カード - オレンジグラデーション */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        {/* 総ロット数 - 薄いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+              <Layers className="h-4 w-4 text-orange-500" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-white">{stats.total}</div>
-              <p className="text-white/70 text-xs">件</p>
-            </div>
+            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">総ロット数</span>
           </div>
+          <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.total}</div>
+          <p className="text-xs text-orange-600 dark:text-orange-400">件</p>
         </div>
 
-        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-emerald-400 via-emerald-500 to-green-500 p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
-                <CheckCircle className="h-3.5 w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-xs font-medium">アクティブ</p>
+        {/* アクティブ - やや濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+              <CheckCircle className="h-4 w-4 text-orange-600" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-white">{stats.active}</div>
-              <p className="text-white/70 text-xs">件</p>
-            </div>
+            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">アクティブ</span>
           </div>
+          <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.active}</div>
+          <p className="text-xs text-orange-600 dark:text-orange-400">件</p>
         </div>
 
-        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
-                <AlertTriangle className="h-3.5 w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-xs font-medium">期限間近</p>
+        {/* 期限間近 - 濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-white">{stats.expiring}</div>
-              <p className="text-white/70 text-xs">件</p>
-            </div>
+            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">期限間近</span>
           </div>
+          <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.expiring}</div>
+          <p className="text-xs text-orange-700 dark:text-orange-300">件</p>
         </div>
 
-        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-gray-400 via-gray-500 to-gray-600 p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
-                <XCircle className="h-3.5 w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-xs font-medium">在庫なし</p>
+        {/* 在庫なし - 最も濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
+              <XCircle className="h-4 w-4 text-white" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-white">{stats.depleted}</div>
-              <p className="text-white/70 text-xs">件</p>
-            </div>
+            <span className="text-xs font-medium text-white/90">在庫なし</span>
           </div>
+          <div className="text-2xl font-bold text-white">{stats.depleted}</div>
+          <p className="text-xs text-white/80">件</p>
         </div>
       </div>
 
@@ -524,4 +500,5 @@ export default function LotsPage() {
     </div>
   );
 }
+
 

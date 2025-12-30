@@ -19,7 +19,7 @@ export default function FeaturesPage() {
           <h1 className="text-2xl font-bold">特集</h1>
           <p className="text-muted-foreground">特集記事の管理を行います</p>
         </div>
-        <Button className="gradient-brand text-white" asChild>
+        <Button className="btn-premium" asChild>
           <Link href="/contents/new">
             <Plus className="mr-2 h-4 w-4" />
             特集を作成
@@ -72,7 +72,7 @@ export default function FeaturesPage() {
               <p className="text-muted-foreground mb-4">
                 最初の特集記事を作成しましょう
               </p>
-              <Button className="gradient-brand text-white" asChild>
+              <Button className="btn-premium" asChild>
                 <Link href="/contents/new">
                   <Plus className="mr-2 h-4 w-4" />
                   特集を作成

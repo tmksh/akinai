@@ -136,8 +136,8 @@ const permissionCategories = [
   },
 ];
 
-// 権限マトリクス（モックデータ）
-const permissionMatrix: Record<string, Record<string, 'full' | 'partial' | 'none'>> = {
+// 権限マトリクス（初期値）
+const initialPermissionMatrix: Record<string, Record<string, 'full' | 'partial' | 'none'>> = {
   owner: {
     'products.view': 'full', 'products.create': 'full', 'products.edit': 'full', 'products.delete': 'full',
     'orders.view': 'full', 'orders.process': 'full', 'orders.edit': 'full', 'orders.cancel': 'full', 'orders.refund': 'full',
@@ -190,6 +190,13 @@ const permissionMatrix: Record<string, Record<string, 'full' | 'partial' | 'none
   },
 };
 
+// 権限を循環させる
+const cyclePermission = (current: 'full' | 'partial' | 'none'): 'full' | 'partial' | 'none' => {
+  if (current === 'full') return 'partial';
+  if (current === 'partial') return 'none';
+  return 'full';
+};
+
 // 権限表示コンポーネント
 function PermissionCell({ status, onClick }: { status: 'full' | 'partial' | 'none'; onClick?: () => void }) {
   return (
@@ -211,6 +218,34 @@ function PermissionCell({ status, onClick }: { status: 'full' | 'partial' | 'non
 
 export default function PermissionsSettingsPage() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [permissionMatrix, setPermissionMatrix] = useState(initialPermissionMatrix);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // 権限を切り替える
+  const togglePermission = (roleId: string, permissionId: string) => {
+    setPermissionMatrix((prev) => ({
+      ...prev,
+      [roleId]: {
+        ...prev[roleId],
+        [permissionId]: cyclePermission(prev[roleId][permissionId]),
+      },
+    }));
+    setHasChanges(true);
+  };
+
+  // 変更を保存
+  const handleSave = () => {
+    // 実際にはAPIに保存
+    console.log('Saving permissions:', permissionMatrix);
+    setHasChanges(false);
+    alert('権限設定を保存しました');
+  };
+
+  // 変更をリセット
+  const handleReset = () => {
+    setPermissionMatrix(initialPermissionMatrix);
+    setHasChanges(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -238,7 +273,12 @@ export default function PermissionsSettingsPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline">変更を保存</Button>
+          {hasChanges && (
+            <Button variant="outline" onClick={handleReset}>リセット</Button>
+          )}
+          <Button className="btn-premium" onClick={handleSave} disabled={!hasChanges}>
+            変更を保存
+          </Button>
         </div>
       </div>
 
@@ -342,6 +382,7 @@ export default function PermissionsSettingsPage() {
                               <div className="flex justify-center">
                                 <PermissionCell
                                   status={permissionMatrix[role.id][permission.id]}
+                                  onClick={() => togglePermission(role.id, permission.id)}
                                 />
                               </div>
                             </td>
@@ -400,4 +441,5 @@ export default function PermissionsSettingsPage() {
     </div>
   );
 }
+
 

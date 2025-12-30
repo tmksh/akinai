@@ -13,6 +13,10 @@ import {
   XCircle,
   Clock,
   Download,
+  DollarSign,
+  ShoppingCart,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -138,34 +142,51 @@ export default function OrdersPage() {
         </Button>
       </div>
 
-      {/* 統計カード */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-        <Card className="widget-card-pink border-0 shadow-lg">
-          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
-            <CardDescription className="text-white/80 text-[10px] sm:text-sm">総売上（支払済）</CardDescription>
-            <CardTitle className="text-lg sm:text-3xl font-bold text-white">{formatCurrency(totalRevenue)}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="widget-card-purple border-0 shadow-lg">
-          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
-            <CardDescription className="text-white/80 text-[10px] sm:text-sm">全注文数</CardDescription>
-            <CardTitle className="text-lg sm:text-3xl font-bold text-white">{mockOrders.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="widget-card-orange border-0 shadow-lg">
-          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
-            <CardDescription className="text-white/80 text-[10px] sm:text-sm">未処理</CardDescription>
-            <CardTitle className="text-lg sm:text-3xl font-bold text-white">
-              {pendingOrders}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="widget-card-cyan border-0 shadow-lg">
-          <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
-            <CardDescription className="text-white/80 text-[10px] sm:text-sm">処理中</CardDescription>
-            <CardTitle className="text-lg sm:text-3xl font-bold text-white">{processingOrders}</CardTitle>
-          </CardHeader>
-        </Card>
+      {/* 統計カード - オレンジグラデーション */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        {/* 総売上 - 薄いオレンジ */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+              <DollarSign className="h-4 w-4 text-orange-500" />
+            </div>
+            <span className="text-[10px] sm:text-xs font-medium text-orange-700 dark:text-orange-300">総売上</span>
+          </div>
+          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{formatCurrency(totalRevenue)}</p>
+        </div>
+        
+        {/* 全注文数 - やや濃いオレンジ */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+              <ShoppingCart className="h-4 w-4 text-orange-600" />
+            </div>
+            <span className="text-[10px] sm:text-xs font-medium text-orange-800 dark:text-orange-200">全注文数</span>
+          </div>
+          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{mockOrders.length}</p>
+        </div>
+        
+        {/* 未処理 - 濃いオレンジ */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+            </div>
+            <span className="text-[10px] sm:text-xs font-medium text-orange-800 dark:text-orange-200">未処理</span>
+          </div>
+          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{pendingOrders}</p>
+        </div>
+        
+        {/* 処理中 - 最も濃いオレンジ */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
+              <Loader2 className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-[10px] sm:text-xs font-medium text-white/90">処理中</span>
+          </div>
+          <p className="text-lg sm:text-2xl font-bold text-white">{processingOrders}</p>
+        </div>
       </div>
 
       {/* フィルター・検索 */}

@@ -30,6 +30,8 @@ import {
   GripVertical,
   Lock,
   Unlock,
+  CreditCard,
+  BarChart3,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -74,13 +76,13 @@ const orderStatusConfig: Record<OrderStatus, { label: string; variant: 'default'
   refunded: { label: '返金済', variant: 'destructive' },
 };
 
-// チャート設定
+// チャート設定 - オレンジ系で統一
 const revenueChartConfig = {
-  revenue: { label: '売上', color: 'oklch(0.7 0.18 50)' },
+  revenue: { label: '売上', color: '#f97316' },
 } satisfies ChartConfig;
 
 const ordersChartConfig = {
-  orders: { label: '注文数', color: 'oklch(0.65 0.15 180)' },
+  orders: { label: '注文数', color: '#fb923c' },
 } satisfies ChartConfig;
 
 // 数値フォーマット
@@ -105,7 +107,7 @@ function SortableWidget({ id, isEditing, children, className }: { id: string; is
         <div
           {...attributes}
           {...listeners}
-          className="absolute top-2 right-2 p-1.5 rounded-lg bg-orange-500/90 cursor-grab active:cursor-grabbing z-20 shadow-lg hover:bg-orange-600 transition-all opacity-0 group-hover/widget:opacity-100"
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-orange-500 cursor-grab active:cursor-grabbing z-20 shadow-lg hover:bg-orange-600 transition-all opacity-0 group-hover/widget:opacity-100"
         >
           <GripVertical className="h-4 w-4 text-white" />
         </div>
@@ -160,26 +162,40 @@ export default function DashboardPage() {
     switch (id) {
       case 'revenue-chart':
         return (
-          <Card className="h-full bg-card/80 backdrop-blur-sm">
-            <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
-              <CardTitle className="text-sm sm:text-base">売上推移</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">過去7日間の売上推移</CardDescription>
+          <Card className="h-full border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">売上推移</CardTitle>
+                  <CardDescription className="text-xs text-slate-400">過去7日間</CardDescription>
+                </div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg btn-premium">
+                  <BarChart3 className="h-4 w-4 text-white" />
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+            <CardContent className="p-4 sm:p-6 pt-0">
               <ChartContainer config={revenueChartConfig} className="h-[180px] sm:h-[200px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={mockRevenueData}>
                     <defs>
-                      <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="oklch(0.7 0.18 50)" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="oklch(0.7 0.18 50)" stopOpacity={0.1} />
+                      <linearGradient id="fillRevenuePremium" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ff8a47" stopOpacity={0.5} />
+                        <stop offset="30%" stopColor="#ff6b35" stopOpacity={0.4} />
+                        <stop offset="60%" stopColor="#f7931e" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#e85d04" stopOpacity={0.05} />
+                      </linearGradient>
+                      <linearGradient id="strokeRevenuePremium" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#e85d04" />
+                        <stop offset="50%" stopColor="#ff6b35" />
+                        <stop offset="100%" stopColor="#f7931e" />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="date" tickFormatter={formatDate} className="text-xs" />
-                    <YAxis tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}k`} className="text-xs" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                     <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />
-                    <Area type="monotone" dataKey="revenue" stroke="oklch(0.7 0.18 50)" fillOpacity={1} fill="url(#fillRevenue)" />
+                    <Area type="monotone" dataKey="revenue" stroke="url(#strokeRevenuePremium)" strokeWidth={3} fillOpacity={1} fill="url(#fillRevenuePremium)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -189,20 +205,34 @@ export default function DashboardPage() {
 
       case 'orders-chart':
         return (
-          <Card className="h-full bg-card/80 backdrop-blur-sm">
-            <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
-              <CardTitle className="text-sm sm:text-base">注文数推移</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">過去7日間の注文数</CardDescription>
+          <Card className="h-full border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="pb-2 p-4 sm:p-6 sm:pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">注文数推移</CardTitle>
+                  <CardDescription className="text-xs text-slate-400">過去7日間</CardDescription>
+                </div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg btn-premium">
+                  <ShoppingCart className="h-4 w-4 text-white" />
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+            <CardContent className="p-4 sm:p-6 pt-0">
               <ChartContainer config={ordersChartConfig} className="h-[180px] sm:h-[200px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={mockRevenueData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="date" tickFormatter={formatDate} className="text-xs" />
-                    <YAxis className="text-xs" />
+                    <defs>
+                      <linearGradient id="barGradientPremium" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ff8a47" />
+                        <stop offset="50%" stopColor="#f7931e" />
+                        <stop offset="100%" stopColor="#e85d04" />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="orders" fill="oklch(0.65 0.15 180)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="orders" fill="url(#barGradientPremium)" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -212,156 +242,141 @@ export default function DashboardPage() {
 
       case 'recent-orders':
         return (
-          <div className="h-full rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border shadow-lg">
-            <div className="p-4 border-b bg-gradient-to-r from-purple-500/10 via-transparent to-pink-500/10">
+          <Card className="h-full border-0 shadow-sm bg-white dark:bg-slate-900">
+            <CardHeader className="p-4 sm:p-6 pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/25">
-                    <ShoppingCart className="h-5 w-5 text-white" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-950">
+                    <CreditCard className="h-4 w-4 text-orange-500" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">最近の注文</h3>
-                    <p className="text-xs text-muted-foreground">直近の注文一覧</p>
+                    <CardTitle className="text-sm font-medium">最近の注文</CardTitle>
+                    <CardDescription className="text-xs">直近の注文一覧</CardDescription>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="rounded-full" asChild>
+                <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50 h-8 px-3" asChild>
                   <Link href="/orders">すべて見る<ArrowRight className="ml-1 h-3 w-3" /></Link>
                 </Button>
               </div>
-            </div>
-            <div className="p-4 space-y-2">
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0 space-y-1">
               {mockRecentOrders.map((order) => (
-                <div key={order.id} className="group flex items-center justify-between rounded-xl p-3 transition-all hover:bg-gradient-to-r hover:from-purple-500/5 hover:to-pink-500/5 hover:shadow-md border border-transparent hover:border-purple-200/50">
+                <div key={order.id} className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:scale-110",
-                      order.status === 'pending' && "bg-amber-100 dark:bg-amber-900/30",
-                      order.status === 'processing' && "bg-blue-100 dark:bg-blue-900/30",
-                      order.status === 'delivered' && "bg-emerald-100 dark:bg-emerald-900/30",
-                    )}>
-                      <ShoppingCart className={cn(
-                        "h-4 w-4",
-                        order.status === 'pending' && "text-amber-600",
-                        order.status === 'processing' && "text-blue-600",
-                        order.status === 'delivered' && "text-emerald-600",
-                      )} />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                        {order.customerName.slice(0, 2)}
+                      </span>
                     </div>
                     <div>
-                      <p className="font-semibold text-sm">{order.orderNumber}</p>
-                      <p className="text-xs text-muted-foreground">{order.customerName}</p>
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{order.orderNumber}</p>
+                      <p className="text-xs text-slate-500">{order.customerName}</p>
                     </div>
                   </div>
                   <div className="text-right flex items-center gap-3">
-                    <p className="font-bold text-sm">{formatCurrency(order.total)}</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(order.total)}</p>
                     <Badge className={cn(
-                      "text-xs rounded-full px-3",
-                      order.status === 'pending' && "bg-amber-100 text-amber-700",
-                      order.status === 'processing' && "bg-blue-100 text-blue-700",
-                      order.status === 'delivered' && "bg-emerald-100 text-emerald-700",
-                    )}>
+                      "text-[10px] font-medium rounded-full px-2 py-0.5",
+                      order.status === 'pending' && "bg-amber-50 text-amber-600 border-amber-200",
+                      order.status === 'processing' && "bg-blue-50 text-blue-600 border-blue-200",
+                      order.status === 'delivered' && "bg-emerald-50 text-emerald-600 border-emerald-200",
+                    )} variant="outline">
                       {orderStatusConfig[order.status].label}
                     </Badge>
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         );
 
       case 'popular-products':
         return (
-          <div className="h-full rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border shadow-lg">
-            <div className="p-4 border-b bg-gradient-to-r from-blue-500/10 via-transparent to-cyan-500/10">
+          <Card className="h-full border-0 shadow-sm bg-white dark:bg-slate-900">
+            <CardHeader className="p-4 sm:p-6 pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25">
-                    <Package className="h-4 w-4 text-white" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-950">
+                    <Package className="h-4 w-4 text-orange-500" />
                   </div>
-                  <h3 className="font-semibold">人気商品</h3>
+                  <CardTitle className="text-sm font-medium">人気商品</CardTitle>
                 </div>
-                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8" asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-orange-500" asChild>
                   <Link href="/products"><ArrowRight className="h-4 w-4" /></Link>
                 </Button>
               </div>
-            </div>
-            <div className="p-4 space-y-2">
-              {mockTopProducts.slice(0, 3).map((product, index) => {
-                const rankColors = ["from-amber-400 to-yellow-500", "from-slate-300 to-slate-400", "from-orange-400 to-amber-600"];
-                return (
-                  <div key={product.id} className="group flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-gradient-to-r hover:from-blue-500/5 hover:to-cyan-500/5">
-                    <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br text-white text-xs font-bold shadow-lg", rankColors[index])}>
-                      {index + 1}
-                    </div>
-                    <Avatar className="h-9 w-9 rounded-lg border-2 border-white shadow-md">
-                      <AvatarImage src={product.image} />
-                      <AvatarFallback className="text-xs">{product.name.slice(0, 2)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">{product.sales}件販売</p>
-                    </div>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0 space-y-3">
+              {mockTopProducts.slice(0, 4).map((product, index) => (
+                <div key={product.id} className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-slate-400 w-4">{index + 1}</span>
+                  <Avatar className="h-10 w-10 rounded-lg border border-slate-100 dark:border-slate-800">
+                    <AvatarImage src={product.image} className="object-cover" />
+                    <AvatarFallback className="text-xs bg-slate-100 dark:bg-slate-800 rounded-lg">{product.name.slice(0, 2)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{product.name}</p>
+                    <p className="text-xs text-slate-500">{product.sales}件販売</p>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatCurrency(product.revenue)}</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         );
 
       case 'stock-alert':
         return (
-          <div className={cn(
-            "h-full rounded-xl overflow-hidden border shadow-lg",
-            lowStockItems.length > 0 
-              ? "bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border-red-200" 
-              : "bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800"
+          <Card className={cn(
+            "h-full border-0 shadow-sm",
+            lowStockItems.length > 0 ? "bg-orange-50 dark:bg-orange-950/30" : "bg-white dark:bg-slate-900"
           )}>
-            <div className={cn(
-              "p-4 border-b",
-              lowStockItems.length > 0 ? "bg-gradient-to-r from-red-500/10 via-transparent to-orange-500/10" : ""
-            )}>
+            <CardHeader className="p-4 sm:p-6 pb-3">
               <div className="flex items-center gap-3">
                 <div className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-xl shadow-lg",
-                  lowStockItems.length > 0 ? "bg-gradient-to-br from-red-500 to-orange-500" : "bg-gradient-to-br from-slate-400 to-slate-500"
+                  "flex h-8 w-8 items-center justify-center rounded-lg",
+                  lowStockItems.length > 0 ? "bg-orange-100 dark:bg-orange-900" : "bg-slate-100 dark:bg-slate-800"
                 )}>
-                  <AlertCircle className="h-4 w-4 text-white" />
+                  <AlertCircle className={cn("h-4 w-4", lowStockItems.length > 0 ? "text-orange-500" : "text-slate-400")} />
                 </div>
                 <div>
-                  <h3 className="font-semibold">在庫アラート</h3>
-                  {lowStockItems.length > 0 && <p className="text-xs text-red-600">{lowStockItems.length}件の警告</p>}
+                  <CardTitle className="text-sm font-medium">在庫アラート</CardTitle>
+                  {lowStockItems.length > 0 && <CardDescription className="text-xs text-orange-600">{lowStockItems.length}件の警告</CardDescription>}
                 </div>
               </div>
-            </div>
-            <div className="p-4">
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0">
               {lowStockItems.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {lowStockItems.map((item) => (
-                    <div key={`${item.productId}-${item.variantId}`} className="flex items-center justify-between rounded-xl bg-white/60 dark:bg-slate-800/60 p-3 border border-red-200/50">
+                    <div key={`${item.productId}-${item.variantId}`} className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-slate-900 border border-orange-100 dark:border-orange-900">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-red-100 flex items-center justify-center">
-                          <Package className="h-4 w-4 text-red-600" />
+                        <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
+                          <Package className="h-4 w-4 text-orange-500" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{item.productName}</p>
-                          <p className="text-xs text-muted-foreground">{item.variantName}</p>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{item.productName}</p>
+                          <p className="text-xs text-slate-500">{item.variantName}</p>
                         </div>
                       </div>
-                      <Badge className="bg-gradient-to-r from-red-500 to-orange-500 text-white border-0 rounded-full px-3">
+                      <Badge className="bg-orange-500 text-white border-0 rounded-full text-xs px-2">
                         残り{item.availableStock}点
                       </Badge>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 mb-2">
-                    <Package className="h-6 w-6 text-emerald-600" />
+                <div className="text-center py-6">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950 mb-3">
+                    <Package className="h-5 w-5 text-emerald-500" />
                   </div>
-                  <p className="text-sm text-muted-foreground">在庫は十分です</p>
+                  <p className="text-sm text-slate-500">在庫は十分です</p>
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         );
 
       default:
@@ -386,121 +401,97 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* ページタイトル */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">ダッシュボード</h1>
-          <p className="text-sm text-muted-foreground hidden sm:block">ショップの概要と最新情報をご確認ください</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">ダッシュボード</h1>
+          <p className="text-sm text-slate-500 hidden sm:block">ショップの概要と最新情報</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant={isEditing ? "default" : "outline"}
             size="sm"
             onClick={() => setIsEditing(!isEditing)}
-            className={cn("hidden sm:flex", isEditing && "bg-orange-500 hover:bg-orange-600")}
+            className={cn("hidden sm:flex border-slate-200 text-slate-600", isEditing && "btn-premium")}
           >
-            {isEditing ? (<><Lock className="mr-2 h-4 w-4" />編集完了</>) : (<><Unlock className="mr-2 h-4 w-4" />レイアウト編集</>)}
+            {isEditing ? (<><Lock className="mr-2 h-4 w-4" />完了</>) : (<><Unlock className="mr-2 h-4 w-4" />編集</>)}
           </Button>
-          {isEditing && <Button variant="outline" size="sm" className="hidden sm:flex" onClick={resetLayout}>リセット</Button>}
-          <Button className="gradient-brand text-white hover:opacity-90 text-sm" size="sm" asChild>
+          {isEditing && <Button variant="outline" size="sm" className="hidden sm:flex border-slate-200" onClick={resetLayout}>リセット</Button>}
+          <Button className="btn-premium text-sm" size="sm" asChild>
             <Link href="/reports">レポートを見る</Link>
           </Button>
         </div>
       </div>
 
-      {/* 統計カード（固定） */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {/* 総売上 */}
-        <div className="h-[100px] sm:h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-pink-400 via-pink-500 to-rose-500 p-3 sm:p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-            <path d="M100,20 C70,35 85,60 70,100 L100,100 Z" fill="white" opacity="0.5"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
-                <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-[10px] sm:text-xs font-medium">総売上</p>
+      {/* メイン統計カード - 横4枚レイアウト */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        {/* 総売上 - 薄いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+              <DollarSign className="h-4 w-4 text-orange-500" />
             </div>
-            <div>
-              <div className="text-lg sm:text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</div>
-              <div className="flex items-center gap-1 text-[10px] sm:text-xs mt-0.5 sm:mt-1">
-                {stats.revenueChange >= 0 ? (<><TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" /><span className="text-white font-medium">+{stats.revenueChange}%</span></>) : (<><TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white/80" /><span className="text-white/80 font-medium">{stats.revenueChange}%</span></>)}
-                <span className="text-white/70 hidden sm:inline">先月比</span>
-              </div>
-            </div>
+            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">総売上</span>
+          </div>
+          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100">¥{formatNumber(stats.totalRevenue)}</p>
+          <div className="flex items-center gap-1 mt-1">
+            {stats.revenueChange >= 0 ? (
+              <><TrendingUp className="h-3 w-3 text-emerald-500" /><span className="text-xs text-emerald-600">+{stats.revenueChange}%</span></>
+            ) : (
+              <><TrendingDown className="h-3 w-3 text-red-500" /><span className="text-xs text-red-500">{stats.revenueChange}%</span></>
+            )}
           </div>
         </div>
 
-        {/* 注文数 */}
-        <div className="h-[100px] sm:h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-violet-500 via-purple-500 to-purple-600 p-3 sm:p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-            <path d="M100,20 C70,35 85,60 70,100 L100,100 Z" fill="white" opacity="0.5"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
-                <ShoppingCart className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-[10px] sm:text-xs font-medium">注文数</p>
+        {/* 注文数 - やや濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+              <ShoppingCart className="h-4 w-4 text-orange-600" />
             </div>
-            <div>
-              <div className="text-lg sm:text-2xl font-bold text-white">{formatNumber(stats.totalOrders)}</div>
-              <div className="flex items-center gap-1 text-[10px] sm:text-xs mt-0.5 sm:mt-1">
-                {stats.ordersChange >= 0 ? (<><TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" /><span className="text-white font-medium">+{stats.ordersChange}%</span></>) : (<><TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white/80" /><span className="text-white/80 font-medium">{stats.ordersChange}%</span></>)}
-                <span className="text-white/70 hidden sm:inline">先月比</span>
-              </div>
-            </div>
+            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">注文数</span>
+          </div>
+          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{formatNumber(stats.totalOrders)}</p>
+          <div className="flex items-center gap-1 mt-1">
+            {stats.ordersChange >= 0 ? (
+              <><TrendingUp className="h-3 w-3 text-emerald-500" /><span className="text-xs text-emerald-600">+{stats.ordersChange}%</span></>
+            ) : (
+              <><TrendingDown className="h-3 w-3 text-red-500" /><span className="text-xs text-red-500">{stats.ordersChange}%</span></>
+            )}
           </div>
         </div>
 
-        {/* 商品数 */}
-        <div className="h-[100px] sm:h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-blue-400 via-blue-500 to-cyan-500 p-3 sm:p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-            <path d="M100,20 C70,35 85,60 70,100 L100,100 Z" fill="white" opacity="0.5"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
-                <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-[10px] sm:text-xs font-medium">商品数</p>
+        {/* 商品数 - 濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
+              <Package className="h-4 w-4 text-orange-600" />
             </div>
-            <div>
-              <div className="text-lg sm:text-2xl font-bold text-white">{formatNumber(stats.totalProducts)}</div>
-              <div className="flex items-center gap-1 text-[10px] sm:text-xs mt-0.5 sm:mt-1">
-                <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
-                <span className="text-white font-medium">+{stats.productsChange}</span>
-                <span className="text-white/70 hidden sm:inline">今月追加</span>
-              </div>
-            </div>
+            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">商品数</span>
+          </div>
+          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{formatNumber(stats.totalProducts)}</p>
+          <div className="flex items-center gap-1 mt-1">
+            <TrendingUp className="h-3 w-3 text-emerald-500" />
+            <span className="text-xs text-emerald-600">+{stats.productsChange}</span>
           </div>
         </div>
 
-        {/* 顧客数 */}
-        <div className="h-[100px] sm:h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-amber-400 via-orange-400 to-orange-500 p-3 sm:p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-            <path d="M100,20 C70,35 85,60 70,100 L100,100 Z" fill="white" opacity="0.5"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
-                <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-[10px] sm:text-xs font-medium">顧客数</p>
+        {/* 顧客数 - 最も濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
+              <Users className="h-4 w-4 text-white" />
             </div>
-            <div>
-              <div className="text-lg sm:text-2xl font-bold text-white">{formatNumber(stats.totalCustomers)}</div>
-              <div className="flex items-center gap-1 text-[10px] sm:text-xs mt-0.5 sm:mt-1">
-                {stats.customersChange >= 0 ? (<><TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" /><span className="text-white font-medium">+{stats.customersChange}%</span></>) : (<><TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white/80" /><span className="text-white/80 font-medium">{stats.customersChange}%</span></>)}
-                <span className="text-white/70 hidden sm:inline">先月比</span>
-              </div>
-            </div>
+            <span className="text-xs font-medium text-white/90">顧客数</span>
+          </div>
+          <p className="text-xl sm:text-2xl font-bold text-white">{formatNumber(stats.totalCustomers)}</p>
+          <div className="flex items-center gap-1 mt-1">
+            {stats.customersChange >= 0 ? (
+              <><TrendingUp className="h-3 w-3 text-white/80" /><span className="text-xs text-white/80">+{stats.customersChange}%</span></>
+            ) : (
+              <><TrendingDown className="h-3 w-3 text-white/80" /><span className="text-xs text-white/80">{stats.customersChange}%</span></>
+            )}
           </div>
         </div>
       </div>
@@ -508,14 +499,14 @@ export default function DashboardPage() {
       {/* ドラッグ可能なウィジェットエリア */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={widgetOrder} strategy={rectSortingStrategy}>
-          <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             {widgetOrder.slice(0, 2).map((id) => (
               <SortableWidget key={id} id={id} isEditing={isEditing} className={getWidgetClass(id)}>
                 {renderWidget(id)}
               </SortableWidget>
             ))}
           </div>
-          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mt-3 sm:mt-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mt-4">
             {widgetOrder.slice(2).map((id) => (
               <SortableWidget key={id} id={id} isEditing={isEditing} className={getWidgetClass(id)}>
                 {renderWidget(id)}

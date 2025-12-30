@@ -57,7 +57,7 @@ export default function ProductDetailPage() {
             <Eye className="mr-2 h-4 w-4" />
             プレビュー
           </Button>
-          <Button asChild className="gradient-brand text-white">
+          <Button asChild className="btn-premium">
             <Link href={`/products/${product.id}/edit`}>
               <Pencil className="mr-2 h-4 w-4" />
               編集

@@ -113,7 +113,7 @@ export default function ContentsPage() {
             記事・ニュース・特集などのコンテンツを管理します
           </p>
         </div>
-        <Button asChild className="gradient-brand text-white hover:opacity-90">
+        <Button asChild className="btn-premium">
           <Link href="/contents/new">
             <Plus className="mr-2 h-4 w-4" />
             コンテンツを作成
@@ -131,38 +131,57 @@ export default function ContentsPage() {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          {/* 統計カード */}
+          {/* 統計カード - オレンジグラデーション */}
           <div className="grid gap-4 md:grid-cols-4">
-            <Card className="widget-card-blue border-0 shadow-lg">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-white/80">全コンテンツ</CardDescription>
-                <CardTitle className="text-3xl font-bold text-white">{mockContents.length}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card className="widget-card-green border-0 shadow-lg">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-white/80">公開中</CardDescription>
-                <CardTitle className="text-3xl font-bold text-white">
-                  {mockContents.filter((c) => c.status === 'published').length}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card className="widget-card-amber border-0 shadow-lg">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-white/80">下書き</CardDescription>
-                <CardTitle className="text-3xl font-bold text-white">
-                  {mockContents.filter((c) => c.status === 'draft').length}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card className="widget-card-purple border-0 shadow-lg">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-white/80">予約公開</CardDescription>
-                <CardTitle className="text-3xl font-bold text-white">
-                  {mockContents.filter((c) => c.scheduledAt).length}
-                </CardTitle>
-              </CardHeader>
-            </Card>
+            {/* 全コンテンツ - 薄いオレンジ */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+                  <FileText className="h-4 w-4 text-orange-500" />
+                </div>
+                <span className="text-xs font-medium text-orange-700 dark:text-orange-300">全コンテンツ</span>
+              </div>
+              <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{mockContents.length}</p>
+            </div>
+            
+            {/* 公開中 - やや濃いオレンジ */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+                  <Eye className="h-4 w-4 text-orange-600" />
+                </div>
+                <span className="text-xs font-medium text-orange-800 dark:text-orange-200">公開中</span>
+              </div>
+              <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
+                {mockContents.filter((c) => c.status === 'published').length}
+              </p>
+            </div>
+            
+            {/* 下書き - 濃いオレンジ */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
+                  <Edit className="h-4 w-4 text-orange-600" />
+                </div>
+                <span className="text-xs font-medium text-orange-800 dark:text-orange-200">下書き</span>
+              </div>
+              <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
+                {mockContents.filter((c) => c.status === 'draft').length}
+              </p>
+            </div>
+            
+            {/* 予約公開 - 最も濃いオレンジ */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
+                  <Calendar className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-xs font-medium text-white/90">予約公開</span>
+              </div>
+              <p className="text-3xl font-bold text-white">
+                {mockContents.filter((c) => c.scheduledAt).length}
+              </p>
+            </div>
           </div>
 
           {/* フィルター・検索 */}

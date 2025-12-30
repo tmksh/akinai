@@ -108,81 +108,69 @@ export default function InventoryPage() {
         </Button>
       </div>
 
-      {/* サマリーカード */}
+      {/* サマリーカード - オレンジグラデーション */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* 在庫健全度 */}
-        <Card className="widget-card-blue border-0 shadow-lg col-span-1 md:col-span-2 lg:col-span-1">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-white/80">
-              <Boxes className="h-4 w-4" />
-              在庫健全度
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold text-white">{healthPercentage}%</span>
-              <span className="text-sm text-white/70 mb-1">正常</span>
+        {/* 在庫健全度 - 薄いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+              <Boxes className="h-4 w-4 text-orange-500" />
             </div>
-            <div className="mt-3 h-2 w-full rounded-full bg-white/20 overflow-hidden">
-              <div 
-                className="h-full bg-white transition-all"
-                style={{ width: `${healthPercentage}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">在庫健全度</span>
+          </div>
+          <div className="flex items-end gap-2">
+            <span className="text-3xl font-bold text-orange-900 dark:text-orange-100">{healthPercentage}%</span>
+            <span className="text-sm text-orange-600 dark:text-orange-400 mb-1">正常</span>
+          </div>
+          <div className="mt-3 h-2 w-full rounded-full bg-orange-200/50 dark:bg-orange-800/30 overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-orange-400 to-amber-500 transition-all rounded-full"
+              style={{ width: `${healthPercentage}%` }}
+            />
+          </div>
+        </div>
 
-        {/* 在庫あり */}
-        <Card className="widget-card-green border-0 shadow-lg">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-white/80">
-              <CheckCircle2 className="h-4 w-4" />
-              在庫あり
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-white">{healthyItems}</span>
-              <span className="text-sm text-white/70">/ {totalItems} SKU</span>
+        {/* 在庫あり - やや濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+              <CheckCircle2 className="h-4 w-4 text-orange-600" />
             </div>
-          </CardContent>
-        </Card>
+            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">在庫あり</span>
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-bold text-orange-900 dark:text-orange-100">{healthyItems}</span>
+            <span className="text-sm text-orange-600 dark:text-orange-400">/ {totalItems} SKU</span>
+          </div>
+        </div>
 
-        {/* 在庫少 */}
-        <Card className="widget-card-amber border-0 shadow-lg">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-white/80">
-              <TrendingDown className="h-4 w-4" />
-              在庫少
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-white">
-                {lowStockItems}
-              </span>
-              <span className="text-sm text-white/70">SKU</span>
+        {/* 在庫少 - 濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
+              <TrendingDown className="h-4 w-4 text-orange-600" />
             </div>
-          </CardContent>
-        </Card>
+            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">在庫少</span>
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-bold text-orange-900 dark:text-orange-100">{lowStockItems}</span>
+            <span className="text-sm text-orange-700 dark:text-orange-300">SKU</span>
+          </div>
+        </div>
 
-        {/* 在庫切れ */}
-        <Card className="widget-card-red border-0 shadow-lg">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-white/80">
-              <XCircle className="h-4 w-4" />
-              在庫切れ
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-white">
-                {outOfStockItems}
-              </span>
-              <span className="text-sm text-white/70">SKU</span>
+        {/* 在庫切れ - 最も濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
+              <XCircle className="h-4 w-4 text-white" />
             </div>
-          </CardContent>
-        </Card>
+            <span className="text-xs font-medium text-white/90">在庫切れ</span>
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-bold text-white">{outOfStockItems}</span>
+            <span className="text-sm text-white/80">SKU</span>
+          </div>
+        </div>
       </div>
 
       {/* 検索・フィルター */}
@@ -384,7 +372,7 @@ export default function InventoryPage() {
                       </div>
                       <DialogFooter>
                         <Button variant="outline" className="rounded-xl">キャンセル</Button>
-                        <Button className="gradient-brand text-white rounded-xl">
+                        <Button className="btn-premium rounded-xl">
                           調整を実行
                         </Button>
                       </DialogFooter>

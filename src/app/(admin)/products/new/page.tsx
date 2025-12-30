@@ -122,30 +122,32 @@ export default function NewProductPage() {
   return (
     <div className="space-y-6">
       {/* ページヘッダー */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" asChild className="shrink-0">
             <Link href="/products">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">商品を追加</h1>
-            <p className="text-muted-foreground">新しい商品を登録します</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">商品を追加</h1>
+            <p className="text-sm text-muted-foreground hidden sm:block">新しい商品を登録します</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
+        <div className="flex gap-2 ml-11 sm:ml-0">
+          <Button variant="outline" size="sm" className="hidden sm:flex">
             <Eye className="mr-2 h-4 w-4" />
             プレビュー
           </Button>
-          <Button variant="outline" onClick={() => handleSave(false)}>
-            <Save className="mr-2 h-4 w-4" />
-            下書き保存
+          <Button variant="outline" size="sm" onClick={() => handleSave(false)}>
+            <Save className="sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">下書き保存</span>
+            <span className="sm:hidden">下書き</span>
           </Button>
           <Button
             onClick={() => handleSave(true)}
-            className="gradient-brand text-white hover:opacity-90"
+            className="btn-premium"
+            size="sm"
           >
             公開する
           </Button>
@@ -442,6 +444,7 @@ export default function NewProductPage() {
     </div>
   );
 }
+
 
 
 

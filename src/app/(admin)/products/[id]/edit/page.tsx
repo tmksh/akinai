@@ -72,7 +72,7 @@ export default function ProductEditPage() {
             <Eye className="mr-2 h-4 w-4" />
             プレビュー
           </Button>
-          <Button className="gradient-brand text-white">
+          <Button className="btn-premium">
             <Save className="mr-2 h-4 w-4" />
             保存
           </Button>

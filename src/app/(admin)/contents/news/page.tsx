@@ -19,7 +19,7 @@ export default function NewsPage() {
           <h1 className="text-2xl font-bold">ニュース</h1>
           <p className="text-muted-foreground">ニュース記事の管理を行います</p>
         </div>
-        <Button className="gradient-brand text-white" asChild>
+        <Button className="btn-premium" asChild>
           <Link href="/contents/new">
             <Plus className="mr-2 h-4 w-4" />
             ニュースを作成
@@ -72,7 +72,7 @@ export default function NewsPage() {
               <p className="text-muted-foreground mb-4">
                 最初のニュース記事を作成しましょう
               </p>
-              <Button className="gradient-brand text-white" asChild>
+              <Button className="btn-premium" asChild>
                 <Link href="/contents/new">
                   <Plus className="mr-2 h-4 w-4" />
                   ニュースを作成

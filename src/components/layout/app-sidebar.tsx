@@ -62,15 +62,15 @@ const navigationItems = [
     title: 'ダッシュボード',
     icon: LayoutDashboard,
     href: '/dashboard',
-    color: 'text-rose-500',
-    hoverClass: 'sidebar-hover-rose',
+    color: 'text-orange-500',
+    hoverClass: 'sidebar-hover-orange',
   },
   {
     title: '商品管理',
     icon: Package,
     href: '/products',
-    color: 'text-blue-500',
-    hoverClass: 'sidebar-hover-blue',
+    color: 'text-orange-500',
+    hoverClass: 'sidebar-hover-orange',
     items: [
       { title: '商品一覧', href: '/products' },
       { title: '商品登録', href: '/products/new' },
@@ -81,8 +81,8 @@ const navigationItems = [
     title: '在庫管理',
     icon: Warehouse,
     href: '/inventory',
-    color: 'text-amber-500',
-    hoverClass: 'sidebar-hover-amber',
+    color: 'text-orange-500',
+    hoverClass: 'sidebar-hover-orange',
     items: [
       { title: '在庫一覧', href: '/inventory' },
       { title: '入出庫履歴', href: '/inventory/movements' },
@@ -93,8 +93,8 @@ const navigationItems = [
     title: 'コンテンツ',
     icon: FileText,
     href: '/contents',
-    color: 'text-emerald-500',
-    hoverClass: 'sidebar-hover-emerald',
+    color: 'text-orange-500',
+    hoverClass: 'sidebar-hover-orange',
     items: [
       { title: '記事一覧', href: '/contents' },
       { title: '記事作成', href: '/contents/new' },
@@ -106,15 +106,15 @@ const navigationItems = [
     title: '注文管理',
     icon: ShoppingCart,
     href: '/orders',
-    color: 'text-purple-500',
-    hoverClass: 'sidebar-hover-purple',
+    color: 'text-orange-500',
+    hoverClass: 'sidebar-hover-orange',
   },
   {
     title: '見積管理',
     icon: FileQuestion,
     href: '/quotes',
-    color: 'text-cyan-500',
-    hoverClass: 'sidebar-hover-cyan',
+    color: 'text-orange-500',
+    hoverClass: 'sidebar-hover-orange',
   },
   {
     title: '顧客管理',
@@ -127,8 +127,8 @@ const navigationItems = [
     title: '代理店管理',
     icon: Building2,
     href: '/agents',
-    color: 'text-indigo-500',
-    hoverClass: 'sidebar-hover-indigo',
+    color: 'text-orange-500',
+    hoverClass: 'sidebar-hover-orange',
   },
 ];
 
@@ -137,8 +137,8 @@ const analyticsItems = [
     title: 'レポート',
     icon: BarChart3,
     href: '/reports',
-    color: 'text-violet-500',
-    hoverClass: 'sidebar-hover-violet',
+    color: 'text-orange-500',
+    hoverClass: 'sidebar-hover-orange',
   },
 ];
 
@@ -205,7 +205,7 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="text-lg font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
-              商い
+              アキナイ
             </span>
             <span className="text-xs text-muted-foreground">
               Akinai CMS

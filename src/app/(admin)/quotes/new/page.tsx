@@ -14,6 +14,7 @@ import {
   Send,
   Package,
   Percent,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,7 @@ import {
 } from '@/components/ui/table';
 import { mockCustomers, mockProducts } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
+import { QuotePreview } from '@/components/quotes/quote-preview';
 
 interface QuoteItem {
   id: string;
@@ -70,10 +72,18 @@ export default function NewQuotePage() {
   const [terms, setTerms] = useState('納期：発注後2週間以内\n支払条件：月末締め翌月末払い');
   const [items, setItems] = useState<QuoteItem[]>([]);
   const [showProductDialog, setShowProductDialog] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [productSearch, setProductSearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const selectedCustomer = mockCustomers.find((c) => c.id === customerId);
+  
+  // 見積番号を生成（実際はAPIから取得）
+  const quoteNumber = `QT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+  
+  // 有効期限を計算
+  const validUntilDate = new Date(Date.now() + parseInt(validDays) * 24 * 60 * 60 * 1000);
+  const validUntil = validUntilDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
 
   // 商品フィルタリング
   const filteredProducts = mockProducts.filter((p) =>
@@ -167,15 +177,43 @@ export default function NewQuotePage() {
             下書き保存
           </Button>
           <Button
-            className="gradient-brand text-white"
-            onClick={() => handleSave(true)}
-            disabled={!customerId || items.length === 0 || isSaving}
+            className="btn-premium"
+            onClick={() => setShowPreview(true)}
+            disabled={!customerId || items.length === 0}
           >
-            <Send className="mr-2 h-4 w-4" />
-            作成して送付
+            <Eye className="mr-2 h-4 w-4" />
+            プレビュー・送付
           </Button>
         </div>
       </div>
+
+      {/* 見積プレビューダイアログ */}
+      <QuotePreview
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        quoteNumber={quoteNumber}
+        customer={selectedCustomer ? {
+          name: selectedCustomer.name,
+          company: selectedCustomer.company,
+          email: selectedCustomer.email,
+          phone: selectedCustomer.phone,
+          address: selectedCustomer.addresses[selectedCustomer.defaultAddressIndex]
+            ? `${selectedCustomer.addresses[selectedCustomer.defaultAddressIndex].prefecture}${selectedCustomer.addresses[selectedCustomer.defaultAddressIndex].city}${selectedCustomer.addresses[selectedCustomer.defaultAddressIndex].line1}`
+            : undefined,
+        } : null}
+        items={items}
+        subtotal={subtotal}
+        tax={tax}
+        total={total}
+        validUntil={validUntil}
+        notes={notes}
+        terms={terms}
+        onSend={() => {
+          setShowPreview(false);
+          handleSave(true);
+        }}
+        isSending={isSaving}
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* メインフォーム */}
@@ -482,4 +520,5 @@ export default function NewQuotePage() {
     </div>
   );
 }
+
 

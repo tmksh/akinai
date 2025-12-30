@@ -104,7 +104,7 @@ export default function StockMovementsPage() {
           </Button>
           <Dialog open={showNewMovementDialog} onOpenChange={setShowNewMovementDialog}>
             <DialogTrigger asChild>
-              <Button className="gradient-brand text-white">
+              <Button className="btn-premium">
                 <Plus className="mr-2 h-4 w-4" />
                 入出庫登録
               </Button>
@@ -185,78 +185,54 @@ export default function StockMovementsPage() {
         </div>
       </div>
 
-      {/* 統計カード */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-emerald-400 via-emerald-500 to-green-500 p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
-                <ArrowDownLeft className="h-3.5 w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-xs font-medium">総入庫数</p>
+      {/* 統計カード - オレンジグラデーション */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        {/* 総入庫数 - 薄いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+              <ArrowDownLeft className="h-4 w-4 text-orange-500" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-white">{stats.totalIn}</div>
-              <p className="text-white/70 text-xs">個</p>
-            </div>
+            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">総入庫数</span>
           </div>
+          <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.totalIn}</div>
+          <p className="text-xs text-orange-600 dark:text-orange-400">個</p>
         </div>
 
-        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-500 p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
-                <ArrowUpRight className="h-3.5 w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-xs font-medium">総出庫数</p>
+        {/* 総出庫数 - やや濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+              <ArrowUpRight className="h-4 w-4 text-orange-600" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-white">{stats.totalOut}</div>
-              <p className="text-white/70 text-xs">個</p>
-            </div>
+            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">総出庫数</span>
           </div>
+          <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.totalOut}</div>
+          <p className="text-xs text-orange-600 dark:text-orange-400">個</p>
         </div>
 
-        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
-                <RefreshCw className="h-3.5 w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-xs font-medium">在庫調整</p>
+        {/* 在庫調整 - 濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
+              <RefreshCw className="h-4 w-4 text-orange-600" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-white">{stats.adjustments}</div>
-              <p className="text-white/70 text-xs">件</p>
-            </div>
+            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">在庫調整</span>
           </div>
+          <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.adjustments}</div>
+          <p className="text-xs text-orange-700 dark:text-orange-300">件</p>
         </div>
 
-        <div className="h-[120px] rounded-xl relative overflow-hidden bg-gradient-to-br from-violet-500 via-purple-500 to-purple-600 p-4 shadow-lg">
-          <svg className="absolute right-0 bottom-0 h-full w-1/2 opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M100,0 C60,20 80,50 60,100 L100,100 Z" fill="white"/>
-          </svg>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
-                <Calendar className="h-3.5 w-3.5 text-white" />
-              </div>
-              <p className="text-white/80 text-xs font-medium">本日の処理</p>
+        {/* 本日の処理 - 最も濃いオレンジ */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
+              <Calendar className="h-4 w-4 text-white" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-white">{stats.today}</div>
-              <p className="text-white/70 text-xs">件</p>
-            </div>
+            <span className="text-xs font-medium text-white/90">本日の処理</span>
           </div>
+          <div className="text-2xl font-bold text-white">{stats.today}</div>
+          <p className="text-xs text-white/80">件</p>
         </div>
       </div>
 
@@ -390,4 +366,5 @@ export default function StockMovementsPage() {
     </div>
   );
 }
+
 

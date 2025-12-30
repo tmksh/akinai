@@ -18,7 +18,7 @@ export default function FeaturesSettingsPage() {
             システム機能のオン/オフを管理します
           </p>
         </div>
-        <Button className="gradient-brand text-white">
+        <Button className="btn-premium">
           <Save className="mr-2 h-4 w-4" />
           設定を保存
         </Button>
@@ -173,6 +173,7 @@ export default function FeaturesSettingsPage() {
     </div>
   );
 }
+
 
 
 

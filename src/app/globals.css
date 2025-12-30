@@ -216,20 +216,121 @@
     box-shadow: 0 0 40px oklch(0.7 0.18 50 / 0.2);
   }
   
+  /* 高級感のあるオレンジグラデーション - 参考画像のようなブラー効果 */
+  .gradient-premium {
+    background: linear-gradient(135deg, 
+      #ff6b35 0%,
+      #f7931e 25%,
+      #ffb347 50%,
+      #ff8c42 75%,
+      #e85d04 100%
+    );
+    position: relative;
+  }
+  .gradient-premium::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(255, 215, 0, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(255, 100, 50, 0.2) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  
+  /* 高級CTAボタン */
+  .btn-premium {
+    background: linear-gradient(135deg, 
+      #ff8a47 0%,
+      #ff6b35 30%,
+      #f7931e 70%,
+      #e85d04 100%
+    );
+    box-shadow: 
+      0 4px 15px rgba(255, 107, 53, 0.4),
+      0 2px 6px rgba(232, 93, 4, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-premium:hover {
+    background: linear-gradient(135deg, 
+      #ffa066 0%,
+      #ff7d4a 30%,
+      #ffab36 70%,
+      #f7751c 100%
+    );
+    box-shadow: 
+      0 8px 25px rgba(255, 107, 53, 0.5),
+      0 4px 10px rgba(232, 93, 4, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+  }
+  .btn-premium:active {
+    transform: translateY(0);
+    box-shadow: 
+      0 2px 8px rgba(255, 107, 53, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+  
+  /* プレミアムプログレスバー */
+  .progress-premium [data-slot="progress-indicator"] {
+    background: linear-gradient(90deg, 
+      #e85d04 0%,
+      #ff6b35 25%,
+      #f7931e 50%,
+      #ffb347 75%,
+      #ff8c42 100%
+    ) !important;
+    box-shadow: 0 0 10px rgba(247, 147, 30, 0.5);
+  }
+  
+  /* グラフ用グラデーション定義 */
+  .chart-gradient-orange {
+    --chart-gradient-start: #ff8a47;
+    --chart-gradient-mid: #f7931e;
+    --chart-gradient-end: #e85d04;
+  }
+  
   /* アニメーション付きグラデーションバッジ */
   .gradient-badge {
-    background: linear-gradient(135deg, oklch(0.75 0.18 55) 0%, oklch(0.65 0.2 45) 100%);
+    background: linear-gradient(135deg, 
+      #ff8a47 0%,
+      #f7931e 50%,
+      #e85d04 100%
+    );
     color: white;
     animation: pulse-glow 2s ease-in-out infinite;
   }
   
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 5px oklch(0.7 0.18 50 / 0.4);
+      box-shadow: 0 0 5px rgba(247, 147, 30, 0.4);
     }
     50% {
-      box-shadow: 0 0 20px oklch(0.7 0.18 50 / 0.6);
+      box-shadow: 0 0 20px rgba(247, 147, 30, 0.6);
     }
+  }
+  
+  /* シマーエフェクト（高級感） */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  .shimmer-effect {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
   }
   
   /* ヘッダー - クリーンな白/透明 */
@@ -398,37 +499,24 @@
   background-color: rgba(100, 116, 139, 0.2) !important;
 }
 
-/* ウィジェットカード グラデーション */
-.widget-card-pink {
-  background: linear-gradient(135deg, #f43f5e 0%, #ec4899 50%, #be185d 100%);
-  color: white;
+/* UPSIDERスタイル - モダンでクリーンなカード */
+.stat-card {
+  @apply bg-white dark:bg-slate-900 border-0 shadow-sm rounded-xl;
 }
-.widget-card-purple {
-  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #7c3aed 100%);
-  color: white;
+.stat-card-orange {
+  @apply bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900;
 }
-.widget-card-blue {
-  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #0891b2 100%);
-  color: white;
-}
-.widget-card-orange {
-  background: linear-gradient(135deg, #f97316 0%, #fb923c 50%, #ea580c 100%);
-  color: white;
-}
-.widget-card-green {
-  background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #059669 100%);
-  color: white;
-}
-.widget-card-cyan {
-  background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #0891b2 100%);
-  color: white;
-}
-.widget-card-red {
-  background: linear-gradient(135deg, #ef4444 0%, #f87171 50%, #dc2626 100%);
-  color: white;
-}
+
+/* レガシーウィジェットカード（オレンジ系に統一） */
+.widget-card-pink,
+.widget-card-purple,
+.widget-card-blue,
+.widget-card-orange,
+.widget-card-green,
+.widget-card-cyan,
+.widget-card-red,
 .widget-card-amber {
-  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #d97706 100%);
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 50%, #ea580c 100%);
   color: white;
 }
 
@@ -503,4 +591,29 @@
 }
 .react-grid-item:hover .drag-handle {
   opacity: 1;
+}
+
+/* 見積書印刷用スタイル */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .quote-preview,
+  .quote-preview * {
+    visibility: visible;
+  }
+  .quote-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 10mm !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
 }

@@ -122,7 +122,7 @@ export default function RolesSettingsPage() {
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="gradient-brand text-white">
+            <Button className="btn-premium">
               <Plus className="mr-2 h-4 w-4" />
               新規ロール作成
             </Button>
@@ -175,7 +175,7 @@ export default function RolesSettingsPage() {
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
                 キャンセル
               </Button>
-              <Button className="gradient-brand text-white">
+              <Button className="btn-premium">
                 作成して権限を設定
               </Button>
             </DialogFooter>
@@ -340,4 +340,5 @@ export default function RolesSettingsPage() {
     </div>
   );
 }
+
 

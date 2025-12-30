@@ -53,7 +53,7 @@ export default function SettingsPage() {
             サイトの基本設定と機能の管理を行います
           </p>
         </div>
-        <Button className="gradient-brand text-white hover:opacity-90">
+        <Button className="btn-premium">
           <Save className="mr-2 h-4 w-4" />
           設定を保存
         </Button>

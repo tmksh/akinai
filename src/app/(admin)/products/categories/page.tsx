@@ -21,7 +21,7 @@ export default function CategoriesPage() {
             商品カテゴリーの管理を行います
           </p>
         </div>
-        <Button className="gradient-brand text-white">
+        <Button className="btn-premium">
           <Plus className="mr-2 h-4 w-4" />
           カテゴリーを追加
         </Button>

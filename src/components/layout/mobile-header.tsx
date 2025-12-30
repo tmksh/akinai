@@ -22,7 +22,7 @@ export function MobileHeader() {
             <Star className="h-4 w-4 text-white" />
           </div>
           <span className="text-base font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
-            商い
+            アキナイ
           </span>
         </Link>
       </div>
@@ -63,4 +63,5 @@ export function MobileHeader() {
     </header>
   );
 }
+
 
