@@ -90,6 +90,27 @@ const formatCurrency = (value: number) => new Intl.NumberFormat('ja-JP', { style
 const formatNumber = (value: number) => new Intl.NumberFormat('ja-JP').format(value);
 const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
 
+// 大きな数字を短縮表示（統計カード用）
+const formatCompactNumber = (value: number): string => {
+  if (value >= 100000000) {
+    return `${(value / 100000000).toFixed(1)}億`;
+  }
+  if (value >= 10000) {
+    return `${Math.round(value / 10000)}万`;
+  }
+  return formatNumber(value);
+};
+
+const formatCompactCurrency = (value: number): string => {
+  if (value >= 100000000) {
+    return `¥${(value / 100000000).toFixed(1)}億`;
+  }
+  if (value >= 10000) {
+    return `¥${Math.round(value / 10000)}万`;
+  }
+  return `¥${formatNumber(value)}`;
+};
+
 // ソート可能なウィジェットコンポーネント
 function SortableWidget({ id, isEditing, children, className }: { id: string; isEditing: boolean; children: React.ReactNode; className?: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: !isEditing });
@@ -434,7 +455,7 @@ export default function DashboardPage() {
             </div>
             <span className="text-xs font-medium text-orange-700 dark:text-orange-300">総売上</span>
           </div>
-          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100">¥{formatNumber(stats.totalRevenue)}</p>
+          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100 whitespace-nowrap">{formatCompactCurrency(stats.totalRevenue)}</p>
           <div className="flex items-center gap-1 mt-1">
             {stats.revenueChange >= 0 ? (
               <><TrendingUp className="h-3 w-3 text-emerald-500" /><span className="text-xs text-emerald-600">+{stats.revenueChange}%</span></>
@@ -452,7 +473,7 @@ export default function DashboardPage() {
             </div>
             <span className="text-xs font-medium text-orange-800 dark:text-orange-200">注文数</span>
           </div>
-          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{formatNumber(stats.totalOrders)}</p>
+          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100 whitespace-nowrap">{formatCompactNumber(stats.totalOrders)}</p>
           <div className="flex items-center gap-1 mt-1">
             {stats.ordersChange >= 0 ? (
               <><TrendingUp className="h-3 w-3 text-emerald-500" /><span className="text-xs text-emerald-600">+{stats.ordersChange}%</span></>
@@ -470,7 +491,7 @@ export default function DashboardPage() {
             </div>
             <span className="text-xs font-medium text-orange-800 dark:text-orange-200">商品数</span>
           </div>
-          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{formatNumber(stats.totalProducts)}</p>
+          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100 whitespace-nowrap">{formatCompactNumber(stats.totalProducts)}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendingUp className="h-3 w-3 text-emerald-500" />
             <span className="text-xs text-emerald-600">+{stats.productsChange}</span>
@@ -485,7 +506,7 @@ export default function DashboardPage() {
             </div>
             <span className="text-xs font-medium text-white/90">顧客数</span>
           </div>
-          <p className="text-xl sm:text-2xl font-bold text-white">{formatNumber(stats.totalCustomers)}</p>
+          <p className="text-xl sm:text-2xl font-bold text-white whitespace-nowrap">{formatCompactNumber(stats.totalCustomers)}</p>
           <div className="flex items-center gap-1 mt-1">
             {stats.customersChange >= 0 ? (
               <><TrendingUp className="h-3 w-3 text-white/80" /><span className="text-xs text-white/80">+{stats.customersChange}%</span></>
