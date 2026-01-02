@@ -199,7 +199,8 @@ export default function CustomersPage() {
                       <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
                       <span>
                         〒{selectedCustomer.addresses[0].postalCode}<br />
-                        {selectedCustomer.addresses[0].prefecture}{selectedCustomer.addresses[0].city}{selectedCustomer.addresses[0].address}
+                        {selectedCustomer.addresses[0].prefecture}{selectedCustomer.addresses[0].city}{selectedCustomer.addresses[0].line1}
+                        {selectedCustomer.addresses[0].line2 && ` ${selectedCustomer.addresses[0].line2}`}
                       </span>
                     </div>
                   )}
