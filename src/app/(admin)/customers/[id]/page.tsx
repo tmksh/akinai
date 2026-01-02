@@ -187,7 +187,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   <p className="text-xs text-slate-500">住所</p>
                   <p className="text-sm font-medium">
                     〒{customer.addresses[0].postalCode}<br />
-                    {customer.addresses[0].prefecture}{customer.addresses[0].city}{customer.addresses[0].address}
+                    {customer.addresses[0].prefecture}{customer.addresses[0].city}{customer.addresses[0].line1}
+                    {customer.addresses[0].line2 && ` ${customer.addresses[0].line2}`}
                   </p>
                 </div>
               </div>
