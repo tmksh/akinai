@@ -3,35 +3,19 @@
 import { useState } from 'react';
 import {
   Search,
-  Filter,
-  AlertTriangle,
   Package,
   ArrowUpDown,
   Plus,
   Minus,
   CheckCircle2,
   XCircle,
-  TrendingDown,
+  AlertTriangle,
   Boxes,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -52,11 +36,21 @@ const inventoryTabs = [
   { label: 'ロット管理', href: '/inventory/lots' },
 ];
 
+// 在庫フィルタータブの定義
+type StockFilterType = 'all' | 'out' | 'low' | 'ok';
+
 export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [stockFilter, setStockFilter] = useState<string>('all');
+  const [stockFilter, setStockFilter] = useState<StockFilterType>('all');
   const [adjustmentType, setAdjustmentType] = useState<'in' | 'out'>('in');
   const [adjustmentQuantity, setAdjustmentQuantity] = useState('');
+
+  // 統計
+  const totalItems = mockInventorySummary.length;
+  const lowStockItems = mockInventorySummary.filter((i) => i.isLowStock && i.availableStock > 0).length;
+  const outOfStockItems = mockInventorySummary.filter((i) => i.availableStock === 0).length;
+  const totalStock = mockInventorySummary.reduce((sum, i) => sum + i.currentStock, 0);
+  const healthyItems = totalItems - lowStockItems - outOfStockItems;
 
   // フィルタリング
   const filteredInventory = mockInventorySummary.filter((item) => {
@@ -65,26 +59,19 @@ export default function InventoryPage() {
       item.sku.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStock =
       stockFilter === 'all' ||
-      (stockFilter === 'low' && item.isLowStock) ||
+      (stockFilter === 'low' && item.isLowStock && item.availableStock > 0) ||
       (stockFilter === 'out' && item.availableStock === 0) ||
       (stockFilter === 'ok' && !item.isLowStock && item.availableStock > 0);
     return matchesSearch && matchesStock;
   });
 
-  // 統計
-  const totalItems = mockInventorySummary.length;
-  const lowStockItems = mockInventorySummary.filter((i) => i.isLowStock).length;
-  const outOfStockItems = mockInventorySummary.filter(
-    (i) => i.availableStock === 0
-  ).length;
-  const totalStock = mockInventorySummary.reduce(
-    (sum, i) => sum + i.currentStock,
-    0
-  );
-  const healthyItems = totalItems - lowStockItems - outOfStockItems;
-
-  // 在庫の健全度を計算（在庫あり商品の割合）
-  const healthPercentage = totalItems > 0 ? Math.round((healthyItems / totalItems) * 100) : 0;
+  // フィルタータブの設定
+  const filterTabs = [
+    { key: 'all' as StockFilterType, label: 'すべて', count: totalItems, icon: Boxes },
+    { key: 'out' as StockFilterType, label: '在庫切れ', count: outOfStockItems, icon: XCircle, color: 'text-red-500' },
+    { key: 'low' as StockFilterType, label: '在庫少', count: lowStockItems, icon: AlertTriangle, color: 'text-amber-500' },
+    { key: 'ok' as StockFilterType, label: '在庫あり', count: healthyItems, icon: CheckCircle2, color: 'text-emerald-500' },
+  ];
 
   // 在庫レベルを取得
   const getStockLevel = (item: typeof mockInventorySummary[0]) => {
@@ -109,103 +96,65 @@ export default function InventoryPage() {
             商品の在庫状況をひと目で確認できます
           </p>
         </div>
-        <Button variant="outline">
-          <ArrowUpDown className="mr-2 h-4 w-4" />
-          在庫調整履歴
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border border-orange-100 dark:border-orange-900/30">
+            <span className="text-xs text-muted-foreground">総在庫</span>
+            <span className="text-lg font-bold text-orange-600">{totalStock.toLocaleString()}</span>
+            <span className="text-xs text-muted-foreground">点</span>
+          </div>
+          <Button variant="outline">
+            <ArrowUpDown className="mr-2 h-4 w-4" />
+            在庫調整履歴
+          </Button>
+        </div>
       </div>
 
       {/* タブナビゲーション */}
       <PageTabs tabs={inventoryTabs} />
 
-      {/* サマリーカード - オレンジグラデーション */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* 在庫健全度 - 薄いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <Boxes className="h-4 w-4 text-orange-500" />
-            </div>
-            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">在庫健全度</span>
-          </div>
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-bold text-orange-900 dark:text-orange-100">{healthPercentage}%</span>
-            <span className="text-sm text-orange-600 dark:text-orange-400 mb-1">正常</span>
-          </div>
-          <div className="mt-3 h-2 w-full rounded-full bg-orange-200/50 dark:bg-orange-800/30 overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-orange-400 to-amber-500 transition-all rounded-full"
-              style={{ width: `${healthPercentage}%` }}
-            />
-          </div>
-        </div>
-
-        {/* 在庫あり - やや濃いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <CheckCircle2 className="h-4 w-4 text-orange-600" />
-            </div>
-            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">在庫あり</span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-bold text-orange-900 dark:text-orange-100">{healthyItems}</span>
-            <span className="text-sm text-orange-600 dark:text-orange-400">/ {totalItems} SKU</span>
-          </div>
-        </div>
-
-        {/* 在庫少 - 濃いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
-              <TrendingDown className="h-4 w-4 text-orange-600" />
-            </div>
-            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">在庫少</span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-bold text-orange-900 dark:text-orange-100">{lowStockItems}</span>
-            <span className="text-sm text-orange-700 dark:text-orange-300">SKU</span>
-          </div>
-        </div>
-
-        {/* 在庫切れ - 最も濃いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
-              <XCircle className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-xs font-medium text-white/90">在庫切れ</span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-bold text-white">{outOfStockItems}</span>
-            <span className="text-sm text-white/80">SKU</span>
-          </div>
-        </div>
+      {/* 在庫フィルタータブ - 1クリックでフィルター */}
+      <div className="flex flex-wrap items-center gap-2">
+        {filterTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = stockFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setStockFilter(tab.key)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all duration-200",
+                isActive
+                  ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/25"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+              )}
+            >
+              <Icon className={cn("h-4 w-4", isActive ? "text-white" : tab.color)} />
+              <span className="font-medium text-sm">{tab.label}</span>
+              <Badge 
+                variant="secondary" 
+                className={cn(
+                  "ml-1 text-xs min-w-[24px] justify-center",
+                  isActive 
+                    ? "bg-white/20 text-white border-0" 
+                    : "bg-slate-100 dark:bg-slate-800"
+                )}
+              >
+                {tab.count}
+              </Badge>
+            </button>
+          );
+        })}
       </div>
 
-      {/* 検索・フィルター */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="商品名・SKUで検索..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={stockFilter} onValueChange={setStockFilter}>
-          <SelectTrigger className="w-[180px]">
-            <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder="在庫状況" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて表示</SelectItem>
-            <SelectItem value="ok">✅ 在庫あり</SelectItem>
-            <SelectItem value="low">⚠️ 在庫少</SelectItem>
-            <SelectItem value="out">❌ 在庫切れ</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* 検索 */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="商品名・商品コードで検索..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {/* 在庫一覧（カード形式） */}
@@ -272,9 +221,9 @@ export default function InventoryPage() {
                 </div>
                 
                 <div className="p-4 space-y-4">
-                  {/* SKU */}
+                  {/* 商品コード */}
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">SKU</span>
+                    <span className="text-muted-foreground">商品コード</span>
                     <span className="font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-xs">{item.sku}</span>
                   </div>
                   
@@ -395,36 +344,6 @@ export default function InventoryPage() {
         )}
       </div>
 
-      {/* 合計在庫数 */}
-      <div className="rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border shadow-lg">
-        <div className="p-4 border-b bg-gradient-to-r from-indigo-500/10 via-transparent to-purple-500/10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/25">
-              <Boxes className="h-5 w-5 text-white" />
-            </div>
-            <h3 className="font-semibold">在庫サマリー</h3>
-          </div>
-        </div>
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">総在庫数</p>
-              <p className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{totalStock.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">点</p>
-            </div>
-            <div className="h-12 w-px bg-border"></div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">管理SKU数</p>
-              <p className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{totalItems}</p>
-              <p className="text-xs text-muted-foreground">SKU</p>
-            </div>
-          </div>
-          <Button variant="outline" className="rounded-xl">
-            <ArrowUpDown className="mr-2 h-4 w-4" />
-            詳細レポート
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

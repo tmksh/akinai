@@ -32,6 +32,8 @@ import {
   Unlock,
   CreditCard,
   BarChart3,
+  ChevronDown,
+  Download,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -49,6 +51,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   ChartConfig,
   ChartContainer,
@@ -138,11 +146,117 @@ function SortableWidget({ id, isEditing, children, className }: { id: string; is
   );
 }
 
+// 期間タイプ
+type PeriodType = 'month' | 'year' | 'total';
+type ChartPeriodType = 'week' | 'month' | 'year' | '5year';
+
+// 期間別のモックデータ
+const getStatsByPeriod = (period: PeriodType) => {
+  const baseStats = mockDashboardStats;
+  switch (period) {
+    case 'month':
+      return {
+        totalRevenue: 2580000,
+        revenueChange: 12.5,
+        totalOrders: 156,
+        ordersChange: 8.2,
+        totalCustomers: 89,
+        customersChange: 15.3,
+        totalProducts: baseStats.totalProducts,
+        productsChange: baseStats.productsChange,
+      };
+    case 'year':
+      return {
+        totalRevenue: 28500000,
+        revenueChange: 23.4,
+        totalOrders: 1842,
+        ordersChange: 18.7,
+        totalCustomers: 567,
+        customersChange: 42.1,
+        totalProducts: baseStats.totalProducts,
+        productsChange: baseStats.productsChange,
+      };
+    case 'total':
+      return {
+        totalRevenue: 125800000,
+        revenueChange: 0,
+        totalOrders: 8934,
+        ordersChange: 0,
+        totalCustomers: 2341,
+        customersChange: 0,
+        totalProducts: baseStats.totalProducts,
+        productsChange: baseStats.productsChange,
+      };
+  }
+};
+
+// 期間別のグラフデータ
+const getChartDataByPeriod = (period: ChartPeriodType) => {
+  switch (period) {
+    case 'week':
+      return mockRevenueData; // 7日分
+    case 'month':
+      return [
+        { date: '2024-01-01', revenue: 850000, orders: 45 },
+        { date: '2024-01-08', revenue: 920000, orders: 52 },
+        { date: '2024-01-15', revenue: 780000, orders: 38 },
+        { date: '2024-01-22', revenue: 1050000, orders: 61 },
+      ];
+    case 'year':
+      return [
+        { date: '2024-01', revenue: 2100000, orders: 124 },
+        { date: '2024-02', revenue: 1950000, orders: 112 },
+        { date: '2024-03', revenue: 2400000, orders: 145 },
+        { date: '2024-04', revenue: 2200000, orders: 132 },
+        { date: '2024-05', revenue: 2650000, orders: 158 },
+        { date: '2024-06', revenue: 2800000, orders: 168 },
+        { date: '2024-07', revenue: 3100000, orders: 185 },
+        { date: '2024-08', revenue: 2900000, orders: 174 },
+        { date: '2024-09', revenue: 3200000, orders: 192 },
+        { date: '2024-10', revenue: 3500000, orders: 210 },
+        { date: '2024-11', revenue: 3800000, orders: 228 },
+        { date: '2024-12', revenue: 4200000, orders: 252 },
+      ];
+    case '5year':
+      return [
+        { date: '2020', revenue: 18500000, orders: 1120 },
+        { date: '2021', revenue: 24200000, orders: 1450 },
+        { date: '2022', revenue: 28900000, orders: 1780 },
+        { date: '2023', revenue: 32500000, orders: 2010 },
+        { date: '2024', revenue: 28500000, orders: 1842 },
+      ];
+  }
+};
+
+const periodLabels: Record<PeriodType, string> = {
+  month: '月',
+  year: '年',
+  total: '総計',
+};
+
+const chartPeriodLabels: Record<ChartPeriodType, string> = {
+  week: '週',
+  month: '月',
+  year: '年',
+  '5year': '5年',
+};
+
 export default function DashboardPage() {
-  const stats = mockDashboardStats;
   const lowStockItems = mockInventorySummary.filter((item) => item.isLowStock);
   const [isEditing, setIsEditing] = useState(false);
   const [widgetOrder, setWidgetOrder] = useState(['revenue-chart', 'orders-chart', 'recent-orders', 'popular-products', 'stock-alert']);
+  
+  // 期間選択state
+  const [revenuePeriod, setRevenuePeriod] = useState<PeriodType>('month');
+  const [ordersPeriod, setOrdersPeriod] = useState<PeriodType>('month');
+  const [customersPeriod, setCustomersPeriod] = useState<PeriodType>('month');
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriodType>('week');
+  
+  // 期間に応じたstats
+  const revenueStats = getStatsByPeriod(revenuePeriod);
+  const ordersStats = getStatsByPeriod(ordersPeriod);
+  const customersStats = getStatsByPeriod(customersPeriod);
+  const chartData = getChartDataByPeriod(chartPeriod);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
@@ -178,6 +292,26 @@ export default function DashboardPage() {
     localStorage.removeItem('dashboardWidgetOrder');
   };
 
+  // グラフ用の日付フォーマッター
+  const formatChartDate = (dateString: string) => {
+    if (chartPeriod === '5year') return dateString;
+    if (chartPeriod === 'year') {
+      const [, month] = dateString.split('-');
+      return `${month}月`;
+    }
+    return formatDate(dateString);
+  };
+
+  // 期間の説明文
+  const getChartPeriodDescription = () => {
+    switch (chartPeriod) {
+      case 'week': return '過去7日間';
+      case 'month': return '今月';
+      case 'year': return '今年';
+      case '5year': return '過去5年';
+    }
+  };
+
   // ウィジェットのレンダリング関数
   const renderWidget = (id: string) => {
     switch (id) {
@@ -188,17 +322,32 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">売上推移</CardTitle>
-                  <CardDescription className="text-xs text-slate-400">過去7日間</CardDescription>
+                  <CardDescription className="text-xs text-slate-400">{getChartPeriodDescription()}</CardDescription>
                 </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg btn-premium">
-                  <BarChart3 className="h-4 w-4 text-white" />
+                <div className="flex items-center gap-2">
+                  <div className="flex rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5">
+                    {(['week', 'month', 'year', '5year'] as ChartPeriodType[]).map((period) => (
+                      <button
+                        key={period}
+                        onClick={() => setChartPeriod(period)}
+                        className={cn(
+                          "px-2 py-1 text-[10px] rounded-md transition-all",
+                          chartPeriod === period
+                            ? "bg-orange-500 text-white shadow-sm"
+                            : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                      >
+                        {chartPeriodLabels[period]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <ChartContainer config={revenueChartConfig} className="h-[180px] sm:h-[200px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={mockRevenueData}>
+                  <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="fillRevenuePremium" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#ff8a47" stopOpacity={0.5} />
@@ -213,8 +362,8 @@ export default function DashboardPage() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="date" tickFormatter={formatChartDate} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={(value) => chartPeriod === '5year' ? `¥${(value / 10000000).toFixed(0)}千万` : `¥${(value / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                     <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />
                     <Area type="monotone" dataKey="revenue" stroke="url(#strokeRevenuePremium)" strokeWidth={3} fillOpacity={1} fill="url(#fillRevenuePremium)" />
                   </AreaChart>
@@ -231,17 +380,32 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">注文数推移</CardTitle>
-                  <CardDescription className="text-xs text-slate-400">過去7日間</CardDescription>
+                  <CardDescription className="text-xs text-slate-400">{getChartPeriodDescription()}</CardDescription>
                 </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg btn-premium">
-                  <ShoppingCart className="h-4 w-4 text-white" />
+                <div className="flex items-center gap-2">
+                  <div className="flex rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5">
+                    {(['week', 'month', 'year', '5year'] as ChartPeriodType[]).map((period) => (
+                      <button
+                        key={period}
+                        onClick={() => setChartPeriod(period)}
+                        className={cn(
+                          "px-2 py-1 text-[10px] rounded-md transition-all",
+                          chartPeriod === period
+                            ? "bg-orange-500 text-white shadow-sm"
+                            : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                      >
+                        {chartPeriodLabels[period]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <ChartContainer config={ordersChartConfig} className="h-[180px] sm:h-[200px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={mockRevenueData}>
+                  <BarChart data={chartData}>
                     <defs>
                       <linearGradient id="barGradientPremium" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#ff8a47" />
@@ -250,7 +414,7 @@ export default function DashboardPage() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="date" tickFormatter={formatChartDate} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Bar dataKey="orders" fill="url(#barGradientPremium)" radius={[6, 6, 0, 0]} />
@@ -447,73 +611,124 @@ export default function DashboardPage() {
 
       {/* メイン統計カード - 横4枚レイアウト */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        {/* 総売上 - 薄いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <DollarSign className="h-4 w-4 text-orange-500" />
+        {/* 売上 - 薄いオレンジ */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+                <DollarSign className="h-4 w-4 text-orange-500" />
+              </div>
+              <span className="text-xs font-medium text-orange-700 dark:text-orange-300">売上</span>
             </div>
-            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">総売上</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-white/60 dark:bg-slate-800/60 text-orange-600 hover:bg-white dark:hover:bg-slate-700 transition-colors">
+                  {periodLabels[revenuePeriod]}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[80px]">
+                <DropdownMenuItem onClick={() => setRevenuePeriod('month')}>月</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setRevenuePeriod('year')}>年</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setRevenuePeriod('total')}>総計</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100 whitespace-nowrap">{formatCompactCurrency(stats.totalRevenue)}</p>
-          <div className="flex items-center gap-1 mt-1">
-            {stats.revenueChange >= 0 ? (
-              <><TrendingUp className="h-3 w-3 text-emerald-500" /><span className="text-xs text-emerald-600">+{stats.revenueChange}%</span></>
-            ) : (
-              <><TrendingDown className="h-3 w-3 text-red-500" /><span className="text-xs text-red-500">{stats.revenueChange}%</span></>
-            )}
-          </div>
+          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100 whitespace-nowrap">{formatCompactCurrency(revenueStats.totalRevenue)}</p>
+          {revenuePeriod !== 'total' && (
+            <div className="flex items-center gap-1 mt-1">
+              {revenueStats.revenueChange >= 0 ? (
+                <><TrendingUp className="h-3 w-3 text-emerald-500" /><span className="text-xs text-emerald-600">+{revenueStats.revenueChange}%</span></>
+              ) : (
+                <><TrendingDown className="h-3 w-3 text-red-500" /><span className="text-xs text-red-500">{revenueStats.revenueChange}%</span></>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 注文数 - やや濃いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <ShoppingCart className="h-4 w-4 text-orange-600" />
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+                <ShoppingCart className="h-4 w-4 text-orange-600" />
+              </div>
+              <span className="text-xs font-medium text-orange-800 dark:text-orange-200">注文数</span>
             </div>
-            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">注文数</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-white/60 dark:bg-slate-800/60 text-orange-600 hover:bg-white dark:hover:bg-slate-700 transition-colors">
+                  {periodLabels[ordersPeriod]}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[80px]">
+                <DropdownMenuItem onClick={() => setOrdersPeriod('month')}>月</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setOrdersPeriod('year')}>年</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setOrdersPeriod('total')}>総計</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100 whitespace-nowrap">{formatCompactNumber(stats.totalOrders)}</p>
-          <div className="flex items-center gap-1 mt-1">
-            {stats.ordersChange >= 0 ? (
-              <><TrendingUp className="h-3 w-3 text-emerald-500" /><span className="text-xs text-emerald-600">+{stats.ordersChange}%</span></>
-            ) : (
-              <><TrendingDown className="h-3 w-3 text-red-500" /><span className="text-xs text-red-500">{stats.ordersChange}%</span></>
-            )}
-          </div>
+          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100 whitespace-nowrap">{formatCompactNumber(ordersStats.totalOrders)}<span className="text-sm font-normal ml-1">件</span></p>
+          {ordersPeriod !== 'total' && (
+            <div className="flex items-center gap-1 mt-1">
+              {ordersStats.ordersChange >= 0 ? (
+                <><TrendingUp className="h-3 w-3 text-emerald-500" /><span className="text-xs text-emerald-600">+{ordersStats.ordersChange}%</span></>
+              ) : (
+                <><TrendingDown className="h-3 w-3 text-red-500" /><span className="text-xs text-red-500">{ordersStats.ordersChange}%</span></>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* 商品数 - 濃いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
+        {/* 商品数 - 濃いオレンジ（期間切替なし） */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
               <Package className="h-4 w-4 text-orange-600" />
             </div>
             <span className="text-xs font-medium text-orange-800 dark:text-orange-200">商品数</span>
           </div>
-          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100 whitespace-nowrap">{formatCompactNumber(stats.totalProducts)}</p>
+          <p className="text-xl sm:text-2xl font-bold text-orange-900 dark:text-orange-100 whitespace-nowrap">{formatCompactNumber(revenueStats.totalProducts)}<span className="text-sm font-normal ml-1">点</span></p>
           <div className="flex items-center gap-1 mt-1">
             <TrendingUp className="h-3 w-3 text-emerald-500" />
-            <span className="text-xs text-emerald-600">+{stats.productsChange}</span>
+            <span className="text-xs text-emerald-600">+{revenueStats.productsChange}</span>
           </div>
         </div>
 
         {/* 顧客数 - 最も濃いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
-              <Users className="h-4 w-4 text-white" />
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
+                <Users className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-xs font-medium text-white/90">顧客数</span>
             </div>
-            <span className="text-xs font-medium text-white/90">顧客数</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-white/30 dark:bg-slate-900/30 text-white hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors">
+                  {periodLabels[customersPeriod]}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[80px]">
+                <DropdownMenuItem onClick={() => setCustomersPeriod('month')}>月</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCustomersPeriod('year')}>年</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCustomersPeriod('total')}>総計</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <p className="text-xl sm:text-2xl font-bold text-white whitespace-nowrap">{formatCompactNumber(stats.totalCustomers)}</p>
-          <div className="flex items-center gap-1 mt-1">
-            {stats.customersChange >= 0 ? (
-              <><TrendingUp className="h-3 w-3 text-white/80" /><span className="text-xs text-white/80">+{stats.customersChange}%</span></>
-            ) : (
-              <><TrendingDown className="h-3 w-3 text-white/80" /><span className="text-xs text-white/80">{stats.customersChange}%</span></>
-            )}
-          </div>
+          <p className="text-xl sm:text-2xl font-bold text-white whitespace-nowrap">{formatCompactNumber(customersStats.totalCustomers)}<span className="text-sm font-normal ml-1">人</span></p>
+          {customersPeriod !== 'total' && (
+            <div className="flex items-center gap-1 mt-1">
+              {customersStats.customersChange >= 0 ? (
+                <><TrendingUp className="h-3 w-3 text-white/80" /><span className="text-xs text-white/80">+{customersStats.customersChange}%</span></>
+              ) : (
+                <><TrendingDown className="h-3 w-3 text-white/80" /><span className="text-xs text-white/80">{customersStats.customersChange}%</span></>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

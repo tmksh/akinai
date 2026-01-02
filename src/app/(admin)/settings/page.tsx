@@ -30,10 +30,7 @@ import { PageTabs } from '@/components/layout/page-tabs';
 const settingsTabs = [
   { label: '基本設定', href: '/settings', exact: true },
   { label: '組織設定', href: '/settings/organization' },
-  { label: 'ユーザー管理', href: '/settings/users' },
-  { label: 'ロール管理', href: '/settings/roles' },
-  { label: '権限マトリクス', href: '/settings/permissions' },
-  { label: '機能設定', href: '/settings/features' },
+  { label: 'ユーザー・権限', href: '/settings/users' },
   { label: '決済設定', href: '/settings/payments' },
 ];
 
@@ -126,38 +123,22 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>地域設定</CardTitle>
               <CardDescription>
-                通貨やタイムゾーンを設定します
+                通貨を設定します
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>通貨</Label>
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="JPY">日本円 (JPY)</SelectItem>
-                      <SelectItem value="USD">米ドル (USD)</SelectItem>
-                      <SelectItem value="EUR">ユーロ (EUR)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>タイムゾーン</Label>
-                  <Select defaultValue="Asia/Tokyo">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Asia/Tokyo">
-                        東京 (UTC+9)
-                      </SelectItem>
-                      <SelectItem value="UTC">UTC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>通貨</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="JPY">日本円 (JPY)</SelectItem>
+                    <SelectItem value="USD">米ドル (USD)</SelectItem>
+                    <SelectItem value="EUR">ユーロ (EUR)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -200,18 +181,23 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>配送設定</CardTitle>
-              <CardDescription>配送料金の設定を行います</CardDescription>
+              <CardDescription>
+                デフォルトの配送料金を設定します。商品ごとの送料は商品登録時に個別設定できます。
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="defaultShipping">基本送料 (円)</Label>
+                  <Label htmlFor="defaultShipping">デフォルト送料 (円)</Label>
                   <Input
                     id="defaultShipping"
                     type="number"
                     value={defaultShippingCost}
                     onChange={(e) => setDefaultShippingCost(e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    商品に個別送料が設定されていない場合に適用
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="freeShipping">送料無料しきい値 (円)</Label>
@@ -222,6 +208,43 @@ export default function SettingsPage() {
                     onChange={(e) => setFreeShippingThreshold(e.target.value)}
                     placeholder="設定しない場合は空欄"
                   />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>キャンセル・返金設定</CardTitle>
+              <CardDescription>キャンセル料金と返金ポリシーを設定します</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="cancelFee">キャンセル料 (%)</Label>
+                  <Input
+                    id="cancelFee"
+                    type="number"
+                    defaultValue="0"
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    発送前キャンセルに適用される料金
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>返品期限</Label>
+                  <Select defaultValue="7">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">商品到着後7日以内</SelectItem>
+                      <SelectItem value="14">商品到着後14日以内</SelectItem>
+                      <SelectItem value="30">商品到着後30日以内</SelectItem>
+                      <SelectItem value="none">返品不可</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>

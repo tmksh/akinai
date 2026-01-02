@@ -39,10 +39,7 @@ import { cn } from '@/lib/utils';
 const settingsTabs = [
   { label: '基本設定', href: '/settings', exact: true },
   { label: '組織設定', href: '/settings/organization' },
-  { label: 'ユーザー管理', href: '/settings/users' },
-  { label: 'ロール管理', href: '/settings/roles' },
-  { label: '権限マトリクス', href: '/settings/permissions' },
-  { label: '機能設定', href: '/settings/features' },
+  { label: 'ユーザー・権限', href: '/settings/users' },
   { label: '決済設定', href: '/settings/payments' },
 ];
 
