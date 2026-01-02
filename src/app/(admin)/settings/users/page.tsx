@@ -13,6 +13,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { mockUsers } from '@/lib/mock-data';
+import { PageTabs } from '@/components/layout/page-tabs';
+
+const settingsTabs = [
+  { label: '基本設定', href: '/settings', exact: true },
+  { label: '組織設定', href: '/settings/organization' },
+  { label: 'ユーザー管理', href: '/settings/users' },
+  { label: 'ロール管理', href: '/settings/roles' },
+  { label: '権限マトリクス', href: '/settings/permissions' },
+  { label: '機能設定', href: '/settings/features' },
+  { label: '決済設定', href: '/settings/payments' },
+];
 
 export default function UsersSettingsPage() {
   const getRoleBadgeVariant = (role: string) => {
@@ -42,7 +53,7 @@ export default function UsersSettingsPage() {
       {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">ユーザー管理</h1>
+          <h1 className="text-2xl font-bold">設定</h1>
           <p className="text-muted-foreground">
             システムユーザーの管理を行います
           </p>
@@ -52,6 +63,9 @@ export default function UsersSettingsPage() {
           ユーザーを招待
         </Button>
       </div>
+
+      {/* タブナビゲーション */}
+      <PageTabs tabs={settingsTabs} />
 
       {/* 統計 */}
       <div className="grid gap-4 md:grid-cols-3">

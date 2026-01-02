@@ -6,6 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { mockSettings } from '@/lib/mock-data';
+import { PageTabs } from '@/components/layout/page-tabs';
+
+const settingsTabs = [
+  { label: '基本設定', href: '/settings', exact: true },
+  { label: '組織設定', href: '/settings/organization' },
+  { label: 'ユーザー管理', href: '/settings/users' },
+  { label: 'ロール管理', href: '/settings/roles' },
+  { label: '権限マトリクス', href: '/settings/permissions' },
+  { label: '機能設定', href: '/settings/features' },
+  { label: '決済設定', href: '/settings/payments' },
+];
 
 export default function FeaturesSettingsPage() {
   return (
@@ -13,7 +24,7 @@ export default function FeaturesSettingsPage() {
       {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">機能設定</h1>
+          <h1 className="text-2xl font-bold">設定</h1>
           <p className="text-muted-foreground">
             システム機能のオン/オフを管理します
           </p>
@@ -23,6 +34,9 @@ export default function FeaturesSettingsPage() {
           設定を保存
         </Button>
       </div>
+
+      {/* タブナビゲーション */}
+      <PageTabs tabs={settingsTabs} />
 
       {/* 機能トグル */}
       <div className="grid gap-6 lg:grid-cols-2">

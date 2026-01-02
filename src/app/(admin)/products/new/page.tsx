@@ -36,6 +36,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { mockCategories } from '@/lib/mock-data';
+import { PageTabs } from '@/components/layout/page-tabs';
+
+const productTabs = [
+  { label: '商品一覧', href: '/products', exact: true },
+  { label: '商品登録', href: '/products/new' },
+  { label: 'カテゴリー', href: '/products/categories' },
+];
 
 interface ProductVariant {
   id: string;
@@ -134,7 +141,7 @@ export default function NewProductPage() {
             <p className="text-sm text-muted-foreground hidden sm:block">新しい商品を登録します</p>
           </div>
         </div>
-        <div className="flex gap-2 ml-11 sm:ml-0">
+        <div className="flex gap-2">
           <Button variant="outline" size="sm" className="hidden sm:flex">
             <Eye className="mr-2 h-4 w-4" />
             プレビュー
@@ -153,6 +160,9 @@ export default function NewProductPage() {
           </Button>
         </div>
       </div>
+
+      {/* タブナビゲーション */}
+      <PageTabs tabs={productTabs} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* メインコンテンツ */}

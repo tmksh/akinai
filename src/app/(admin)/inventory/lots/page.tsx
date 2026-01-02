@@ -54,7 +54,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { PageTabs } from '@/components/layout/page-tabs';
 import { cn } from '@/lib/utils';
+
+const inventoryTabs = [
+  { label: '在庫一覧', href: '/inventory', exact: true },
+  { label: '入出庫履歴', href: '/inventory/movements' },
+  { label: 'ロット管理', href: '/inventory/lots' },
+];
 
 // ロットモックデータ
 const mockLots = [
@@ -182,7 +189,7 @@ export default function LotsPage() {
       {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">ロット管理</h1>
+          <h1 className="text-2xl font-bold">在庫管理</h1>
           <p className="text-muted-foreground">
             商品のロット・製造番号を管理します
           </p>
@@ -256,6 +263,9 @@ export default function LotsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* タブナビゲーション */}
+      <PageTabs tabs={inventoryTabs} />
 
       {/* 統計カード - オレンジグラデーション */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">

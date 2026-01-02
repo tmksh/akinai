@@ -36,7 +36,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PageTabs } from '@/components/layout/page-tabs';
 import { cn } from '@/lib/utils';
+
+const settingsTabs = [
+  { label: '基本設定', href: '/settings', exact: true },
+  { label: '組織設定', href: '/settings/organization' },
+  { label: 'ユーザー管理', href: '/settings/users' },
+  { label: 'ロール管理', href: '/settings/roles' },
+  { label: '権限マトリクス', href: '/settings/permissions' },
+  { label: '機能設定', href: '/settings/features' },
+  { label: '決済設定', href: '/settings/payments' },
+];
 
 // ロール定義
 const roles = [
@@ -252,7 +263,7 @@ export default function PermissionsSettingsPage() {
       {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">権限マトリクス</h1>
+          <h1 className="text-2xl font-bold">設定</h1>
           <p className="text-muted-foreground">
             各ロールの詳細な権限を管理します
           </p>
@@ -281,6 +292,9 @@ export default function PermissionsSettingsPage() {
           </Button>
         </div>
       </div>
+
+      {/* タブナビゲーション */}
+      <PageTabs tabs={settingsTabs} />
 
       {/* 凡例 */}
       <Card>

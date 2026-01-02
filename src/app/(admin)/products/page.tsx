@@ -52,7 +52,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { mockProducts, mockCategories } from '@/lib/mock-data';
+import { PageTabs } from '@/components/layout/page-tabs';
 import type { ProductStatus } from '@/types';
+
+const productTabs = [
+  { label: '商品一覧', href: '/products', exact: true },
+  { label: '商品登録', href: '/products/new' },
+  { label: 'カテゴリー', href: '/products/categories' },
+];
 
 // ステータス設定
 const statusConfig: Record<ProductStatus, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
@@ -122,6 +129,9 @@ export default function ProductsPage() {
           </Link>
         </Button>
       </div>
+
+      {/* タブナビゲーション */}
+      <PageTabs tabs={productTabs} />
 
       {/* 統計カード - オレンジグラデーション */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

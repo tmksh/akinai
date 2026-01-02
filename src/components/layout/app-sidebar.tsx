@@ -13,7 +13,6 @@ import {
   Settings,
   BarChart3,
   Warehouse,
-  Newspaper,
   Star,
   ChevronDown,
   LogOut,
@@ -22,7 +21,6 @@ import {
   Moon,
   Sun,
   Building2,
-  History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,9 +36,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -49,11 +44,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { currentUser } from '@/lib/mock-data';
 
@@ -71,11 +61,6 @@ const navigationItems = [
     href: '/products',
     color: 'text-orange-500',
     hoverClass: 'sidebar-hover-orange',
-    items: [
-      { title: '商品一覧', href: '/products' },
-      { title: '商品登録', href: '/products/new' },
-      { title: 'カテゴリー', href: '/products/categories' },
-    ],
   },
   {
     title: '在庫管理',
@@ -83,11 +68,6 @@ const navigationItems = [
     href: '/inventory',
     color: 'text-orange-500',
     hoverClass: 'sidebar-hover-orange',
-    items: [
-      { title: '在庫一覧', href: '/inventory' },
-      { title: '入出庫履歴', href: '/inventory/movements' },
-      { title: 'ロット管理', href: '/inventory/lots' },
-    ],
   },
   {
     title: 'コンテンツ',
@@ -95,12 +75,6 @@ const navigationItems = [
     href: '/contents',
     color: 'text-orange-500',
     hoverClass: 'sidebar-hover-orange',
-    items: [
-      { title: '記事一覧', href: '/contents' },
-      { title: '記事作成', href: '/contents/new' },
-      { title: 'ニュース', href: '/contents/news' },
-      { title: '特集', href: '/contents/features' },
-    ],
   },
   {
     title: '注文管理',
@@ -149,14 +123,6 @@ const settingsItems = [
     href: '/settings',
     color: 'text-slate-500',
     hoverClass: 'sidebar-hover-slate',
-    items: [
-      { title: '基本設定', href: '/settings' },
-      { title: '組織設定', href: '/settings/organization' },
-      { title: 'ユーザー管理', href: '/settings/users' },
-      { title: 'ロール管理', href: '/settings/roles' },
-      { title: '権限マトリクス', href: '/settings/permissions' },
-      { title: '機能設定', href: '/settings/features' },
-    ],
   },
 ];
 
@@ -219,58 +185,21 @@ export function AppSidebar() {
           <SidebarGroupLabel>メイン</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) =>
-                item.items ? (
-                  <Collapsible
-                    key={item.href}
-                    defaultOpen={isActive(item.href)}
-                    className="group/collapsible"
+              {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    isActive={isActive(item.href)}
+                    className={item.hoverClass}
                   >
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
-                          tooltip={item.title}
-                          isActive={isActive(item.href)}
-                          className={item.hoverClass}
-                        >
-                          <item.icon className={`h-5 w-5 ${item.color}`} />
-                          <span>{item.title}</span>
-                          <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.items.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.href}>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={pathname === subItem.href}
-                                className={item.hoverClass}
-                              >
-                                <Link href={subItem.href}>{subItem.title}</Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </Collapsible>
-                ) : (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      isActive={isActive(item.href)}
-                      className={item.hoverClass}
-                    >
-                      <Link href={item.href}>
-                        <item.icon className={`h-5 w-5 ${item.color}`} />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              )}
+                    <Link href={item.href}>
+                      <item.icon className={`h-5 w-5 ${item.color}`} />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -302,58 +231,21 @@ export function AppSidebar() {
           <SidebarGroupLabel>システム</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {settingsItems.map((item) =>
-                item.items ? (
-                  <Collapsible
-                    key={item.href}
-                    defaultOpen={isActive(item.href)}
-                    className="group/collapsible"
+              {settingsItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    isActive={isActive(item.href)}
+                    className={item.hoverClass}
                   >
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
-                          tooltip={item.title}
-                          isActive={isActive(item.href)}
-                          className={item.hoverClass}
-                        >
-                          <item.icon className={`h-5 w-5 ${item.color}`} />
-                          <span>{item.title}</span>
-                          <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.items.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.href}>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={pathname === subItem.href}
-                                className={item.hoverClass}
-                              >
-                                <Link href={subItem.href}>{subItem.title}</Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </Collapsible>
-                ) : (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      isActive={isActive(item.href)}
-                      className={item.hoverClass}
-                    >
-                      <Link href={item.href}>
-                        <item.icon className={`h-5 w-5 ${item.color}`} />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              )}
+                    <Link href={item.href}>
+                      <item.icon className={`h-5 w-5 ${item.color}`} />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

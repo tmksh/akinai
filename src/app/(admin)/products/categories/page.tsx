@@ -4,6 +4,13 @@ import { FolderTree, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { mockCategories, mockProducts } from '@/lib/mock-data';
+import { PageTabs } from '@/components/layout/page-tabs';
+
+const productTabs = [
+  { label: '商品一覧', href: '/products', exact: true },
+  { label: '商品登録', href: '/products/new' },
+  { label: 'カテゴリー', href: '/products/categories' },
+];
 
 // カテゴリごとの商品数を計算
 const getCategoryProductCount = (categoryId: string) => {
@@ -16,7 +23,7 @@ export default function CategoriesPage() {
       {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">カテゴリー管理</h1>
+          <h1 className="text-2xl font-bold">商品管理</h1>
           <p className="text-muted-foreground">
             商品カテゴリーの管理を行います
           </p>
@@ -26,6 +33,9 @@ export default function CategoriesPage() {
           カテゴリーを追加
         </Button>
       </div>
+
+      {/* タブナビゲーション */}
+      <PageTabs tabs={productTabs} />
 
       {/* カテゴリー一覧 */}
       <Card className="card-hover">

@@ -54,7 +54,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockContents, mockUsers } from '@/lib/mock-data';
+import { PageTabs } from '@/components/layout/page-tabs';
 import type { ContentType, ContentStatus } from '@/types';
+
+const contentTabs = [
+  { label: '記事一覧', href: '/contents', exact: true },
+  { label: '記事作成', href: '/contents/new' },
+  { label: 'ニュース', href: '/contents/news' },
+  { label: '特集', href: '/contents/features' },
+];
 
 // タイプ設定
 const typeConfig: Record<ContentType, { label: string; icon: React.ElementType }> = {
@@ -121,7 +129,10 @@ export default function ContentsPage() {
         </Button>
       </div>
 
-      {/* タブナビゲーション */}
+      {/* ページタブナビゲーション */}
+      <PageTabs tabs={contentTabs} />
+
+      {/* フィルタータブ */}
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">すべて</TabsTrigger>

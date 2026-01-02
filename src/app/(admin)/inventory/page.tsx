@@ -43,7 +43,14 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { mockInventorySummary } from '@/lib/mock-data';
+import { PageTabs } from '@/components/layout/page-tabs';
 import { cn } from '@/lib/utils';
+
+const inventoryTabs = [
+  { label: '在庫一覧', href: '/inventory', exact: true },
+  { label: '入出庫履歴', href: '/inventory/movements' },
+  { label: 'ロット管理', href: '/inventory/lots' },
+];
 
 export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,6 +114,9 @@ export default function InventoryPage() {
           在庫調整履歴
         </Button>
       </div>
+
+      {/* タブナビゲーション */}
+      <PageTabs tabs={inventoryTabs} />
 
       {/* サマリーカード - オレンジグラデーション */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

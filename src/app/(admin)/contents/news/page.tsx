@@ -7,6 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { mockContents } from '@/lib/mock-data';
+import { PageTabs } from '@/components/layout/page-tabs';
+
+const contentTabs = [
+  { label: '記事一覧', href: '/contents', exact: true },
+  { label: '記事作成', href: '/contents/new' },
+  { label: 'ニュース', href: '/contents/news' },
+  { label: '特集', href: '/contents/features' },
+];
 
 export default function NewsPage() {
   const newsItems = mockContents.filter((content) => content.type === 'news');
@@ -16,7 +24,7 @@ export default function NewsPage() {
       {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">ニュース</h1>
+          <h1 className="text-2xl font-bold">コンテンツ管理</h1>
           <p className="text-muted-foreground">ニュース記事の管理を行います</p>
         </div>
         <Button className="btn-premium" asChild>
@@ -26,6 +34,9 @@ export default function NewsPage() {
           </Link>
         </Button>
       </div>
+
+      {/* タブナビゲーション */}
+      <PageTabs tabs={contentTabs} />
 
       {/* 検索 */}
       <Card className="card-hover">

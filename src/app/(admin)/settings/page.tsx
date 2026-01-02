@@ -25,6 +25,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { mockFeatureFlags } from '@/lib/mock-data';
+import { PageTabs } from '@/components/layout/page-tabs';
+
+const settingsTabs = [
+  { label: '基本設定', href: '/settings', exact: true },
+  { label: '組織設定', href: '/settings/organization' },
+  { label: 'ユーザー管理', href: '/settings/users' },
+  { label: 'ロール管理', href: '/settings/roles' },
+  { label: '権限マトリクス', href: '/settings/permissions' },
+  { label: '機能設定', href: '/settings/features' },
+  { label: '決済設定', href: '/settings/payments' },
+];
 
 export default function SettingsPage() {
   const [siteName, setSiteName] = useState('商い サンプルショップ');
@@ -59,11 +70,14 @@ export default function SettingsPage() {
         </Button>
       </div>
 
+      {/* ページタブナビゲーション */}
+      <PageTabs tabs={settingsTabs} />
+
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="general">基本設定</TabsTrigger>
+          <TabsTrigger value="general">サイト基本</TabsTrigger>
           <TabsTrigger value="commerce">EC設定</TabsTrigger>
-          <TabsTrigger value="features">機能設定</TabsTrigger>
+          <TabsTrigger value="features">機能ON/OFF</TabsTrigger>
         </TabsList>
 
         {/* 基本設定 */}

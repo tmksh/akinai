@@ -45,7 +45,14 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { mockStockMovements, mockInventorySummary } from '@/lib/mock-data';
+import { PageTabs } from '@/components/layout/page-tabs';
 import { cn } from '@/lib/utils';
+
+const inventoryTabs = [
+  { label: '在庫一覧', href: '/inventory', exact: true },
+  { label: '入出庫履歴', href: '/inventory/movements' },
+  { label: 'ロット管理', href: '/inventory/lots' },
+];
 
 const typeConfig = {
   in: { label: '入庫', color: 'text-emerald-600', bgColor: 'bg-emerald-100', icon: ArrowDownLeft },
@@ -92,7 +99,7 @@ export default function StockMovementsPage() {
       {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">入出庫履歴</h1>
+          <h1 className="text-2xl font-bold">在庫管理</h1>
           <p className="text-muted-foreground">
             在庫の入出庫記録を管理します
           </p>
@@ -184,6 +191,9 @@ export default function StockMovementsPage() {
           </Dialog>
         </div>
       </div>
+
+      {/* タブナビゲーション */}
+      <PageTabs tabs={inventoryTabs} />
 
       {/* 統計カード - オレンジグラデーション */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
