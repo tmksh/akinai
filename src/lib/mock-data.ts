@@ -56,6 +56,25 @@ export const mockUsers: User[] = [
 
 export const currentUser = mockUsers[0];
 
+// ----- ロール -----
+export const mockRoles = [
+  {
+    id: 'admin',
+    name: '管理者',
+    description: 'すべての機能にフルアクセス可能',
+  },
+  {
+    id: 'editor',
+    name: '編集者',
+    description: '商品・コンテンツの作成・編集が可能',
+  },
+  {
+    id: 'viewer',
+    name: '閲覧者',
+    description: 'データの閲覧のみ可能',
+  },
+];
+
 // ----- カテゴリー -----
 export const mockCategories: Category[] = [
   {
