@@ -1,14 +1,24 @@
 'use client';
 
-import { Users, Plus, Search, Filter, Mail, UserPlus, Repeat, DollarSign } from 'lucide-react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { Users, Plus, Search, Filter, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { mockCustomers } from '@/lib/mock-data';
+import type { Customer } from '@/types';
 
 export default function CustomersPage() {
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ja-JP', {
       style: 'currency',
@@ -101,7 +111,8 @@ export default function CustomersPage() {
             {mockCustomers.map((customer) => (
               <div
                 key={customer.id}
-                className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                onClick={() => setSelectedCustomer(customer)}
+                className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
@@ -141,6 +152,100 @@ export default function CustomersPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 顧客詳細ダイアログ */}
+      <Dialog open={!!selectedCustomer} onOpenChange={() => setSelectedCustomer(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="bg-orange-100 text-orange-600 text-lg">
+                  {selectedCustomer?.name.slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="text-lg font-bold">{selectedCustomer?.name}</div>
+                <Badge 
+                  variant="outline" 
+                  className={(selectedCustomer?.totalOrders ?? 0) >= 5 
+                    ? 'bg-orange-50 text-orange-600 border-orange-200' 
+                    : 'bg-slate-50 text-slate-600 border-slate-200'
+                  }
+                >
+                  {(selectedCustomer?.totalOrders ?? 0) >= 5 ? 'VIP会員' : '一般会員'}
+                </Badge>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedCustomer && (
+            <div className="space-y-6">
+              {/* 連絡先情報 */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-slate-500">連絡先情報</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 text-sm">
+                    <Mail className="h-4 w-4 text-slate-400" />
+                    <span>{selectedCustomer.email}</span>
+                  </div>
+                  {selectedCustomer.phone && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone className="h-4 w-4 text-slate-400" />
+                      <span>{selectedCustomer.phone}</span>
+                    </div>
+                  )}
+                  {selectedCustomer.addresses && selectedCustomer.addresses[0] && (
+                    <div className="flex items-start gap-3 text-sm">
+                      <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
+                      <span>
+                        〒{selectedCustomer.addresses[0].postalCode}<br />
+                        {selectedCustomer.addresses[0].prefecture}{selectedCustomer.addresses[0].city}{selectedCustomer.addresses[0].address}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 購入統計 */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
+                  <ShoppingBag className="h-5 w-5 text-orange-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-orange-900 dark:text-orange-100">{selectedCustomer.totalOrders}</div>
+                  <div className="text-xs text-orange-600">注文数</div>
+                </div>
+                <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
+                  <DollarSign className="h-5 w-5 text-orange-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-orange-900 dark:text-orange-100">{formatCurrency(selectedCustomer.totalSpent)}</div>
+                  <div className="text-xs text-orange-600">総購入額</div>
+                </div>
+                <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
+                  <Calendar className="h-5 w-5 text-orange-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-orange-900 dark:text-orange-100">
+                    {new Date(selectedCustomer.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
+                  </div>
+                  <div className="text-xs text-orange-600">登録日</div>
+                </div>
+              </div>
+
+              {/* アクションボタン */}
+              <div className="flex gap-2">
+                <Button asChild className="flex-1 btn-premium">
+                  <Link href={`/customers/${selectedCustomer.id}`}>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    詳細を見る
+                  </Link>
+                </Button>
+                <Button variant="outline" className="flex-1" asChild>
+                  <a href={`mailto:${selectedCustomer.email}`}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    メールを送る
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
