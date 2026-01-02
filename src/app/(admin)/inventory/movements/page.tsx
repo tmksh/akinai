@@ -67,11 +67,14 @@ const formatDate = (dateString: string) =>
 const formatDateTime = (dateString: string) =>
   new Date(dateString).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+type StockMovement = typeof mockStockMovements[number];
+
 export default function StockMovementsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showNewMovementDialog, setShowNewMovementDialog] = useState(false);
   const [movementType, setMovementType] = useState<'in' | 'out'>('in');
+  const [selectedMovement, setSelectedMovement] = useState<StockMovement | null>(null);
 
   // フィルタリング
   const filteredMovements = mockStockMovements.filter((movement) => {
@@ -310,7 +313,11 @@ export default function StockMovementsPage() {
                     const TypeIcon = config.icon;
 
                     return (
-                      <TableRow key={movement.id}>
+                      <TableRow 
+                        key={movement.id} 
+                        className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        onClick={() => setSelectedMovement(movement)}
+                      >
                         <TableCell className="text-sm">
                           <div>
                             <p className="font-medium">{formatDate(movement.createdAt)}</p>
@@ -373,6 +380,128 @@ export default function StockMovementsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 詳細ダイアログ */}
+      <Dialog open={!!selectedMovement} onOpenChange={() => setSelectedMovement(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {selectedMovement && (
+                <>
+                  <div className={cn(
+                    "p-2 rounded-lg",
+                    typeConfig[selectedMovement.type].bgColor
+                  )}>
+                    {(() => {
+                      const TypeIcon = typeConfig[selectedMovement.type].icon;
+                      return <TypeIcon className={cn("h-5 w-5", typeConfig[selectedMovement.type].color)} />;
+                    })()}
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold">入出庫詳細</div>
+                    <Badge className={cn(
+                      "gap-1 mt-1",
+                      typeConfig[selectedMovement.type].bgColor,
+                      typeConfig[selectedMovement.type].color,
+                      "border-0"
+                    )}>
+                      {typeConfig[selectedMovement.type].label}
+                    </Badge>
+                  </div>
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedMovement && (
+            <div className="space-y-6">
+              {/* 商品情報 */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-slate-500">商品情報</h4>
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/30">
+                      <Package className="h-4 w-4 text-orange-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{selectedMovement.productName}</p>
+                      <p className="text-sm text-slate-500">{selectedMovement.variantName}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    <Badge variant="outline" className="text-xs">SKU: {selectedMovement.sku}</Badge>
+                    {selectedMovement.lotNumber && (
+                      <Badge variant="outline" className="text-xs">ロット: {selectedMovement.lotNumber}</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 数量変動 */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-center">
+                  <p className="text-xs text-slate-500 mb-1">変動前</p>
+                  <p className="text-xl font-bold">{selectedMovement.previousStock}</p>
+                </div>
+                <div className={cn(
+                  "p-3 rounded-xl text-center",
+                  selectedMovement.quantity > 0 
+                    ? "bg-emerald-50 dark:bg-emerald-950/30" 
+                    : "bg-blue-50 dark:bg-blue-950/30"
+                )}>
+                  <p className="text-xs text-slate-500 mb-1">数量</p>
+                  <p className={cn(
+                    "text-xl font-bold",
+                    selectedMovement.quantity > 0 ? "text-emerald-600" : "text-blue-600"
+                  )}>
+                    {selectedMovement.quantity > 0 ? '+' : ''}{selectedMovement.quantity}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
+                  <p className="text-xs text-slate-500 mb-1">変動後</p>
+                  <p className="text-xl font-bold text-orange-600">{selectedMovement.newStock}</p>
+                </div>
+              </div>
+
+              {/* 詳細情報 */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-slate-500">詳細情報</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-500">日時</span>
+                    <span className="font-medium">{formatDateTime(selectedMovement.createdAt)}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-500">理由</span>
+                    <span className="font-medium">{selectedMovement.reason}</span>
+                  </div>
+                  {selectedMovement.reference && (
+                    <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-slate-500">参照番号</span>
+                      <Badge variant="secondary">{selectedMovement.reference}</Badge>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-2">
+                    <span className="text-slate-500">担当者</span>
+                    <span className="font-medium">{selectedMovement.createdBy}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* アクションボタン */}
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setSelectedMovement(null)}>
+                  閉じる
+                </Button>
+                <Button className="flex-1 btn-premium">
+                  <FileText className="mr-2 h-4 w-4" />
+                  伝票を表示
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
