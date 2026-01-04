@@ -326,10 +326,14 @@ export function AppSidebar() {
                   アカウント設定
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  ログアウト
-                </DropdownMenuItem>
+                <form action="/auth/signout" method="post">
+                  <button type="submit" className="w-full">
+                    <DropdownMenuItem className="text-destructive cursor-pointer">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      ログアウト
+                    </DropdownMenuItem>
+                  </button>
+                </form>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>

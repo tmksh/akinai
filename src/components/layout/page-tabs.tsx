@@ -47,3 +47,4 @@ export function PageTabs({ tabs, className }: PageTabsProps) {
   );
 }
 
+
