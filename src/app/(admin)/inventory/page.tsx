@@ -124,8 +124,8 @@ export default function InventoryPage() {
               className={cn(
                 "flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all duration-200",
                 isActive
-                  ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/25"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+                  ? "bg-zinc-900 text-white border-zinc-800"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900/20"
               )}
             >
               <Icon className={cn("h-4 w-4", isActive ? "text-white" : tab.color)} />

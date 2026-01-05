@@ -21,7 +21,7 @@ export function MobileHeader() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-brand shadow-sm">
             <Star className="h-4 w-4 text-white" />
           </div>
-          <span className="text-base font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+          <span className="text-base font-bold text-zinc-900 dark:text-zinc-100">
             アキナイ
           </span>
         </Link>
