@@ -5,29 +5,21 @@ import {
   ShoppingCart,
   Users,
   ArrowUpRight,
-  AlertCircle,
   TrendingUp,
   Clock,
-  CheckCircle2,
   Truck,
-  Sparkles,
+  MoreHorizontal,
+  Target,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-} from 'recharts';
 
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   mockRecentOrders,
   mockInventorySummary,
   mockDashboardStats,
-  mockRevenueData,
+  mockTopProducts,
 } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 
@@ -40,270 +32,272 @@ const formatCompact = (value: number) => {
   return value.toLocaleString();
 };
 
+// 円形プログレス
+const CircularProgress = ({ value, size = 120, strokeWidth = 8 }: { value: number; size?: number; strokeWidth?: number }) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (value / 100) * circumference;
+  
+  return (
+    <svg width={size} height={size} className="transform -rotate-90">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="rgba(251,146,60,0.2)"
+        strokeWidth={strokeWidth}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="url(#orangeGradient)"
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+      />
+      <defs>
+        <linearGradient id="orangeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#f97316" />
+          <stop offset="100%" stopColor="#fbbf24" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+};
+
 export default function DashboardPage() {
   const lowStockItems = mockInventorySummary.filter((item) => item.isLowStock);
   const pendingOrders = mockRecentOrders.filter((order) => order.status === 'pending');
   const processingOrders = mockRecentOrders.filter((order) => order.status === 'processing');
+  const todoCount = pendingOrders.length + processingOrders.length + lowStockItems.length;
+  
+  // 目標達成率（仮）
+  const goalProgress = 78;
 
   return (
-    <div className="space-y-6">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
-            ダッシュボード
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">ショップの概要を確認</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-full" asChild>
-            <Link href="/reports">レポート</Link>
-          </Button>
-          <Button className="rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100" asChild>
-            <Link href="/products/new">
-              <Sparkles className="h-4 w-4 mr-2" />
-              商品を追加
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      {/* メイン統計 + グラフ */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        {/* 統計カード群 */}
-        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-          {/* 売上 */}
-          <div className="col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-6 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="relative">
-              <p className="text-slate-400 text-sm font-medium">今月の売上</p>
-              <p className="text-3xl font-bold mt-2 tracking-tight">¥{formatCompact(2580000)}</p>
+    <div className="space-y-4 pb-8">
+      {/* Bento Grid レイアウト */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* メイン売上カード - 2x2 */}
+        <div className="md:col-span-2 md:row-span-2 bg-gradient-to-br from-orange-950 via-orange-900 to-amber-900 rounded-3xl p-6 relative overflow-hidden">
+          {/* 背景装飾 */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-amber-500/10 to-transparent rounded-full blur-2xl" />
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-orange-300/80 text-sm font-medium">今月の売上</span>
+              <button className="text-orange-300/60 hover:text-orange-200 transition-colors">
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="mb-8">
+              <p className="text-5xl md:text-6xl font-bold text-white tracking-tight">
+                ¥{formatCompact(2580000)}
+              </p>
               <div className="flex items-center gap-2 mt-3">
-                <span className="inline-flex items-center gap-1 text-emerald-400 text-sm font-medium">
-                  <TrendingUp className="h-4 w-4" />
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-medium">
+                  <TrendingUp className="h-3.5 w-3.5" />
                   +12.5%
                 </span>
-                <span className="text-slate-500 text-sm">vs 先月</span>
+                <span className="text-orange-300/60 text-sm">先月比</span>
               </div>
             </div>
-          </div>
-
-          {/* 注文数 */}
-          <div className="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-5 border border-amber-100 dark:border-amber-900/50">
-            <div className="flex items-center justify-between">
-              <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                <ShoppingCart className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <Badge variant="outline" className="text-amber-600 border-amber-200 dark:border-amber-800 bg-white dark:bg-amber-950">
-                +8.2%
-              </Badge>
-            </div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mt-4">156</p>
-            <p className="text-slate-500 text-sm mt-1">今月の注文</p>
-          </div>
-
-          {/* 商品数 */}
-          <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl p-5 border border-emerald-100 dark:border-emerald-900/50">
-            <div className="flex items-center justify-between">
-              <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
-                <Package className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <Badge variant="outline" className="text-emerald-600 border-emerald-200 dark:border-emerald-800 bg-white dark:bg-emerald-950">
-                +{mockDashboardStats.productsChange}
-              </Badge>
-            </div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mt-4">{mockDashboardStats.totalProducts}</p>
-            <p className="text-slate-500 text-sm mt-1">登録商品</p>
-          </div>
-
-          {/* 顧客数 */}
-          <div className="col-span-2 bg-violet-50 dark:bg-violet-950/30 rounded-2xl p-5 border border-violet-100 dark:border-violet-900/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-sm">顧客数</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">2,341</p>
-              </div>
-              <div className="h-12 w-12 rounded-xl bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center">
-                <Users className="h-6 w-6 text-violet-600 dark:text-violet-400" />
-              </div>
-            </div>
-            <div className="flex items-center gap-3 mt-4">
-              <div className="flex-1 h-2 bg-violet-100 dark:bg-violet-900/50 rounded-full overflow-hidden">
-                <div className="h-full w-[72%] bg-violet-500 rounded-full" />
-              </div>
-              <span className="text-sm text-slate-500">72% リピーター</span>
-            </div>
-          </div>
-        </div>
-
-        {/* グラフ */}
-        <div className="lg:col-span-3 bg-white dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-700/50">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-white">売上推移</h3>
-              <p className="text-sm text-slate-500 mt-0.5">過去7日間</p>
-            </div>
-            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700 rounded-full p-1">
-              <button className="px-3 py-1 text-xs font-medium rounded-full bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm">週</button>
-              <button className="px-3 py-1 text-xs font-medium rounded-full text-slate-500 hover:text-slate-700">月</button>
-              <button className="px-3 py-1 text-xs font-medium rounded-full text-slate-500 hover:text-slate-700">年</button>
-            </div>
-          </div>
-          <div className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockRevenueData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false} 
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#94a3b8' }}
-                  tickFormatter={(value) => new Date(value).toLocaleDateString('ja-JP', { day: 'numeric' })}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false}
-                  tick={{ fontSize: 12, fill: '#94a3b8' }}
-                  tickFormatter={(value) => `${(value / 10000).toFixed(0)}万`}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#0ea5e9"
-                  strokeWidth={2}
-                  fill="url(#colorRevenue)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* タスク & 注文 */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* タスク */}
-        <div className="bg-white dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-700/50">
-          <h3 className="font-semibold text-slate-900 dark:text-white mb-4">やること</h3>
-          <div className="space-y-3">
-            {pendingOrders.length > 0 && (
-              <Link href="/orders?status=pending" className="block">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-                  <div className="h-9 w-9 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
-                    <Clock className="h-4 w-4 text-amber-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">入金待ち</p>
-                    <p className="text-xs text-slate-500">{pendingOrders.length}件の注文</p>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-slate-400" />
-                </div>
-              </Link>
-            )}
             
-            {processingOrders.length > 0 && (
-              <Link href="/orders?status=processing" className="block">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                  <div className="h-9 w-9 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0">
-                    <Truck className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">発送待ち</p>
-                    <p className="text-xs text-slate-500">{processingOrders.length}件の注文</p>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-slate-400" />
-                </div>
-              </Link>
-            )}
+            {/* ミニグラフ（ドット表示） */}
+            <div className="flex items-end gap-1 h-16 mb-6">
+              {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
+                <div 
+                  key={i}
+                  className="flex-1 bg-gradient-to-t from-orange-500 to-amber-400 rounded-full opacity-80"
+                  style={{ height: `${h}%` }}
+                />
+              ))}
+            </div>
             
-            {lowStockItems.length > 0 && (
-              <Link href="/inventory?filter=low" className="block">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
-                  <div className="h-9 w-9 rounded-lg bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center shrink-0">
-                    <AlertCircle className="h-4 w-4 text-orange-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">在庫少</p>
-                    <p className="text-xs text-slate-500">{lowStockItems.length}件の商品</p>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-slate-400" />
-                </div>
-              </Link>
-            )}
-
-            {pendingOrders.length === 0 && processingOrders.length === 0 && lowStockItems.length === 0 && (
-              <div className="flex flex-col items-center py-6 text-center">
-                <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-3">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                </div>
-                <p className="text-sm font-medium text-slate-900 dark:text-white">すべて完了</p>
-                <p className="text-xs text-slate-500 mt-1">やることはありません</p>
+            {/* クイック統計 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/5 backdrop-blur rounded-2xl p-4">
+                <p className="text-orange-300/60 text-xs mb-1">注文数</p>
+                <p className="text-2xl font-bold text-white">156</p>
               </div>
-            )}
+              <div className="bg-white/5 backdrop-blur rounded-2xl p-4">
+                <p className="text-orange-300/60 text-xs mb-1">平均単価</p>
+                <p className="text-2xl font-bold text-white">¥16.5k</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* 最近の注文 */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-700/50">
+        {/* 目標達成カード */}
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-5 relative overflow-hidden">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl" />
+          <div className="relative z-10">
+            <p className="text-slate-400 text-sm font-medium mb-4">目標達成率</p>
+            <div className="flex items-center justify-center">
+              <div className="relative">
+                <CircularProgress value={goalProgress} size={100} strokeWidth={8} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-white">{goalProgress}%</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-center text-slate-500 text-xs mt-3">今月の目標まであと¥57万</p>
+          </div>
+        </div>
+
+        {/* タスクカード */}
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-900 dark:text-white">最近の注文</h3>
-            <Link href="/orders" className="text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1">
-              すべて見る <ArrowUpRight className="h-3 w-3" />
+            <p className="text-slate-400 text-sm font-medium">やること</p>
+            <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-medium">
+              {todoCount}件
+            </span>
+          </div>
+          <div className="space-y-2">
+            {pendingOrders.length > 0 && (
+              <Link href="/orders?status=pending">
+                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 transition-colors">
+                  <Clock className="h-4 w-4 text-amber-400" />
+                  <span className="text-sm text-white">入金待ち</span>
+                  <span className="ml-auto text-xs text-amber-400">{pendingOrders.length}</span>
+                </div>
+              </Link>
+            )}
+            {processingOrders.length > 0 && (
+              <Link href="/orders?status=processing">
+                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 transition-colors">
+                  <Truck className="h-4 w-4 text-blue-400" />
+                  <span className="text-sm text-white">発送待ち</span>
+                  <span className="ml-auto text-xs text-blue-400">{processingOrders.length}</span>
+                </div>
+              </Link>
+            )}
+            {lowStockItems.length > 0 && (
+              <Link href="/inventory?filter=low">
+                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 transition-colors">
+                  <Package className="h-4 w-4 text-orange-400" />
+                  <span className="text-sm text-white">在庫少</span>
+                  <span className="ml-auto text-xs text-orange-400">{lowStockItems.length}</span>
+                </div>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* 商品数カード */}
+        <div className="bg-gradient-to-br from-emerald-950 to-emerald-900 rounded-3xl p-5 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/20 rounded-full blur-2xl" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between">
+              <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                <Package className="h-5 w-5 text-emerald-400" />
+              </div>
+              <span className="text-emerald-400 text-xs font-medium">+{mockDashboardStats.productsChange}</span>
+            </div>
+            <p className="text-3xl font-bold text-white mt-4">{mockDashboardStats.totalProducts}</p>
+            <p className="text-emerald-300/60 text-sm mt-1">登録商品</p>
+          </div>
+        </div>
+
+        {/* 顧客数カード */}
+        <div className="bg-gradient-to-br from-violet-950 to-violet-900 rounded-3xl p-5 relative overflow-hidden">
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-violet-500/20 rounded-full blur-2xl" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between">
+              <div className="h-10 w-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                <Users className="h-5 w-5 text-violet-400" />
+              </div>
+              <span className="text-violet-400 text-xs font-medium">72% リピート</span>
+            </div>
+            <p className="text-3xl font-bold text-white mt-4">2,341</p>
+            <p className="text-violet-300/60 text-sm mt-1">顧客数</p>
+          </div>
+        </div>
+
+        {/* 最近の注文 - 2x1 */}
+        <div className="md:col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-white font-semibold">最近の注文</p>
+            <Link href="/orders" className="text-slate-400 hover:text-white text-sm flex items-center gap-1 transition-colors">
+              すべて <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
           <div className="space-y-2">
-            {mockRecentOrders.slice(0, 4).map((order) => (
-              <Link key={order.id} href={`/orders/${order.id}`} className="block">
-                <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            {mockRecentOrders.slice(0, 3).map((order) => (
+              <Link key={order.id} href={`/orders/${order.id}`}>
+                <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors">
                   <div className={cn(
-                    "h-10 w-10 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold",
-                    order.status === 'pending' && "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400",
-                    order.status === 'processing' && "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400",
-                    order.status === 'delivered' && "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
+                    "h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold",
+                    order.status === 'pending' && "bg-amber-500/20 text-amber-400",
+                    order.status === 'processing' && "bg-blue-500/20 text-blue-400",
+                    order.status === 'delivered' && "bg-slate-500/20 text-slate-400",
                   )}>
                     {order.customerName.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900 dark:text-white text-sm">{order.customerName}</p>
-                      <span className="text-xs text-slate-400">{order.orderNumber}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-white text-sm font-medium">{order.customerName}</p>
+                    <p className="text-slate-500 text-xs">
                       {order.status === 'pending' && '入金待ち'}
                       {order.status === 'processing' && '発送待ち'}
                       {order.status === 'delivered' && '完了'}
-                      {' · '}{new Date(order.createdAt).toLocaleDateString('ja-JP')}
                     </p>
                   </div>
-                  <p className="font-semibold text-slate-900 dark:text-white text-sm">{formatCurrency(order.total)}</p>
+                  <p className="text-white font-semibold text-sm">{formatCurrency(order.total)}</p>
                 </div>
               </Link>
             ))}
           </div>
         </div>
+
+        {/* 人気商品 */}
+        <div className="md:col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-white font-semibold">人気商品</p>
+            <Link href="/products" className="text-slate-400 hover:text-white text-sm flex items-center gap-1 transition-colors">
+              すべて <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {mockTopProducts.slice(0, 3).map((product, index) => (
+              <div key={product.id} className="bg-white/5 rounded-2xl p-4 text-center relative">
+                <div className="absolute top-2 left-2 h-5 w-5 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <span className="text-orange-400 text-xs font-bold">{index + 1}</span>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-orange-500/20 to-amber-500/20 flex items-center justify-center mx-auto mb-3">
+                  <Zap className="h-6 w-6 text-orange-400" />
+                </div>
+                <p className="text-white text-sm font-medium truncate">{product.name}</p>
+                <p className="text-slate-500 text-xs mt-1">{product.sales}件販売</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* クイックリンク */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* クイックアクション */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { href: '/products', icon: Package, label: '商品管理', color: 'bg-orange-500' },
-          { href: '/orders', icon: ShoppingCart, label: '注文管理', color: 'bg-blue-500' },
-          { href: '/customers', icon: Users, label: '顧客管理', color: 'bg-violet-500' },
-          { href: '/contents', icon: Sparkles, label: 'コンテンツ', color: 'bg-emerald-500' },
+          { href: '/products/new', icon: Package, label: '商品追加', gradient: 'from-orange-600 to-amber-500' },
+          { href: '/orders', icon: ShoppingCart, label: '注文管理', gradient: 'from-blue-600 to-cyan-500' },
+          { href: '/customers', icon: Users, label: '顧客管理', gradient: 'from-violet-600 to-purple-500' },
+          { href: '/contents/new', icon: Target, label: '記事作成', gradient: 'from-emerald-600 to-teal-500' },
         ].map((item) => (
           <Link key={item.href} href={item.href}>
-            <div className="group bg-white dark:bg-slate-800/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/50 hover:border-slate-200 dark:hover:border-slate-600 transition-all hover:shadow-lg hover:-translate-y-0.5">
-              <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center text-white mb-3", item.color)}>
-                <item.icon className="h-5 w-5" />
-              </div>
-              <p className="font-medium text-slate-900 dark:text-white">{item.label}</p>
-              <div className="flex items-center gap-1 mt-1 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
-                <span className="text-xs">開く</span>
-                <ArrowUpRight className="h-3 w-3" />
+            <div className={cn(
+              "bg-gradient-to-r rounded-2xl p-4 hover:opacity-90 transition-all hover:scale-[1.02] active:scale-[0.98]",
+              item.gradient
+            )}>
+              <div className="flex items-center gap-3">
+                <item.icon className="h-5 w-5 text-white/90" />
+                <span className="text-white font-medium">{item.label}</span>
+                <ArrowUpRight className="h-4 w-4 text-white/60 ml-auto" />
               </div>
             </div>
           </Link>
