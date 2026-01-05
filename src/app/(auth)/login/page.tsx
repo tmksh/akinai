@@ -73,15 +73,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-stone-100 via-stone-50 to-stone-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-orange-50 via-amber-50 to-orange-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
       <Card className="w-full max-w-md shadow-xl border-0 bg-white dark:bg-slate-900">
         <CardContent className="pt-10 pb-8 px-8">
           {/* ロゴ */}
           <div className="flex flex-col items-center mb-8">
-            <div className="p-4 rounded-2xl bg-zinc-900 shadow-lg mb-4">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-lg mb-4">
               <Store className="h-10 w-10 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 tracking-wide">
+            <h1 className="text-3xl font-bold text-orange-500 tracking-wide">
               AKINAI
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -118,7 +118,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="h-12 pl-11 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-zinc-900 focus:ring-zinc-900/20"
+                  className="h-12 pl-11 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-orange-500 focus:ring-orange-500/20"
                 />
               </div>
             </div>
@@ -134,7 +134,7 @@ export default function LoginPage() {
                 </Label>
                 <button
                   type="button"
-                  className="text-sm text-zinc-600 hover:text-zinc-800 hover:underline"
+                  className="text-sm text-orange-500 hover:text-orange-600 hover:underline"
                 >
                   パスワードを忘れた場合
                 </button>
@@ -151,7 +151,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="h-12 pl-11 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-zinc-900 focus:ring-zinc-900/20"
+                  className="h-12 pl-11 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-orange-500 focus:ring-orange-500/20"
                 />
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function LoginPage() {
             {/* ログインボタン */}
             <Button
               type="submit"
-              className="w-full h-12 bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-base shadow-lg transition-all"
+              className="w-full h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-medium text-base shadow-lg shadow-orange-500/20 transition-all hover:shadow-xl hover:shadow-orange-500/30"
               disabled={isLoading}
             >
               {isLoading ? (

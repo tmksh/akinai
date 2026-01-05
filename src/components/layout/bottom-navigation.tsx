@@ -59,37 +59,37 @@ const moreMenuItems = [
     title: '在庫管理',
     icon: Warehouse,
     href: '/inventory',
-    color: 'text-zinc-600',
+    color: 'text-orange-500',
   },
   {
     title: 'コンテンツ',
     icon: FileText,
     href: '/contents',
-    color: 'text-zinc-600',
+    color: 'text-orange-500',
   },
   {
     title: '見積管理',
     icon: FileQuestion,
     href: '/quotes',
-    color: 'text-zinc-600',
+    color: 'text-orange-500',
   },
   {
     title: '代理店管理',
     icon: Building2,
     href: '/agents',
-    color: 'text-zinc-600',
+    color: 'text-orange-500',
   },
   {
     title: 'レポート',
     icon: BarChart3,
     href: '/reports',
-    color: 'text-zinc-600',
+    color: 'text-orange-500',
   },
   {
     title: '設定',
     icon: Settings,
     href: '/settings',
-    color: 'text-zinc-500',
+    color: 'text-slate-500',
   },
 ];
 
@@ -124,7 +124,7 @@ export function BottomNavigation() {
                     className={cn(
                       'flex flex-col items-center justify-center min-w-[4rem] py-1 px-2 rounded-xl transition-all',
                       active
-                        ? 'bg-zinc-900 text-white'
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     )}
                   >
@@ -143,7 +143,7 @@ export function BottomNavigation() {
                   className={cn(
                     'flex flex-col items-center justify-center min-w-[4rem] py-1 px-2 rounded-xl transition-all',
                     active
-                      ? 'bg-zinc-900 text-white'
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   )}
                 >
@@ -187,7 +187,7 @@ export function BottomNavigation() {
                   className={cn(
                     'flex flex-col items-center justify-center p-4 rounded-2xl transition-all',
                     active
-                      ? 'bg-zinc-900 text-white'
+                      ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-md'
                       : 'bg-muted/50 hover:bg-muted'
                   )}
                 >

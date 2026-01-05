@@ -35,7 +35,7 @@ export function PageTabs({ tabs, className }: PageTabsProps) {
             className={cn(
               "px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
               isActive(tab)
-                ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                ? "border-orange-500 text-orange-600 dark:text-orange-400"
                 : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300"
             )}
           >
