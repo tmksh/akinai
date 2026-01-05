@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
 import {
   Search,
   Filter,
@@ -17,9 +19,11 @@ import {
   ShoppingCart,
   AlertCircle,
   Loader2,
-  Calendar,
+  Calendar as CalendarIcon,
   ChevronDown,
+  X,
 } from 'lucide-react';
+import type { DateRange } from 'react-day-picker';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +55,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { mockOrders } from '@/lib/mock-data';
 import type { OrderStatus, PaymentStatus } from '@/types';
 import { cn } from '@/lib/utils';
@@ -80,46 +90,47 @@ const paymentStatusConfig: Record<
   refunded: { label: '返金済', variant: 'secondary' },
 };
 
-// 期間フィルター
-type DateFilterType = 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | 'custom';
+// 期間プリセット
+type PresetType = 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | 'custom';
 
-const dateFilterOptions: { value: DateFilterType; label: string }[] = [
+const presetOptions: { value: PresetType; label: string }[] = [
   { value: 'all', label: 'すべての期間' },
   { value: 'today', label: '今日' },
   { value: 'yesterday', label: '昨日' },
   { value: 'week', label: '今週' },
   { value: 'month', label: '今月' },
   { value: 'lastMonth', label: '先月' },
+  { value: 'custom', label: 'カスタム期間' },
 ];
 
-// 日付範囲を取得
-const getDateRange = (filter: DateFilterType): { start: Date | null; end: Date | null } => {
+// プリセットから日付範囲を取得
+const getPresetDateRange = (preset: PresetType): DateRange | undefined => {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   
-  switch (filter) {
+  switch (preset) {
     case 'today':
-      return { start: today, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      return { from: today, to: today };
     case 'yesterday': {
       const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-      return { start: yesterday, end: today };
+      return { from: yesterday, to: yesterday };
     }
     case 'week': {
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - today.getDay());
-      return { start: weekStart, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      return { from: weekStart, to: today };
     }
     case 'month': {
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { start: monthStart, end: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      return { from: monthStart, to: today };
     }
     case 'lastMonth': {
       const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { start: lastMonthStart, end: lastMonthEnd };
+      const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { from: lastMonthStart, to: lastMonthEnd };
     }
     default:
-      return { start: null, end: null };
+      return undefined;
   }
 };
 
@@ -146,9 +157,46 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
-  const [customStartDate, setCustomStartDate] = useState<string>('');
-  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [datePreset, setDatePreset] = useState<PresetType>('all');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  // プリセット選択時
+  const handlePresetChange = (preset: PresetType) => {
+    setDatePreset(preset);
+    if (preset === 'custom') {
+      setCalendarOpen(true);
+    } else {
+      setDateRange(getPresetDateRange(preset));
+      setCalendarOpen(false);
+    }
+  };
+
+  // カレンダーで日付選択時
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    setDateRange(range);
+    if (range?.from && range?.to) {
+      setDatePreset('custom');
+    }
+  };
+
+  // 日付フィルターをクリア
+  const clearDateFilter = () => {
+    setDatePreset('all');
+    setDateRange(undefined);
+  };
+
+  // 日付表示テキスト
+  const getDateDisplayText = () => {
+    if (datePreset === 'all') return 'すべての期間';
+    if (datePreset === 'custom' && dateRange?.from) {
+      if (dateRange.to) {
+        return `${format(dateRange.from, 'M/d', { locale: ja })} - ${format(dateRange.to, 'M/d', { locale: ja })}`;
+      }
+      return format(dateRange.from, 'M/d', { locale: ja });
+    }
+    return presetOptions.find(o => o.value === datePreset)?.label || 'すべての期間';
+  };
 
   // フィルタリング
   const filteredOrders = useMemo(() => {
@@ -167,17 +215,23 @@ export default function OrdersPage() {
       
       // 日付フィルター
       let matchesDate = true;
-      if (dateFilter !== 'all') {
+      if (dateRange?.from) {
         const orderDate = new Date(order.createdAt);
-        const { start, end } = getDateRange(dateFilter);
-        if (start && end) {
-          matchesDate = orderDate >= start && orderDate < end;
+        const startOfDay = new Date(dateRange.from);
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        if (dateRange.to) {
+          const endOfDay = new Date(dateRange.to);
+          endOfDay.setHours(23, 59, 59, 999);
+          matchesDate = orderDate >= startOfDay && orderDate <= endOfDay;
+        } else {
+          matchesDate = orderDate >= startOfDay;
         }
       }
       
       return matchesSearch && matchesStatus && matchesPayment && matchesDate;
     });
-  }, [searchQuery, statusFilter, paymentFilter, dateFilter]);
+  }, [searchQuery, statusFilter, paymentFilter, dateRange]);
 
   // 統計計算
   const stats = useMemo(() => {
@@ -194,10 +248,11 @@ export default function OrdersPage() {
     setSearchQuery('');
     setStatusFilter('all');
     setPaymentFilter('all');
-    setDateFilter('all');
+    setDatePreset('all');
+    setDateRange(undefined);
   };
 
-  const hasActiveFilters = searchQuery || statusFilter !== 'all' || paymentFilter !== 'all' || dateFilter !== 'all';
+  const hasActiveFilters = searchQuery || statusFilter !== 'all' || paymentFilter !== 'all' || datePreset !== 'all';
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -216,9 +271,8 @@ export default function OrdersPage() {
         </Button>
       </div>
 
-      {/* 統計カード - オレンジグラデーション */}
+      {/* 統計カード */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        {/* 総売上 */}
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
@@ -229,7 +283,6 @@ export default function OrdersPage() {
           <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{formatCurrency(stats.totalRevenue)}</p>
         </div>
         
-        {/* 注文数 */}
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
@@ -240,7 +293,6 @@ export default function OrdersPage() {
           <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.totalOrders}</p>
         </div>
         
-        {/* 未処理 */}
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
@@ -251,7 +303,6 @@ export default function OrdersPage() {
           <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.pendingOrders}</p>
         </div>
         
-        {/* 処理中 */}
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
@@ -278,30 +329,67 @@ export default function OrdersPage() {
                   className="pl-9 text-sm"
                 />
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="sm:w-[180px] justify-between">
+              
+              {/* 日付フィルター（プリセット + カレンダー） */}
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className={cn(
+                      "sm:w-[200px] justify-between",
+                      datePreset !== 'all' && "border-orange-300 bg-orange-50 text-orange-700"
+                    )}
+                  >
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {dateFilterOptions.find(o => o.value === dateFilter)?.label}
-                      </span>
+                      <CalendarIcon className="h-4 w-4" />
+                      <span className="text-sm truncate">{getDateDisplayText()}</span>
                     </div>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    {datePreset !== 'all' ? (
+                      <X 
+                        className="h-4 w-4 hover:text-destructive" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearDateFilter();
+                        }}
+                      />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[180px]">
-                  {dateFilterOptions.map((option) => (
-                    <DropdownMenuItem
-                      key={option.value}
-                      onClick={() => setDateFilter(option.value)}
-                      className={cn(dateFilter === option.value && "bg-orange-50 text-orange-600")}
-                    >
-                      {option.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <div className="flex">
+                    {/* プリセット選択 */}
+                    <div className="border-r p-2 space-y-1">
+                      {presetOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => handlePresetChange(option.value)}
+                          className={cn(
+                            "w-full text-left px-3 py-2 text-sm rounded-md transition-colors",
+                            datePreset === option.value
+                              ? "bg-orange-100 text-orange-700 font-medium"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* カレンダー */}
+                    <div className="p-2">
+                      <Calendar
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={handleDateRangeSelect}
+                        numberOfMonths={1}
+                        locale={ja}
+                        disabled={{ after: new Date() }}
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             
             {/* 下段：ステータス + 支払い + リセット */}
