@@ -10,7 +10,8 @@ import {
   Card,
   CardContent,
 } from '@/components/ui/card';
-import { Loader2, Mail, Lock, Store } from 'lucide-react';
+import { Loader2, Mail, Lock } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -78,9 +79,13 @@ export default function LoginPage() {
         <CardContent className="pt-10 pb-8 px-8">
           {/* ロゴ */}
           <div className="flex flex-col items-center mb-8">
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-lg mb-4">
-              <Store className="h-10 w-10 text-white" />
-            </div>
+            <Image
+              src="/logo.png"
+              alt="AKINAI"
+              width={80}
+              height={80}
+              className="h-20 w-20 object-contain drop-shadow-lg mb-3"
+            />
             <h1 className="text-3xl font-bold text-orange-500 tracking-wide">
               AKINAI
             </h1>
