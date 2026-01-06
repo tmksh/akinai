@@ -10,8 +10,7 @@ import {
   Card,
   CardContent,
 } from '@/components/ui/card';
-import { Loader2, Mail, Lock } from 'lucide-react';
-import Image from 'next/image';
+import { Loader2, Mail, Lock, Store } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
