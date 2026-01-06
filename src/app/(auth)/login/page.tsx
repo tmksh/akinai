@@ -80,7 +80,7 @@ export default function LoginPage() {
           {/* ロゴ */}
           <div className="flex flex-col items-center mb-8">
             <Image
-              src="/akinai-logo.png"
+              src="/logo-shou.png"
               alt="AKINAI"
               width={120}
               height={120}
