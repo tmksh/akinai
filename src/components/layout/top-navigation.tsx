@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
@@ -257,11 +256,9 @@ export function TopNavigation() {
         <div className="flex items-center justify-between h-16 md:h-20 px-3 md:px-4 lg:px-6">
           {/* ロゴ */}
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-            <Image
-              src="/logo-shou.png"
+            <img
+              src="/logo-shou.png?v=2"
               alt="AKINAI"
-              width={48}
-              height={48}
               className="h-10 w-10 md:h-12 md:w-12 object-contain drop-shadow-md"
             />
             <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent hidden sm:block">
