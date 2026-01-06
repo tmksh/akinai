@@ -80,14 +80,14 @@ export default function LoginPage() {
           {/* ロゴ */}
           <div className="flex flex-col items-center mb-8">
             <Image
-              src="/logo.png"
+              src="/akinai-logo.png"
               alt="AKINAI"
               width={120}
               height={120}
               className="h-24 w-24 object-contain drop-shadow-lg mb-2"
             />
             <h1 className="text-3xl font-bold text-orange-500 tracking-wide">
-              AKINAI
+              アキナイ
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               EC管理システム

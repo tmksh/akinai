@@ -258,7 +258,7 @@ export function TopNavigation() {
           {/* ロゴ */}
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
             <Image
-              src="/logo.png"
+              src="/akinai-logo.png"
               alt="AKINAI"
               width={48}
               height={48}
