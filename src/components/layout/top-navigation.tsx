@@ -45,57 +45,16 @@ const navigationItems: {
   href: string;
   badge?: number;
 }[] = [
-  {
-    title: 'ホーム',
-    icon: IoHome,
-    href: '/dashboard',
-  },
-  {
-    title: '商品管理',
-    icon: IoCube,
-    href: '/products',
-  },
-  {
-    title: '在庫管理',
-    icon: IoLayers,
-    href: '/inventory',
-  },
-  {
-    title: 'コンテンツ',
-    icon: IoDocument,
-    href: '/contents',
-  },
-  {
-    title: '注文管理',
-    icon: IoCart,
-    href: '/orders',
-    badge: 3,
-  },
-  {
-    title: '見積管理',
-    icon: IoHelpCircle,
-    href: '/quotes',
-  },
-  {
-    title: '顧客管理',
-    icon: IoPeople,
-    href: '/customers',
-  },
-  {
-    title: '代理店',
-    icon: IoBusiness,
-    href: '/agents',
-  },
-  {
-    title: 'レポート',
-    icon: IoBarChart,
-    href: '/reports',
-  },
-  {
-    title: '設定',
-    icon: IoSettings,
-    href: '/settings',
-  },
+  { title: 'ホーム', icon: IoHome, href: '/dashboard' },
+  { title: '商品管理', icon: IoCube, href: '/products' },
+  { title: '在庫管理', icon: IoLayers, href: '/inventory' },
+  { title: 'コンテンツ', icon: IoDocument, href: '/contents' },
+  { title: '注文管理', icon: IoCart, href: '/orders', badge: 3 },
+  { title: '見積管理', icon: IoHelpCircle, href: '/quotes' },
+  { title: '顧客管理', icon: IoPeople, href: '/customers' },
+  { title: '代理店', icon: IoBusiness, href: '/agents' },
+  { title: 'レポート', icon: IoBarChart, href: '/reports' },
+  { title: '設定', icon: IoSettings, href: '/settings' },
 ];
 
 function ThemeToggle() {
@@ -141,34 +100,43 @@ function NavItem({
     <Link
       href={item.href}
       className={cn(
-        'flex flex-col items-center rounded-lg transition-all duration-200 relative group',
+        'flex flex-col items-center rounded-xl transition-all duration-200 relative group',
         isCompact 
           ? 'gap-1 px-3 py-2 min-w-[60px]' 
           : 'gap-1.5 px-4 py-2.5 min-w-[70px]',
         isActive
-          ? 'text-orange-600 dark:text-orange-400'
-          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+          ? 'bg-orange-50 dark:bg-orange-950/30'
+          : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
       )}
     >
       <div className="relative">
-        <Icon className={isCompact ? 'h-5 w-5' : 'h-6 w-6'} />
+        <Icon className={cn(
+          'transition-all',
+          isCompact ? 'h-5 w-5' : 'h-6 w-6',
+          isActive 
+            ? 'text-orange-500 scale-110' 
+            : 'text-slate-500 dark:text-slate-400 group-hover:text-orange-500'
+        )} />
         {item.badge && (
           <Badge
             variant="destructive"
-            className="absolute -right-2 -top-2 h-4 w-4 rounded-full p-0 text-[9px] flex items-center justify-center"
+            className="absolute -right-2 -top-2 h-4 w-4 rounded-full p-0 text-[9px] flex items-center justify-center shadow-sm"
           >
             {item.badge}
           </Badge>
         )}
       </div>
       <span className={cn(
-        'font-medium text-center leading-tight',
-        isCompact ? 'text-[10px]' : 'text-xs'
+        'font-medium text-center leading-tight transition-colors',
+        isCompact ? 'text-[10px]' : 'text-xs',
+        isActive 
+          ? 'text-orange-600 dark:text-orange-400' 
+          : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
       )}>
         {item.title}
       </span>
       {isActive && (
-        <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" />
+        <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" />
       )}
     </Link>
   );
@@ -192,18 +160,22 @@ function MoreMenu({
       <DropdownMenuTrigger asChild>
         <button 
           className={cn(
-            'flex flex-col items-center rounded-lg transition-all duration-200',
+            'flex flex-col items-center rounded-xl transition-all duration-200',
             isCompact 
               ? 'gap-1 px-3 py-2 min-w-[60px]' 
               : 'gap-1.5 px-4 py-2.5 min-w-[70px]',
             hasActiveItem
-              ? 'text-orange-600 dark:text-orange-400'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-orange-50 dark:bg-orange-950/30'
+              : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
           )}
         >
-          <IoEllipsisHorizontal className={isCompact ? 'h-5 w-5' : 'h-6 w-6'} />
+          <IoEllipsisHorizontal className={cn(
+            hasActiveItem ? "text-orange-500" : "text-slate-500 dark:text-slate-400",
+            isCompact ? 'h-5 w-5' : 'h-6 w-6'
+          )} />
           <span className={cn(
             'font-medium',
+            hasActiveItem ? 'text-orange-600 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400',
             isCompact ? 'text-[10px]' : 'text-xs'
           )}>
             その他
@@ -213,17 +185,18 @@ function MoreMenu({
       <DropdownMenuContent align="end" className="w-48">
         {items.map((item) => {
           const Icon = item.icon;
+          const active = isActive(item.href);
           return (
             <DropdownMenuItem key={item.href} asChild>
               <Link 
                 href={item.href} 
                 className={cn(
-                  'flex items-center gap-2',
-                  isActive(item.href) && 'text-orange-600 dark:text-orange-400'
+                  'flex items-center gap-3',
+                  active && 'bg-orange-50 dark:bg-orange-950/30'
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {item.title}
+                <Icon className={cn("h-4 w-4", active ? "text-orange-500" : "text-slate-500")} />
+                <span className={active ? 'font-medium text-orange-600 dark:text-orange-400' : ''}>{item.title}</span>
                 {item.badge && (
                   <Badge variant="destructive" className="ml-auto h-5 w-5 rounded-full p-0 text-[10px] flex items-center justify-center">
                     {item.badge}
@@ -418,6 +391,7 @@ export function TopNavigation() {
             <div className="grid grid-cols-4 gap-2">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
+                const active = isActive(item.href);
                 return (
                   <Link
                     key={item.href}
@@ -425,23 +399,33 @@ export function TopNavigation() {
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
                       'flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-200 relative',
-                      isActive(item.href)
-                        ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
-                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      active
+                        ? 'bg-orange-50 dark:bg-orange-950/30'
+                        : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
                     )}
                   >
                     <div className="relative">
-                      <Icon className="h-5 w-5" />
+                      <Icon className={cn(
+                        "h-5 w-5 transition-all",
+                        active 
+                          ? 'text-orange-500 scale-110' 
+                          : 'text-slate-500 dark:text-slate-400'
+                      )} />
                       {item.badge && (
                         <Badge
                           variant="destructive"
-                          className="absolute -right-2 -top-2 h-3.5 w-3.5 rounded-full p-0 text-[8px] flex items-center justify-center"
+                          className="absolute -right-2 -top-2 h-3.5 w-3.5 rounded-full p-0 text-[8px] flex items-center justify-center shadow-sm"
                         >
                           {item.badge}
                         </Badge>
                       )}
                     </div>
-                    <span className="text-[10px] font-medium text-center leading-tight">
+                    <span className={cn(
+                      "text-[10px] font-medium text-center leading-tight",
+                      active 
+                        ? 'text-orange-600 dark:text-orange-400' 
+                        : 'text-slate-600 dark:text-slate-400'
+                    )}>
                       {item.title}
                     </span>
                   </Link>
