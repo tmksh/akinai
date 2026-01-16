@@ -7,8 +7,21 @@ import {
   corsHeaders,
 } from '@/lib/api/auth';
 
+// カテゴリー型定義
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string | null;
+  parentId: string | null;
+  sortOrder: number;
+  productCount: number;
+  children: Category[];
+}
+
 // モックカテゴリーデータ
-const mockCategories = [
+const mockCategories: Category[] = [
   {
     id: 'cat-apparel',
     name: 'アパレル',
@@ -69,14 +82,14 @@ const mockCategories = [
 
 // カテゴリーをフラット化
 function flattenCategories(
-  categories: typeof mockCategories, 
-  result: Omit<typeof mockCategories[0], 'children'>[] = []
-) {
+  categories: Category[], 
+  result: Omit<Category, 'children'>[] = []
+): Omit<Category, 'children'>[] {
   for (const cat of categories) {
     const { children, ...rest } = cat;
     result.push(rest);
     if (children && children.length > 0) {
-      flattenCategories(children as typeof mockCategories, result);
+      flattenCategories(children, result);
     }
   }
   return result;
@@ -107,8 +120,8 @@ export async function GET(request: NextRequest) {
       return apiError('Parent category not found', 404);
     }
     categories = mockCategories
-      .flatMap(c => [c, ...((c as { children: typeof mockCategories }).children || [])])
-      .filter((c): c is typeof mockCategories[0] => 'parentId' in c && c.parentId === parentId)
+      .flatMap(c => [c, ...(c.children || [])])
+      .filter(c => c.parentId === parentId)
       .map(({ children, ...rest }) => rest);
   } else {
     // ツリー形式で返す（デフォルト）
