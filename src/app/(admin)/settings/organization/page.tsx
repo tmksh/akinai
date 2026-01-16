@@ -17,6 +17,13 @@ import {
   Crown,
   Sparkles,
   Zap,
+  Link2,
+  Key,
+  ExternalLink,
+  Copy,
+  Eye,
+  EyeOff,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -47,6 +54,10 @@ const organization = {
   phone: '03-1234-5678',
   website: 'https://sample-store.jp',
   address: '東京都渋谷区神宮前1-2-3',
+  // フロントエンド連携
+  frontendUrl: 'https://shop.sample-store.jp',
+  frontendApiKey: 'sk_live_xxxxxxxxxxxxxxxxxxxx',
+  // プラン
   plan: 'pro',
   createdAt: '2024-01-15',
   ownerId: 'user_1',
@@ -96,8 +107,33 @@ const usageStats = {
 
 export default function OrganizationSettingsPage() {
   const [isEditing, setIsEditing] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [frontendUrl, setFrontendUrl] = useState(organization.frontendUrl);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'none' | 'success' | 'error'>('none');
 
   const currentPlan = plans.find(p => p.id === organization.plan);
+
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    setConnectionStatus('none');
+    // 実際にはAPIで接続テストを行う
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setConnectionStatus('success');
+    setIsTestingConnection(false);
+  };
+
+  const handleCopyApiKey = () => {
+    navigator.clipboard.writeText(organization.frontendApiKey);
+    // トースト通知を出す（実装省略）
+  };
+
+  const handleRegenerateApiKey = () => {
+    // 確認ダイアログを表示して再生成
+    if (confirm('APIキーを再生成しますか？既存の連携が切断されます。')) {
+      // API呼び出し
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -229,6 +265,139 @@ export default function OrganizationSettingsPage() {
                     />
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* フロントエンド連携 */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Link2 className="h-5 w-5 text-orange-500" />
+                    フロントエンド連携
+                  </CardTitle>
+                  <CardDescription>ECサイトとの連携設定を管理します</CardDescription>
+                </div>
+                {connectionStatus === 'success' && (
+                  <Badge className="bg-emerald-500 text-white">接続済み</Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* フロントエンドURL */}
+              <div className="space-y-2">
+                <Label htmlFor="frontendUrl">フロントエンドURL</Label>
+                <p className="text-xs text-muted-foreground">
+                  商品・コンテンツのプレビュー表示に使用されます
+                </p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="frontendUrl"
+                      value={frontendUrl}
+                      onChange={(e) => setFrontendUrl(e.target.value)}
+                      placeholder="https://your-shop.com"
+                      className="pl-10"
+                    />
+                  </div>
+                  {frontendUrl && (
+                    <Button variant="outline" size="icon" asChild>
+                      <a href={frontendUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* APIキー */}
+              <div className="space-y-2">
+                <Label htmlFor="apiKey">APIキー</Label>
+                <p className="text-xs text-muted-foreground">
+                  フロントエンドからのAPI認証に使用します。外部に公開しないでください。
+                </p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="apiKey"
+                      type={showApiKey ? 'text' : 'password'}
+                      value={organization.frontendApiKey}
+                      readOnly
+                      className="pl-10 pr-10 font-mono text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <Button variant="outline" size="icon" onClick={handleCopyApiKey}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={handleRegenerateApiKey}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* 接続テスト */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border">
+                <div>
+                  <p className="font-medium">接続テスト</p>
+                  <p className="text-sm text-muted-foreground">
+                    フロントエンドとの接続状態を確認します
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {connectionStatus === 'success' && (
+                    <span className="text-sm text-emerald-600 flex items-center gap-1">
+                      <CheckCircle2 className="h-4 w-4" />
+                      接続成功
+                    </span>
+                  )}
+                  {connectionStatus === 'error' && (
+                    <span className="text-sm text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      接続失敗
+                    </span>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTestConnection}
+                    disabled={isTestingConnection || !frontendUrl}
+                  >
+                    {isTestingConnection ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        テスト中...
+                      </>
+                    ) : (
+                      'テスト実行'
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* 使用方法ヒント */}
+              <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/50">
+                <p className="text-sm font-medium text-orange-800 dark:text-orange-200 mb-2">
+                  プレビュー機能について
+                </p>
+                <p className="text-xs text-orange-700 dark:text-orange-300">
+                  商品やコンテンツの編集画面で「プレビュー」を有効にすると、
+                  ここで設定したフロントエンドURLに接続して実際の表示を確認できます。
+                  フロントエンド側で <code className="bg-orange-100 dark:bg-orange-900 px-1 rounded">/preview/products/[id]</code> と
+                  <code className="bg-orange-100 dark:bg-orange-900 px-1 rounded">/preview/contents/[id]</code> エンドポイントを実装してください。
+                </p>
               </div>
             </CardContent>
           </Card>

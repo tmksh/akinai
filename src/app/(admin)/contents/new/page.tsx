@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowLeft, Save, Eye, Smartphone, Monitor, EyeOff, Columns } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ArrowLeft, Save, Eye, Smartphone, Monitor, EyeOff, Columns, ExternalLink, RefreshCw, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { cn } from '@/lib/utils';
+import { useFrontendUrl } from '@/components/providers/organization-provider';
 
 const contentTabs = [
   { label: '記事一覧', href: '/contents', exact: true },
@@ -32,6 +34,38 @@ export default function NewContentPage() {
   const [contentType, setContentType] = useState('article');
   const [showPreview, setShowPreview] = useState(true);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewKey, setPreviewKey] = useState(0); // iframe再読み込み用
+
+  // 組織設定からフロントエンドURLを取得
+  const frontendUrl = useFrontendUrl();
+
+  // フロントエンドが接続されているかどうか
+  const isFrontendConnected = !!frontendUrl;
+
+  // プレビュー用のデータをURLパラメータとしてエンコード
+  const previewData = useMemo(() => {
+    return {
+      title,
+      slug,
+      content,
+      contentType,
+    };
+  }, [title, slug, content, contentType]);
+
+  // プレビューURLを生成
+  const previewUrl = useMemo(() => {
+    if (!frontendUrl) return null;
+    const params = new URLSearchParams({
+      preview: 'true',
+      data: btoa(encodeURIComponent(JSON.stringify(previewData))),
+    });
+    return `${frontendUrl}/articles/preview?${params.toString()}`;
+  }, [frontendUrl, previewData]);
+
+  // iframeを再読み込み
+  const refreshPreview = () => {
+    setPreviewKey(prev => prev + 1);
+  };
 
   // スラッグを自動生成
   const generateSlug = (text: string) => {
@@ -206,30 +240,68 @@ export default function NewContentPage() {
           <div className="space-y-4">
             {/* プレビューコントロール */}
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-muted-foreground">リアルタイムプレビュー</h3>
-              <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/30">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setPreviewMode('desktop')}
-                  className={cn(
-                    "h-7 px-2",
-                    previewMode === 'desktop' && "bg-background shadow-sm"
-                  )}
-                >
-                  <Monitor className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setPreviewMode('mobile')}
-                  className={cn(
-                    "h-7 px-2",
-                    previewMode === 'mobile' && "bg-background shadow-sm"
-                  )}
-                >
-                  <Smartphone className="h-4 w-4" />
-                </Button>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-muted-foreground">リアルタイムプレビュー</h3>
+                {isFrontendConnected && (
+                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                    接続済み
+                  </Badge>
+                )}
+                {!isFrontendConnected && (
+                  <Link href="/settings/organization" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <Settings className="h-3 w-3" />
+                    フロントエンド連携を設定
+                  </Link>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {/* フロントエンド接続時の追加コントロール */}
+                {isFrontendConnected && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={refreshPreview}
+                      className="h-7 px-2"
+                      title="プレビューを更新"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => previewUrl && window.open(previewUrl, '_blank')}
+                      className="h-7 px-2"
+                      title="新しいタブで開く"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/30">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPreviewMode('desktop')}
+                    className={cn(
+                      "h-7 px-2",
+                      previewMode === 'desktop' && "bg-background shadow-sm"
+                    )}
+                  >
+                    <Monitor className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPreviewMode('mobile')}
+                    className={cn(
+                      "h-7 px-2",
+                      previewMode === 'mobile' && "bg-background shadow-sm"
+                    )}
+                  >
+                    <Smartphone className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -247,40 +319,58 @@ export default function NewContentPage() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="bg-white dark:bg-slate-700 rounded-md px-3 py-1 text-xs text-muted-foreground truncate">
-                    https://example.com/{slug || 'article-slug'}
+                    {isFrontendConnected 
+                      ? `${frontendUrl}/articles/${slug || 'preview'}`
+                      : `https://example.com/${slug || 'article-slug'}`
+                    }
                   </div>
                 </div>
               </div>
 
-              {/* プレビューコンテンツ */}
-              <div className={cn(
-                "p-6 min-h-[400px] overflow-auto",
-                previewMode === 'mobile' ? "text-sm" : ""
-              )}>
-                {title || content ? (
-                  <article className="prose dark:prose-invert max-w-none">
-                    {title && (
-                      <h1 className={cn(
-                        "font-bold mb-4",
-                        previewMode === 'mobile' ? "text-xl" : "text-3xl"
-                      )}>
-                        {title}
-                      </h1>
-                    )}
-                    {content && (
-                      <div className="text-slate-600 dark:text-slate-300">
-                        {renderContent(content)}
-                      </div>
-                    )}
-                  </article>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
-                    <Eye className="h-12 w-12 mb-4 opacity-20" />
-                    <p className="text-sm">タイトルや本文を入力すると</p>
-                    <p className="text-sm">ここにプレビューが表示されます</p>
-                  </div>
-                )}
-              </div>
+              {/* フロントエンド接続時: iframe表示 */}
+              {isFrontendConnected && previewUrl ? (
+                <div className={cn(
+                  "relative",
+                  previewMode === 'mobile' ? "h-[500px]" : "h-[600px]"
+                )}>
+                  <iframe
+                    key={previewKey}
+                    src={previewUrl}
+                    className="w-full h-full border-0"
+                    title="記事プレビュー"
+                  />
+                </div>
+              ) : (
+                /* フロントエンド未接続時: モックプレビュー */
+                <div className={cn(
+                  "p-6 min-h-[400px] overflow-auto",
+                  previewMode === 'mobile' ? "text-sm" : ""
+                )}>
+                  {title || content ? (
+                    <article className="prose dark:prose-invert max-w-none">
+                      {title && (
+                        <h1 className={cn(
+                          "font-bold mb-4",
+                          previewMode === 'mobile' ? "text-xl" : "text-3xl"
+                        )}>
+                          {title}
+                        </h1>
+                      )}
+                      {content && (
+                        <div className="text-slate-600 dark:text-slate-300">
+                          {renderContent(content)}
+                        </div>
+                      )}
+                    </article>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                      <Eye className="h-12 w-12 mb-4 opacity-20" />
+                      <p className="text-sm">タイトルや本文を入力すると</p>
+                      <p className="text-sm">ここにプレビューが表示されます</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* サイドバー設定（プレビュー表示時） */}

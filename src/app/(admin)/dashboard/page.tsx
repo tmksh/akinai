@@ -11,6 +11,8 @@ import {
   ArrowRight,
   AlertCircle,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Mail,
   FileText,
   Bell,
@@ -92,6 +94,92 @@ const multiSeriesData = [
   { name: '6月', sales: 6390, orders: 3800, visitors: 10500 },
   { name: '7月', sales: 5490, orders: 4300, visitors: 9300 },
 ];
+
+// 月別パフォーマンスデータ（過去6ヶ月分）
+const getMonthLabel = (offset: number) => {
+  const date = new Date();
+  date.setMonth(date.getMonth() - offset);
+  return `${date.getFullYear()}年${date.getMonth() + 1}月`;
+};
+
+const monthlyPerformanceData: Record<number, {
+  salesTarget: number;
+  salesActual: number;
+  ordersTarget: number;
+  ordersActual: number;
+  customersTarget: number;
+  customersActual: number;
+  growthRate: number;
+  avgAchievement: number;
+  grade: string;
+}> = {
+  0: { // 今月
+    salesTarget: 2000000,
+    salesActual: 2580000,
+    ordersTarget: 142,
+    ordersActual: 156,
+    customersTarget: 58,
+    customersActual: 89,
+    growthRate: 12.5,
+    avgAchievement: 85,
+    grade: 'A+',
+  },
+  1: { // 先月
+    salesTarget: 1800000,
+    salesActual: 2290000,
+    ordersTarget: 130,
+    ordersActual: 144,
+    customersTarget: 50,
+    customersActual: 77,
+    growthRate: 8.2,
+    avgAchievement: 82,
+    grade: 'A',
+  },
+  2: { // 2ヶ月前
+    salesTarget: 1700000,
+    salesActual: 2116000,
+    ordersTarget: 125,
+    ordersActual: 133,
+    customersTarget: 45,
+    customersActual: 67,
+    growthRate: 5.4,
+    avgAchievement: 78,
+    grade: 'B+',
+  },
+  3: { // 3ヶ月前 - 一部目標未達
+    salesTarget: 2000000,
+    salesActual: 1560000, // 78%達成
+    ordersTarget: 150,
+    ordersActual: 126, // 84%達成
+    customersTarget: 60,
+    customersActual: 45, // 75%達成
+    growthRate: -2.5,
+    avgAchievement: 79,
+    grade: 'B',
+  },
+  4: { // 4ヶ月前 - 目標未達月
+    salesTarget: 1800000,
+    salesActual: 1170000, // 65%達成
+    ordersTarget: 140,
+    ordersActual: 98, // 70%達成
+    customersTarget: 55,
+    customersActual: 33, // 60%達成
+    growthRate: -8.3,
+    avgAchievement: 65,
+    grade: 'C+',
+  },
+  5: { // 5ヶ月前 - 厳しい月
+    salesTarget: 1700000,
+    salesActual: 850000, // 50%達成
+    ordersTarget: 130,
+    ordersActual: 52, // 40%達成
+    customersTarget: 50,
+    customersActual: 27, // 54%達成
+    growthRate: -15.2,
+    avgAchievement: 48,
+    grade: 'D',
+  },
+};
 
 // サークルプログレスコンポーネント（オレンジ系・豪華版）
 function CircleProgress({ 
@@ -208,10 +296,17 @@ export default function DashboardPage() {
   const [revenuePeriod, setRevenuePeriod] = useState<PeriodType>('month');
   const [ordersPeriod, setOrdersPeriod] = useState<PeriodType>('month');
   const [customersPeriod, setCustomersPeriod] = useState<PeriodType>('month');
+  const [performanceMonth, setPerformanceMonth] = useState(0); // 0 = 今月, 1 = 先月, etc.
   
   const revenueStats = getStatsByPeriod(revenuePeriod);
   const ordersStats = getStatsByPeriod(ordersPeriod);
   const customersStats = getStatsByPeriod(customersPeriod);
+  const perfData = monthlyPerformanceData[performanceMonth];
+  
+  // パフォーマンス達成率を計算
+  const salesAchievement = Math.round((perfData.salesActual / perfData.salesTarget) * 100);
+  const ordersAchievement = Math.round((perfData.ordersActual / perfData.ordersTarget) * 100);
+  const customersAchievement = Math.round((perfData.customersActual / perfData.customersTarget) * 100);
 
   // カード共通スタイル
   const cardBase = "bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm";
@@ -409,28 +504,63 @@ export default function DashboardPage() {
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-br from-amber-200/20 to-orange-200/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
           
           <div className="relative">
-            <div className="mb-5 text-center">
-              <h3 className="font-semibold text-slate-900 dark:text-white">パフォーマンス</h3>
-              <p className="text-xs text-slate-500">今月の目標達成率</p>
+            {/* 月選択ヘッダー */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setPerformanceMonth(prev => Math.min(prev + 1, 5))}
+                  disabled={performanceMonth >= 5}
+                  className="p-1.5 rounded-lg hover:bg-orange-100/50 dark:hover:bg-slate-700/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+                </button>
+                <div className="text-center">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">パフォーマンス</h3>
+                  <p className="text-xs text-orange-500 font-medium">{getMonthLabel(performanceMonth)}</p>
+                </div>
+                <button
+                  onClick={() => setPerformanceMonth(prev => Math.max(prev - 1, 0))}
+                  disabled={performanceMonth <= 0}
+                  className="p-1.5 rounded-lg hover:bg-orange-100/50 dark:hover:bg-slate-700/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+                </button>
+              </div>
+              {/* 月インジケーター */}
+              <div className="flex justify-center gap-1 mt-2">
+                {[0, 1, 2, 3, 4, 5].map((month) => (
+                  <button
+                    key={month}
+                    onClick={() => setPerformanceMonth(month)}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-300",
+                      performanceMonth === month 
+                        ? "w-4 bg-orange-500" 
+                        : "w-1.5 bg-slate-300 dark:bg-slate-600 hover:bg-orange-300"
+                    )}
+                  />
+                ))}
+              </div>
             </div>
+            
             <div className="flex justify-center gap-6">
               <CircleProgress 
-                value={78} 
+                value={Math.min(salesAchievement, 150)} 
                 colorVariant="orange"
                 label="売上目標"
-                sublabel="¥200万 / ¥258万"
+                sublabel={`¥${Math.round(perfData.salesTarget / 10000)}万 / ¥${Math.round(perfData.salesActual / 10000)}万`}
               />
               <CircleProgress 
-                value={91} 
+                value={Math.min(ordersAchievement, 150)} 
                 colorVariant="amber"
                 label="注文目標"
-                sublabel="142件 / 156件"
+                sublabel={`${perfData.ordersTarget}件 / ${perfData.ordersActual}件`}
               />
               <CircleProgress 
-                value={65} 
+                value={Math.min(customersAchievement, 150)} 
                 colorVariant="warm"
                 label="顧客獲得"
-                sublabel="58人 / 89人"
+                sublabel={`${perfData.customersTarget}人 / ${perfData.customersActual}人`}
               />
             </div>
             
@@ -438,17 +568,22 @@ export default function DashboardPage() {
             <div className="mt-5 pt-4 border-t border-orange-100/50 dark:border-slate-700/50">
               <div className="flex justify-around text-center">
                 <div>
-                  <p className="text-lg font-bold text-orange-500">+12.5%</p>
+                  <p className={cn(
+                    "text-lg font-bold",
+                    perfData.growthRate >= 0 ? "text-orange-500" : "text-red-500"
+                  )}>
+                    {perfData.growthRate >= 0 ? '+' : ''}{perfData.growthRate}%
+                  </p>
                   <p className="text-[10px] text-slate-500">前月比成長</p>
                 </div>
                 <div className="w-px bg-orange-100 dark:bg-slate-700" />
                 <div>
-                  <p className="text-lg font-bold text-amber-500">85%</p>
+                  <p className="text-lg font-bold text-amber-500">{perfData.avgAchievement}%</p>
                   <p className="text-[10px] text-slate-500">平均達成率</p>
                 </div>
                 <div className="w-px bg-orange-100 dark:bg-slate-700" />
                 <div>
-                  <p className="text-lg font-bold text-orange-600">A+</p>
+                  <p className="text-lg font-bold text-orange-600">{perfData.grade}</p>
                   <p className="text-[10px] text-slate-500">評価</p>
                 </div>
               </div>
