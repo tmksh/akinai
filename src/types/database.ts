@@ -38,6 +38,10 @@ export interface Database {
           plan_started_at: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          // Stripe Connect 用
+          stripe_account_id: string | null
+          stripe_account_status: 'not_connected' | 'pending' | 'active' | 'restricted' | null
+          stripe_onboarding_complete: boolean
           settings: Json
           owner_id: string | null
           is_active: boolean
@@ -59,6 +63,10 @@ export interface Database {
           plan_started_at?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          // Stripe Connect 用
+          stripe_account_id?: string | null
+          stripe_account_status?: 'not_connected' | 'pending' | 'active' | 'restricted' | null
+          stripe_onboarding_complete?: boolean
           settings?: Json
           owner_id?: string | null
           is_active?: boolean
@@ -80,6 +88,10 @@ export interface Database {
           plan_started_at?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          // Stripe Connect 用
+          stripe_account_id?: string | null
+          stripe_account_status?: 'not_connected' | 'pending' | 'active' | 'restricted' | null
+          stripe_onboarding_complete?: boolean
           settings?: Json
           owner_id?: string | null
           is_active?: boolean
