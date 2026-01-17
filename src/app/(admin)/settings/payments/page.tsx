@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   CreditCard,
@@ -78,7 +78,7 @@ const paymentMethods = [
   },
 ];
 
-export default function PaymentsSettingsPage() {
+function PaymentsSettingsContent() {
   const searchParams = useSearchParams();
   const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -485,5 +485,17 @@ export default function PaymentsSettingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function PaymentsSettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <PaymentsSettingsContent />
+    </Suspense>
   );
 }
