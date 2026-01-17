@@ -55,9 +55,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Stripe SDK 初期化
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2024-12-18.acacia',
-    });
+    const stripe = new Stripe(stripeSecretKey);
 
     // 認証コードをアクセストークンに交換
     const response = await stripe.oauth.token({

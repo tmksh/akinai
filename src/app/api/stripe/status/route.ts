@@ -46,9 +46,7 @@ export async function GET(request: NextRequest) {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
     if (stripeSecretKey && org.stripe_account_id) {
       try {
-        const stripe = new Stripe(stripeSecretKey, {
-          apiVersion: '2024-12-18.acacia',
-        });
+        const stripe = new Stripe(stripeSecretKey);
         
         const account = await stripe.accounts.retrieve(org.stripe_account_id);
         const isActive = account.charges_enabled && account.payouts_enabled;
