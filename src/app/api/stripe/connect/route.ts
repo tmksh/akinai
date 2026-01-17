@@ -48,17 +48,16 @@ export async function GET(request: NextRequest) {
       timestamp: Date.now(),
     })).toString('base64');
 
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: stripeClientId,
-      scope: 'read_write',
-      redirect_uri: `${appUrl}/api/stripe/callback`,
-      state: state,
-      // 推奨: Express アカウントを使用（簡単なオンボーディング）
-      'stripe_user[business_type]': 'company',
-      'suggested_capabilities[]': 'card_payments',
-      'suggested_capabilities[]': 'transfers',
-    });
+    const params = new URLSearchParams();
+    params.append('response_type', 'code');
+    params.append('client_id', stripeClientId);
+    params.append('scope', 'read_write');
+    params.append('redirect_uri', `${appUrl}/api/stripe/callback`);
+    params.append('state', state);
+    // 推奨: Express アカウントを使用（簡単なオンボーディング）
+    params.append('stripe_user[business_type]', 'company');
+    params.append('suggested_capabilities[]', 'card_payments');
+    params.append('suggested_capabilities[]', 'transfers');
 
     const stripeConnectUrl = `https://connect.stripe.com/oauth/authorize?${params.toString()}`;
 
