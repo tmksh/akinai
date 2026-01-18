@@ -10,3 +10,4 @@ COMMENT ON COLUMN organizations.stripe_account_status IS 'Stripe接続状態: no
 COMMENT ON COLUMN organizations.stripe_onboarding_complete IS 'Stripeのオンボーディング（本人確認等）が完了しているか';
 
 
+
