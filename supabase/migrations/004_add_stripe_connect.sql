@@ -9,3 +9,4 @@ COMMENT ON COLUMN organizations.stripe_account_id IS 'Stripe Connect のアカ�
 COMMENT ON COLUMN organizations.stripe_account_status IS 'Stripe接続状態: not_connected, pending, active, restricted';
 COMMENT ON COLUMN organizations.stripe_onboarding_complete IS 'Stripeのオンボーディング（本人確認等）が完了しているか';
 
+
