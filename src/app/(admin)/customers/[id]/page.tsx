@@ -1,7 +1,7 @@
 'use client';
 
-import { use } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { 
   ArrowLeft, 
   Mail, 
@@ -22,8 +22,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { mockCustomers, mockOrders } from '@/lib/mock-data';
 
-export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function CustomerDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
   const customer = mockCustomers.find((c) => c.id === id);
   const customerOrders = mockOrders.filter((o) => o.customerId === id).slice(0, 5);
 

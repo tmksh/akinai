@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useParams } from 'next/navigation';
 import { Calendar, Clock, ArrowLeft, ArrowRight, Share2, Facebook, Twitter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { use } from 'react';
 
 // モック記事データ
 const articles: Record<string, {
@@ -173,8 +173,9 @@ const relatedArticles = [
   },
 ];
 
-export default function NewsDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function NewsDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
   const article = articles[id] || articles['1'];
 
   return (

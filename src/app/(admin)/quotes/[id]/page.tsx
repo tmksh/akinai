@@ -1,8 +1,8 @@
 'use client';
 
-import { use, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import {
   ArrowLeft,
   Building2,
@@ -89,8 +89,9 @@ const mockTimeline = [
   { id: 3, action: '顧客からの返答', user: '山田 太郎', date: '2024-01-11T09:30:00Z', note: '数量について相談したい' },
 ];
 
-export default function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function QuoteDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
   const router = useRouter();
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
