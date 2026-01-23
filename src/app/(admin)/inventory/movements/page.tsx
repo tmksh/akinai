@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -10,13 +10,11 @@ import {
   Filter,
   Calendar,
   Package,
-  Plus,
-  Download,
   FileText,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -29,11 +27,8 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Table,
@@ -43,9 +38,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
-import { mockStockMovements, mockInventorySummary } from '@/lib/mock-data';
 import { PageTabs } from '@/components/layout/page-tabs';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getStockMovements, type StockMovementWithRelations } from '@/lib/actions/inventory';
 import { cn } from '@/lib/utils';
 
 const inventoryTabs = [
@@ -67,33 +62,61 @@ const formatDate = (dateString: string) =>
 const formatDateTime = (dateString: string) =>
   new Date(dateString).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-type StockMovement = typeof mockStockMovements[number];
-
 export default function StockMovementsPage() {
+  const { organization, isLoading: orgLoading } = useOrganization();
+  const [movements, setMovements] = useState<StockMovementWithRelations[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [showNewMovementDialog, setShowNewMovementDialog] = useState(false);
-  const [movementType, setMovementType] = useState<'in' | 'out'>('in');
-  const [selectedMovement, setSelectedMovement] = useState<StockMovement | null>(null);
+  const [selectedMovement, setSelectedMovement] = useState<StockMovementWithRelations | null>(null);
 
-  // フィルタリング
-  const filteredMovements = mockStockMovements.filter((movement) => {
+  // データ取得
+  useEffect(() => {
+    const fetchMovements = async () => {
+      if (!organization?.id) return;
+
+      setIsLoading(true);
+      const { data, total, error } = await getStockMovements(organization.id, {
+        type: typeFilter !== 'all' ? typeFilter as 'in' | 'out' | 'adjustment' | 'transfer' : undefined,
+        limit: 100,
+      });
+      
+      if (data) {
+        setMovements(data);
+        setTotalCount(total);
+      }
+      setIsLoading(false);
+    };
+
+    fetchMovements();
+  }, [organization?.id, typeFilter]);
+
+  // フィルタリング（検索クエリ）
+  const filteredMovements = movements.filter((movement) => {
+    const productName = movement.product?.name || '';
+    const variantName = movement.variant?.name || '';
+    const sku = movement.variant?.sku || '';
+    const reference = movement.reference || '';
+    
     const matchesSearch =
-      movement.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      movement.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (movement.reference?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-    const matchesType = typeFilter === 'all' || movement.type === typeFilter;
-    return matchesSearch && matchesType;
+      productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      variantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reference.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesSearch;
   });
 
   // 統計
   const stats = {
-    totalIn: mockStockMovements.filter(m => m.type === 'in').reduce((sum, m) => sum + m.quantity, 0),
-    totalOut: Math.abs(mockStockMovements.filter(m => m.type === 'out').reduce((sum, m) => sum + m.quantity, 0)),
-    adjustments: mockStockMovements.filter(m => m.type === 'adjustment').length,
-    today: mockStockMovements.filter(m => {
+    totalIn: movements.filter(m => m.type === 'in').reduce((sum, m) => sum + m.quantity, 0),
+    totalOut: movements.filter(m => m.type === 'out').reduce((sum, m) => sum + m.quantity, 0),
+    adjustments: movements.filter(m => m.type === 'adjustment').length,
+    today: movements.filter(m => {
       const today = new Date().toDateString();
-      return new Date(m.createdAt).toDateString() === today;
+      return new Date(m.created_at).toDateString() === today;
     }).length,
   };
 
@@ -106,92 +129,6 @@ export default function StockMovementsPage() {
           <p className="text-muted-foreground">
             在庫の入出庫記録を管理します
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            エクスポート
-          </Button>
-          <Dialog open={showNewMovementDialog} onOpenChange={setShowNewMovementDialog}>
-            <DialogTrigger asChild>
-              <Button className="btn-premium">
-                <Plus className="mr-2 h-4 w-4" />
-                入出庫登録
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>入出庫登録</DialogTitle>
-                <DialogDescription>
-                  在庫の入庫または出庫を登録します
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label>種別</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={movementType === 'in' ? 'default' : 'outline'}
-                      className={cn(movementType === 'in' && 'bg-emerald-600 hover:bg-emerald-700')}
-                      onClick={() => setMovementType('in')}
-                    >
-                      <ArrowDownLeft className="mr-2 h-4 w-4" />
-                      入庫
-                    </Button>
-                    <Button
-                      variant={movementType === 'out' ? 'default' : 'outline'}
-                      className={cn(movementType === 'out' && 'bg-blue-600 hover:bg-blue-700')}
-                      onClick={() => setMovementType('out')}
-                    >
-                      <ArrowUpRight className="mr-2 h-4 w-4" />
-                      出庫
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>商品</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="商品を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockInventorySummary.map((item) => (
-                        <SelectItem key={`${item.productId}-${item.variantId}`} value={item.variantId}>
-                          {item.productName} - {item.variantName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>数量</Label>
-                    <Input type="number" min="1" placeholder="10" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ロット番号</Label>
-                    <Input placeholder="LOT-20240115" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>参照番号（任意）</Label>
-                  <Input placeholder="PO-2024-001 など" />
-                </div>
-                <div className="space-y-2">
-                  <Label>理由・備考</Label>
-                  <Textarea placeholder="入出庫の理由を入力..." />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowNewMovementDialog(false)}>
-                  キャンセル
-                </Button>
-                <Button onClick={() => setShowNewMovementDialog(false)}>
-                  登録
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
@@ -253,7 +190,7 @@ export default function StockMovementsPage() {
       <Card>
         <CardHeader>
           <CardTitle>入出庫履歴</CardTitle>
-          <CardDescription>在庫の入出庫記録を確認できます</CardDescription>
+          <CardDescription>在庫の入出庫記録を確認できます（{totalCount}件）</CardDescription>
         </CardHeader>
         <CardContent>
           {/* 検索・フィルター */}
@@ -283,101 +220,110 @@ export default function StockMovementsPage() {
           </div>
 
           {/* テーブル */}
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>日時</TableHead>
-                  <TableHead>種別</TableHead>
-                  <TableHead>商品</TableHead>
-                  <TableHead className="text-right">数量</TableHead>
-                  <TableHead className="text-right">在庫変動</TableHead>
-                  <TableHead>理由</TableHead>
-                  <TableHead>参照</TableHead>
-                  <TableHead>担当者</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMovements.length === 0 ? (
+          {isLoading || orgLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <FileText className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                        <p className="text-muted-foreground">該当する履歴がありません</p>
-                      </div>
-                    </TableCell>
+                    <TableHead>日時</TableHead>
+                    <TableHead>種別</TableHead>
+                    <TableHead>商品</TableHead>
+                    <TableHead className="text-right">数量</TableHead>
+                    <TableHead className="text-right">在庫変動</TableHead>
+                    <TableHead>理由</TableHead>
+                    <TableHead>参照</TableHead>
                   </TableRow>
-                ) : (
-                  filteredMovements.map((movement) => {
-                    const config = typeConfig[movement.type];
-                    const TypeIcon = config.icon;
+                </TableHeader>
+                <TableBody>
+                  {filteredMovements.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-32 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <FileText className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                          <p className="text-muted-foreground">
+                            {movements.length === 0 
+                              ? '入出庫履歴がまだありません' 
+                              : '該当する履歴がありません'}
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredMovements.map((movement) => {
+                      const config = typeConfig[movement.type as keyof typeof typeConfig] || typeConfig.adjustment;
+                      const TypeIcon = config.icon;
+                      const quantity = movement.type === 'out' ? -movement.quantity : movement.quantity;
 
-                    return (
-                      <TableRow 
-                        key={movement.id} 
-                        className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        onClick={() => setSelectedMovement(movement)}
-                      >
-                        <TableCell className="text-sm">
-                          <div>
-                            <p className="font-medium">{formatDate(movement.createdAt)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(movement.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={cn("gap-1", config.bgColor, config.color, "border-0")}>
-                            <TypeIcon className="h-3 w-3" />
-                            {config.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-sm">{movement.productName}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>{movement.variantName}</span>
-                              <Badge variant="outline" className="text-xs">{movement.sku}</Badge>
+                      return (
+                        <TableRow 
+                          key={movement.id} 
+                          className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          onClick={() => setSelectedMovement(movement)}
+                        >
+                          <TableCell className="text-sm">
+                            <div>
+                              <p className="font-medium">{formatDate(movement.created_at)}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(movement.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className={cn(
-                            "font-semibold",
-                            movement.quantity > 0 ? "text-emerald-600" : "text-blue-600"
-                          )}>
-                            {movement.quantity > 0 ? '+' : ''}{movement.quantity}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right text-sm">
-                          <div className="flex items-center justify-end gap-1">
-                            <span className="text-muted-foreground">{movement.previousStock}</span>
-                            <span className="text-muted-foreground">→</span>
-                            <span className="font-medium">{movement.newStock}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm max-w-[200px] truncate">
-                          {movement.reason}
-                        </TableCell>
-                        <TableCell>
-                          {movement.reference ? (
-                            <Badge variant="secondary" className="text-xs">
-                              {movement.reference}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={cn("gap-1", config.bgColor, config.color, "border-0")}>
+                              <TypeIcon className="h-3 w-3" />
+                              {config.label}
                             </Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {movement.createdBy}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-sm">{movement.product?.name || '-'}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{movement.variant?.name || '-'}</span>
+                                {movement.variant?.sku && (
+                                  <Badge variant="outline" className="text-xs">{movement.variant.sku}</Badge>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className={cn(
+                              "font-semibold",
+                              quantity > 0 ? "text-emerald-600" : "text-blue-600"
+                            )}>
+                              {quantity > 0 ? '+' : ''}{quantity}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right text-sm">
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-muted-foreground">{movement.previous_stock}</span>
+                              <span className="text-muted-foreground">→</span>
+                              <span className="font-medium">{movement.new_stock}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[200px] truncate">
+                            {movement.reason || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {movement.reference ? (
+                              <Badge variant="secondary" className="text-xs">
+                                {movement.reference}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -390,22 +336,23 @@ export default function StockMovementsPage() {
                 <>
                   <div className={cn(
                     "p-2 rounded-lg",
-                    typeConfig[selectedMovement.type].bgColor
+                    typeConfig[selectedMovement.type as keyof typeof typeConfig]?.bgColor || 'bg-slate-100'
                   )}>
                     {(() => {
-                      const TypeIcon = typeConfig[selectedMovement.type].icon;
-                      return <TypeIcon className={cn("h-5 w-5", typeConfig[selectedMovement.type].color)} />;
+                      const config = typeConfig[selectedMovement.type as keyof typeof typeConfig] || typeConfig.adjustment;
+                      const TypeIcon = config.icon;
+                      return <TypeIcon className={cn("h-5 w-5", config.color)} />;
                     })()}
                   </div>
                   <div>
                     <div className="text-lg font-bold">入出庫詳細</div>
                     <Badge className={cn(
                       "gap-1 mt-1",
-                      typeConfig[selectedMovement.type].bgColor,
-                      typeConfig[selectedMovement.type].color,
+                      typeConfig[selectedMovement.type as keyof typeof typeConfig]?.bgColor || 'bg-slate-100',
+                      typeConfig[selectedMovement.type as keyof typeof typeConfig]?.color || 'text-slate-600',
                       "border-0"
                     )}>
-                      {typeConfig[selectedMovement.type].label}
+                      {typeConfig[selectedMovement.type as keyof typeof typeConfig]?.label || selectedMovement.type}
                     </Badge>
                   </div>
                 </>
@@ -424,14 +371,16 @@ export default function StockMovementsPage() {
                       <Package className="h-4 w-4 text-orange-500" />
                     </div>
                     <div>
-                      <p className="font-medium">{selectedMovement.productName}</p>
-                      <p className="text-sm text-slate-500">{selectedMovement.variantName}</p>
+                      <p className="font-medium">{selectedMovement.product?.name || '-'}</p>
+                      <p className="text-sm text-slate-500">{selectedMovement.variant?.name || '-'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 pt-2">
-                    <Badge variant="outline" className="text-xs">SKU: {selectedMovement.sku}</Badge>
-                    {selectedMovement.lotNumber && (
-                      <Badge variant="outline" className="text-xs">ロット: {selectedMovement.lotNumber}</Badge>
+                    {selectedMovement.variant?.sku && (
+                      <Badge variant="outline" className="text-xs">SKU: {selectedMovement.variant.sku}</Badge>
+                    )}
+                    {selectedMovement.lot_number && (
+                      <Badge variant="outline" className="text-xs">ロット: {selectedMovement.lot_number}</Badge>
                     )}
                   </div>
                 </div>
@@ -441,25 +390,25 @@ export default function StockMovementsPage() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-center">
                   <p className="text-xs text-slate-500 mb-1">変動前</p>
-                  <p className="text-xl font-bold">{selectedMovement.previousStock}</p>
+                  <p className="text-xl font-bold">{selectedMovement.previous_stock}</p>
                 </div>
                 <div className={cn(
                   "p-3 rounded-xl text-center",
-                  selectedMovement.quantity > 0 
+                  selectedMovement.type !== 'out'
                     ? "bg-emerald-50 dark:bg-emerald-950/30" 
                     : "bg-blue-50 dark:bg-blue-950/30"
                 )}>
                   <p className="text-xs text-slate-500 mb-1">数量</p>
                   <p className={cn(
                     "text-xl font-bold",
-                    selectedMovement.quantity > 0 ? "text-emerald-600" : "text-blue-600"
+                    selectedMovement.type !== 'out' ? "text-emerald-600" : "text-blue-600"
                   )}>
-                    {selectedMovement.quantity > 0 ? '+' : ''}{selectedMovement.quantity}
+                    {selectedMovement.type !== 'out' ? '+' : '-'}{selectedMovement.quantity}
                   </p>
                 </div>
                 <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
                   <p className="text-xs text-slate-500 mb-1">変動後</p>
-                  <p className="text-xl font-bold text-orange-600">{selectedMovement.newStock}</p>
+                  <p className="text-xl font-bold text-orange-600">{selectedMovement.new_stock}</p>
                 </div>
               </div>
 
@@ -469,35 +418,33 @@ export default function StockMovementsPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
                     <span className="text-slate-500">日時</span>
-                    <span className="font-medium">{formatDateTime(selectedMovement.createdAt)}</span>
+                    <span className="font-medium">{formatDateTime(selectedMovement.created_at)}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-500">理由</span>
-                    <span className="font-medium">{selectedMovement.reason}</span>
-                  </div>
+                  {selectedMovement.reason && (
+                    <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-slate-500">理由</span>
+                      <span className="font-medium">{selectedMovement.reason}</span>
+                    </div>
+                  )}
                   {selectedMovement.reference && (
                     <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
                       <span className="text-slate-500">参照番号</span>
                       <Badge variant="secondary">{selectedMovement.reference}</Badge>
                     </div>
                   )}
-                  <div className="flex justify-between py-2">
-                    <span className="text-slate-500">担当者</span>
-                    <span className="font-medium">{selectedMovement.createdBy}</span>
-                  </div>
+                  {selectedMovement.created_by && (
+                    <div className="flex justify-between py-2">
+                      <span className="text-slate-500">担当者</span>
+                      <span className="font-medium">{selectedMovement.created_by}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* アクションボタン */}
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setSelectedMovement(null)}>
-                  閉じる
-                </Button>
-                <Button className="flex-1 btn-premium">
-                  <FileText className="mr-2 h-4 w-4" />
-                  伝票を表示
-                </Button>
-              </div>
+              {/* 閉じるボタン */}
+              <Button variant="outline" className="w-full" onClick={() => setSelectedMovement(null)}>
+                閉じる
+              </Button>
             </div>
           )}
         </DialogContent>
@@ -505,5 +452,3 @@ export default function StockMovementsPage() {
     </div>
   );
 }
-
-

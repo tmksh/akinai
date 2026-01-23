@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -17,6 +17,7 @@ import {
   CheckCircle,
   FileEdit,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -25,9 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import {
   Table,
@@ -51,9 +50,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { mockProducts, mockCategories } from '@/lib/mock-data';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { PageTabs } from '@/components/layout/page-tabs';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getProducts, getCategories, deleteProduct, updateProductStatus, type ProductWithRelations } from '@/lib/actions/products';
 import type { ProductStatus } from '@/types';
+import type { Database } from '@/types/database';
+
+type Category = Database['public']['Tables']['categories']['Row'];
 
 const productTabs = [
   { label: '商品一覧', href: '/products', exact: true },
@@ -77,12 +90,50 @@ const formatCurrency = (value: number) => {
 };
 
 export default function ProductsPage() {
+  const { organization, isLoading: orgLoading } = useOrganization();
+  const [products, setProducts] = useState<ProductWithRelations[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  
+  // 削除ダイアログ
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<ProductWithRelations | null>(null);
+
+  // データを取得
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!organization?.id) return;
+      
+      setIsLoading(true);
+      try {
+        const [productsResult, categoriesResult] = await Promise.all([
+          getProducts(organization.id),
+          getCategories(organization.id),
+        ]);
+
+        if (productsResult.data) {
+          setProducts(productsResult.data);
+        }
+        if (categoriesResult.data) {
+          setCategories(categoriesResult.data);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [organization?.id]);
 
   // フィルタリング
-  const filteredProducts = mockProducts.filter((product) => {
+  const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.variants.some((v) =>
@@ -92,17 +143,18 @@ export default function ProductsPage() {
       statusFilter === 'all' || product.status === statusFilter;
     const matchesCategory =
       categoryFilter === 'all' ||
-      product.categoryIds.includes(categoryFilter);
+      product.categories.some(c => c.id === categoryFilter);
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
   // 商品の合計在庫を計算
-  const getTotalStock = (variants: typeof mockProducts[0]['variants']) => {
+  const getTotalStock = (variants: ProductWithRelations['variants']) => {
     return variants.reduce((sum, v) => sum + v.stock, 0);
   };
 
   // 価格範囲を取得
-  const getPriceRange = (variants: typeof mockProducts[0]['variants']) => {
+  const getPriceRange = (variants: ProductWithRelations['variants']) => {
+    if (variants.length === 0) return '-';
     const prices = variants.map((v) => v.price);
     const min = Math.min(...prices);
     const max = Math.max(...prices);
@@ -111,6 +163,55 @@ export default function ProductsPage() {
     }
     return `${formatCurrency(min)} ~ ${formatCurrency(max)}`;
   };
+
+  // 削除処理
+  const handleDelete = async () => {
+    if (!productToDelete) return;
+
+    startTransition(async () => {
+      const result = await deleteProduct(productToDelete.id);
+      if (result.success) {
+        setProducts(products.filter(p => p.id !== productToDelete.id));
+      } else {
+        console.error('Failed to delete product:', result.error);
+      }
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
+    });
+  };
+
+  // ステータス更新処理
+  const handleStatusUpdate = async (productId: string, newStatus: 'draft' | 'published' | 'archived') => {
+    startTransition(async () => {
+      const result = await updateProductStatus(productId, newStatus);
+      if (result.success) {
+        setProducts(products.map(p => 
+          p.id === productId 
+            ? { ...p, status: newStatus, published_at: newStatus === 'published' ? new Date().toISOString() : p.published_at }
+            : p
+        ));
+      } else {
+        console.error('Failed to update product status:', result.error);
+      }
+    });
+  };
+
+  // 統計計算
+  const stats = {
+    total: products.length,
+    published: products.filter(p => p.status === 'published').length,
+    draft: products.filter(p => p.status === 'draft').length,
+    outOfStock: products.filter(p => getTotalStock(p.variants) === 0).length,
+  };
+
+  // ローディング表示
+  if (orgLoading || isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -143,7 +244,7 @@ export default function ProductsPage() {
             </div>
             <span className="text-xs font-medium text-orange-700 dark:text-orange-300">全商品</span>
           </div>
-          <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{mockProducts.length}</p>
+          <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{stats.total}</p>
         </div>
         
         {/* 公開中 - やや濃いオレンジ */}
@@ -155,7 +256,7 @@ export default function ProductsPage() {
             <span className="text-xs font-medium text-orange-800 dark:text-orange-200">公開中</span>
           </div>
           <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-            {mockProducts.filter((p) => p.status === 'published').length}
+            {stats.published}
           </p>
         </div>
         
@@ -168,7 +269,7 @@ export default function ProductsPage() {
             <span className="text-xs font-medium text-orange-800 dark:text-orange-200">下書き</span>
           </div>
           <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-            {mockProducts.filter((p) => p.status === 'draft').length}
+            {stats.draft}
           </p>
         </div>
         
@@ -181,7 +282,7 @@ export default function ProductsPage() {
             <span className="text-xs font-medium text-white/90">在庫切れ</span>
           </div>
           <p className="text-3xl font-bold text-white">
-            {mockProducts.filter((p) => getTotalStock(p.variants) === 0).length}
+            {stats.outOfStock}
           </p>
         </div>
       </div>
@@ -218,7 +319,7 @@ export default function ProductsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">すべてのカテゴリー</SelectItem>
-                  {mockCategories.map((cat) => (
+                  {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
                     </SelectItem>
@@ -246,7 +347,20 @@ export default function ProductsPage() {
                 {filteredProducts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">
-                      該当する商品がありません
+                      {products.length === 0 ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Package className="h-8 w-8 text-muted-foreground" />
+                          <p>商品がまだ登録されていません</p>
+                          <Button asChild variant="outline" size="sm">
+                            <Link href="/products/new">
+                              <Plus className="mr-2 h-4 w-4" />
+                              最初の商品を登録
+                            </Link>
+                          </Button>
+                        </div>
+                      ) : (
+                        '該当する商品がありません'
+                      )}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -257,13 +371,13 @@ export default function ProductsPage() {
                           {product.images[0] ? (
                             <Image
                               src={product.images[0].url}
-                              alt={product.images[0].alt}
+                              alt={product.images[0].alt || product.name}
                               fill
                               className="object-cover"
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                              No img
+                              <Package className="h-6 w-6" />
                             </div>
                           )}
                         </div>
@@ -299,18 +413,12 @@ export default function ProductsPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        {product.categoryIds
-                          .map(
-                            (catId) =>
-                              mockCategories.find((c) => c.id === catId)?.name
-                          )
-                          .filter(Boolean)
-                          .join(', ') || '-'}
+                        {product.categories.map(c => c.name).join(', ') || '-'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" disabled={isPending}>
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">メニュー</span>
                             </Button>
@@ -333,11 +441,30 @@ export default function ProductsPage() {
                               複製
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>
+                            {product.status !== 'published' && (
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(product.id, 'published')}>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                公開する
+                              </DropdownMenuItem>
+                            )}
+                            {product.status === 'published' && (
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(product.id, 'draft')}>
+                                <FileEdit className="mr-2 h-4 w-4" />
+                                下書きに戻す
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(product.id, 'archived')}>
                               <Archive className="mr-2 h-4 w-4" />
                               アーカイブ
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => {
+                                setProductToDelete(product);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
                               削除
                             </DropdownMenuItem>
@@ -352,7 +479,36 @@ export default function ProductsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>商品を削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{productToDelete?.name}」を削除します。この操作は取り消せません。
+              関連するバリエーション、画像も同時に削除されます。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isPending}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  削除中...
+                </>
+              ) : (
+                '削除する'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-

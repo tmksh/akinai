@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -24,10 +24,10 @@ import {
   Package,
   ExternalLink,
   RefreshCw,
-  AlertCircle,
   Settings,
+  Loader2,
 } from 'lucide-react';
-import { useFrontendUrl } from '@/components/providers/organization-provider';
+import { useFrontendUrl, useOrganization } from '@/components/providers/organization-provider';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,11 +48,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { mockCategories } from '@/lib/mock-data';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { cn } from '@/lib/utils';
+import { getCategories, createProduct, generateUniqueSlug } from '@/lib/actions/products';
+import type { Database } from '@/types/database';
+
+type Category = Database['public']['Tables']['categories']['Row'];
 
 const productTabs = [
   { label: '商品一覧', href: '/products', exact: true },
@@ -71,26 +72,56 @@ interface ProductVariant {
 
 export default function NewProductPage() {
   const router = useRouter();
+  const { organization, isLoading: orgLoading } = useOrganization();
+  const [isPending, startTransition] = useTransition();
+  
   const [productName, setProductName] = useState('');
   const [description, setDescription] = useState('');
   const [shortDescription, setShortDescription] = useState('');
-  const [status, setStatus] = useState('draft');
+  const [status, setStatus] = useState<'draft' | 'published' | 'archived'>('draft');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
   const [variants, setVariants] = useState<ProductVariant[]>([
     { id: '1', name: 'デフォルト', sku: '', price: 0, stock: 0 },
   ]);
   const [showPreview, setShowPreview] = useState(true);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('mobile');
   const [previewQuantity, setPreviewQuantity] = useState(1);
-  const [previewKey, setPreviewKey] = useState(0); // iframe再読み込み用
+  const [previewKey, setPreviewKey] = useState(0);
+  
+  // カテゴリ一覧
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // 組織設定からフロントエンドURLを取得
   const frontendUrl = useFrontendUrl();
   
   // フロントエンドが接続されているかどうか
   const isFrontendConnected = !!frontendUrl;
+
+  // カテゴリ一覧を取得
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (!organization?.id) return;
+      
+      setCategoriesLoading(true);
+      try {
+        const result = await getCategories(organization.id);
+        if (result.data) {
+          setCategories(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, [organization?.id]);
 
   // プレビュー用のデータをURLパラメータとしてエンコード
   const previewData = useMemo(() => {
@@ -169,19 +200,67 @@ export default function NewProductPage() {
   };
 
   // 保存処理
-  const handleSave = (publish = false) => {
-    // TODO: API呼び出し
-    console.log('Saving product:', {
-      name: productName,
-      description,
-      shortDescription,
-      status: publish ? 'published' : status,
-      categories: selectedCategories,
-      tags,
-      variants,
+  const handleSave = async (publish = false) => {
+    if (!organization?.id) return;
+    if (!productName.trim()) {
+      alert('商品名を入力してください');
+      return;
+    }
+
+    // SKUが空のバリエーションがないかチェック
+    const emptySkuVariant = variants.find(v => !v.sku.trim());
+    if (emptySkuVariant) {
+      alert('すべてのバリエーションにSKUを入力してください');
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        // スラッグを生成
+        const slug = await generateUniqueSlug(organization.id, productName);
+
+        const result = await createProduct({
+          organizationId: organization.id,
+          name: productName,
+          slug,
+          description: description || undefined,
+          shortDescription: shortDescription || undefined,
+          status: publish ? 'published' : status,
+          tags: tags.length > 0 ? tags : undefined,
+          seoTitle: seoTitle || undefined,
+          seoDescription: seoDescription || undefined,
+          categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
+          variants: variants.map(v => ({
+            name: v.name,
+            sku: v.sku,
+            price: v.price,
+            compareAtPrice: v.compareAtPrice,
+            stock: v.stock,
+          })),
+        });
+
+        if (result.error) {
+          console.error('Error creating product:', result.error);
+          alert('商品の作成に失敗しました');
+          return;
+        }
+
+        router.push('/products');
+      } catch (error) {
+        console.error('Error creating product:', error);
+        alert('商品の作成に失敗しました');
+      }
     });
-    router.push('/products');
   };
+
+  // ローディング表示
+  if (orgLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -218,8 +297,17 @@ export default function NewProductPage() {
               <Columns className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={() => handleSave(false)}>
-            <Save className="sm:mr-2 h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleSave(false)}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <Loader2 className="sm:mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="sm:mr-2 h-4 w-4" />
+            )}
             <span className="hidden sm:inline">下書き保存</span>
             <span className="sm:hidden">下書き</span>
           </Button>
@@ -227,7 +315,11 @@ export default function NewProductPage() {
             onClick={() => handleSave(true)}
             className="btn-premium"
             size="sm"
+            disabled={isPending}
           >
+            {isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
             公開する
           </Button>
         </div>
@@ -288,16 +380,13 @@ export default function NewProductPage() {
               <CardDescription>商品の画像をアップロードします</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 p-8 text-center hover:border-muted-foreground/50 transition-colors cursor-pointer">
-                <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+              <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 p-8 text-center">
+                <Upload className="mx-auto h-10 w-10 text-muted-foreground/50" />
                 <p className="mt-2 text-sm text-muted-foreground">
-                  画像をドラッグ&ドロップ、または
+                  画像は商品作成後にアップロードできます
                 </p>
-                <Button variant="link" className="mt-1">
-                  ファイルを選択
-                </Button>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  PNG, JPG, WEBP（最大10MB）
+                  PNG, JPG, WEBP, GIF（最大10MB）
                 </p>
               </div>
             </CardContent>
@@ -341,7 +430,7 @@ export default function NewProductPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>SKU</Label>
+                        <Label>SKU *</Label>
                         <Input
                           placeholder="例: PRD-001-WH-M"
                           value={variant.sku}
@@ -411,6 +500,8 @@ export default function NewProductPage() {
                 <Input
                   id="seoTitle"
                   placeholder="検索結果に表示されるタイトル"
+                  value={seoTitle}
+                  onChange={(e) => setSeoTitle(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -419,6 +510,8 @@ export default function NewProductPage() {
                   id="seoDescription"
                   placeholder="検索結果に表示される説明文（120〜160文字推奨）"
                   rows={3}
+                  value={seoDescription}
+                  onChange={(e) => setSeoDescription(e.target.value)}
                 />
               </div>
             </CardContent>
@@ -554,7 +647,7 @@ export default function NewProductPage() {
                       {/* カテゴリー & タグ */}
                       <div className="flex flex-wrap gap-1.5">
                         {selectedCategories.map((catId) => {
-                          const cat = mockCategories.find(c => c.id === catId);
+                          const cat = categories.find(c => c.id === catId);
                           return cat ? (
                             <Badge key={catId} variant="secondary" className="text-xs">
                               {cat.name}
@@ -720,7 +813,7 @@ export default function NewProductPage() {
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   <Label className="text-sm">ステータス</Label>
-                  <Select value={status} onValueChange={setStatus}>
+                  <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
                     <SelectTrigger className="h-9">
                       <SelectValue />
                     </SelectTrigger>
@@ -739,33 +832,46 @@ export default function NewProductPage() {
                 <CardTitle className="text-base">カテゴリー</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 max-h-[150px] overflow-auto">
-                  {mockCategories.map((category) => (
-                    <label
-                      key={category.id}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        className="rounded border-input"
-                        checked={selectedCategories.includes(category.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedCategories([
-                              ...selectedCategories,
-                              category.id,
-                            ]);
-                          } else {
-                            setSelectedCategories(
-                              selectedCategories.filter((id) => id !== category.id)
-                            );
-                          }
-                        }}
-                      />
-                      <span className="text-sm">{category.name}</span>
-                    </label>
-                  ))}
-                </div>
+                {categoriesLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    カテゴリーがありません。
+                    <Link href="/products/categories" className="text-primary hover:underline ml-1">
+                      作成する
+                    </Link>
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-[150px] overflow-auto">
+                    {categories.map((category) => (
+                      <label
+                        key={category.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded border-input"
+                          checked={selectedCategories.includes(category.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCategories([
+                                ...selectedCategories,
+                                category.id,
+                              ]);
+                            } else {
+                              setSelectedCategories(
+                                selectedCategories.filter((id) => id !== category.id)
+                              );
+                            }
+                          }}
+                        />
+                        <span className="text-sm">{category.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -822,7 +928,7 @@ export default function NewProductPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>ステータス</Label>
-                  <Select value={status} onValueChange={setStatus}>
+                  <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -842,33 +948,46 @@ export default function NewProductPage() {
                 <CardTitle>カテゴリー</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {mockCategories.map((category) => (
-                    <label
-                      key={category.id}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        className="rounded border-input"
-                        checked={selectedCategories.includes(category.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedCategories([
-                              ...selectedCategories,
-                              category.id,
-                            ]);
-                          } else {
-                            setSelectedCategories(
-                              selectedCategories.filter((id) => id !== category.id)
-                            );
-                          }
-                        }}
-                      />
-                      <span className="text-sm">{category.name}</span>
-                    </label>
-                  ))}
-                </div>
+                {categoriesLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    カテゴリーがありません。
+                    <Link href="/products/categories" className="text-primary hover:underline ml-1">
+                      作成する
+                    </Link>
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {categories.map((category) => (
+                      <label
+                        key={category.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded border-input"
+                          checked={selectedCategories.includes(category.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCategories([
+                                ...selectedCategories,
+                                category.id,
+                              ]);
+                            } else {
+                              setSelectedCategories(
+                                selectedCategories.filter((id) => id !== category.id)
+                              );
+                            }
+                          }}
+                        />
+                        <span className="text-sm">{category.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -917,7 +1036,3 @@ export default function NewProductPage() {
     </div>
   );
 }
-
-
-
-

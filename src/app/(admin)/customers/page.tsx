@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Search, Filter, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X } from 'lucide-react';
+import { Users, Plus, Search, Filter, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,11 +14,44 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { mockCustomers } from '@/lib/mock-data';
-import type { Customer } from '@/types';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getCustomers, type CustomerWithAddresses } from '@/lib/actions/customers';
 
 export default function CustomersPage() {
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const { organization } = useOrganization();
+  const [customers, setCustomers] = useState<CustomerWithAddresses[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithAddresses | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // データ取得
+  useEffect(() => {
+    async function fetchCustomers() {
+      if (!organization) return;
+      
+      setIsLoading(true);
+      const { data, error } = await getCustomers(organization.id);
+      if (error) {
+        console.error('Failed to fetch customers:', error);
+      } else {
+        setCustomers(data || []);
+      }
+      setIsLoading(false);
+    }
+
+    fetchCustomers();
+  }, [organization]);
+
+  // 検索フィルター
+  const filteredCustomers = customers.filter(customer => {
+    const query = searchQuery.toLowerCase();
+    return (
+      customer.name.toLowerCase().includes(query) ||
+      customer.email.toLowerCase().includes(query) ||
+      (customer.company?.toLowerCase() || '').includes(query)
+    );
+  });
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ja-JP', {
       style: 'currency',
@@ -36,9 +69,11 @@ export default function CustomersPage() {
             顧客情報の管理・分析を行います
           </p>
         </div>
-        <Button className="btn-premium" size="sm">
-          <Plus className="mr-2 h-4 w-4" />
-          顧客を追加
+        <Button className="btn-premium" size="sm" asChild>
+          <Link href="/customers/new">
+            <Plus className="mr-2 h-4 w-4" />
+            顧客を追加
+          </Link>
         </Button>
       </div>
 
@@ -52,7 +87,7 @@ export default function CustomersPage() {
             </div>
             <span className="text-[10px] sm:text-xs font-medium text-orange-700 dark:text-orange-300">総顧客数</span>
           </div>
-          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{mockCustomers.length}<span className="text-sm font-normal ml-1">人</span></p>
+          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{customers.length}<span className="text-sm font-normal ml-1">人</span></p>
         </div>
         
         {/* 新規顧客 - やや濃いオレンジ */}
@@ -99,7 +134,12 @@ export default function CustomersPage() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input placeholder="顧客名・メールアドレスで検索..." className="pl-10 border-slate-200 dark:border-slate-700 text-sm" />
+              <Input
+                placeholder="顧客名・メールアドレスで検索..."
+                className="pl-10 border-slate-200 dark:border-slate-700 text-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             <Button variant="outline" className="border-slate-200 text-slate-600">
               <Filter className="mr-2 h-4 w-4" />
@@ -107,8 +147,28 @@ export default function CustomersPage() {
             </Button>
           </div>
 
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Users className="h-12 w-12 text-muted-foreground/30 mb-4" />
+              <p className="text-muted-foreground">
+                {searchQuery ? '該当する顧客がありません' : '顧客がまだ登録されていません'}
+              </p>
+              {!searchQuery && (
+                <Button variant="outline" className="mt-4" asChild>
+                  <Link href="/customers/new">
+                    <Plus className="mr-2 h-4 w-4" />
+                    顧客を追加
+                  </Link>
+                </Button>
+              )}
+            </div>
+          ) : (
           <div className="space-y-2">
-            {mockCustomers.map((customer) => (
+            {filteredCustomers.map((customer) => (
               <div
                 key={customer.id}
                 onClick={() => setSelectedCustomer(customer)}
@@ -131,25 +191,26 @@ export default function CustomersPage() {
                 <div className="flex items-center gap-4 sm:gap-6">
                   <div className="text-right hidden sm:block">
                     <div className="text-xs text-slate-500">注文数</div>
-                    <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{customer.totalOrders}件</div>
+                    <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{customer.total_orders}件</div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-slate-500">総購入額</div>
-                    <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{formatCurrency(customer.totalSpent)}</div>
+                    <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{formatCurrency(customer.total_spent)}</div>
                   </div>
                   <Badge 
                     variant="outline" 
-                    className={customer.totalOrders >= 5 
+                    className={customer.total_orders >= 5 
                       ? 'bg-orange-50 text-orange-600 border-orange-200' 
                       : 'bg-slate-50 text-slate-600 border-slate-200'
                     }
                   >
-                    {customer.totalOrders >= 5 ? 'VIP' : '一般'}
+                    {customer.total_orders >= 5 ? 'VIP' : '一般'}
                   </Badge>
                 </div>
               </div>
             ))}
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -167,12 +228,12 @@ export default function CustomersPage() {
                 <div className="text-lg font-bold">{selectedCustomer?.name}</div>
                 <Badge 
                   variant="outline" 
-                  className={(selectedCustomer?.totalOrders ?? 0) >= 5 
+                  className={(selectedCustomer?.total_orders ?? 0) >= 5 
                     ? 'bg-orange-50 text-orange-600 border-orange-200' 
                     : 'bg-slate-50 text-slate-600 border-slate-200'
                   }
                 >
-                  {(selectedCustomer?.totalOrders ?? 0) >= 5 ? 'VIP会員' : '一般会員'}
+                  {(selectedCustomer?.total_orders ?? 0) >= 5 ? 'VIP会員' : '一般会員'}
                 </Badge>
               </div>
             </DialogTitle>
@@ -198,7 +259,7 @@ export default function CustomersPage() {
                     <div className="flex items-start gap-3 text-sm">
                       <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
                       <span>
-                        〒{selectedCustomer.addresses[0].postalCode}<br />
+                        〒{selectedCustomer.addresses[0].postal_code}<br />
                         {selectedCustomer.addresses[0].prefecture}{selectedCustomer.addresses[0].city}{selectedCustomer.addresses[0].line1}
                         {selectedCustomer.addresses[0].line2 && ` ${selectedCustomer.addresses[0].line2}`}
                       </span>
@@ -211,18 +272,18 @@ export default function CustomersPage() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
                   <ShoppingBag className="h-5 w-5 text-orange-500 mx-auto mb-1" />
-                  <div className="text-lg font-bold text-orange-900 dark:text-orange-100">{selectedCustomer.totalOrders}</div>
+                  <div className="text-lg font-bold text-orange-900 dark:text-orange-100">{selectedCustomer.total_orders}</div>
                   <div className="text-xs text-orange-600">注文数</div>
                 </div>
                 <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
                   <DollarSign className="h-5 w-5 text-orange-500 mx-auto mb-1" />
-                  <div className="text-lg font-bold text-orange-900 dark:text-orange-100">{formatCurrency(selectedCustomer.totalSpent)}</div>
+                  <div className="text-lg font-bold text-orange-900 dark:text-orange-100">{formatCurrency(selectedCustomer.total_spent)}</div>
                   <div className="text-xs text-orange-600">総購入額</div>
                 </div>
                 <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
                   <Calendar className="h-5 w-5 text-orange-500 mx-auto mb-1" />
                   <div className="text-lg font-bold text-orange-900 dark:text-orange-100">
-                    {new Date(selectedCustomer.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
+                    {new Date(selectedCustomer.created_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
                   </div>
                   <div className="text-xs text-orange-600">登録日</div>
                 </div>

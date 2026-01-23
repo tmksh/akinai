@@ -764,6 +764,7 @@ export interface Database {
       stock_movements: {
         Row: {
           id: string
+          organization_id: string
           product_id: string
           variant_id: string
           type: 'in' | 'out' | 'adjustment' | 'transfer'
@@ -775,10 +776,14 @@ export interface Database {
           lot_number: string | null
           user_id: string | null
           created_by: string | null
+          product_name: string | null
+          variant_name: string | null
+          sku: string | null
           created_at: string
         }
         Insert: {
           id?: string
+          organization_id: string
           product_id: string
           variant_id: string
           type: 'in' | 'out' | 'adjustment' | 'transfer'
@@ -790,10 +795,14 @@ export interface Database {
           lot_number?: string | null
           user_id?: string | null
           created_by?: string | null
+          product_name?: string | null
+          variant_name?: string | null
+          sku?: string | null
           created_at?: string
         }
         Update: {
           id?: string
+          organization_id?: string
           product_id?: string
           variant_id?: string
           type?: 'in' | 'out' | 'adjustment' | 'transfer'
@@ -805,6 +814,9 @@ export interface Database {
           lot_number?: string | null
           user_id?: string | null
           created_by?: string | null
+          product_name?: string | null
+          variant_name?: string | null
+          sku?: string | null
           created_at?: string
         }
       }

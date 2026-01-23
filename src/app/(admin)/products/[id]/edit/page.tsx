@@ -1,7 +1,7 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect, useTransition } from 'react';
 import { 
   ArrowLeft, 
   Save, 
@@ -11,7 +11,6 @@ import {
   Plus, 
   Trash2, 
   Package, 
-  ImagePlus,
   Smartphone,
   Monitor,
   ShoppingCart,
@@ -22,6 +21,8 @@ import {
   ExternalLink,
   RefreshCw,
   Settings,
+  Loader2,
+  GripVertical,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -39,28 +40,56 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { mockProducts, mockCategories } from '@/lib/mock-data';
-import { useFrontendUrl } from '@/components/providers/organization-provider';
+import { useFrontendUrl, useOrganization } from '@/components/providers/organization-provider';
 import { cn } from '@/lib/utils';
+import { getProduct, getCategories, updateProduct, type ProductWithRelations } from '@/lib/actions/products';
+import { ImageUpload } from '@/components/products/image-upload';
+import type { Database } from '@/types/database';
+
+type Category = Database['public']['Tables']['categories']['Row'];
+
+interface ProductVariant {
+  id: string;
+  name: string;
+  sku: string;
+  price: number;
+  compareAtPrice?: number;
+  stock: number;
+}
 
 export default function ProductEditPage() {
   const params = useParams();
+  const router = useRouter();
   const productId = params.id as string;
+  const { organization, isLoading: orgLoading } = useOrganization();
+  const [isPending, startTransition] = useTransition();
   
-  const product = mockProducts.find((p) => p.id === productId);
+  // データ取得状態
+  const [product, setProduct] = useState<ProductWithRelations | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  const firstVariant = product?.variants?.[0];
+  // フォームデータ
   const [formData, setFormData] = useState({
-    name: product?.name || '',
-    description: product?.description || '',
-    shortDescription: product?.shortDescription || '',
-    price: firstVariant?.price || 0,
-    compareAtPrice: firstVariant?.compareAtPrice || 0,
-    sku: firstVariant?.sku || '',
-    stock: firstVariant?.stock || 0,
-    categoryId: product?.categoryIds?.[0] || '',
-    status: product?.status || 'draft',
+    name: '',
+    description: '',
+    shortDescription: '',
+    status: 'draft' as 'draft' | 'published' | 'archived',
+    featured: false,
+    seoTitle: '',
+    seoDescription: '',
   });
+  
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [productImages, setProductImages] = useState<{
+    id: string;
+    url: string;
+    alt: string | null;
+    sort_order: number;
+  }[]>([]);
 
   // プレビュー関連
   const [showPreview, setShowPreview] = useState(true);
@@ -72,18 +101,82 @@ export default function ProductEditPage() {
   const frontendUrl = useFrontendUrl();
   const isFrontendConnected = !!frontendUrl;
 
+  // データを取得
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!organization?.id) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const [productResult, categoriesResult] = await Promise.all([
+          getProduct(productId),
+          getCategories(organization.id),
+        ]);
+
+        if (productResult.error || !productResult.data) {
+          setError(productResult.error || '商品が見つかりません');
+          return;
+        }
+
+        const p = productResult.data;
+        setProduct(p);
+        
+        // フォームデータを初期化
+        setFormData({
+          name: p.name,
+          description: p.description || '',
+          shortDescription: p.short_description || '',
+          status: p.status,
+          featured: p.featured,
+          seoTitle: p.seo_title || '',
+          seoDescription: p.seo_description || '',
+        });
+        
+        setSelectedCategories(p.categories.map(c => c.id));
+        setTags(p.tags || []);
+        setVariants(p.variants.map(v => ({
+          id: v.id,
+          name: v.name,
+          sku: v.sku,
+          price: v.price,
+          compareAtPrice: v.compare_at_price || undefined,
+          stock: v.stock,
+        })));
+        setProductImages(p.images.map(img => ({
+          id: img.id,
+          url: img.url,
+          alt: img.alt,
+          sort_order: img.sort_order,
+        })));
+
+        if (categoriesResult.data) {
+          setCategories(categoriesResult.data);
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('データの取得に失敗しました');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [organization?.id, productId]);
+
   // プレビュー用データ
   const previewData = useMemo(() => ({
     id: productId,
     name: formData.name,
     description: formData.description,
     shortDescription: formData.shortDescription,
-    price: formData.price,
-    compareAtPrice: formData.compareAtPrice,
-    stock: formData.stock,
-    images: product?.images || [],
+    price: variants[0]?.price || 0,
+    compareAtPrice: variants[0]?.compareAtPrice,
+    stock: variants[0]?.stock || 0,
+    images: productImages,
     status: formData.status,
-  }), [productId, formData, product?.images]);
+  }), [productId, formData, variants, productImages]);
 
   // プレビューURL生成
   const previewUrl = useMemo(() => {
@@ -97,12 +190,104 @@ export default function ProductEditPage() {
 
   const refreshPreview = () => setPreviewKey(prev => prev + 1);
 
-  if (!product) {
+  // バリエーション追加
+  const addVariant = () => {
+    setVariants([
+      ...variants,
+      {
+        id: `new-${Date.now()}`,
+        name: '',
+        sku: '',
+        price: 0,
+        stock: 0,
+      },
+    ]);
+  };
+
+  // バリエーション削除
+  const removeVariant = (id: string) => {
+    if (variants.length > 1) {
+      setVariants(variants.filter((v) => v.id !== id));
+    }
+  };
+
+  // バリエーション更新
+  const updateVariantField = (
+    id: string,
+    field: keyof ProductVariant,
+    value: string | number
+  ) => {
+    setVariants(
+      variants.map((v) => (v.id === id ? { ...v, [field]: value } : v))
+    );
+  };
+
+  // 保存処理
+  const handleSave = async (publish = false) => {
+    if (!formData.name.trim()) {
+      alert('商品名を入力してください');
+      return;
+    }
+
+    // SKUが空のバリエーションがないかチェック
+    const emptySkuVariant = variants.find(v => !v.sku.trim());
+    if (emptySkuVariant) {
+      alert('すべてのバリエーションにSKUを入力してください');
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await updateProduct({
+          id: productId,
+          name: formData.name,
+          description: formData.description || undefined,
+          shortDescription: formData.shortDescription || undefined,
+          status: publish ? 'published' : formData.status,
+          tags: tags.length > 0 ? tags : undefined,
+          seoTitle: formData.seoTitle || undefined,
+          seoDescription: formData.seoDescription || undefined,
+          featured: formData.featured,
+          categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
+          variants: variants.map(v => ({
+            name: v.name,
+            sku: v.sku,
+            price: v.price,
+            compareAtPrice: v.compareAtPrice,
+            stock: v.stock,
+          })),
+        });
+
+        if (result.error) {
+          console.error('Error updating product:', result.error);
+          alert('商品の更新に失敗しました');
+          return;
+        }
+
+        router.push(`/products/${productId}`);
+      } catch (error) {
+        console.error('Error updating product:', error);
+        alert('商品の更新に失敗しました');
+      }
+    });
+  };
+
+  // ローディング表示
+  if (orgLoading || isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // エラー表示
+  if (error || !product) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Package className="h-16 w-16 text-muted-foreground/50 mb-4" />
         <h2 className="text-xl font-semibold mb-2">商品が見つかりません</h2>
-        <p className="text-muted-foreground mb-4">指定された商品は存在しないか、削除された可能性があります。</p>
+        <p className="text-muted-foreground mb-4">{error || '指定された商品は存在しないか、削除された可能性があります。'}</p>
         <Button asChild>
           <Link href="/products">商品一覧に戻る</Link>
         </Button>
@@ -145,11 +330,26 @@ export default function ProductEditPage() {
               <Columns className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm">
-            <Save className="sm:mr-2 h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => handleSave(false)}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <Loader2 className="sm:mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="sm:mr-2 h-4 w-4" />
+            )}
             <span className="hidden sm:inline">下書き保存</span>
           </Button>
-          <Button className="btn-premium" size="sm">
+          <Button 
+            className="btn-premium" 
+            size="sm"
+            onClick={() => handleSave(true)}
+            disabled={isPending}
+          >
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             更新する
           </Button>
         </div>
@@ -178,6 +378,16 @@ export default function ProductEditPage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="shortDescription">短い説明</Label>
+                <Textarea
+                  id="shortDescription"
+                  value={formData.shortDescription}
+                  onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
+                  placeholder="商品の簡潔な説明（一覧表示などで使用）"
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="description">商品説明</Label>
                 <Textarea
                   id="description"
@@ -194,89 +404,15 @@ export default function ProductEditPage() {
           <Card className="card-hover">
             <CardHeader>
               <CardTitle>商品画像</CardTitle>
-              <CardDescription>商品の画像をアップロードしてください</CardDescription>
+              <CardDescription>商品の画像をアップロードしてください（ドラッグで並び替え可能）</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {product.images.map((image, index) => (
-                  <div key={image.id || index} className="relative aspect-square rounded-lg overflow-hidden border group">
-                    <Image
-                      src={image.url}
-                      alt={image.alt || `商品画像 ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Button variant="destructive" size="icon">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                <button className="aspect-square rounded-lg border-2 border-dashed hover:border-primary hover:bg-muted/50 transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary">
-                  <ImagePlus className="h-8 w-8" />
-                  <span className="text-sm">画像を追加</span>
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 価格・在庫 */}
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>価格・在庫</CardTitle>
-              <CardDescription>価格と在庫情報を設定してください</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="price">販売価格 *</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">¥</span>
-                    <Input
-                      id="price"
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                      className="pl-8"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="compareAtPrice">参考価格</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">¥</span>
-                    <Input
-                      id="compareAtPrice"
-                      type="number"
-                      value={formData.compareAtPrice}
-                      onChange={(e) => setFormData({ ...formData, compareAtPrice: Number(e.target.value) })}
-                      className="pl-8"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="sku">SKU</Label>
-                  <Input
-                    id="sku"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    placeholder="SKU-001"
-                    className="font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="stock">在庫数</Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
+              <ImageUpload
+                productId={productId}
+                images={productImages}
+                onImagesChange={setProductImages}
+                disabled={isPending}
+              />
             </CardContent>
           </Card>
 
@@ -287,40 +423,67 @@ export default function ProductEditPage() {
                 <CardTitle>バリエーション</CardTitle>
                 <CardDescription>サイズや色などのバリエーションを管理</CardDescription>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={addVariant}>
                 <Plus className="mr-2 h-4 w-4" />
                 追加
               </Button>
             </CardHeader>
             <CardContent>
-              {product.variants && product.variants.length > 0 ? (
+              {variants.length > 0 ? (
                 <div className="space-y-3">
-                  {product.variants.map((variant) => (
+                  {variants.map((variant, index) => (
                     <div
                       key={variant.id}
-                      className="flex items-center gap-4 p-4 rounded-lg border"
+                      className="flex items-start gap-4 rounded-lg border p-4"
                     >
+                      <div className="flex items-center self-center text-muted-foreground cursor-grab">
+                        <GripVertical className="h-4 w-4" />
+                      </div>
                       <div className="flex-1 grid gap-4 sm:grid-cols-4">
-                        <div>
+                        <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">バリエーション名</Label>
-                          <Input defaultValue={variant.name} className="mt-1" />
+                          <Input 
+                            value={variant.name}
+                            onChange={(e) => updateVariantField(variant.id, 'name', e.target.value)}
+                            placeholder="例: ホワイト / M"
+                          />
                         </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">SKU</Label>
-                          <Input defaultValue={variant.sku} className="mt-1 font-mono" />
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">SKU *</Label>
+                          <Input 
+                            value={variant.sku}
+                            onChange={(e) => updateVariantField(variant.id, 'sku', e.target.value)}
+                            className="font-mono"
+                            placeholder="PRD-001"
+                          />
                         </div>
-                        <div>
+                        <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">価格</Label>
-                          <Input defaultValue={variant.price} type="number" className="mt-1" />
+                          <Input 
+                            type="number"
+                            value={variant.price || ''}
+                            onChange={(e) => updateVariantField(variant.id, 'price', parseInt(e.target.value) || 0)}
+                          />
                         </div>
-                        <div>
+                        <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">在庫</Label>
-                          <Input defaultValue={variant.stock} type="number" className="mt-1" />
+                          <Input 
+                            type="number"
+                            value={variant.stock || ''}
+                            onChange={(e) => updateVariantField(variant.id, 'stock', parseInt(e.target.value) || 0)}
+                          />
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="text-destructive shrink-0">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {variants.length > 1 && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive shrink-0 self-center"
+                          onClick={() => removeVariant(variant.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -329,6 +492,35 @@ export default function ProductEditPage() {
                   <p>バリエーションはまだ登録されていません</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* SEO設定 */}
+          <Card className="card-hover">
+            <CardHeader>
+              <CardTitle>SEO設定</CardTitle>
+              <CardDescription>検索エンジン向けの設定を行います</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="seoTitle">SEOタイトル</Label>
+                <Input
+                  id="seoTitle"
+                  value={formData.seoTitle}
+                  onChange={(e) => setFormData({ ...formData, seoTitle: e.target.value })}
+                  placeholder="検索結果に表示されるタイトル"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="seoDescription">メタディスクリプション</Label>
+                <Textarea
+                  id="seoDescription"
+                  value={formData.seoDescription}
+                  onChange={(e) => setFormData({ ...formData, seoDescription: e.target.value })}
+                  placeholder="検索結果に表示される説明文（120〜160文字推奨）"
+                  rows={3}
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -416,14 +608,14 @@ export default function ProductEditPage() {
                 <div className={cn("p-4 min-h-[500px] overflow-auto", previewMode === 'mobile' ? "text-sm" : "p-6")}>
                   <div className="space-y-4">
                     {/* 商品画像 */}
-                    {product.images.length > 0 ? (
+                    {productImages.length > 0 ? (
                       <div className={cn(
                         "relative rounded-xl overflow-hidden",
                         previewMode === 'mobile' ? "aspect-square" : "aspect-[4/3]"
                       )}>
                         <Image
-                          src={product.images[0].url}
-                          alt={product.images[0].alt || formData.name}
+                          src={productImages[0].url}
+                          alt={productImages[0].alt || formData.name}
                           fill
                           className="object-cover"
                         />
@@ -460,17 +652,17 @@ export default function ProductEditPage() {
                       <div className="py-3 border-y">
                         <div className="flex items-baseline gap-2">
                           <span className={cn("font-bold text-orange-600", previewMode === 'mobile' ? "text-2xl" : "text-3xl")}>
-                            ¥{formData.price.toLocaleString()}
+                            ¥{(variants[0]?.price || 0).toLocaleString()}
                           </span>
                           <span className="text-sm text-muted-foreground">税込</span>
                         </div>
-                        {formData.compareAtPrice > formData.price && (
+                        {variants[0]?.compareAtPrice && variants[0].compareAtPrice > variants[0].price && (
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-sm text-muted-foreground line-through">
-                              ¥{formData.compareAtPrice.toLocaleString()}
+                              ¥{variants[0].compareAtPrice.toLocaleString()}
                             </span>
                             <Badge className="bg-red-500 text-white text-xs">
-                              {Math.round((1 - formData.price / formData.compareAtPrice) * 100)}% OFF
+                              {Math.round((1 - variants[0].price / variants[0].compareAtPrice) * 100)}% OFF
                             </Badge>
                           </div>
                         )}
@@ -487,7 +679,7 @@ export default function ProductEditPage() {
                           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPreviewQuantity(previewQuantity + 1)}>
                             <Plus className="h-3 w-3" />
                           </Button>
-                          <span className="text-xs text-muted-foreground ml-2">在庫: {formData.stock}点</span>
+                          <span className="text-xs text-muted-foreground ml-2">在庫: {variants[0]?.stock || 0}点</span>
                         </div>
                       </div>
 
@@ -550,7 +742,10 @@ export default function ProductEditPage() {
                     <Label className="text-sm">おすすめ商品</Label>
                     <p className="text-xs text-muted-foreground">トップページに表示</p>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={formData.featured}
+                    onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -560,21 +755,37 @@ export default function ProductEditPage() {
                 <CardTitle className="text-base">カテゴリー</CardTitle>
               </CardHeader>
               <CardContent>
-                <Select
-                  value={formData.categoryId}
-                  onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="カテゴリーを選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
+                {categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    カテゴリーがありません。
+                    <Link href="/products/categories" className="text-primary hover:underline ml-1">
+                      作成する
+                    </Link>
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-[150px] overflow-auto">
+                    {categories.map((category) => (
+                      <label
+                        key={category.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded border-input"
+                          checked={selectedCategories.includes(category.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCategories([...selectedCategories, category.id]);
+                            } else {
+                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id));
+                            }
+                          }}
+                        />
+                        <span className="text-sm">{category.name}</span>
+                      </label>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -601,6 +812,7 @@ export default function ProductEditPage() {
                     <SelectContent>
                       <SelectItem value="draft">下書き</SelectItem>
                       <SelectItem value="published">公開</SelectItem>
+                      <SelectItem value="archived">アーカイブ</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -609,7 +821,10 @@ export default function ProductEditPage() {
                     <Label>おすすめ商品</Label>
                     <p className="text-xs text-muted-foreground">トップページに表示</p>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={formData.featured}
+                    onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -620,46 +835,37 @@ export default function ProductEditPage() {
                 <CardTitle>カテゴリー</CardTitle>
               </CardHeader>
               <CardContent>
-                <Select
-                  value={formData.categoryId}
-                  onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="カテゴリーを選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
+                {categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    カテゴリーがありません。
+                    <Link href="/products/categories" className="text-primary hover:underline ml-1">
+                      作成する
+                    </Link>
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {categories.map((category) => (
+                      <label
+                        key={category.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded border-input"
+                          checked={selectedCategories.includes(category.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCategories([...selectedCategories, category.id]);
+                            } else {
+                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id));
+                            }
+                          }}
+                        />
+                        <span className="text-sm">{category.name}</span>
+                      </label>
                     ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-
-            {/* SEO設定 */}
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle>SEO設定</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="seoTitle">ページタイトル</Label>
-                  <Input
-                    id="seoTitle"
-                    placeholder="SEO用タイトル"
-                    defaultValue={product.name}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="seoDescription">メタディスクリプション</Label>
-                  <Textarea
-                    id="seoDescription"
-                    placeholder="検索結果に表示される説明文"
-                    className="min-h-[80px]"
-                  />
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -668,6 +874,3 @@ export default function ProductEditPage() {
     </div>
   );
 }
-
-
-

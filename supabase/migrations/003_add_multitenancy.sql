@@ -7,7 +7,7 @@
 -- 1. 組織（テナント）テーブル
 -- ============================================
 CREATE TABLE organizations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   logo TEXT,
@@ -38,7 +38,7 @@ CREATE TABLE organizations (
 -- 2. 組織メンバーテーブル（ユーザー↔組織の関連）
 -- ============================================
 CREATE TABLE organization_members (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('owner', 'admin', 'manager', 'editor', 'viewer')),
@@ -55,7 +55,7 @@ CREATE TABLE organization_members (
 -- 3. 招待テーブル
 -- ============================================
 CREATE TABLE organization_invitations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('admin', 'manager', 'editor', 'viewer')),
@@ -419,18 +419,17 @@ CREATE POLICY "Editors+ can manage content category relations"
 -- 公開商品表示用（認証不要・公開商品のみ）
 CREATE POLICY "Public can view published products"
   ON products FOR SELECT
-  USING (status = 'published')
-  WITH CHECK (false);  -- 挿入・更新は不可
+  USING (status = 'published');
 
 -- 公開コンテンツ表示用
 CREATE POLICY "Public can view published contents"
   ON contents FOR SELECT
-  USING (status = 'published')
-  WITH CHECK (false);
+  USING (status = 'published');
 
 -- ============================================
 -- 完了
 -- ============================================
+
 
 
 

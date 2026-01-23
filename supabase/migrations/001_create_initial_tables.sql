@@ -2,14 +2,11 @@
 -- アキナイCMS 初期テーブル作成
 -- ============================================
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- ============================================
 -- 1. ユーザーテーブル
 -- ============================================
 CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   avatar TEXT,
@@ -24,7 +21,7 @@ CREATE TABLE users (
 -- 2. カテゴリテーブル（商品用）
 -- ============================================
 CREATE TABLE categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   description TEXT,
@@ -39,7 +36,7 @@ CREATE TABLE categories (
 -- 3. 商品テーブル
 -- ============================================
 CREATE TABLE products (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   description TEXT,
@@ -65,7 +62,7 @@ CREATE TABLE product_categories (
 -- 4. 商品画像テーブル
 -- ============================================
 CREATE TABLE product_images (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id UUID REFERENCES products(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
   alt TEXT,
@@ -77,7 +74,7 @@ CREATE TABLE product_images (
 -- 5. 商品バリアントテーブル
 -- ============================================
 CREATE TABLE product_variants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id UUID REFERENCES products(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   sku TEXT UNIQUE NOT NULL,
@@ -94,7 +91,7 @@ CREATE TABLE product_variants (
 -- 6. 顧客テーブル
 -- ============================================
 CREATE TABLE customers (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type TEXT NOT NULL DEFAULT 'individual' CHECK (type IN ('individual', 'business')),
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
@@ -112,7 +109,7 @@ CREATE TABLE customers (
 -- 7. 顧客住所テーブル
 -- ============================================
 CREATE TABLE customer_addresses (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
   postal_code TEXT NOT NULL,
   prefecture TEXT NOT NULL,
@@ -128,7 +125,7 @@ CREATE TABLE customer_addresses (
 -- 8. 注文テーブル
 -- ============================================
 CREATE TABLE orders (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number TEXT UNIQUE NOT NULL,
   customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
   customer_name TEXT NOT NULL,
@@ -154,7 +151,7 @@ CREATE TABLE orders (
 -- 9. 注文明細テーブル
 -- ============================================
 CREATE TABLE order_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
   product_id UUID REFERENCES products(id) ON DELETE SET NULL,
   variant_id UUID REFERENCES product_variants(id) ON DELETE SET NULL,
@@ -171,7 +168,7 @@ CREATE TABLE order_items (
 -- 10. 見積テーブル
 -- ============================================
 CREATE TABLE quotes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   quote_number TEXT UNIQUE NOT NULL,
   customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
   customer_name TEXT NOT NULL,
@@ -193,7 +190,7 @@ CREATE TABLE quotes (
 -- 11. 見積明細テーブル
 -- ============================================
 CREATE TABLE quote_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   quote_id UUID REFERENCES quotes(id) ON DELETE CASCADE,
   product_id UUID REFERENCES products(id) ON DELETE SET NULL,
   variant_id UUID REFERENCES product_variants(id) ON DELETE SET NULL,
@@ -211,7 +208,7 @@ CREATE TABLE quote_items (
 -- 12. 在庫移動履歴テーブル
 -- ============================================
 CREATE TABLE stock_movements (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id UUID REFERENCES products(id) ON DELETE CASCADE,
   variant_id UUID REFERENCES product_variants(id) ON DELETE CASCADE,
   type TEXT NOT NULL CHECK (type IN ('in', 'out', 'adjustment', 'transfer')),
@@ -230,7 +227,7 @@ CREATE TABLE stock_movements (
 -- 13. コンテンツカテゴリテーブル
 -- ============================================
 CREATE TABLE content_categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   description TEXT,
@@ -245,7 +242,7 @@ CREATE TABLE content_categories (
 -- 14. コンテンツテーブル
 -- ============================================
 CREATE TABLE contents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type TEXT NOT NULL CHECK (type IN ('article', 'news', 'page', 'feature')),
   title TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,

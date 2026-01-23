@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 // 組織の型定義
 export interface Organization {
@@ -43,25 +44,27 @@ const defaultContext: OrganizationContextType = {
 // コンテキスト作成
 const OrganizationContext = createContext<OrganizationContextType>(defaultContext);
 
-// モック組織データ（開発用）
-const mockOrganization: Organization = {
-  id: 'org_123',
-  name: '商い サンプルストア',
-  slug: 'sample-store',
-  logo: null,
-  email: 'contact@sample-store.jp',
-  phone: '03-1234-5678',
-  website: 'https://sample-store.jp',
-  address: '東京都渋谷区神宮前1-2-3',
-  frontendUrl: null, // 未設定状態をデフォルトに
-  frontendApiKey: 'sk_live_xxxxxxxxxxxxxxxxxxxx',
-  plan: 'pro',
-  settings: {},
-  ownerId: 'user_1',
-  isActive: true,
-  createdAt: '2024-01-15T00:00:00Z',
-  updatedAt: '2024-01-15T00:00:00Z',
-};
+// DBからの型をフロントエンド用に変換
+function transformOrganization(row: Record<string, unknown>): Organization {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    logo: row.logo as string | null,
+    email: row.email as string | null,
+    phone: row.phone as string | null,
+    website: row.website as string | null,
+    address: row.address as string | null,
+    frontendUrl: row.frontend_url as string | null,
+    frontendApiKey: row.frontend_api_key as string | null,
+    plan: row.plan as 'starter' | 'pro' | 'enterprise',
+    settings: (row.settings as Record<string, unknown>) || {},
+    ownerId: row.owner_id as string | null,
+    isActive: row.is_active as boolean,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
 
 // プロバイダーコンポーネント
 export function OrganizationProvider({ children }: { children: ReactNode }) {
@@ -74,17 +77,47 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
 
-      // TODO: 実際のAPI呼び出しに置き換え
-      // const { data, error } = await supabase
-      //   .from('organizations')
-      //   .select('*')
-      //   .eq('id', currentOrganizationId)
-      //   .single();
+      const supabase = createClient();
+      
+      // 現在のユーザーを取得
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // 未ログインの場合は組織情報なし
+        setOrganization(null);
+        return;
+      }
 
-      // 開発中はモックデータを使用
-      await new Promise((resolve) => setTimeout(resolve, 100)); // 模擬遅延
-      setOrganization(mockOrganization);
+      // ユーザーが所属する組織を取得（最初の組織を使用）
+      const { data: membership, error: memberError } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .limit(1)
+        .single();
+
+      if (memberError && memberError.code !== 'PGRST116') {
+        throw memberError;
+      }
+
+      if (!membership) {
+        setOrganization(null);
+        return;
+      }
+
+      // 組織詳細を取得
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', membership.organization_id)
+        .single();
+
+      if (orgError) throw orgError;
+
+      setOrganization(transformOrganization(org));
     } catch (err) {
+      console.error('Failed to fetch organization:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch organization'));
     } finally {
       setIsLoading(false);
@@ -124,6 +157,7 @@ export function useFrontendUrl() {
   const { organization } = useOrganization();
   return organization?.frontendUrl || null;
 }
+
 
 
 
