@@ -56,3 +56,4 @@ CREATE POLICY "Authenticated users can delete from contents"
 ON storage.objects FOR DELETE
 USING (bucket_id = 'contents' AND auth.role() = 'authenticated');
 
+

@@ -62,3 +62,4 @@ CREATE POLICY "Managers+ can manage stock movements"
   ON stock_movements FOR ALL
   USING (has_organization_role(organization_id, ARRAY['owner', 'admin', 'manager']));
 
+
