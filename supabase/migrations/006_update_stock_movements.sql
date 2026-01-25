@@ -64,3 +64,4 @@ CREATE POLICY "Managers+ can manage stock movements"
 
 
 
+

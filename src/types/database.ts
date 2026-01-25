@@ -957,6 +957,65 @@ export interface Database {
           updated_at?: string
         }
       }
+      // ============================================
+      // 代理店テーブル
+      // ============================================
+      agents: {
+        Row: {
+          id: string
+          organization_id: string
+          code: string
+          company: string
+          name: string
+          email: string
+          phone: string | null
+          address: string | null
+          status: 'active' | 'inactive' | 'pending'
+          commission_rate: number
+          total_sales: number
+          total_commission: number
+          notes: string | null
+          joined_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          code: string
+          company: string
+          name: string
+          email: string
+          phone?: string | null
+          address?: string | null
+          status?: 'active' | 'inactive' | 'pending'
+          commission_rate?: number
+          total_sales?: number
+          total_commission?: number
+          notes?: string | null
+          joined_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          code?: string
+          company?: string
+          name?: string
+          email?: string
+          phone?: string | null
+          address?: string | null
+          status?: 'active' | 'inactive' | 'pending'
+          commission_rate?: number
+          total_sales?: number
+          total_commission?: number
+          notes?: string | null
+          joined_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

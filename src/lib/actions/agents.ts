@@ -1,170 +1,368 @@
 'use server';
 
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { mockAgents, type Agent } from '@/lib/mock-data';
+import type { Database } from '@/types/database';
+
+// 型定義
+type Agent = Database['public']['Tables']['agents']['Row'];
+type AgentStatus = 'active' | 'inactive' | 'pending';
+
+// 統計情報の型
+export interface AgentStats {
+  total: number;
+  active: number;
+  inactive: number;
+  pending: number;
+  totalSales: number;
+  totalCommission: number;
+}
 
 // 代理店一覧を取得
-export async function getAgents(filters?: {
-  search?: string;
-  status?: 'all' | 'active' | 'inactive' | 'pending';
-  sortBy?: 'company' | 'totalSales' | 'joinedAt';
-  sortOrder?: 'asc' | 'desc';
-}): Promise<{ data: Agent[]; error: string | null }> {
-  try {
-    let data = [...mockAgents];
-
-    // 検索フィルタ
-    if (filters?.search) {
-      const query = filters.search.toLowerCase();
-      data = data.filter(
-        (agent) =>
-          agent.company.toLowerCase().includes(query) ||
-          agent.name.toLowerCase().includes(query) ||
-          agent.code.toLowerCase().includes(query) ||
-          agent.email.toLowerCase().includes(query)
-      );
-    }
-
-    // ステータスフィルタ
-    if (filters?.status && filters.status !== 'all') {
-      data = data.filter((agent) => agent.status === filters.status);
-    }
-
-    // ソート
-    if (filters?.sortBy) {
-      data.sort((a, b) => {
-        const order = filters.sortOrder === 'desc' ? -1 : 1;
-        switch (filters.sortBy) {
-          case 'company':
-            return order * a.company.localeCompare(b.company);
-          case 'totalSales':
-            return order * (a.totalSales - b.totalSales);
-          case 'joinedAt':
-            return order * (new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
-          default:
-            return 0;
-        }
-      });
-    }
-
-    return { data, error: null };
-  } catch (error) {
-    return { data: [], error: '代理店データの取得に失敗しました' };
-  }
-}
-
-// 代理店の統計を取得
-export async function getAgentStats(): Promise<{
-  data: {
-    total: number;
-    active: number;
-    inactive: number;
-    pending: number;
-    totalSales: number;
-    totalCommission: number;
-    avgCommissionRate: number;
-    topAgents: Agent[];
-  } | null;
+export async function getAgents(organizationId: string): Promise<{
+  data: Agent[] | null;
   error: string | null;
 }> {
+  const supabase = await createClient();
+
   try {
-    const active = mockAgents.filter((a) => a.status === 'active');
-    const stats = {
-      total: mockAgents.length,
-      active: active.length,
-      inactive: mockAgents.filter((a) => a.status === 'inactive').length,
-      pending: mockAgents.filter((a) => a.status === 'pending').length,
-      totalSales: mockAgents.reduce((sum, a) => sum + a.totalSales, 0),
-      totalCommission: mockAgents.reduce((sum, a) => sum + a.totalCommission, 0),
-      avgCommissionRate:
-        active.length > 0
-          ? active.reduce((sum, a) => sum + a.commissionRate, 0) / active.length
-          : 0,
-      topAgents: [...active].sort((a, b) => b.totalSales - a.totalSales).slice(0, 3),
-    };
-    return { data: stats, error: null };
+    const { data, error } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return { data, error: null };
   } catch (error) {
-    return { data: null, error: '統計情報の取得に失敗しました' };
+    console.error('Error fetching agents:', error);
+    return { data: null, error: 'Failed to fetch agents' };
   }
 }
 
-// 代理店を取得（単一）
-export async function getAgent(id: string): Promise<{ data: Agent | null; error: string | null }> {
+// 代理店の統計情報を取得
+export async function getAgentStats(organizationId: string): Promise<{
+  data: AgentStats | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
   try {
-    const agent = mockAgents.find((a) => a.id === id);
-    if (!agent) {
-      return { data: null, error: '代理店が見つかりません' };
-    }
-    return { data: agent, error: null };
+    const { data: agents, error } = await supabase
+      .from('agents')
+      .select('status, total_sales, total_commission')
+      .eq('organization_id', organizationId);
+
+    if (error) throw error;
+
+    const stats: AgentStats = {
+      total: agents?.length || 0,
+      active: agents?.filter(a => a.status === 'active').length || 0,
+      inactive: agents?.filter(a => a.status === 'inactive').length || 0,
+      pending: agents?.filter(a => a.status === 'pending').length || 0,
+      totalSales: agents?.reduce((sum, a) => sum + (a.total_sales || 0), 0) || 0,
+      totalCommission: agents?.reduce((sum, a) => sum + (a.total_commission || 0), 0) || 0,
+    };
+
+    return { data: stats, error: null };
   } catch (error) {
-    return { data: null, error: '代理店の取得に失敗しました' };
+    console.error('Error fetching agent stats:', error);
+    return { data: null, error: 'Failed to fetch agent stats' };
+  }
+}
+
+// 単一の代理店を取得
+export async function getAgent(agentId: string): Promise<{
+  data: Agent | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('id', agentId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { data: null, error: '代理店が見つかりません' };
+      }
+      throw error;
+    }
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching agent:', error);
+    return { data: null, error: 'Failed to fetch agent' };
   }
 }
 
 // 代理店を作成
-export async function createAgent(
-  data: Omit<Agent, 'id' | 'totalSales' | 'totalCommission' | 'ordersCount' | 'joinedAt' | 'lastOrderAt'>
-): Promise<{ data: Agent | null; error: string | null }> {
-  try {
-    const newAgent: Agent = {
-      ...data,
-      id: `agent-${Date.now()}`,
-      totalSales: 0,
-      totalCommission: 0,
-      ordersCount: 0,
-      joinedAt: new Date().toISOString(),
-    };
+export async function createAgent(input: {
+  organizationId: string;
+  code: string;
+  company: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  commissionRate?: number;
+  notes?: string;
+}): Promise<{
+  data: Agent | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
 
-    // TODO: DB保存実装
+  try {
+    const { data, error } = await supabase
+      .from('agents')
+      .insert({
+        organization_id: input.organizationId,
+        code: input.code,
+        company: input.company,
+        name: input.name,
+        email: input.email,
+        phone: input.phone || null,
+        address: input.address || null,
+        commission_rate: input.commissionRate || 10,
+        notes: input.notes || null,
+        status: 'pending',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        if (error.message.includes('code')) {
+          return { data: null, error: 'この代理店コードは既に使用されています' };
+        }
+        if (error.message.includes('email')) {
+          return { data: null, error: 'このメールアドレスは既に登録されています' };
+        }
+      }
+      throw error;
+    }
+
     revalidatePath('/agents');
-    return { data: newAgent, error: null };
+    return { data, error: null };
   } catch (error) {
+    console.error('Error creating agent:', error);
     return { data: null, error: '代理店の作成に失敗しました' };
   }
 }
 
 // 代理店を更新
 export async function updateAgent(
-  id: string,
-  data: Partial<Agent>
-): Promise<{ data: Agent | null; error: string | null }> {
+  agentId: string,
+  input: {
+    code?: string;
+    company?: string;
+    name?: string;
+    email?: string;
+    phone?: string | null;
+    address?: string | null;
+    status?: AgentStatus;
+    commissionRate?: number;
+    notes?: string | null;
+  }
+): Promise<{
+  data: Agent | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
   try {
-    const index = mockAgents.findIndex((a) => a.id === id);
-    if (index === -1) {
-      return { data: null, error: '代理店が見つかりません' };
+    const updateData: Record<string, unknown> = {};
+    if (input.code !== undefined) updateData.code = input.code;
+    if (input.company !== undefined) updateData.company = input.company;
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.email !== undefined) updateData.email = input.email;
+    if (input.phone !== undefined) updateData.phone = input.phone;
+    if (input.address !== undefined) updateData.address = input.address;
+    if (input.status !== undefined) updateData.status = input.status;
+    if (input.commissionRate !== undefined) updateData.commission_rate = input.commissionRate;
+    if (input.notes !== undefined) updateData.notes = input.notes;
+
+    const { data, error } = await supabase
+      .from('agents')
+      .update(updateData)
+      .eq('id', agentId)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        if (error.message.includes('code')) {
+          return { data: null, error: 'この代理店コードは既に使用されています' };
+        }
+        if (error.message.includes('email')) {
+          return { data: null, error: 'このメールアドレスは既に登録されています' };
+        }
+      }
+      throw error;
     }
 
-    const updated = { ...mockAgents[index], ...data };
-    // TODO: DB更新実装
-
     revalidatePath('/agents');
-    return { data: updated, error: null };
+    return { data, error: null };
   } catch (error) {
+    console.error('Error updating agent:', error);
     return { data: null, error: '代理店の更新に失敗しました' };
   }
 }
 
-// 代理店のステータスを変更
+// 代理店のステータスを更新
 export async function updateAgentStatus(
-  id: string,
-  status: Agent['status']
-): Promise<{ success: boolean; error: string | null }> {
+  agentId: string,
+  status: AgentStatus
+): Promise<{
+  success: boolean;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
   try {
-    // TODO: DB更新実装
+    const { error } = await supabase
+      .from('agents')
+      .update({ status })
+      .eq('id', agentId);
+
+    if (error) throw error;
+
     revalidatePath('/agents');
     return { success: true, error: null };
   } catch (error) {
+    console.error('Error updating agent status:', error);
     return { success: false, error: 'ステータスの更新に失敗しました' };
   }
 }
 
 // 代理店を削除
-export async function deleteAgent(id: string): Promise<{ success: boolean; error: string | null }> {
+export async function deleteAgent(agentId: string): Promise<{
+  success: boolean;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
   try {
-    // TODO: DB削除実装
+    const { error } = await supabase
+      .from('agents')
+      .delete()
+      .eq('id', agentId);
+
+    if (error) throw error;
+
     revalidatePath('/agents');
     return { success: true, error: null };
   } catch (error) {
+    console.error('Error deleting agent:', error);
     return { success: false, error: '代理店の削除に失敗しました' };
+  }
+}
+
+// 複数の代理店を一括削除
+export async function deleteAgents(agentIds: string[]): Promise<{
+  success: boolean;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  try {
+    const { error } = await supabase
+      .from('agents')
+      .delete()
+      .in('id', agentIds);
+
+    if (error) throw error;
+
+    revalidatePath('/agents');
+    return { success: true, error: null };
+  } catch (error) {
+    console.error('Error deleting agents:', error);
+    return { success: false, error: '代理店の一括削除に失敗しました' };
+  }
+}
+
+// 複数の代理店のステータスを一括更新
+export async function updateAgentsStatus(
+  agentIds: string[],
+  status: AgentStatus
+): Promise<{
+  success: boolean;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  try {
+    const { error } = await supabase
+      .from('agents')
+      .update({ status })
+      .in('id', agentIds);
+
+    if (error) throw error;
+
+    revalidatePath('/agents');
+    return { success: true, error: null };
+  } catch (error) {
+    console.error('Error updating agents status:', error);
+    return { success: false, error: 'ステータスの一括更新に失敗しました' };
+  }
+}
+
+// 代理店コードの重複チェック
+export async function checkAgentCodeExists(
+  organizationId: string,
+  code: string,
+  excludeAgentId?: string
+): Promise<boolean> {
+  const supabase = await createClient();
+
+  try {
+    let query = supabase
+      .from('agents')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('code', code);
+
+    if (excludeAgentId) {
+      query = query.neq('id', excludeAgentId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return (data?.length || 0) > 0;
+  } catch (error) {
+    console.error('Error checking agent code:', error);
+    return false;
+  }
+}
+
+// 代理店コードを自動生成
+export async function generateAgentCode(organizationId: string): Promise<string> {
+  const supabase = await createClient();
+
+  try {
+    // 最新の代理店コードを取得
+    const { data } = await supabase
+      .from('agents')
+      .select('code')
+      .eq('organization_id', organizationId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    let nextNumber = 1;
+    if (data && data.length > 0) {
+      const match = data[0].code.match(/AG(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    return `AG${String(nextNumber).padStart(4, '0')}`;
+  } catch {
+    // エラーの場合はタイムスタンプベースのコードを生成
+    return `AG${Date.now().toString().slice(-6)}`;
   }
 }

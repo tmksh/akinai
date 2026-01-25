@@ -316,9 +316,12 @@ export default function CartPage() {
               <Button 
                 size="lg" 
                 className="w-full bg-orange-500 hover:bg-orange-600 text-white h-14 text-lg mb-4"
+                asChild
               >
-                レジに進む
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <Link href="/shop/checkout">
+                  レジに進む
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
               </Button>
 
               <div className="space-y-2 text-xs text-slate-500">

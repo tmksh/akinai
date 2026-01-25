@@ -670,3 +670,113 @@ export async function generateUniqueSlug(
   return slug;
 }
 
+// 商品を複製
+export async function duplicateProduct(productId: string): Promise<{
+  data: Product | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  try {
+    // 元の商品を取得
+    const { data: originalProduct, error: productError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+
+    if (productError) throw productError;
+    if (!originalProduct) {
+      return { data: null, error: '商品が見つかりません' };
+    }
+
+    // ユニークなスラッグを生成
+    const newSlug = await generateUniqueSlug(
+      originalProduct.organization_id,
+      `${originalProduct.name} (コピー)`
+    );
+
+    // 商品を複製（下書きとして作成）
+    const { data: newProduct, error: newProductError } = await supabase
+      .from('products')
+      .insert({
+        organization_id: originalProduct.organization_id,
+        name: `${originalProduct.name} (コピー)`,
+        slug: newSlug,
+        description: originalProduct.description,
+        short_description: originalProduct.short_description,
+        status: 'draft', // 必ず下書きとして作成
+        tags: originalProduct.tags,
+        seo_title: originalProduct.seo_title,
+        seo_description: originalProduct.seo_description,
+        featured: false, // 注目商品はオフ
+        published_at: null,
+      })
+      .select()
+      .single();
+
+    if (newProductError) throw newProductError;
+
+    // バリエーションを複製
+    const { data: originalVariants } = await supabase
+      .from('product_variants')
+      .select('*')
+      .eq('product_id', productId);
+
+    if (originalVariants && originalVariants.length > 0) {
+      const timestamp = Date.now();
+      const newVariants = originalVariants.map((v, index) => ({
+        product_id: newProduct.id,
+        name: v.name,
+        sku: `${v.sku}-COPY-${timestamp}-${index}`, // SKUをユニークにする
+        price: v.price,
+        compare_at_price: v.compare_at_price,
+        stock: 0, // 在庫は0で開始
+        low_stock_threshold: v.low_stock_threshold,
+        options: v.options,
+      }));
+
+      await supabase.from('product_variants').insert(newVariants);
+    }
+
+    // 画像を複製
+    const { data: originalImages } = await supabase
+      .from('product_images')
+      .select('*')
+      .eq('product_id', productId)
+      .order('sort_order', { ascending: true });
+
+    if (originalImages && originalImages.length > 0) {
+      const newImages = originalImages.map((img) => ({
+        product_id: newProduct.id,
+        url: img.url,
+        alt: img.alt,
+        sort_order: img.sort_order,
+      }));
+
+      await supabase.from('product_images').insert(newImages);
+    }
+
+    // カテゴリ関連を複製
+    const { data: originalCategories } = await supabase
+      .from('product_categories')
+      .select('category_id')
+      .eq('product_id', productId);
+
+    if (originalCategories && originalCategories.length > 0) {
+      const newCategories = originalCategories.map((cat) => ({
+        product_id: newProduct.id,
+        category_id: cat.category_id,
+      }));
+
+      await supabase.from('product_categories').insert(newCategories);
+    }
+
+    revalidatePath('/products');
+    return { data: newProduct, error: null };
+  } catch (error) {
+    console.error('Error duplicating product:', error);
+    return { data: null, error: '商品の複製に失敗しました' };
+  }
+}
+

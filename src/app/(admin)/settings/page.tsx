@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, Palette, CreditCard, Shield, ExternalLink, Store, User } from 'lucide-react';
+import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +47,13 @@ const settingsCategories = [
     description: 'メール通知やアラートの設定',
     href: '/settings/notifications',
     icon: Bell,
+    badge: null,
+  },
+  {
+    title: 'Webhook設定',
+    description: '外部サービスへのイベント通知',
+    href: '/settings/webhooks',
+    icon: Webhook,
     badge: null,
   },
   {

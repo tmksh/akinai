@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Search, Filter, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Loader2 } from 'lucide-react';
+import { Users, Plus, Search, Filter, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,32 +15,43 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useOrganization } from '@/components/providers/organization-provider';
-import { getCustomers, type CustomerWithAddresses } from '@/lib/actions/customers';
+import { getCustomers, getCustomerStats, type CustomerWithAddresses, type CustomerStats } from '@/lib/actions/customers';
 
 export default function CustomersPage() {
   const { organization } = useOrganization();
   const [customers, setCustomers] = useState<CustomerWithAddresses[]>([]);
+  const [stats, setStats] = useState<CustomerStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithAddresses | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   // データ取得
-  useEffect(() => {
-    async function fetchCustomers() {
-      if (!organization) return;
+  const fetchData = useCallback(async () => {
+    if (!organization) return;
+    
+    setIsLoading(true);
+    try {
+      const [customersResult, statsResult] = await Promise.all([
+        getCustomers(organization.id),
+        getCustomerStats(organization.id),
+      ]);
       
-      setIsLoading(true);
-      const { data, error } = await getCustomers(organization.id);
-      if (error) {
-        console.error('Failed to fetch customers:', error);
-      } else {
-        setCustomers(data || []);
+      if (customersResult.data) {
+        setCustomers(customersResult.data);
       }
+      if (statsResult.data) {
+        setStats(statsResult.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
       setIsLoading(false);
     }
-
-    fetchCustomers();
   }, [organization]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // 検索フィルター
   const filteredCustomers = customers.filter(customer => {
@@ -77,52 +88,52 @@ export default function CustomersPage() {
         </Button>
       </div>
 
-      {/* 統計カード - オレンジグラデーション */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        {/* 総顧客数 - 薄いオレンジ */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <Users className="h-4 w-4 text-orange-500" />
+            {/* 統計カード - オレンジグラデーション */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              {/* 総顧客数 - 薄いオレンジ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+                    <Users className="h-4 w-4 text-orange-500" />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-medium text-orange-700 dark:text-orange-300">総顧客数</span>
+                </div>
+                <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats?.totalCustomers || customers.length}<span className="text-sm font-normal ml-1">人</span></p>
+              </div>
+              
+              {/* 新規顧客 - やや濃いオレンジ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
+                    <UserPlus className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-medium text-orange-800 dark:text-orange-200">新規顧客</span>
+                </div>
+                <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats?.newCustomersThisMonth || 0}<span className="text-sm font-normal ml-1">今月</span></p>
+              </div>
+              
+              {/* リピート率 - 濃いオレンジ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
+                    <Repeat className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-medium text-orange-800 dark:text-orange-200">リピート率</span>
+                </div>
+                <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats?.repeatRate || 0}%</p>
+              </div>
+              
+              {/* 平均購入額 - 最も濃いオレンジ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
+                    <DollarSign className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-medium text-white/90">平均購入額</span>
+                </div>
+                <p className="text-lg sm:text-2xl font-bold text-white">{formatCurrency(stats?.averageOrderValue || 0)}</p>
+              </div>
             </div>
-            <span className="text-[10px] sm:text-xs font-medium text-orange-700 dark:text-orange-300">総顧客数</span>
-          </div>
-          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{customers.length}<span className="text-sm font-normal ml-1">人</span></p>
-        </div>
-        
-        {/* 新規顧客 - やや濃いオレンジ */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <UserPlus className="h-4 w-4 text-orange-600" />
-            </div>
-            <span className="text-[10px] sm:text-xs font-medium text-orange-800 dark:text-orange-200">新規顧客</span>
-          </div>
-          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">12<span className="text-sm font-normal ml-1">今月</span></p>
-        </div>
-        
-        {/* リピート率 - 濃いオレンジ */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
-              <Repeat className="h-4 w-4 text-orange-600" />
-            </div>
-            <span className="text-[10px] sm:text-xs font-medium text-orange-800 dark:text-orange-200">リピート率</span>
-          </div>
-          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">68%</p>
-        </div>
-        
-        {/* 平均購入額 - 最も濃いオレンジ */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
-              <DollarSign className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-[10px] sm:text-xs font-medium text-white/90">平均購入額</span>
-          </div>
-          <p className="text-lg sm:text-2xl font-bold text-white">¥24,500</p>
-        </div>
-      </div>
 
       {/* 顧客一覧 */}
       <Card className="border-0 shadow-sm bg-white dark:bg-slate-900">

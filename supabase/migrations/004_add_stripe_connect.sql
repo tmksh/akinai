@@ -14,3 +14,4 @@ COMMENT ON COLUMN organizations.stripe_onboarding_complete IS 'Stripeのオン�
 
 
 
+

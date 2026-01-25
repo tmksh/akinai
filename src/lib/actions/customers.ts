@@ -387,5 +387,168 @@ export async function setDefaultAddress(
   }
 }
 
+// 顧客統計情報の型
+export interface CustomerStats {
+  totalCustomers: number;
+  newCustomersThisMonth: number;
+  repeatRate: number;
+  averageOrderValue: number;
+  totalRevenue: number;
+  topCustomers: {
+    id: string;
+    name: string;
+    email: string;
+    totalSpent: number;
+    totalOrders: number;
+  }[];
+}
+
+// 顧客統計情報を取得
+export async function getCustomerStats(organizationId: string): Promise<{
+  data: CustomerStats | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  try {
+    // 総顧客数を取得
+    const { count: totalCustomers } = await supabase
+      .from('customers')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId);
+
+    // 今月の新規顧客数を取得
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { count: newCustomersThisMonth } = await supabase
+      .from('customers')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId)
+      .gte('created_at', startOfMonth.toISOString());
+
+    // リピート率を計算（2回以上注文した顧客の割合）
+    const { data: customers } = await supabase
+      .from('customers')
+      .select('total_orders, total_spent')
+      .eq('organization_id', organizationId);
+
+    const repeatCustomers = customers?.filter(c => c.total_orders >= 2).length || 0;
+    const repeatRate = totalCustomers && totalCustomers > 0 
+      ? Math.round((repeatCustomers / totalCustomers) * 100)
+      : 0;
+
+    // 平均購入額を計算
+    const totalRevenue = customers?.reduce((sum, c) => sum + (c.total_spent || 0), 0) || 0;
+    const totalOrders = customers?.reduce((sum, c) => sum + (c.total_orders || 0), 0) || 0;
+    const averageOrderValue = totalOrders > 0 
+      ? Math.round(totalRevenue / totalOrders)
+      : 0;
+
+    // トップ顧客を取得（購入額上位5名）
+    const { data: topCustomersData } = await supabase
+      .from('customers')
+      .select('id, name, email, total_spent, total_orders')
+      .eq('organization_id', organizationId)
+      .order('total_spent', { ascending: false })
+      .limit(5);
+
+    const topCustomers = (topCustomersData || []).map(c => ({
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      totalSpent: c.total_spent,
+      totalOrders: c.total_orders,
+    }));
+
+    return {
+      data: {
+        totalCustomers: totalCustomers || 0,
+        newCustomersThisMonth: newCustomersThisMonth || 0,
+        repeatRate,
+        averageOrderValue,
+        totalRevenue,
+        topCustomers,
+      },
+      error: null,
+    };
+  } catch (err) {
+    console.error('Failed to fetch customer stats:', err);
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : 'Failed to fetch customer stats',
+    };
+  }
+}
+
+// 顧客の注文履歴を取得
+export async function getCustomerOrders(customerId: string): Promise<{
+  data: {
+    id: string;
+    orderNumber: string;
+    total: number;
+    status: string;
+    createdAt: string;
+    items: {
+      productName: string;
+      quantity: number;
+      unitPrice: number;
+    }[];
+  }[] | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  try {
+    // 注文を取得
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false });
+
+    if (ordersError) throw ordersError;
+
+    if (!orders || orders.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // 注文明細を取得
+    const orderIds = orders.map(o => o.id);
+    const { data: orderItems, error: itemsError } = await supabase
+      .from('order_items')
+      .select('*')
+      .in('order_id', orderIds);
+
+    if (itemsError) throw itemsError;
+
+    // データを結合
+    const result = orders.map(order => ({
+      id: order.id,
+      orderNumber: order.order_number,
+      total: order.total,
+      status: order.status,
+      createdAt: order.created_at,
+      items: (orderItems || [])
+        .filter(item => item.order_id === order.id)
+        .map(item => ({
+          productName: item.product_name,
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+        })),
+    }));
+
+    return { data: result, error: null };
+  } catch (err) {
+    console.error('Failed to fetch customer orders:', err);
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : 'Failed to fetch customer orders',
+    };
+  }
+}
+
+
 
 

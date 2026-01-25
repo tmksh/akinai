@@ -62,7 +62,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
-import { getProducts, getCategories, deleteProduct, updateProductStatus, type ProductWithRelations } from '@/lib/actions/products';
+import { getProducts, getCategories, deleteProduct, updateProductStatus, duplicateProduct, type ProductWithRelations } from '@/lib/actions/products';
+import { toast } from 'sonner';
 import type { ProductStatus } from '@/types';
 import type { Database } from '@/types/database';
 
@@ -415,7 +416,25 @@ export default function ProductsPage() {
                                 編集
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={async () => {
+                                startTransition(async () => {
+                                  const result = await duplicateProduct(product.id);
+                                  if (result.data) {
+                                    toast.success('商品を複製しました', {
+                                      description: `${result.data.name} を作成しました`,
+                                    });
+                                    // 商品リストを再取得
+                                    if (organization?.id) {
+                                      const { data } = await getProducts(organization.id);
+                                      if (data) setProducts(data);
+                                    }
+                                  } else {
+                                    toast.error(result.error || '複製に失敗しました');
+                                  }
+                                });
+                              }}
+                            >
                               <Copy className="mr-2 h-4 w-4" />
                               複製
                             </DropdownMenuItem>
