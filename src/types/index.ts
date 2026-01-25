@@ -308,6 +308,117 @@ export interface SiteSettings {
   };
 }
 
+// ----- ショップテーマ設定 -----
+export type ShopSectionId = 
+  | 'hero'
+  | 'concept'
+  | 'featured'
+  | 'category'
+  | 'articles'
+  | 'popular'
+  | 'business'
+  | 'news'
+  | 'instagram'
+  | 'brand';
+
+export interface ShopSection {
+  id: ShopSectionId;
+  name: string;
+  enabled: boolean;
+  order: number;
+}
+
+export type FontFamily = 
+  | 'noto-sans'      // Noto Sans JP（ゴシック）
+  | 'noto-serif'     // Noto Serif JP（明朝）
+  | 'zen-kaku'       // Zen Kaku Gothic（ゴシック）
+  | 'zen-maru'       // Zen Maru Gothic（丸ゴシック）
+  | 'shippori-mincho'; // しっぽり明朝
+
+export type FontSize = 'small' | 'medium' | 'large';
+
+export interface ShopThemeColors {
+  primary: string;      // プライマリカラー（ボタン、リンクなど）
+  secondary: string;    // セカンダリカラー
+  background: string;   // メイン背景色
+  surface: string;      // カード・セクション背景色
+  text: string;         // メインテキスト色
+  textMuted: string;    // サブテキスト色
+  accent: string;       // アクセントカラー
+  border: string;       // ボーダー色
+}
+
+export interface ShopThemeFonts {
+  heading: FontFamily;
+  body: FontFamily;
+  size: FontSize;
+}
+
+export interface ShopThemeHeader {
+  logoText: string;
+  bannerText: string;
+  bannerEnabled: boolean;
+  bannerBackgroundColor: string;
+  bannerTextColor: string;
+}
+
+export interface ShopThemeFooter {
+  copyrightText: string;
+  showNewsletter: boolean;
+  showSocialLinks: boolean;
+}
+
+export interface ShopThemeSettings {
+  sections: ShopSection[];
+  colors: ShopThemeColors;
+  fonts: ShopThemeFonts;
+  header: ShopThemeHeader;
+  footer: ShopThemeFooter;
+}
+
+// デフォルトテーマ設定
+export const DEFAULT_SHOP_THEME: ShopThemeSettings = {
+  sections: [
+    { id: 'hero', name: 'ヒーロー', enabled: true, order: 0 },
+    { id: 'concept', name: 'コンセプト', enabled: true, order: 1 },
+    { id: 'featured', name: '注目製品', enabled: true, order: 2 },
+    { id: 'category', name: 'カテゴリー', enabled: true, order: 3 },
+    { id: 'articles', name: '読みもの', enabled: true, order: 4 },
+    { id: 'popular', name: '人気製品', enabled: true, order: 5 },
+    { id: 'business', name: '法人向け', enabled: true, order: 6 },
+    { id: 'news', name: 'ニュース', enabled: true, order: 7 },
+    { id: 'instagram', name: 'Instagram', enabled: true, order: 8 },
+    { id: 'brand', name: 'ブランドイメージ', enabled: true, order: 9 },
+  ],
+  colors: {
+    primary: '#f59e0b',
+    secondary: '#ea580c',
+    background: '#ffffff',
+    surface: '#faf8f5',
+    text: '#1e293b',
+    textMuted: '#64748b',
+    accent: '#f59e0b',
+    border: '#e2e8f0',
+  },
+  fonts: {
+    heading: 'noto-sans',
+    body: 'noto-sans',
+    size: 'medium',
+  },
+  header: {
+    logoText: 'AKINAI',
+    bannerText: 'ご注文金額¥5,000以上で送料無料',
+    bannerEnabled: true,
+    bannerBackgroundColor: '#f5efe8',
+    bannerTextColor: '#475569',
+  },
+  footer: {
+    copyrightText: '© AKINAI All rights reserved.',
+    showNewsletter: true,
+    showSocialLinks: true,
+  },
+};
+
 // ----- API レスポンス -----
 export interface PaginatedResponse<T> {
   data: T[];

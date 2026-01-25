@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { randomBytes } from 'crypto';
+import { ShopThemeSettings, DEFAULT_SHOP_THEME } from '@/types';
 
 // APIキーを生成する関数
 function generateApiKey(prefix: 'live' | 'test' = 'live'): string {
@@ -282,5 +283,99 @@ export async function deleteInvitation(invitationId: string, organizationId: str
   
   revalidatePath('/settings/members');
   return { success: true, error: null };
+}
+
+// ============================================
+// ショップテーマ設定
+// ============================================
+
+// テーマ設定を取得
+export async function getShopTheme(organizationId: string): Promise<{
+  data: ShopThemeSettings | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+  
+  if (error) {
+    console.error('Error fetching shop theme:', error);
+    return { data: null, error: error.message };
+  }
+  
+  // settingsからshop_themeを取得、なければデフォルト値を返す
+  const settings = data?.settings as Record<string, unknown> | null;
+  const shopTheme = settings?.shop_theme as ShopThemeSettings | undefined;
+  
+  return { 
+    data: shopTheme || DEFAULT_SHOP_THEME, 
+    error: null 
+  };
+}
+
+// テーマ設定を更新
+export async function updateShopTheme(
+  organizationId: string,
+  theme: ShopThemeSettings
+): Promise<{
+  data: ShopThemeSettings | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  
+  // 現在の設定を取得
+  const { data: currentData, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+  
+  if (fetchError) {
+    console.error('Error fetching current settings:', fetchError);
+    return { data: null, error: fetchError.message };
+  }
+  
+  // 既存の設定とマージ
+  const currentSettings = (currentData?.settings as Record<string, unknown>) || {};
+  const newSettings = {
+    ...currentSettings,
+    shop_theme: theme,
+  };
+  
+  // 更新
+  const { data: updated, error: updateError } = await supabase
+    .from('organizations')
+    .update({
+      settings: newSettings,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organizationId)
+    .select('settings')
+    .single();
+  
+  if (updateError) {
+    console.error('Error updating shop theme:', updateError);
+    return { data: null, error: updateError.message };
+  }
+  
+  revalidatePath('/settings/theme');
+  revalidatePath('/shop');
+  
+  return { 
+    data: (updated?.settings as Record<string, unknown>)?.shop_theme as ShopThemeSettings || theme, 
+    error: null 
+  };
+}
+
+// テーマをデフォルトにリセット
+export async function resetShopTheme(organizationId: string): Promise<{
+  data: ShopThemeSettings | null;
+  error: string | null;
+}> {
+  return updateShopTheme(organizationId, DEFAULT_SHOP_THEME);
 }
 

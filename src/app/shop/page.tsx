@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, ChevronRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useShopTheme } from '@/components/providers/shop-theme-provider';
+import { ShopSectionId } from '@/types';
 
 // モックデータ
 const featuredProducts = [
@@ -85,7 +87,10 @@ function ProductCard({ product }: { product: typeof featuredProducts[0] }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative aspect-square overflow-hidden bg-[#f5f0eb] mb-4">
+      <div 
+        className="relative aspect-square overflow-hidden mb-4"
+        style={{ backgroundColor: 'var(--shop-color-surface, #f5f0eb)' }}
+      >
         <Image
           src={isHovered && product.hoverImage ? product.hoverImage : product.image}
           alt={product.name}
@@ -94,10 +99,16 @@ function ProductCard({ product }: { product: typeof featuredProducts[0] }) {
         />
       </div>
       <div className="space-y-1">
-        <h3 className="text-sm text-slate-800 leading-relaxed">
+        <h3 
+          className="text-sm leading-relaxed"
+          style={{ color: 'var(--shop-color-text, #1e293b)' }}
+        >
           {product.name} / {product.variant}
         </h3>
-        <p className="text-sm text-slate-600">
+        <p 
+          className="text-sm"
+          style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+        >
           ¥{product.price.toLocaleString()}
         </p>
       </div>
@@ -105,11 +116,16 @@ function ProductCard({ product }: { product: typeof featuredProducts[0] }) {
   );
 }
 
-// ヒーローセクション（大きな商品イメージ）
+// ヒーローセクション
 function HeroSection() {
   return (
     <section className="relative">
-      <div className="aspect-[16/7] relative overflow-hidden bg-gradient-to-br from-[#faf8f5] via-[#f8f4ef] to-[#f5efe8]">
+      <div 
+        className="aspect-[16/7] relative overflow-hidden"
+        style={{ 
+          background: `linear-gradient(to bottom right, var(--shop-color-surface, #faf8f5), var(--shop-color-background, #ffffff))` 
+        }}
+      >
         <Image
           src="https://picsum.photos/seed/hero-minimal/1600/700"
           alt="Hero"
@@ -125,17 +141,34 @@ function HeroSection() {
 // コンセプトセクション
 function ConceptSection() {
   return (
-    <section className="py-24 md:py-32 bg-white">
+    <section className="py-24 md:py-32" style={{ backgroundColor: 'var(--shop-color-background, #ffffff)' }}>
       <div className="max-w-5xl mx-auto px-6">
         <div className="grid md:grid-cols-[200px_1fr] gap-12 md:gap-20">
           <div>
-            <h2 className="text-2xl font-light tracking-wide text-slate-800">Concept</h2>
+            <h2 
+              className="text-2xl font-light tracking-wide"
+              style={{ 
+                color: 'var(--shop-color-text, #1e293b)',
+                fontFamily: 'var(--shop-font-heading)',
+              }}
+            >
+              Concept
+            </h2>
           </div>
           <div className="space-y-6">
-            <h3 className="text-xl md:text-2xl font-light text-slate-800 leading-relaxed">
+            <h3 
+              className="text-xl md:text-2xl font-light leading-relaxed"
+              style={{ 
+                color: 'var(--shop-color-text, #1e293b)',
+                fontFamily: 'var(--shop-font-heading)',
+              }}
+            >
               日々と共にあるすべてのものに
             </h3>
-            <div className="text-sm md:text-base text-slate-600 leading-loose space-y-4">
+            <div 
+              className="text-sm md:text-base leading-loose space-y-4"
+              style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+            >
               <p>
                 商いストアは、日常の中にある小さな喜びを大切にするライフスタイルブランドです。
                 わたしたちが目指すのは、使い込むほどに愛着が湧き、長く寄り添えるようなもの。
@@ -156,13 +189,27 @@ function ConceptSection() {
 // 注目製品セクション
 function FeaturedProductsSection() {
   return (
-    <section className="py-16 md:py-24 bg-gradient-to-b from-white to-[#faf8f5]">
+    <section 
+      className="py-16 md:py-24"
+      style={{ 
+        background: `linear-gradient(to bottom, var(--shop-color-background, #ffffff), var(--shop-color-surface, #faf8f5))` 
+      }}
+    >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between mb-10">
-          <h2 className="text-xl font-light tracking-wide text-slate-800">注目製品</h2>
+          <h2 
+            className="text-xl font-light tracking-wide"
+            style={{ 
+              color: 'var(--shop-color-text, #1e293b)',
+              fontFamily: 'var(--shop-font-heading)',
+            }}
+          >
+            注目製品
+          </h2>
           <Link 
             href="/shop/products?sort=featured" 
-            className="text-sm text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-1"
+            className="text-sm transition-colors flex items-center gap-1 hover:opacity-70"
+            style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
           >
             すべて見る
             <ArrowRight className="h-4 w-4" />
@@ -182,7 +229,7 @@ function FeaturedProductsSection() {
 // カテゴリーセクション
 function CategorySection() {
   return (
-    <section className="py-16 md:py-24 bg-[#faf8f5]">
+    <section className="py-16 md:py-24" style={{ backgroundColor: 'var(--shop-color-surface, #faf8f5)' }}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {categories.map((category) => (
@@ -214,13 +261,22 @@ function CategorySection() {
 // 人気製品セクション
 function PopularProductsSection() {
   return (
-    <section className="py-16 md:py-24 bg-white">
+    <section className="py-16 md:py-24" style={{ backgroundColor: 'var(--shop-color-background, #ffffff)' }}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between mb-10">
-          <h2 className="text-xl font-light tracking-wide text-slate-800">人気製品</h2>
+          <h2 
+            className="text-xl font-light tracking-wide"
+            style={{ 
+              color: 'var(--shop-color-text, #1e293b)',
+              fontFamily: 'var(--shop-font-heading)',
+            }}
+          >
+            人気製品
+          </h2>
           <Link 
             href="/shop/products?sort=popular" 
-            className="text-sm text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-1"
+            className="text-sm transition-colors flex items-center gap-1 hover:opacity-70"
+            style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
           >
             すべて見る
             <ArrowRight className="h-4 w-4" />
@@ -240,54 +296,59 @@ function PopularProductsSection() {
 // 法人・大口購入セクション
 function BusinessSection() {
   const businessFeatures = [
-    {
-      number: '01',
-      title: 'ロット購入',
-      description: '10点以上のご注文で特別価格をご提供',
-    },
-    {
-      number: '02',
-      title: '卸売価格',
-      description: '法人会員様限定の卸売価格でご提供',
-    },
-    {
-      number: '03',
-      title: 'カスタム見積',
-      description: '最短即日でお見積り対応いたします',
-    },
+    { number: '01', title: 'ロット購入', description: '10点以上のご注文で特別価格をご提供' },
+    { number: '02', title: '卸売価格', description: '法人会員様限定の卸売価格でご提供' },
+    { number: '03', title: 'カスタム見積', description: '最短即日でお見積り対応いたします' },
   ];
 
   return (
-    <section className="py-20 md:py-32 bg-[#f5f0eb]">
+    <section className="py-20 md:py-32" style={{ backgroundColor: 'var(--shop-color-surface, #f5f0eb)' }}>
       <div className="max-w-6xl mx-auto px-6">
-        {/* セクションヘッダー */}
         <div className="text-center mb-16">
-          <p className="text-xs tracking-[0.3em] text-slate-400 uppercase mb-3">For Business</p>
-          <h2 className="text-2xl md:text-3xl font-light tracking-wide text-slate-800">
+          <p 
+            className="text-xs tracking-[0.3em] uppercase mb-3"
+            style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+          >
+            For Business
+          </p>
+          <h2 
+            className="text-2xl md:text-3xl font-light tracking-wide"
+            style={{ 
+              color: 'var(--shop-color-text, #1e293b)',
+              fontFamily: 'var(--shop-font-heading)',
+            }}
+          >
             法人・大口のお客様へ
           </h2>
         </div>
 
-        {/* 特徴グリッド */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           {businessFeatures.map((feature, index) => (
-            <div 
-              key={index}
-              className="text-center group"
-            >
-              <p className="text-4xl font-light text-amber-600/40 mb-4 group-hover:text-amber-600 transition-colors">
+            <div key={index} className="text-center group">
+              <p 
+                className="text-4xl font-light mb-4 transition-colors"
+                style={{ color: 'var(--shop-color-primary, #f59e0b)', opacity: 0.4 }}
+              >
                 {feature.number}
               </p>
-              <h3 className="text-lg font-medium text-slate-800 mb-2">{feature.title}</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">{feature.description}</p>
+              <h3 
+                className="text-lg font-medium mb-2"
+                style={{ color: 'var(--shop-color-text, #1e293b)' }}
+              >
+                {feature.title}
+              </h3>
+              <p 
+                className="text-sm leading-relaxed"
+                style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+              >
+                {feature.description}
+              </p>
             </div>
           ))}
         </div>
 
-        {/* コンテンツエリア */}
         <div className="grid md:grid-cols-2 gap-12 items-center">
-          {/* 画像 */}
-          <div className="relative aspect-[4/3] overflow-hidden bg-white">
+          <div className="relative aspect-[4/3] overflow-hidden" style={{ backgroundColor: 'var(--shop-color-background, #ffffff)' }}>
             <Image
               src="https://picsum.photos/seed/business-meeting/800/600"
               alt="法人向けサービス"
@@ -296,27 +357,39 @@ function BusinessSection() {
             />
           </div>
 
-          {/* テキスト */}
           <div className="space-y-6">
-            <p className="text-slate-600 leading-loose text-sm md:text-base">
+            <p 
+              className="leading-loose text-sm md:text-base"
+              style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+            >
               商いストアでは、法人のお客様向けにロット購入・卸売価格でのご提供を行っております。
               OEM・オリジナル商品の企画開発、名入れなどのカスタマイズもご相談ください。
             </p>
-            <p className="text-slate-600 leading-loose text-sm md:text-base">
+            <p 
+              className="leading-loose text-sm md:text-base"
+              style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+            >
               専任の担当者がお客様のご要望をお伺いし、最適なプランをご提案いたします。
             </p>
             
-            {/* CTAリンク */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link
                 href="/shop/business"
-                className="inline-block border border-slate-800 hover:bg-slate-800 hover:text-white px-8 py-3 text-sm text-slate-800 transition-colors text-center"
+                className="inline-block border px-8 py-3 text-sm text-center transition-colors hover:opacity-80"
+                style={{ 
+                  borderColor: 'var(--shop-color-text, #1e293b)',
+                  color: 'var(--shop-color-text, #1e293b)',
+                }}
               >
                 法人会員登録（無料）→
               </Link>
               <Link
                 href="/shop/contact?type=quote"
-                className="inline-block border border-slate-300 hover:border-slate-800 px-8 py-3 text-sm text-slate-600 hover:text-slate-800 transition-colors text-center"
+                className="inline-block border px-8 py-3 text-sm text-center transition-colors hover:opacity-80"
+                style={{ 
+                  borderColor: 'var(--shop-color-border, #e2e8f0)',
+                  color: 'var(--shop-color-text-muted, #64748b)',
+                }}
               >
                 お見積り依頼
               </Link>
@@ -328,35 +401,41 @@ function BusinessSection() {
   );
 }
 
-// 記事・特集セクション（マガジンスタイル）
+// 記事・特集セクション
 function ArticlesSection() {
   return (
-    <section className="py-20 md:py-32 bg-white overflow-hidden">
+    <section className="py-20 md:py-32 overflow-hidden" style={{ backgroundColor: 'var(--shop-color-background, #ffffff)' }}>
       <div className="max-w-7xl mx-auto px-6">
-        {/* セクションヘッダー */}
         <div className="flex items-end justify-between mb-12 md:mb-16">
           <div>
-            <p className="text-xs tracking-[0.3em] text-slate-400 uppercase mb-2">Stories & Features</p>
-            <h2 className="text-3xl md:text-4xl font-light text-slate-800">
+            <p 
+              className="text-xs tracking-[0.3em] uppercase mb-2"
+              style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+            >
+              Stories & Features
+            </p>
+            <h2 
+              className="text-3xl md:text-4xl font-light"
+              style={{ 
+                color: 'var(--shop-color-text, #1e293b)',
+                fontFamily: 'var(--shop-font-heading)',
+              }}
+            >
               読みもの
             </h2>
           </div>
           <Link 
             href="/shop/news" 
-            className="text-sm text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-2 group"
+            className="text-sm transition-colors flex items-center gap-2 group hover:opacity-70"
+            style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
           >
-            <span className="border-b border-transparent group-hover:border-slate-400 pb-0.5">すべて見る</span>
+            <span className="border-b border-transparent group-hover:border-current pb-0.5">すべて見る</span>
             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
 
-        {/* マガジンスタイルレイアウト */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-          {/* メイン特集（大きいカード） */}
-          <Link 
-            href={`/shop/news/${articles[0].id}`}
-            className="lg:col-span-5 lg:row-span-2 group"
-          >
+          <Link href={`/shop/news/${articles[0].id}`} className="lg:col-span-5 lg:row-span-2 group">
             <div className={cn(
               "relative h-full min-h-[500px] md:min-h-[600px] rounded-3xl overflow-hidden",
               "bg-gradient-to-br",
@@ -370,7 +449,6 @@ function ArticlesSection() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
               
-              {/* コンテンツ */}
               <div className="absolute inset-0 p-8 md:p-10 flex flex-col justify-end">
                 <span className="inline-block text-xs tracking-[0.2em] text-white/80 uppercase mb-3">
                   {articles[0].subtitle}
@@ -389,15 +467,13 @@ function ArticlesSection() {
             </div>
           </Link>
 
-          {/* サブ記事（小さいカード） */}
           <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
-            {articles.slice(1).map((article, index) => (
-              <Link 
-                key={article.id}
-                href={`/shop/news/${article.id}`}
-                className="group"
-              >
-                <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#f5f0eb] mb-4">
+            {articles.slice(1).map((article) => (
+              <Link key={article.id} href={`/shop/news/${article.id}`} className="group">
+                <div 
+                  className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4"
+                  style={{ backgroundColor: 'var(--shop-color-surface, #f5f0eb)' }}
+                >
                   <Image
                     src={article.image}
                     alt={article.title}
@@ -406,22 +482,32 @@ function ArticlesSection() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   
-                  {/* 読了時間バッジ */}
                   {article.readTime && (
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                      <span className="text-xs text-slate-600">{article.readTime}</span>
+                      <span className="text-xs" style={{ color: 'var(--shop-color-text-muted, #64748b)' }}>
+                        {article.readTime}
+                      </span>
                     </div>
                   )}
                 </div>
                 
                 <div className="space-y-2">
-                  <span className="text-xs tracking-[0.15em] text-amber-600 uppercase">
+                  <span 
+                    className="text-xs tracking-[0.15em] uppercase"
+                    style={{ color: 'var(--shop-color-primary, #f59e0b)' }}
+                  >
                     {article.subtitle}
                   </span>
-                  <h3 className="text-lg font-medium text-slate-800 group-hover:text-amber-700 transition-colors">
+                  <h3 
+                    className="text-lg font-medium transition-colors"
+                    style={{ color: 'var(--shop-color-text, #1e293b)' }}
+                  >
                     {article.title}
                   </h3>
-                  <p className="text-sm text-slate-500 line-clamp-2">
+                  <p 
+                    className="text-sm line-clamp-2"
+                    style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+                  >
                     {article.description}
                   </p>
                 </div>
@@ -437,14 +523,23 @@ function ArticlesSection() {
 // ニュースセクション
 function NewsSection() {
   return (
-    <section className="py-16 md:py-24 bg-[#faf8f5]">
+    <section className="py-16 md:py-24" style={{ backgroundColor: 'var(--shop-color-surface, #faf8f5)' }}>
       <div className="max-w-4xl mx-auto px-6">
         <div className="flex items-start justify-between mb-10">
           <div>
-            <h2 className="text-xl font-light tracking-wide text-slate-800 mb-2">ニュース</h2>
+            <h2 
+              className="text-xl font-light tracking-wide mb-2"
+              style={{ 
+                color: 'var(--shop-color-text, #1e293b)',
+                fontFamily: 'var(--shop-font-heading)',
+              }}
+            >
+              ニュース
+            </h2>
             <Link 
               href="/shop/news" 
-              className="text-sm text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-1"
+              className="text-sm transition-colors flex items-center gap-1 hover:opacity-70"
+              style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
             >
               すべて見る
               <ArrowRight className="h-4 w-4" />
@@ -458,12 +553,21 @@ function NewsSection() {
               key={item.id}
               href={`/shop/news/${item.id}`}
               className={cn(
-                "flex items-start gap-6 md:gap-10 py-5 group hover:bg-white/50 -mx-4 px-4 transition-colors",
-                index !== newsItems.length - 1 && "border-b border-slate-200"
+                "flex items-start gap-6 md:gap-10 py-5 group transition-colors -mx-4 px-4",
+                index !== newsItems.length - 1 && "border-b"
               )}
+              style={{ borderColor: 'var(--shop-color-border, #e2e8f0)' }}
             >
-              <span className="text-sm text-slate-400 shrink-0 tabular-nums">{item.date}</span>
-              <span className="text-sm text-slate-700 group-hover:text-slate-900 transition-colors">
+              <span 
+                className="text-sm shrink-0 tabular-nums"
+                style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+              >
+                {item.date}
+              </span>
+              <span 
+                className="text-sm transition-colors group-hover:opacity-70"
+                style={{ color: 'var(--shop-color-text, #1e293b)' }}
+              >
                 {item.title}
               </span>
             </Link>
@@ -486,15 +590,24 @@ function InstagramSection() {
   ];
 
   return (
-    <section className="py-16 md:py-24 bg-white">
+    <section className="py-16 md:py-24" style={{ backgroundColor: 'var(--shop-color-background, #ffffff)' }}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between mb-10">
-          <h2 className="text-xl font-light tracking-wide text-slate-800">Instagram</h2>
+          <h2 
+            className="text-xl font-light tracking-wide"
+            style={{ 
+              color: 'var(--shop-color-text, #1e293b)',
+              fontFamily: 'var(--shop-font-heading)',
+            }}
+          >
+            Instagram
+          </h2>
           <a 
             href="https://instagram.com" 
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-1"
+            className="text-sm transition-colors flex items-center gap-1 hover:opacity-70"
+            style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
           >
             すべて見る
             <ArrowRight className="h-4 w-4" />
@@ -540,19 +653,34 @@ function BrandImageSection() {
   );
 }
 
+// セクションコンポーネントのマップ
+const sectionComponents: Record<ShopSectionId, React.FC> = {
+  hero: HeroSection,
+  concept: ConceptSection,
+  featured: FeaturedProductsSection,
+  category: CategorySection,
+  articles: ArticlesSection,
+  popular: PopularProductsSection,
+  business: BusinessSection,
+  news: NewsSection,
+  instagram: InstagramSection,
+  brand: BrandImageSection,
+};
+
 export default function StorePage() {
+  const { theme } = useShopTheme();
+
+  // 有効なセクションを順序通りに取得
+  const enabledSections = theme.sections
+    .filter(s => s.enabled)
+    .sort((a, b) => a.order - b.order);
+
   return (
-    <div className="bg-white">
-      <HeroSection />
-      <ConceptSection />
-      <FeaturedProductsSection />
-      <CategorySection />
-      <ArticlesSection />
-      <PopularProductsSection />
-      <BusinessSection />
-      <NewsSection />
-      <InstagramSection />
-      <BrandImageSection />
+    <div style={{ backgroundColor: 'var(--shop-color-background, #ffffff)' }}>
+      {enabledSections.map((section) => {
+        const SectionComponent = sectionComponents[section.id];
+        return SectionComponent ? <SectionComponent key={section.id} /> : null;
+      })}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, Palette, CreditCard, Shield, ExternalLink } from 'lucide-react';
+import { Building2, Key, Users, Bell, Palette, CreditCard, Shield, ExternalLink, Store, Layout } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,13 @@ const settingsCategories = [
     href: '/settings/organization',
     icon: Building2,
     badge: null,
+  },
+  {
+    title: 'ショップテーマ',
+    description: 'ショップのデザイン・レイアウトをカスタマイズ',
+    href: '/settings/shop-theme',
+    icon: Store,
+    badge: 'NEW',
   },
   {
     title: 'API設定',
@@ -37,7 +44,7 @@ const settingsCategories = [
     disabled: true,
   },
   {
-    title: 'テーマ設定',
+    title: '管理画面テーマ',
     description: '管理画面のカラーテーマを変更',
     href: '/settings/theme',
     icon: Palette,
