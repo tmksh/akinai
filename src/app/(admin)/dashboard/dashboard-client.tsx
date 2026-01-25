@@ -158,17 +158,26 @@ function CircleProgress({
             className="transition-all duration-1000 ease-out"
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="relative">
-            <span className={cn(
-              "text-3xl font-bold bg-clip-text text-transparent",
+        <div 
+          className="absolute flex flex-col items-center justify-center"
+          style={{ 
+            top: strokeWidth, 
+            left: strokeWidth, 
+            right: strokeWidth, 
+            bottom: strokeWidth 
+          }}
+        >
+          <span 
+            className={cn(
+              "font-bold bg-clip-text text-transparent leading-none text-center",
               colorVariant === 'orange' ? "bg-gradient-to-br from-orange-500 to-amber-600" :
               colorVariant === 'amber' ? "bg-gradient-to-br from-amber-500 to-yellow-600" :
               "bg-gradient-to-br from-orange-600 to-red-600"
-            )}>
-              {value}%
-            </span>
-          </div>
+            )}
+            style={{ fontSize: `${Math.max((size - strokeWidth * 2) * 0.28, 14)}px` }}
+          >
+            {value}%
+          </span>
         </div>
       </div>
       <div className="mt-3 text-center">

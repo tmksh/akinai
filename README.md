@@ -1,36 +1,321 @@
-# 商い（アキナイ）CMS
+<p align="center">
+  <img src="public/logo-shou.png" alt="商い（アキナイ）ロゴ" width="120">
+</p>
 
-B2B向け編集型EC対応 汎用CMSシステム
+<h1 align="center">商い（アキナイ）</h1>
 
-![Dashboard](docs/screenshots/dashboard.png)
+<p align="center">
+  <strong>B2B向けマルチテナント型 EC・CMS SaaS プラットフォーム</strong>
+</p>
 
-## 概要
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Tailwind-4.x-38B2AC?style=flat-square&logo=tailwind-css" alt="Tailwind">
+  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase" alt="Supabase">
+  <img src="https://img.shields.io/badge/Stripe-Connect-635BFF?style=flat-square&logo=stripe" alt="Stripe">
+</p>
 
-「商い（アキナイ）」は、複数クライアントで共通利用できるCMS基盤です。編集・発信・販売を一体で扱え、長期的に育てられるプロダクトとして設計されています。
+---
 
-### 特徴
+## プロジェクトの目的
 
-- 📦 **商品管理** - 商品・バリエーション・カテゴリー管理
-- 📝 **コンテンツ管理** - 記事・ニュース・特集の一元管理
-- 🛒 **注文管理** - 注文の確認・処理・発送管理
-- 📊 **ダッシュボード** - 売上・注文・在庫の可視化
-- 🔧 **機能フラグ** - ON/OFFで機能を柔軟に制御
-- 🎨 **モダンUI** - Upsider風のクリーンなデザイン
+「商い（アキナイ）」は、**中小企業や店舗が自社ECとコンテンツ発信を一つのプラットフォームで完結できる**ことを目指したSaaSサービスです。
+
+### 解決したい課題
+
+1. **複数ツールの分断** - EC、CMS、顧客管理がバラバラで運用が煩雑
+2. **B2B対応の難しさ** - 見積機能や法人顧客管理ができるサービスが少ない
+3. **使いにくいUI** - 既存サービスは機能過多で、ITに不慣れな担当者には難しい
+4. **初期・運用コストの高さ** - 小規模事業者には導入障壁が高い
+
+### ビジョン
+
+> 「おじさんでも見やすく使いやすい」
+> 商品登録から記事作成、見積発行、決済まで、**誰でも迷わず使えるシンプルな管理画面**を提供する。
+
+---
+
+## サービス概要
+
+### ターゲットユーザー
+
+- 自社ECを始めたい中小企業・個人事業主
+- B2B取引（見積ベース）を行う卸売業・メーカー
+- 商品紹介と情報発信を一体で行いたい店舗
+
+### 主要機能
+
+| 機能 | 説明 |
+|------|------|
+| **商品管理** | 商品登録、バリエーション（サイズ・色など）、在庫管理、カテゴリー・タグ |
+| **コンテンツ管理** | ニュース、特集記事、お知らせの作成・公開予約 |
+| **注文管理** | 注文一覧、ステータス管理、配送追跡 |
+| **見積管理（B2B）** | 見積作成・送付、交渉ステータス管理、注文への変換 |
+| **顧客管理** | 個人・法人顧客、購入履歴、タグ付け |
+| **ダッシュボード** | 売上推移、注文数、在庫アラート、人気商品 |
+| **マルチテナント** | 組織ごとのデータ分離、メンバー招待、ロール管理 |
+| **決済連携** | Stripe Connect による各テナント独自の決済 |
+| **ショップフロント** | 組織ごとにカスタマイズ可能な公開用ECサイト |
+
+### システム構成図
+
+```mermaid
+graph TB
+    subgraph "フロントエンド"
+        A[管理画面<br/>Next.js App Router]
+        B[公開ショップ<br/>Next.js]
+    end
+
+    subgraph "バックエンド"
+        C[Server Actions]
+        D[API Routes]
+    end
+
+    subgraph "外部サービス"
+        E[(Supabase<br/>PostgreSQL + Auth)]
+        F[Stripe Connect<br/>決済]
+        G[配送API<br/>ヤマト/佐川]
+    end
+
+    A --> C
+    A --> D
+    B --> D
+    C --> E
+    D --> E
+    D --> F
+    D --> G
+
+    style A fill:#f97316,stroke:#ea580c,color:#fff
+    style B fill:#f97316,stroke:#ea580c,color:#fff
+    style E fill:#3ecf8e,stroke:#22c55e,color:#fff
+    style F fill:#635bff,stroke:#4f46e5,color:#fff
+```
+
+### ユーザーフロー
+
+```mermaid
+flowchart LR
+    subgraph "管理者"
+        A1[ログイン] --> A2[ダッシュボード]
+        A2 --> A3{機能選択}
+        A3 --> A4[商品管理]
+        A3 --> A5[注文管理]
+        A3 --> A6[見積管理]
+        A3 --> A7[コンテンツ管理]
+        A3 --> A8[顧客管理]
+    end
+
+    subgraph "エンドユーザー"
+        B1[ショップ訪問] --> B2[商品閲覧]
+        B2 --> B3[カート追加]
+        B3 --> B4[Stripe決済]
+        B4 --> B5[注文完了]
+    end
+
+    A5 -.->|注文データ| B5
+```
+
+---
+
+## スクリーンショット
+
+> **📸 Coming Soon**
+> 開発中のため、スクリーンショットは後日追加予定です。
+
+<!--
+スクリーンショットを追加する場合:
+1. docs/screenshots/ フォルダを作成
+2. 以下の画像を配置:
+   - dashboard.png (ダッシュボード)
+   - products.png (商品管理)
+   - orders.png (注文管理)
+   - contents.png (コンテンツ管理)
+
+![ダッシュボード](docs/screenshots/dashboard.png)
+![商品管理](docs/screenshots/products.png)
+-->
+
+| 画面 | 説明 |
+|------|------|
+| ダッシュボード | 売上推移・注文数・在庫アラートを一目で確認 |
+| 商品管理 | 商品登録・バリエーション・在庫をまとめて管理 |
+| 注文管理 | 注文一覧・ステータス変更・配送手配 |
+| 見積管理 | B2B向け見積作成・交渉・注文変換 |
+| コンテンツ管理 | 記事・ニュース・特集の作成と公開 |
+
+---
 
 ## 技術スタック
 
-- **フレームワーク**: Next.js 14 (App Router)
-- **言語**: TypeScript
-- **スタイリング**: Tailwind CSS v4
-- **UIコンポーネント**: shadcn/ui
-- **データ**: モックデータ（Supabase対応予定）
+| カテゴリ | 技術 |
+|----------|------|
+| **フレームワーク** | Next.js 16 (App Router) |
+| **言語** | TypeScript |
+| **スタイリング** | Tailwind CSS v4 |
+| **UIコンポーネント** | shadcn/ui + Radix UI |
+| **データベース** | Supabase (PostgreSQL) |
+| **認証** | Supabase Auth |
+| **決済** | Stripe / Stripe Connect |
+| **ホスティング** | Netlify |
+| **チャート** | Recharts |
+| **フォーム** | React Hook Form + Zod |
+| **ドラッグ&ドロップ** | dnd-kit |
+
+---
+
+## データベース設計
+
+### ER図（主要テーブル）
+
+```mermaid
+erDiagram
+    organizations ||--o{ organization_members : has
+    organizations ||--o{ products : owns
+    organizations ||--o{ customers : has
+    organizations ||--o{ orders : receives
+    organizations ||--o{ quotes : creates
+    organizations ||--o{ contents : publishes
+
+    users ||--o{ organization_members : belongs
+
+    products ||--o{ product_variants : has
+    products }o--|| categories : belongs_to
+
+    customers ||--o{ orders : places
+    customers ||--o{ quotes : requests
+
+    orders ||--o{ order_items : contains
+    order_items }o--|| product_variants : references
+
+    quotes ||--o{ quote_items : contains
+    quote_items }o--|| products : references
+    quotes ||--o| orders : converts_to
+
+    organizations {
+        uuid id PK
+        string name
+        string slug
+        timestamp created_at
+    }
+
+    products {
+        uuid id PK
+        uuid organization_id FK
+        string name
+        text description
+        string status
+    }
+
+    orders {
+        uuid id PK
+        uuid organization_id FK
+        uuid customer_id FK
+        string status
+        decimal total
+    }
+
+    quotes {
+        uuid id PK
+        uuid organization_id FK
+        uuid customer_id FK
+        string status
+        date valid_until
+    }
+```
+
+### 主要テーブル一覧
+
+| テーブル | 説明 |
+|----------|------|
+| `organizations` | 組織（テナント） |
+| `organization_members` | メンバー管理 |
+| `users` | ユーザー |
+| `products` | 商品 |
+| `product_variants` | バリエーション（SKU単位） |
+| `categories` | 商品カテゴリ |
+| `customers` | 顧客（個人・法人） |
+| `orders` | 注文 |
+| `order_items` | 注文明細 |
+| `quotes` | 見積 |
+| `quote_items` | 見積明細 |
+| `contents` | コンテンツ（記事・ニュース・特集） |
+| `stock_movements` | 在庫移動履歴 |
+
+### マルチテナント設計
+
+- 全データテーブルに `organization_id` を持たせ、組織単位でデータを分離
+- Row Level Security (RLS) でアクセス制御
+- ロール: `owner` / `admin` / `manager` / `editor` / `viewer`
+
+---
+
+## プロジェクト構造
+
+```
+📁 src/
+├── 📁 app/
+│   ├── 📁 (admin)/              # 🔐 管理画面
+│   │   ├── 📁 dashboard/        #    ダッシュボード
+│   │   ├── 📁 products/         #    商品管理
+│   │   ├── 📁 contents/         #    コンテンツ管理
+│   │   ├── 📁 orders/           #    注文管理
+│   │   ├── 📁 quotes/           #    見積管理
+│   │   ├── 📁 customers/        #    顧客管理
+│   │   ├── 📁 agents/           #    AIエージェント設定
+│   │   └── 📁 settings/         #    設定
+│   ├── 📁 (auth)/               # 🔑 認証画面
+│   ├── 📁 shop/                 # 🛒 公開ショップフロント
+│   └── 📁 api/                  # 🔌 APIエンドポイント
+├── 📁 components/
+│   ├── 📁 layout/               #    ヘッダー、サイドバー等
+│   ├── 📁 providers/            #    Context プロバイダー
+│   └── 📁 ui/                   #    shadcn/ui コンポーネント
+├── 📁 lib/
+│   ├── 📁 actions/              #    Server Actions
+│   ├── 📁 supabase/             #    Supabase クライアント
+│   └── 📁 webhooks/             #    Webhook 処理
+└── 📁 types/                    #    TypeScript 型定義
+```
+
+### 画面構成図
+
+```mermaid
+graph LR
+    subgraph "管理画面 (admin)"
+        D[ダッシュボード]
+        P[商品管理]
+        O[注文管理]
+        Q[見積管理]
+        CT[コンテンツ管理]
+        CU[顧客管理]
+        S[設定]
+    end
+
+    subgraph "公開サイト (shop)"
+        TOP[トップページ]
+        PL[商品一覧]
+        PD[商品詳細]
+        CART[カート]
+        CO[決済]
+    end
+
+    D --> P
+    D --> O
+    D --> Q
+    P -.->|公開| PD
+    CT -.->|公開| TOP
+```
+
+---
 
 ## セットアップ
 
 ### 必要条件
 
-- Node.js 18.x 以上
-- npm または yarn
+- Node.js 20.x 以上（`.nvmrc` 参照）
+- Supabase プロジェクト
+- Stripe アカウント（決済機能を使う場合）
 
 ### インストール
 
@@ -42,106 +327,189 @@ cd akinai
 # 依存関係をインストール
 npm install
 
+# 環境変数を設定
+cp .env.example .env.local
+# .env.local に Supabase, Stripe の認証情報を記入
+
 # 開発サーバーを起動
 npm run dev
 ```
 
 ブラウザで http://localhost:3000 を開いてください。
 
-## プロジェクト構造
+### Supabase マイグレーション
 
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── (admin)/           # 管理画面ルート
-│   │   ├── dashboard/     # ダッシュボード
-│   │   ├── products/      # 商品管理
-│   │   ├── contents/      # コンテンツ管理
-│   │   ├── orders/        # 注文管理
-│   │   ├── inventory/     # 在庫管理
-│   │   └── settings/      # 設定
-│   ├── layout.tsx         # ルートレイアウト
-│   └── globals.css        # グローバルスタイル
-├── components/
-│   ├── layout/            # レイアウトコンポーネント
-│   ├── providers/         # プロバイダー
-│   └── ui/                # shadcn/ui コンポーネント
-├── hooks/                 # カスタムフック
-├── lib/                   # ユーティリティ・モックデータ
-└── types/                 # TypeScript型定義
+```bash
+# Supabase CLI でマイグレーションを適用
+supabase db push
 ```
 
-## 主要機能
+---
 
-### ダッシュボード
-- 売上・注文数の統計カード
-- 売上推移グラフ
-- 最近の注文一覧
-- 人気商品ランキング
-- 在庫アラート
+## 開発コマンド
 
-### 商品管理
-- 商品一覧・検索・フィルタリング
-- 商品登録（バリエーション対応）
-- カテゴリー・タグ管理
-- SEO設定
+```bash
+npm run dev      # 開発サーバー起動
+npm run build    # 本番ビルド
+npm run start    # 本番サーバー起動
+npm run lint     # ESLint 実行
+```
 
-### コンテンツ管理
-- 記事・ニュース・特集の管理
-- タブによる種類別表示
-- 公開・下書き・予約公開
+---
 
-### 注文管理
-- 注文一覧・検索・フィルタリング
-- 注文ステータス管理
-- 支払状況管理
+## 今後のロードマップ
 
-### 設定
-- サイト基本情報
-- EC設定（税金・配送）
-- 機能フラグ管理
+```mermaid
+timeline
+    title 開発ロードマップ
+    section Phase 1
+        基盤強化 : マルチテナント対応
+                 : Supabase連携・RLS
+                 : Stripe Connect決済
+                 : 基本CRUD機能
+    section Phase 2
+        UX改善 : リアルタイムプレビュー
+               : WYSIWYGエディタ
+               : モバイル対応強化
+    section Phase 3
+        配送連携 : ヤマト・佐川API
+                : 送り状自動発行
+                : 配送料金計算
+    section Phase 4
+        AI機能 : 商品説明自動生成
+               : SEO最適化提案
+               : 在庫予測
+    section Phase 5
+        拡張 : Webhook連携
+             : API公開
+             : 多言語対応
+```
 
-## 今後の予定
+### Phase 1: 基盤強化 ✅ 現在
 
-- [ ] Supabaseとの連携
-- [ ] 認証システム実装
-- [ ] リアルタイムプレビュー
-- [ ] ブロックエディタ
-- [ ] 見積管理（B2B）
-- [ ] AI支援機能
+| 機能 | 状態 |
+|------|------|
+| マルチテナント対応（組織・メンバー管理） | ✅ 完了 |
+| Supabase 連携・RLS 設定 | ✅ 完了 |
+| Stripe Connect 決済連携 | ✅ 完了 |
+| 基本的な商品・注文・コンテンツ管理 | ✅ 完了 |
+| ダッシュボードウィジェットのカスタマイズ機能 | 🚧 開発中 |
+
+### Phase 2: UX改善
+
+| 機能 | 説明 |
+|------|------|
+| リアルタイムプレビュー | 商品・コンテンツ編集時にプレビューを見ながら入力 |
+| Googleドキュメント風エディタ | 記事作成を直感的に（WYSIWYG強化） |
+| モバイル対応強化 | スマホでも快適に管理できるUI |
+| ガイド・チュートリアル | 初回ログイン時のオンボーディング |
+
+### Phase 3: 配送・物流連携
+
+| 機能 | 説明 |
+|------|------|
+| 配送業者API連携 | ヤマト運輸、佐川急便など |
+| 送り状自動発行 | 注文データから自動生成 |
+| 配送料金自動計算 | 重量・サイズ・配送先から算出 |
+
+### Phase 4: AI機能
+
+| 機能 | 説明 |
+|------|------|
+| 商品説明文の自動生成 | 画像・キーワードからAIが生成 |
+| SEO最適化提案 | タイトル・メタ情報の改善提案 |
+| 在庫予測・発注提案 | 販売データから需要予測 |
+| チャットボット対応 | 顧客対応の自動化 |
+
+### Phase 5: 拡張・エコシステム
+
+| 機能 | 説明 |
+|------|------|
+| Webhook連携 | 外部システムへのイベント通知 |
+| APIドキュメント公開 | 外部開発者向けAPI |
+| テンプレートマーケットプレイス | テーマ・テンプレートの共有 |
+| 多言語対応 | 英語・中国語など |
+
+---
+
+## 差別化ポイント
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        商い（アキナイ）                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  🔄 B2B + B2C 両対応        │  🏢 マルチテナントSaaS           │
+│  見積機能と通常EC機能を統合  │  1つのプラットフォームで         │
+│                             │  複数店舗を運営可能              │
+│─────────────────────────────┼─────────────────────────────────│
+│  👴 シンプルで使いやすいUI   │  💳 Stripe Connect             │
+│  機能を絞り込み、            │  各テナントが独自に             │
+│  直感的な操作性を重視        │  決済を受け取れる               │
+│─────────────────────────────┴─────────────────────────────────│
+│                    🇯🇵 国産・日本語ネイティブ                   │
+│            日本の商習慣（見積文化、消費税対応）に最適化          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+| ポイント | 説明 | 競合との違い |
+|----------|------|--------------|
+| **B2B + B2C 両対応** | 見積機能と通常EC機能を統合 | 多くのサービスはどちらか一方 |
+| **マルチテナントSaaS** | 1つのプラットフォームで複数店舗を運営可能 | 店舗ごとの契約が不要 |
+| **シンプルで使いやすいUI** | 機能を絞り込み、直感的な操作性を重視 | ITに不慣れな担当者でも使える |
+| **Stripe Connect** | 各テナントが独自に決済を受け取れる | プラットフォーム経由ではない直接決済 |
+| **国産・日本語ネイティブ** | 日本の商習慣（見積文化、消費税対応）に最適化 | 海外サービスの翻訳版ではない |
+
+---
 
 ## デザインガイドライン
 
 ### カラーパレット
 
-- **プライマリ**: オレンジ系グラデーション（ブランドカラー）
-- **サイドバー**: ダークテーマ（Upsider風）
-- **コンテンツ**: ライト/ダークモード対応
+```
+┌──────────────────────────────────────────────────────────────┐
+│  プライマリ（オレンジ系グラデーション）                        │
+│  ████████████████  #f97316 → #ea580c                        │
+├──────────────────────────────────────────────────────────────┤
+│  サイドバー（ダークテーマ）                                   │
+│  ████████████████  #1f2937 (Gray-800)                       │
+├──────────────────────────────────────────────────────────────┤
+│  背景（ライトモード）         背景（ダークモード）             │
+│  ░░░░░░░░  #f9fafb           ████████  #111827              │
+└──────────────────────────────────────────────────────────────┘
+```
 
-### UIコンポーネント
+### UIポリシー
 
-shadcn/uiをベースに、以下のコンポーネントを使用：
+| ポリシー | 説明 |
+|----------|------|
+| 📊 **情報過多を避ける** | 1画面に表示する情報は必要最小限に |
+| 🎯 **アクションは明確に** | 主要ボタンは目立たせ、迷わせない |
+| 📐 **余白を活かす** | 詰め込まず、視認性を確保 |
 
-- Button, Card, Input, Table
-- Dialog, Dropdown, Select
-- Sidebar, Tabs, Badge
-- Chart (Recharts)
+> **コンセプト**: 「おじさんでも見やすく使いやすい」
 
-## 開発
+---
+
+## クイックスタート
 
 ```bash
-# 開発サーバー
+# 1. クローン
+git clone https://github.com/your-org/akinai.git && cd akinai
+
+# 2. 依存関係インストール
+npm install
+
+# 3. 環境変数設定
+cp .env.example .env.local
+
+# 4. 開発サーバー起動
 npm run dev
-
-# ビルド
-npm run build
-
-# 本番起動
-npm start
-
-# リント
-npm run lint
 ```
+
+ブラウザで http://localhost:3000 を開いてください。
+
+---
 
 ## ライセンス
 
@@ -149,4 +517,10 @@ Private - All rights reserved.
 
 ---
 
-**商い（アキナイ）** - 仕事で安心して使えるCMS
+<p align="center">
+  <img src="public/logo-shou.png" alt="商い" width="60">
+  <br>
+  <strong>商い（アキナイ）</strong>
+  <br>
+  <em>仕事で安心して使えるEC・CMSプラットフォーム</em>
+</p>
