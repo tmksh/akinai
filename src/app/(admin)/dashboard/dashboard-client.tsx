@@ -78,8 +78,8 @@ const getMonthLabel = (offset: number) => {
 function CircleProgress({ 
   value, 
   max = 100, 
-  size = 110, 
-  strokeWidth = 10,
+  size = 120, 
+  strokeWidth = 12,
   label,
   sublabel,
   colorVariant = 'orange',
@@ -112,10 +112,6 @@ function CircleProgress({
   return (
     <div className="flex flex-col items-center group">
       <div className="relative" style={{ width: size, height: size }}>
-        <div 
-          className="absolute inset-2 rounded-full blur-xl opacity-50 group-hover:opacity-70 transition-opacity"
-          style={{ backgroundColor: glowColors[colorVariant] }}
-        />
         <svg className="absolute inset-0 -rotate-90" width={size} height={size}>
           <circle
             cx={size / 2}
@@ -159,21 +155,25 @@ function CircleProgress({
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            filter="url(#glow)"
             className="transition-all duration-1000 ease-out"
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className="relative">
-            <span className="text-2xl font-bold bg-gradient-to-br from-orange-500 to-amber-600 bg-clip-text text-transparent">
+            <span className={cn(
+              "text-3xl font-bold bg-clip-text text-transparent",
+              colorVariant === 'orange' ? "bg-gradient-to-br from-orange-500 to-amber-600" :
+              colorVariant === 'amber' ? "bg-gradient-to-br from-amber-500 to-yellow-600" :
+              "bg-gradient-to-br from-orange-600 to-red-600"
+            )}>
               {value}%
             </span>
           </div>
         </div>
       </div>
       <div className="mt-3 text-center">
-        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</p>
-        {sublabel && <p className="text-[11px] text-slate-500 mt-0.5">{sublabel}</p>}
+        <p className="text-base font-bold text-slate-800 dark:text-slate-200">{label}</p>
+        {sublabel && <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1">{sublabel}</p>}
       </div>
     </div>
   );
@@ -296,12 +296,14 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
       {/* メイン統計カード */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {/* 売上カード */}
-        <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25">
+        <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
-              <DollarSign className="h-8 w-8 opacity-80" />
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="text-xs text-white/80 hover:text-white flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">
@@ -315,11 +317,11 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <p className="text-sm text-white/80">売上</p>
-            <p className="text-3xl font-bold mt-1">{formatCompactCurrency(revenueStats.total)}</p>
+            <p className="text-base font-medium text-white/90">売上</p>
+            <p className="text-4xl font-extrabold mt-2">{formatCompactCurrency(revenueStats.total)}</p>
             {revenuePeriod !== 'total' && (
-              <div className="flex items-center gap-1.5 mt-2">
-                <span className="text-sm font-medium bg-white/20 px-2 py-0.5 rounded-full">
+              <div className="flex items-center gap-1.5 mt-3">
+                <span className="text-sm font-bold bg-white/20 px-2.5 py-1 rounded-full">
                   {revenueStats.change >= 0 ? '+' : ''}{revenueStats.change}%
                 </span>
                 {revenueStats.change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
@@ -329,12 +331,14 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
         </div>
 
         {/* 注文数カード */}
-        <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25">
+        <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
-              <ShoppingCart className="h-8 w-8 opacity-80" />
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <ShoppingCart className="h-5 w-5 text-white" />
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="text-xs text-white/80 hover:text-white flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">
@@ -348,11 +352,11 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <p className="text-sm text-white/80">注文数</p>
-            <p className="text-3xl font-bold mt-1">{formatNumber(ordersStats.total)}<span className="text-lg font-normal ml-1">件</span></p>
+            <p className="text-base font-medium text-white/90">注文数</p>
+            <p className="text-4xl font-extrabold mt-2">{formatNumber(ordersStats.total)}<span className="text-xl font-bold ml-1 opacity-80">件</span></p>
             {ordersPeriod !== 'total' && (
-              <div className="flex items-center gap-1.5 mt-2">
-                <span className="text-sm font-medium bg-white/20 px-2 py-0.5 rounded-full">
+              <div className="flex items-center gap-1.5 mt-3">
+                <span className="text-sm font-bold bg-white/20 px-2.5 py-1 rounded-full">
                   {ordersStats.change >= 0 ? '+' : ''}{ordersStats.change}%
                 </span>
                 {ordersStats.change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
@@ -362,17 +366,19 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
         </div>
 
         {/* 商品数カード */}
-        <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 text-white shadow-lg shadow-orange-600/25">
+        <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
-              <Package className="h-8 w-8 opacity-80" />
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Package className="h-5 w-5 text-white" />
+              </div>
             </div>
-            <p className="text-sm text-white/80">商品数</p>
-            <p className="text-3xl font-bold mt-1">{formatNumber(initialData.products.total)}<span className="text-lg font-normal ml-1">点</span></p>
-            <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-sm font-medium bg-white/20 px-2 py-0.5 rounded-full">
+            <p className="text-base font-medium text-white/90">商品数</p>
+            <p className="text-4xl font-extrabold mt-2">{formatNumber(initialData.products.total)}<span className="text-xl font-bold ml-1 opacity-80">点</span></p>
+            <div className="flex items-center gap-1.5 mt-3">
+              <span className="text-sm font-bold bg-white/20 px-2.5 py-1 rounded-full">
                 +{initialData.products.newThisMonth}
               </span>
               <TrendingUp className="h-4 w-4" />
@@ -381,12 +387,14 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
         </div>
 
         {/* 顧客数カード */}
-        <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-amber-500 via-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25">
+        <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/20">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
-              <Users className="h-8 w-8 opacity-80" />
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Users className="h-5 w-5 text-white" />
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="text-xs text-white/80 hover:text-white flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">
@@ -400,11 +408,11 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <p className="text-sm text-white/80">顧客数</p>
-            <p className="text-3xl font-bold mt-1">{formatNumber(customersStats.total)}<span className="text-lg font-normal ml-1">人</span></p>
+            <p className="text-base font-medium text-white/90">顧客数</p>
+            <p className="text-4xl font-extrabold mt-2">{formatNumber(customersStats.total)}<span className="text-xl font-bold ml-1 opacity-80">人</span></p>
             {customersPeriod !== 'total' && (
-              <div className="flex items-center gap-1.5 mt-2">
-                <span className="text-sm font-medium bg-white/20 px-2 py-0.5 rounded-full">
+              <div className="flex items-center gap-1.5 mt-3">
+                <span className="text-sm font-bold bg-white/20 px-2.5 py-1 rounded-full">
                   {customersStats.change >= 0 ? '+' : ''}{customersStats.change}%
                 </span>
                 {customersStats.change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
@@ -525,35 +533,31 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
             </div>
             
             {/* 追加の統計 */}
-            <div className="mt-5 pt-4 border-t border-orange-100/50 dark:border-slate-700/50">
-              <div className="flex justify-around text-center">
-                <div>
-                  <p className={cn(
-                    "text-lg font-bold",
-                    performanceData.growthRate >= 0 ? "text-orange-500" : "text-red-500"
-                  )}>
-                    {performanceData.growthRate >= 0 ? '+' : ''}{performanceData.growthRate}%
-                  </p>
-                  <p className="text-[10px] text-slate-500">前月比成長</p>
-                </div>
-                <div className="w-px bg-orange-100 dark:bg-slate-700" />
-                <div>
-                  <p className="text-lg font-bold text-amber-500">{performanceData.avgAchievement}%</p>
-                  <p className="text-[10px] text-slate-500">平均達成率</p>
-                </div>
-                <div className="w-px bg-orange-100 dark:bg-slate-700" />
-                <div>
-                  <p className="text-lg font-bold text-orange-600">{performanceData.grade}</p>
-                  <p className="text-[10px] text-slate-500">評価</p>
-                </div>
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <div className="bg-white/40 dark:bg-slate-700/40 rounded-xl p-3 text-center border border-white/20 dark:border-slate-600/20 backdrop-blur-sm">
+                <p className={cn(
+                  "text-xl font-extrabold",
+                  performanceData.growthRate >= 0 ? "text-orange-600 dark:text-orange-400" : "text-red-500"
+                )}>
+                  {performanceData.growthRate >= 0 ? '+' : ''}{performanceData.growthRate}%
+                </p>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1">前月比成長</p>
+              </div>
+              <div className="bg-white/40 dark:bg-slate-700/40 rounded-xl p-3 text-center border border-white/20 dark:border-slate-600/20 backdrop-blur-sm">
+                <p className="text-xl font-extrabold text-amber-600 dark:text-amber-400">{performanceData.avgAchievement}%</p>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1">平均達成率</p>
+              </div>
+              <div className="bg-white/40 dark:bg-slate-700/40 rounded-xl p-3 text-center border border-white/20 dark:border-slate-600/20 backdrop-blur-sm">
+                <p className="text-xl font-extrabold text-orange-600 dark:text-orange-400">{performanceData.grade}</p>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1">評価</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 最近の注文 & クイックアクション & 在庫アラート */}
-      <div className="grid gap-4 lg:grid-cols-4">
+      {/* 最近の注文 & 在庫アラート */}
+      <div className="grid gap-4 lg:grid-cols-3">
         {/* 最近の注文 */}
         <div className={cn("lg:col-span-2 p-4", cardBase)}>
           <div className="flex items-center justify-between mb-3">
@@ -590,29 +594,6 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
               まだ注文がありません
             </div>
           )}
-        </div>
-
-        {/* クイックアクション */}
-        <div className={cn("p-4", cardBase)}>
-          <h3 className="font-semibold text-slate-900 dark:text-white text-sm mb-3">クイックアクション</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <Link href="/orders" className="group flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 hover:from-orange-100 hover:to-amber-100 transition-all relative">
-              <Mail className="h-5 w-5 text-orange-500 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-medium text-slate-600">メッセージ</span>
-            </Link>
-            <Link href="/orders" className="group flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 hover:from-amber-100 hover:to-orange-100 transition-all relative">
-              <Bell className="h-5 w-5 text-amber-500 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-medium text-slate-600">通知</span>
-            </Link>
-            <Link href="/quotes/new" className="group flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 hover:from-orange-150 hover:to-amber-150 transition-all">
-              <FileText className="h-5 w-5 text-orange-600 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-medium text-slate-600">見積作成</span>
-            </Link>
-            <Link href="/products/new" className="group flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 hover:from-amber-150 hover:to-orange-150 transition-all">
-              <Package className="h-5 w-5 text-amber-600 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-medium text-slate-600">商品追加</span>
-            </Link>
-          </div>
         </div>
 
         {/* 在庫アラート */}

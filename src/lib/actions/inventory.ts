@@ -173,9 +173,9 @@ export async function adjustStock(input: {
 
     if (movementError) throw movementError;
 
-    revalidatePath('/inventory');
-    revalidatePath('/inventory/movements');
     revalidatePath('/products');
+    revalidatePath('/products/inventory');
+    revalidatePath('/products/movements');
 
     return { success: true, error: null };
   } catch (error) {

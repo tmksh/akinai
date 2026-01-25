@@ -8,11 +8,7 @@ import {
   Package,
   FileText,
   ShoppingCart,
-  Users,
-  FileQuestion,
   Settings,
-  BarChart3,
-  Warehouse,
   Star,
   ChevronDown,
   LogOut,
@@ -63,14 +59,7 @@ const navigationItems = [
     hoverClass: 'sidebar-hover-orange',
   },
   {
-    title: '在庫管理',
-    icon: Warehouse,
-    href: '/inventory',
-    color: 'text-orange-500',
-    hoverClass: 'sidebar-hover-orange',
-  },
-  {
-    title: 'コンテンツ',
+    title: 'お知らせ',
     icon: FileText,
     href: '/contents',
     color: 'text-orange-500',
@@ -84,33 +73,9 @@ const navigationItems = [
     hoverClass: 'sidebar-hover-orange',
   },
   {
-    title: '見積管理',
-    icon: FileQuestion,
-    href: '/quotes',
-    color: 'text-orange-500',
-    hoverClass: 'sidebar-hover-orange',
-  },
-  {
-    title: '顧客管理',
-    icon: Users,
-    href: '/customers',
-    color: 'text-orange-500',
-    hoverClass: 'sidebar-hover-orange',
-  },
-  {
     title: '代理店管理',
     icon: Building2,
     href: '/agents',
-    color: 'text-orange-500',
-    hoverClass: 'sidebar-hover-orange',
-  },
-];
-
-const analyticsItems = [
-  {
-    title: 'レポート',
-    icon: BarChart3,
-    href: '/reports',
     color: 'text-orange-500',
     hoverClass: 'sidebar-hover-orange',
   },
@@ -186,29 +151,6 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.title}
-                    isActive={isActive(item.href)}
-                    className={item.hoverClass}
-                  >
-                    <Link href={item.href}>
-                      <item.icon className={`h-5 w-5 ${item.color}`} />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>分析</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {analyticsItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild

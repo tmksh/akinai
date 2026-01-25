@@ -420,8 +420,8 @@ export default function ProductEditPage() {
           <Card className="card-hover">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>バリエーション</CardTitle>
-                <CardDescription>サイズや色などのバリエーションを管理</CardDescription>
+                <CardTitle>色やサイズの種類</CardTitle>
+                <CardDescription>商品の色やサイズなど、選べる種類を管理</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={addVariant}>
                 <Plus className="mr-2 h-4 w-4" />

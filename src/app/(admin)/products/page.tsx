@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -70,7 +70,8 @@ type Category = Database['public']['Tables']['categories']['Row'];
 
 const productTabs = [
   { label: '商品一覧', href: '/products', exact: true },
-  { label: '商品登録', href: '/products/new' },
+  { label: '在庫', href: '/products/inventory' },
+  { label: '入出庫履歴', href: '/products/movements' },
   { label: 'カテゴリー', href: '/products/categories' },
 ];
 
@@ -132,28 +133,13 @@ export default function ProductsPage() {
     fetchData();
   }, [organization?.id]);
 
-  // フィルタリング
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.variants.some((v) =>
-        v.sku.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    const matchesStatus =
-      statusFilter === 'all' || product.status === statusFilter;
-    const matchesCategory =
-      categoryFilter === 'all' ||
-      product.categories.some(c => c.id === categoryFilter);
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
-
   // 商品の合計在庫を計算
-  const getTotalStock = (variants: ProductWithRelations['variants']) => {
+  const getTotalStock = useCallback((variants: ProductWithRelations['variants']) => {
     return variants.reduce((sum, v) => sum + v.stock, 0);
-  };
+  }, []);
 
   // 価格範囲を取得
-  const getPriceRange = (variants: ProductWithRelations['variants']) => {
+  const getPriceRange = useCallback((variants: ProductWithRelations['variants']) => {
     if (variants.length === 0) return '-';
     const prices = variants.map((v) => v.price);
     const min = Math.min(...prices);
@@ -162,7 +148,25 @@ export default function ProductsPage() {
       return formatCurrency(min);
     }
     return `${formatCurrency(min)} ~ ${formatCurrency(max)}`;
-  };
+  }, []);
+
+  // フィルタリング（メモ化で再計算を防ぐ）
+  const filteredProducts = useMemo(() => {
+    const searchLower = searchQuery.toLowerCase();
+    return products.filter((product) => {
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchLower) ||
+        product.variants.some((v) =>
+          v.sku.toLowerCase().includes(searchLower)
+        );
+      const matchesStatus =
+        statusFilter === 'all' || product.status === statusFilter;
+      const matchesCategory =
+        categoryFilter === 'all' ||
+        product.categories.some(c => c.id === categoryFilter);
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+  }, [products, searchQuery, statusFilter, categoryFilter]);
 
   // 削除処理
   const handleDelete = async () => {
@@ -196,13 +200,13 @@ export default function ProductsPage() {
     });
   };
 
-  // 統計計算
-  const stats = {
+  // 統計計算（メモ化で再計算を防ぐ）
+  const stats = useMemo(() => ({
     total: products.length,
     published: products.filter(p => p.status === 'published').length,
     draft: products.filter(p => p.status === 'draft').length,
     outOfStock: products.filter(p => getTotalStock(p.variants) === 0).length,
-  };
+  }), [products, getTotalStock]);
 
   // ローディング表示
   if (orgLoading || isLoading) {
@@ -234,57 +238,30 @@ export default function ProductsPage() {
       {/* タブナビゲーション */}
       <PageTabs tabs={productTabs} />
 
-      {/* 統計カード - オレンジグラデーション */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* 全商品 - 薄いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <Package className="h-4 w-4 text-orange-500" />
-            </div>
-            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">全商品</span>
-          </div>
-          <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{stats.total}</p>
+      {/* 統計バー */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
+          <Package className="h-3.5 w-3.5 text-slate-500" />
+          <span className="text-xs text-muted-foreground">全商品</span>
+          <span className="text-sm font-semibold">{stats.total}</span>
         </div>
-        
-        {/* 公開中 - やや濃いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <CheckCircle className="h-4 w-4 text-orange-600" />
-            </div>
-            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">公開中</span>
-          </div>
-          <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-            {stats.published}
-          </p>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
+          <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+          <span className="text-xs text-emerald-700 dark:text-emerald-300">公開中</span>
+          <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{stats.published}</span>
         </div>
-        
-        {/* 下書き - 濃いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
-              <FileEdit className="h-4 w-4 text-orange-600" />
-            </div>
-            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">下書き</span>
-          </div>
-          <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-            {stats.draft}
-          </p>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+          <FileEdit className="h-3.5 w-3.5 text-amber-500" />
+          <span className="text-xs text-amber-700 dark:text-amber-300">下書き</span>
+          <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{stats.draft}</span>
         </div>
-        
-        {/* 在庫切れ - 最も濃いオレンジ */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
-              <AlertTriangle className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-xs font-medium text-white/90">在庫切れ</span>
+        {stats.outOfStock > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/30">
+            <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+            <span className="text-xs text-red-700 dark:text-red-300">在庫切れ</span>
+            <span className="text-sm font-semibold text-red-700 dark:text-red-300">{stats.outOfStock}</span>
           </div>
-          <p className="text-3xl font-bold text-white">
-            {stats.outOfStock}
-          </p>
-        </div>
+        )}
       </div>
 
       {/* フィルター・検索 */}
@@ -373,6 +350,8 @@ export default function ProductsPage() {
                               src={product.images[0].url}
                               alt={product.images[0].alt || product.name}
                               fill
+                              sizes="48px"
+                              loading="lazy"
                               className="object-cover"
                             />
                           ) : (

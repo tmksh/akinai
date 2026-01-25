@@ -1,14 +1,24 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
-import { ArrowLeft, Save, Eye, Smartphone, Monitor, EyeOff, Columns, ExternalLink, RefreshCw, Settings, Loader2 } from 'lucide-react';
+import { useState, useTransition, useRef, useEffect } from 'react';
+import { 
+  ArrowLeft, 
+  Save, 
+  Smartphone, 
+  Monitor, 
+  Loader2,
+  Image as ImageIcon,
+  Settings2,
+  ChevronDown,
+  Calendar,
+  Tag,
+  Globe,
+  FileText,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -17,16 +27,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { cn } from '@/lib/utils';
-import { useFrontendUrl, useOrganization } from '@/components/providers/organization-provider';
+import { useOrganization } from '@/components/providers/organization-provider';
 import { createContent } from '@/lib/actions/contents';
 import { toast } from 'sonner';
 import type { ContentType, ContentStatus } from '@/types';
 
 const contentTabs = [
-  { label: '記事一覧', href: '/contents', exact: true },
-  { label: '記事作成', href: '/contents/new' },
+  { label: '一覧', href: '/contents', exact: true },
+  { label: '新規作成', href: '/contents/new' },
   { label: 'ニュース', href: '/contents/news' },
   { label: '特集', href: '/contents/features' },
 ];
@@ -38,43 +60,34 @@ export default function NewContentPage() {
   const [excerpt, setExcerpt] = useState('');
   const [contentType, setContentType] = useState<ContentType>('article');
   const [status, setStatus] = useState<ContentStatus>('draft');
-  const [showPreview, setShowPreview] = useState(true);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
-  const [previewKey, setPreviewKey] = useState(0);
   const [tags, setTags] = useState('');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
 
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const { organization } = useOrganization();
-  const frontendUrl = useFrontendUrl();
-  const isFrontendConnected = !!frontendUrl;
+  
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
-  // プレビュー用のデータをURLパラメータとしてエンコード
-  const previewData = useMemo(() => {
-    return {
-      title,
-      slug,
-      content,
-      contentType,
-    };
-  }, [title, slug, content, contentType]);
-
-  // プレビューURLを生成
-  const previewUrl = useMemo(() => {
-    if (!frontendUrl) return null;
-    const params = new URLSearchParams({
-      preview: 'true',
-      data: btoa(encodeURIComponent(JSON.stringify(previewData))),
-    });
-    return `${frontendUrl}/articles/preview?${params.toString()}`;
-  }, [frontendUrl, previewData]);
-
-  // iframeを再読み込み
-  const refreshPreview = () => {
-    setPreviewKey(prev => prev + 1);
+  // テキストエリアの高さを自動調整
+  const autoResize = (element: HTMLTextAreaElement | null) => {
+    if (element) {
+      element.style.height = 'auto';
+      element.style.height = `${element.scrollHeight}px`;
+    }
   };
+
+  useEffect(() => {
+    autoResize(titleRef.current);
+  }, [title]);
+
+  useEffect(() => {
+    autoResize(contentRef.current);
+  }, [content]);
 
   // スラッグを自動生成
   const generateSlug = (text: string) => {
@@ -142,30 +155,35 @@ export default function NewContentPage() {
     });
   };
 
-  // マークダウン風のシンプルなレンダリング
-  const renderContent = (text: string) => {
+  // マークダウン風のレンダリング（プレビュー用）
+  const renderPreviewContent = (text: string) => {
     if (!text) return null;
     
     const lines = text.split('\n');
     return lines.map((line, index) => {
-      // 見出し
       if (line.startsWith('### ')) {
-        return <h3 key={index} className="text-lg font-semibold mt-4 mb-2">{line.slice(4)}</h3>;
+        return <h3 key={index} className="text-lg font-semibold mt-6 mb-2">{line.slice(4)}</h3>;
       }
       if (line.startsWith('## ')) {
-        return <h2 key={index} className="text-xl font-bold mt-6 mb-3">{line.slice(3)}</h2>;
+        return <h2 key={index} className="text-xl font-bold mt-8 mb-3">{line.slice(3)}</h2>;
       }
       if (line.startsWith('# ')) {
-        return <h1 key={index} className="text-2xl font-bold mt-6 mb-4">{line.slice(2)}</h1>;
+        return <h1 key={index} className="text-2xl font-bold mt-8 mb-4">{line.slice(2)}</h1>;
       }
-      // 空行
       if (line.trim() === '') {
-        return <br key={index} />;
+        return <div key={index} className="h-4" />;
       }
-      // 通常のパラグラフ
-      return <p key={index} className="mb-2 leading-relaxed">{line}</p>;
+      return <p key={index} className="mb-4 leading-relaxed text-slate-600 dark:text-slate-300">{line}</p>;
     });
   };
+
+  const statusLabel = status === 'draft' ? '下書き' : '公開';
+  const typeLabel = {
+    article: '記事',
+    news: 'ニュース',
+    feature: '特集',
+    page: 'ページ',
+  }[contentType];
 
   return (
     <div className="space-y-6">
@@ -178,29 +196,129 @@ export default function NewContentPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">コンテンツ管理</h1>
+            <h1 className="text-2xl font-bold">お知らせ</h1>
             <p className="text-muted-foreground">新しい記事を作成します</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center border rounded-lg p-1 bg-muted/30">
+          {/* デバイス切り替え */}
+          <div className="hidden md:flex items-center gap-1 border rounded-lg p-1 bg-muted/30">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowPreview(!showPreview)}
-              className={cn(!showPreview && "bg-background shadow-sm")}
+              onClick={() => setPreviewMode('desktop')}
+              className={cn(
+                "h-7 px-2",
+                previewMode === 'desktop' && "bg-background shadow-sm"
+              )}
             >
-              {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <Monitor className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowPreview(true)}
-              className={cn(showPreview && "bg-background shadow-sm")}
+              onClick={() => setPreviewMode('mobile')}
+              className={cn(
+                "h-7 px-2",
+                previewMode === 'mobile' && "bg-background shadow-sm"
+              )}
             >
-              <Columns className="h-4 w-4" />
+              <Smartphone className="h-4 w-4" />
             </Button>
           </div>
+
+          {/* 設定ポップオーバー */}
+          <Popover open={showSettings} onOpenChange={setShowSettings}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings2 className="h-4 w-4" />
+                <span className="hidden sm:inline">設定</span>
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">ステータス</Label>
+                  <Select value={status} onValueChange={(v) => setStatus(v as ContentStatus)}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">下書き</SelectItem>
+                      <SelectItem value="published">公開</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">記事タイプ</Label>
+                  <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="article">記事</SelectItem>
+                      <SelectItem value="news">ニュース</SelectItem>
+                      <SelectItem value="feature">特集</SelectItem>
+                      <SelectItem value="page">ページ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">スラッグ（URL）</Label>
+                  <Input
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    placeholder="article-slug"
+                    className="h-9 font-mono text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">タグ（カンマ区切り）</Label>
+                  <Input 
+                    placeholder="タグ1, タグ2, タグ3" 
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+
+                <Separator />
+
+                <Collapsible>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
+                    SEO設定
+                    <ChevronDown className="h-4 w-4" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-3 space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">SEOタイトル</Label>
+                      <Input
+                        placeholder="検索結果に表示されるタイトル"
+                        value={seoTitle}
+                        onChange={(e) => setSeoTitle(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">SEOディスクリプション</Label>
+                      <Input
+                        placeholder="検索結果に表示される説明文"
+                        value={seoDescription}
+                        onChange={(e) => setSeoDescription(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* 保存ボタン */}
           <Button className="btn-premium" onClick={handleSave} disabled={isPending}>
             {isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -215,352 +333,131 @@ export default function NewContentPage() {
       {/* タブナビゲーション */}
       <PageTabs tabs={contentTabs} />
 
-      <div className={cn(
-        "grid gap-6",
-        showPreview ? "lg:grid-cols-2" : "lg:grid-cols-3"
-      )}>
-        {/* 編集エリア */}
-        <div className={cn(showPreview ? "" : "lg:col-span-2", "space-y-6")}>
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>基本情報</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">タイトル</Label>
-                <Input
-                  id="title"
-                  placeholder="記事のタイトルを入力"
-                  value={title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                />
+      {/* メインエディタ（プレビュー一体型） */}
+      <div className="flex justify-center">
+        <div className={cn(
+          "w-full transition-all duration-300",
+          previewMode === 'mobile' ? "max-w-[375px]" : "max-w-4xl"
+        )}>
+          {/* モックブラウザ */}
+          <div className="border rounded-xl bg-white dark:bg-slate-900 shadow-lg overflow-hidden">
+            {/* ブラウザバー */}
+            <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2.5 flex items-center gap-3 border-b">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-400" />
+                <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                <div className="w-3 h-3 rounded-full bg-green-400" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="slug">スラッグ</Label>
-                <Input
-                  id="slug"
-                  placeholder="article-slug"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="excerpt">概要</Label>
-                <Textarea
-                  id="excerpt"
-                  placeholder="記事の概要を入力（検索結果等に表示）"
-                  className="min-h-[80px]"
-                  value={excerpt}
-                  onChange={(e) => setExcerpt(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="content">本文</Label>
-                <Textarea
-                  id="content"
-                  placeholder="記事の本文を入力...&#10;&#10;# 見出し1&#10;## 見出し2&#10;### 見出し3&#10;&#10;本文テキスト"
-                  className="min-h-[300px] font-mono"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {!showPreview && (
-            <div className="space-y-6">
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle>公開設定</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>ステータス</Label>
-                    <Select value={status} onValueChange={(v) => setStatus(v as ContentStatus)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="ステータスを選択" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">下書き</SelectItem>
-                        <SelectItem value="published">公開</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>記事タイプ</Label>
-                    <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="タイプを選択" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="article">記事</SelectItem>
-                        <SelectItem value="news">ニュース</SelectItem>
-                        <SelectItem value="feature">特集</SelectItem>
-                        <SelectItem value="page">ページ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="card-hover">
-                <CardHeader>
-                  <CardTitle>SEO設定</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>SEOタイトル</Label>
-                    <Input
-                      placeholder="検索結果に表示されるタイトル"
-                      value={seoTitle}
-                      onChange={(e) => setSeoTitle(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>SEOディスクリプション</Label>
-                    <Textarea
-                      placeholder="検索結果に表示される説明文"
-                      value={seoDescription}
-                      onChange={(e) => setSeoDescription(e.target.value)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-
-        {/* プレビューエリア */}
-        {showPreview && (
-          <div className="space-y-4">
-            {/* プレビューコントロール */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-muted-foreground">リアルタイムプレビュー</h3>
-                {isFrontendConnected && (
-                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                    接続済み
-                  </Badge>
-                )}
-                {!isFrontendConnected && (
-                  <Link href="/settings/organization" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                    <Settings className="h-3 w-3" />
-                    フロントエンド連携を設定
-                  </Link>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {/* フロントエンド接続時の追加コントロール */}
-                {isFrontendConnected && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={refreshPreview}
-                      className="h-7 px-2"
-                      title="プレビューを更新"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => previewUrl && window.open(previewUrl, '_blank')}
-                      className="h-7 px-2"
-                      title="新しいタブで開く"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
-                <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/30">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPreviewMode('desktop')}
-                    className={cn(
-                      "h-7 px-2",
-                      previewMode === 'desktop' && "bg-background shadow-sm"
-                    )}
-                  >
-                    <Monitor className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPreviewMode('mobile')}
-                    className={cn(
-                      "h-7 px-2",
-                      previewMode === 'mobile' && "bg-background shadow-sm"
-                    )}
-                  >
-                    <Smartphone className="h-4 w-4" />
-                  </Button>
+              <div className="flex-1">
+                <div className="bg-white dark:bg-slate-700 rounded-md px-3 py-1.5 text-xs text-muted-foreground flex items-center gap-2">
+                  <Globe className="h-3 w-3" />
+                  <span className="truncate">yoursite.com/articles/{slug || 'new-article'}</span>
                 </div>
               </div>
             </div>
 
-            {/* プレビューフレーム */}
-            <div className={cn(
-              "border rounded-xl bg-white dark:bg-slate-900 shadow-lg overflow-hidden transition-all duration-300",
-              previewMode === 'mobile' ? "max-w-[375px] mx-auto" : ""
-            )}>
-              {/* モックブラウザバー */}
-              <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 flex items-center gap-2 border-b">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                </div>
-                <div className="flex-1 mx-4">
-                  <div className="bg-white dark:bg-slate-700 rounded-md px-3 py-1 text-xs text-muted-foreground truncate">
-                    {isFrontendConnected 
-                      ? `${frontendUrl}/articles/${slug || 'preview'}`
-                      : `https://example.com/${slug || 'article-slug'}`
-                    }
-                  </div>
-                </div>
-              </div>
-
-              {/* フロントエンド接続時: iframe表示 */}
-              {isFrontendConnected && previewUrl ? (
-                <div className={cn(
-                  "relative",
-                  previewMode === 'mobile' ? "h-[500px]" : "h-[600px]"
-                )}>
-                  <iframe
-                    key={previewKey}
-                    src={previewUrl}
-                    className="w-full h-full border-0"
-                    title="記事プレビュー"
-                  />
-                </div>
-              ) : (
-                /* フロントエンド未接続時: モックプレビュー */
-                <div className={cn(
-                  "p-6 min-h-[400px] overflow-auto",
-                  previewMode === 'mobile' ? "text-sm" : ""
-                )}>
-                  {title || content ? (
-                    <article className="prose dark:prose-invert max-w-none">
-                      {title && (
-                        <h1 className={cn(
-                          "font-bold mb-4",
-                          previewMode === 'mobile' ? "text-xl" : "text-3xl"
-                        )}>
-                          {title}
-                        </h1>
-                      )}
-                      {content && (
-                        <div className="text-slate-600 dark:text-slate-300">
-                          {renderContent(content)}
-                        </div>
-                      )}
-                    </article>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
-                      <Eye className="h-12 w-12 mb-4 opacity-20" />
-                      <p className="text-sm">タイトルや本文を入力すると</p>
-                      <p className="text-sm">ここにプレビューが表示されます</p>
-                    </div>
-                  )}
+            {/* 記事メタ情報バー */}
+            <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/50 border-b flex items-center gap-3 text-xs text-muted-foreground">
+              <Badge variant="outline" className="gap-1">
+                <FileText className="h-3 w-3" />
+                {typeLabel}
+              </Badge>
+              <Badge variant={status === 'published' ? 'default' : 'secondary'} className="gap-1">
+                {status === 'published' ? <Globe className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                {statusLabel}
+              </Badge>
+              {tags && (
+                <div className="flex items-center gap-1">
+                  <Tag className="h-3 w-3" />
+                  <span>{tags.split(',').length}個のタグ</span>
                 </div>
               )}
+              <div className="flex items-center gap-1 ml-auto">
+                <Calendar className="h-3 w-3" />
+                <span>{new Date().toLocaleDateString('ja-JP')}</span>
+              </div>
             </div>
 
-            {/* サイドバー設定（プレビュー表示時） */}
-            <Card className="card-hover">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">公開設定</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-sm">ステータス</Label>
-                  <Select value={status} onValueChange={(v) => setStatus(v as ContentStatus)}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="ステータスを選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">下書き</SelectItem>
-                      <SelectItem value="published">公開</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">記事タイプ</Label>
-                  <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="タイプを選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="article">記事</SelectItem>
-                      <SelectItem value="news">ニュース</SelectItem>
-                      <SelectItem value="feature">特集</SelectItem>
-                      <SelectItem value="page">ページ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
+            {/* エディタ本体 */}
+            <div className={cn(
+              "p-6 md:p-10 min-h-[500px]",
+              previewMode === 'mobile' && "p-4"
+            )}>
+              {/* サムネイル追加エリア */}
+              <button className="w-full mb-8 border-2 border-dashed rounded-xl p-6 text-center hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 transition-colors group">
+                <ImageIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground group-hover:text-orange-500 transition-colors" />
+                <p className="text-sm text-muted-foreground group-hover:text-orange-600">
+                  アイキャッチ画像を追加
+                </p>
+              </button>
 
-            <Card className="card-hover">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">タグ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Input 
-                  placeholder="タグを入力（カンマ区切り）" 
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                />
-              </CardContent>
-            </Card>
+              {/* タイトル入力 */}
+              <textarea
+                ref={titleRef}
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="タイトルを入力..."
+                className={cn(
+                  "w-full bg-transparent border-0 outline-none resize-none font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600",
+                  previewMode === 'mobile' ? "text-2xl" : "text-4xl",
+                  "leading-tight mb-4"
+                )}
+                rows={1}
+              />
 
-            <Card className="card-hover">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">サムネイル</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                  <p className="text-xs text-muted-foreground">
-                    画像をアップロード（保存後に設定可能）
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              {/* 概要入力 */}
+              <input
+                value={excerpt}
+                onChange={(e) => setExcerpt(e.target.value)}
+                placeholder="記事の概要を入力（検索結果やSNSシェア時に表示されます）"
+                className="w-full bg-transparent border-0 outline-none text-lg text-muted-foreground placeholder:text-slate-300 dark:placeholder:text-slate-600 mb-8"
+              />
+
+              <Separator className="mb-8" />
+
+              {/* 本文入力 */}
+              <textarea
+                ref={contentRef}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="本文を入力...
+
+# で見出し1
+## で見出し2  
+### で見出し3
+
+普通のテキストは段落になります。
+空行で段落を分けられます。"
+                className={cn(
+                  "w-full bg-transparent border-0 outline-none resize-none placeholder:text-slate-300 dark:placeholder:text-slate-600 leading-relaxed",
+                  previewMode === 'mobile' ? "text-base" : "text-lg"
+                )}
+                rows={10}
+              />
+
+              {/* リアルタイムプレビュー（入力内容をレンダリング） */}
+              {content && (
+                <>
+                  <Separator className="my-8" />
+                  <div className="pt-4">
+                    <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1">
+                      <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      プレビュー
+                    </p>
+                    <article className="prose dark:prose-invert max-w-none">
+                      {renderPreviewContent(content)}
+                    </article>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        )}
 
-        {/* プレビュー非表示時のサイドバー */}
-        {!showPreview && (
-          <div className="space-y-6">
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle>サムネイル</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    画像をアップロード（保存後に設定可能）
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle>タグ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Input 
-                  placeholder="タグを入力（カンマ区切り）" 
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          {/* ヘルプテキスト */}
+          <p className="text-xs text-muted-foreground text-center mt-4">
+            タイトルと本文に直接入力してください。「#」で見出し、空行で段落を作成できます。
+          </p>
+        </div>
       </div>
     </div>
   );

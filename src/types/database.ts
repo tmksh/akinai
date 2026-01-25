@@ -858,6 +858,105 @@ export interface Database {
           updated_at?: string
         }
       }
+      // ============================================
+      // API使用量テーブル
+      // ============================================
+      api_usage: {
+        Row: {
+          id: string
+          organization_id: string
+          endpoint: string
+          method: string
+          status_code: number | null
+          response_time_ms: number | null
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          endpoint: string
+          method: string
+          status_code?: number | null
+          response_time_ms?: number | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          endpoint?: string
+          method?: string
+          status_code?: number | null
+          response_time_ms?: number | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+      }
+      // ============================================
+      // レート制限設定テーブル
+      // ============================================
+      rate_limits: {
+        Row: {
+          plan: string
+          requests_per_minute: number
+          requests_per_day: number
+        }
+        Insert: {
+          plan: string
+          requests_per_minute: number
+          requests_per_day: number
+        }
+        Update: {
+          plan?: string
+          requests_per_minute?: number
+          requests_per_day?: number
+        }
+      }
+      // ============================================
+      // API使用量日次集計テーブル
+      // ============================================
+      api_usage_daily: {
+        Row: {
+          id: string
+          organization_id: string
+          date: string
+          total_requests: number
+          successful_requests: number
+          failed_requests: number
+          avg_response_time_ms: number
+          endpoints: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          date: string
+          total_requests?: number
+          successful_requests?: number
+          failed_requests?: number
+          avg_response_time_ms?: number
+          endpoints?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          date?: string
+          total_requests?: number
+          successful_requests?: number
+          failed_requests?: number
+          avg_response_time_ms?: number
+          endpoints?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

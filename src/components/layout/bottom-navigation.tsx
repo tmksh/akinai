@@ -7,14 +7,10 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  Users,
   MoreHorizontal,
   X,
-  Warehouse,
   FileText,
-  FileQuestion,
   Building2,
-  BarChart3,
   Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -42,11 +38,6 @@ const navItems = [
     href: '/orders',
   },
   {
-    title: '顧客',
-    icon: Users,
-    href: '/customers',
-  },
-  {
     title: 'その他',
     icon: MoreHorizontal,
     href: '#more',
@@ -56,33 +47,15 @@ const navItems = [
 
 const moreMenuItems = [
   {
-    title: '在庫管理',
-    icon: Warehouse,
-    href: '/inventory',
-    color: 'text-orange-500',
-  },
-  {
-    title: 'コンテンツ',
+    title: 'お知らせ',
     icon: FileText,
     href: '/contents',
-    color: 'text-orange-500',
-  },
-  {
-    title: '見積管理',
-    icon: FileQuestion,
-    href: '/quotes',
     color: 'text-orange-500',
   },
   {
     title: '代理店管理',
     icon: Building2,
     href: '/agents',
-    color: 'text-orange-500',
-  },
-  {
-    title: 'レポート',
-    icon: BarChart3,
-    href: '/reports',
     color: 'text-orange-500',
   },
   {

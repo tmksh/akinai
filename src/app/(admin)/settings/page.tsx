@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, Palette, CreditCard, Shield, ExternalLink, Store, Layout } from 'lucide-react';
+import { Building2, Key, Users, Bell, Palette, CreditCard, Shield, ExternalLink, Store, User } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,13 @@ const settingsCategories = [
     badge: 'NEW',
   },
   {
+    title: 'アカウント設定',
+    description: 'パスワード変更、通知設定、セキュリティ',
+    href: '/account',
+    icon: User,
+    badge: null,
+  },
+  {
     title: 'API設定',
     description: '外部連携用のAPIキーを発行・管理',
     href: '/settings/api',
@@ -40,32 +47,21 @@ const settingsCategories = [
     description: 'メール通知やアラートの設定',
     href: '/settings/notifications',
     icon: Bell,
-    badge: '準備中',
-    disabled: true,
+    badge: null,
   },
   {
     title: '管理画面テーマ',
     description: '管理画面のカラーテーマを変更',
     href: '/settings/theme',
     icon: Palette,
-    badge: '準備中',
-    disabled: true,
+    badge: null,
   },
   {
     title: '請求・プラン',
     description: 'プランの確認・変更、請求履歴',
     href: '/settings/billing',
     icon: CreditCard,
-    badge: '準備中',
-    disabled: true,
-  },
-  {
-    title: 'セキュリティ',
-    description: 'パスワード変更、二要素認証',
-    href: '/settings/security',
-    icon: Shield,
-    badge: '準備中',
-    disabled: true,
+    badge: null,
   },
 ];
 
@@ -86,31 +82,6 @@ export default function SettingsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {settingsCategories.map((category) => {
           const Icon = category.icon;
-          
-          if (category.disabled) {
-            return (
-              <Card key={category.href} className="opacity-60 cursor-not-allowed">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-muted">
-                        <Icon className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <CardTitle className="text-base">{category.title}</CardTitle>
-                    </div>
-                    {category.badge && (
-                      <Badge variant="secondary" className="text-xs">
-                        {category.badge}
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>{category.description}</CardDescription>
-                </CardContent>
-              </Card>
-            );
-          }
 
           return (
             <Link key={category.href} href={category.href}>

@@ -99,7 +99,7 @@ export default function ProductDetailPage() {
           {product.variants && product.variants.length > 0 && (
             <Card className="card-hover">
               <CardHeader>
-                <CardTitle>バリエーション</CardTitle>
+                <CardTitle>色やサイズの種類</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">

@@ -397,9 +397,9 @@ export default function NewProductPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>バリエーション</CardTitle>
+                  <CardTitle>色やサイズの種類</CardTitle>
                   <CardDescription>
-                    サイズや色などのバリエーションを設定します
+                    商品の色やサイズなど、選べる種類を設定します
                   </CardDescription>
                 </div>
                 <Button variant="outline" size="sm" onClick={addVariant}>

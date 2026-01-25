@@ -33,13 +33,13 @@ import { useOrganization } from '@/components/providers/organization-provider';
 import { getInventorySummary, adjustStock, type InventorySummary } from '@/lib/actions/inventory';
 import { cn } from '@/lib/utils';
 
-const inventoryTabs = [
-  { label: '在庫一覧', href: '/inventory', exact: true },
-  { label: '入出庫履歴', href: '/inventory/movements' },
-  { label: 'ロット管理', href: '/inventory/lots' },
+const productTabs = [
+  { label: '商品一覧', href: '/products', exact: true },
+  { label: '在庫', href: '/products/inventory' },
+  { label: '入出庫履歴', href: '/products/movements' },
+  { label: 'カテゴリー', href: '/products/categories' },
 ];
 
-// 在庫フィルタータブの定義
 type StockFilterType = 'all' | 'out' | 'low' | 'ok';
 
 export default function InventoryPage() {
@@ -59,13 +59,12 @@ export default function InventoryPage() {
   const [adjustmentReason, setAdjustmentReason] = useState('');
   const [adjustError, setAdjustError] = useState<string | null>(null);
 
-  // データ取得
   useEffect(() => {
     const fetchInventory = async () => {
       if (!organization?.id) return;
 
       setIsLoading(true);
-      const { data, error } = await getInventorySummary(organization.id);
+      const { data } = await getInventorySummary(organization.id);
       if (data) {
         setInventory(data);
       }
@@ -95,7 +94,6 @@ export default function InventoryPage() {
     return matchesSearch && matchesStock;
   });
 
-  // フィルタータブの設定
   const filterTabs = [
     { key: 'all' as StockFilterType, label: 'すべて', count: totalItems, icon: Boxes },
     { key: 'out' as StockFilterType, label: '在庫切れ', count: outOfStockItems, icon: XCircle, color: 'text-red-500' },
@@ -103,20 +101,17 @@ export default function InventoryPage() {
     { key: 'ok' as StockFilterType, label: '在庫あり', count: healthyItems, icon: CheckCircle2, color: 'text-emerald-500' },
   ];
 
-  // 在庫レベルを取得
   const getStockLevel = (item: InventorySummary) => {
     if (item.availableStock === 0) return 'out';
     if (item.isLowStock) return 'low';
     return 'ok';
   };
 
-  // 在庫バーの割合を計算（最大在庫を50と仮定）
   const getStockPercentage = (stock: number) => {
     const maxStock = 50;
     return Math.min((stock / maxStock) * 100, 100);
   };
 
-  // 在庫調整ダイアログを開く
   const openAdjustDialog = (item: InventorySummary) => {
     setSelectedItem(item);
     setAdjustmentType('in');
@@ -126,7 +121,6 @@ export default function InventoryPage() {
     setAdjustDialogOpen(true);
   };
 
-  // 在庫調整を実行
   const handleAdjustStock = () => {
     if (!selectedItem || !organization?.id) return;
     
@@ -156,7 +150,6 @@ export default function InventoryPage() {
         return;
       }
 
-      // 在庫を更新
       const quantityChange = adjustmentType === 'out' ? -quantity : quantity;
       setInventory(inventory.map(item => {
         if (item.variantId === selectedItem.variantId) {
@@ -178,27 +171,26 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
-      {/* ページヘッダー */}
+      {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">在庫管理</h1>
+          <h1 className="text-2xl font-bold tracking-tight">商品管理</h1>
           <p className="text-muted-foreground">
-            商品の在庫状況をひと目で確認できます
+            商品の在庫状況を確認・調整します
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border border-orange-100 dark:border-orange-900/30">
-            <span className="text-xs text-muted-foreground">総在庫</span>
-            <span className="text-lg font-bold text-orange-600">{totalStock.toLocaleString()}</span>
+        <div className="hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border border-orange-100 dark:border-orange-900/30">
+          <Boxes className="h-4 w-4 text-orange-500" />
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-bold text-orange-600">{totalStock.toLocaleString()}</span>
             <span className="text-xs text-muted-foreground">点</span>
           </div>
         </div>
       </div>
 
-      {/* タブナビゲーション */}
-      <PageTabs tabs={inventoryTabs} />
+      <PageTabs tabs={productTabs} />
 
-      {/* 在庫フィルタータブ - 1クリックでフィルター */}
+      {/* フィルタータブ */}
       <div className="flex flex-wrap items-center gap-2">
         {filterTabs.map((tab) => {
           const Icon = tab.icon;
@@ -236,26 +228,24 @@ export default function InventoryPage() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="商品名・商品コードで検索..."
+          placeholder="商品名・SKUで検索..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9"
         />
       </div>
 
-      {/* 在庫一覧（カード形式） */}
+      {/* 在庫カード */}
       {isLoading || orgLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredInventory.length === 0 ? (
-            <div className="col-span-full rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border shadow-lg p-12">
+            <div className="col-span-full rounded-xl bg-slate-50 dark:bg-slate-900 border p-12">
               <div className="flex flex-col items-center justify-center text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 mb-4">
-                  <Package className="h-8 w-8 text-slate-500" />
-                </div>
+                <Package className="h-12 w-12 text-muted-foreground/30 mb-4" />
                 <p className="text-muted-foreground">
                   {inventory.length === 0 
                     ? '商品バリアントがまだ登録されていません' 
@@ -268,107 +258,87 @@ export default function InventoryPage() {
               const stockLevel = getStockLevel(item);
               const stockPercentage = getStockPercentage(item.availableStock);
               
-              const gradientClasses = {
-                ok: "from-emerald-500/10 via-transparent to-teal-500/10",
-                low: "from-amber-500/10 via-transparent to-orange-500/10",
-                out: "from-red-500/10 via-transparent to-rose-500/10"
+              const levelConfig = {
+                ok: { 
+                  gradient: "from-emerald-500 to-teal-500",
+                  bg: "bg-emerald-50 dark:bg-emerald-950/20",
+                  text: "text-emerald-600",
+                  label: "在庫あり"
+                },
+                low: { 
+                  gradient: "from-amber-500 to-orange-500",
+                  bg: "bg-amber-50 dark:bg-amber-950/20",
+                  text: "text-amber-600",
+                  label: "在庫少"
+                },
+                out: { 
+                  gradient: "from-red-500 to-rose-500",
+                  bg: "bg-red-50 dark:bg-red-950/20",
+                  text: "text-red-600",
+                  label: "在庫切れ"
+                },
               };
-              
-              const iconGradients = {
-                ok: "from-emerald-500 to-teal-500 shadow-emerald-500/25",
-                low: "from-amber-500 to-orange-500 shadow-amber-500/25",
-                out: "from-red-500 to-rose-500 shadow-red-500/25"
-              };
+
+              const config = levelConfig[stockLevel];
               
               return (
                 <div 
                   key={item.variantId}
-                  className="group rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="group rounded-xl bg-white dark:bg-slate-900 border shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   {/* ヘッダー */}
-                  <div className={cn("p-4 border-b bg-gradient-to-r", gradientClasses[stockLevel])}>
-                    <div className="flex items-start gap-3">
-                      <div className={cn(
-                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-lg transition-transform group-hover:scale-110",
-                        iconGradients[stockLevel]
-                      )}>
-                        <Package className="h-5 w-5 text-white" />
+                  <div className={cn("p-4 border-b", config.bg)}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-sm truncate">{item.productName}</h3>
+                        <p className="text-xs text-muted-foreground truncate">{item.variantName}</p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-semibold text-sm leading-tight">{item.productName}</h3>
-                          <Badge 
-                            className={cn(
-                              "shrink-0 rounded-full px-2 py-0.5 text-[10px] border-0 shadow-md",
-                              stockLevel === 'ok' && "bg-gradient-to-r from-emerald-500 to-teal-500 text-white",
-                              stockLevel === 'low' && "bg-gradient-to-r from-amber-500 to-orange-500 text-white",
-                              stockLevel === 'out' && "bg-gradient-to-r from-red-500 to-rose-500 text-white"
-                            )}
-                          >
-                            {stockLevel === 'ok' && "在庫あり"}
-                            {stockLevel === 'low' && "在庫少"}
-                            {stockLevel === 'out' && "在庫切れ"}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{item.variantName}</p>
-                      </div>
+                      <Badge className={cn("shrink-0 text-[10px] px-2 py-0.5 border-0 text-white bg-gradient-to-r", config.gradient)}>
+                        {config.label}
+                      </Badge>
+                    </div>
+                    <div className="mt-2">
+                      <Badge variant="outline" className="text-[10px] font-mono">{item.sku}</Badge>
                     </div>
                   </div>
                   
                   <div className="p-4 space-y-4">
-                    {/* 商品コード */}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">商品コード</span>
-                      <span className="font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-xs">{item.sku}</span>
+                    {/* 在庫数 */}
+                    <div className="text-center">
+                      <div className={cn("text-4xl font-bold", config.text)}>
+                        {item.availableStock}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">利用可能</p>
                     </div>
                     
-                    {/* 在庫数 - メイン */}
-                    <div className="rounded-xl bg-gradient-to-br from-slate-100/80 to-slate-50 dark:from-slate-800/80 dark:to-slate-900 p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm text-muted-foreground">利用可能在庫</span>
-                        <span className={cn(
-                          "text-3xl font-bold",
-                          stockLevel === 'ok' && "text-emerald-600",
-                          stockLevel === 'low' && "text-amber-600",
-                          stockLevel === 'out' && "text-red-600"
-                        )}>
-                          {item.availableStock}
-                        </span>
+                    {/* 在庫バー */}
+                    <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                      <div 
+                        className={cn("h-full rounded-full bg-gradient-to-r transition-all", config.gradient)}
+                        style={{ width: `${stockPercentage}%` }}
+                      />
+                    </div>
+                    
+                    {/* 詳細 */}
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                      <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800">
+                        <div className="text-sm font-semibold">{item.currentStock}</div>
+                        <div className="text-[10px] text-muted-foreground">現在庫</div>
                       </div>
-                      
-                      {/* 在庫バー */}
-                      <div className="h-3 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full transition-all rounded-full",
-                            stockLevel === 'ok' && "bg-gradient-to-r from-emerald-400 to-teal-500",
-                            stockLevel === 'low' && "bg-gradient-to-r from-amber-400 to-orange-500",
-                            stockLevel === 'out' && "bg-gradient-to-r from-red-400 to-rose-500"
-                          )}
-                          style={{ width: `${stockPercentage}%` }}
-                        />
+                      <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800">
+                        <div className="text-sm font-semibold">{item.reservedStock}</div>
+                        <div className="text-[10px] text-muted-foreground">予約済</div>
                       </div>
                     </div>
                     
-                    {/* 詳細数値 */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-xl p-3 text-center border border-blue-100 dark:border-blue-900/30">
-                        <div className="text-muted-foreground text-xs mb-1">現在庫</div>
-                        <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{item.currentStock}</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 rounded-xl p-3 text-center border border-purple-100 dark:border-purple-900/30">
-                        <div className="text-muted-foreground text-xs mb-1">予約済</div>
-                        <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{item.reservedStock}</div>
-                      </div>
-                    </div>
-                    
-                    {/* 在庫調整ボタン */}
+                    {/* 調整ボタン */}
                     <Button 
                       variant="outline" 
-                      className="w-full rounded-xl h-11 border-2 hover:bg-gradient-to-r hover:from-slate-100 hover:to-slate-50 dark:hover:from-slate-800 dark:hover:to-slate-900"
+                      size="sm"
+                      className="w-full"
                       onClick={() => openAdjustDialog(item)}
                     >
-                      <ArrowUpDown className="mr-2 h-4 w-4" />
+                      <ArrowUpDown className="mr-2 h-3.5 w-3.5" />
                       在庫を調整
                     </Button>
                   </div>
@@ -381,7 +351,7 @@ export default function InventoryPage() {
 
       {/* 在庫調整ダイアログ */}
       <Dialog open={adjustDialogOpen} onOpenChange={setAdjustDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>在庫調整</DialogTitle>
             <DialogDescription>
@@ -394,21 +364,17 @@ export default function InventoryPage() {
                 {adjustError}
               </div>
             )}
-            <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 p-4">
-              <span className="text-sm text-muted-foreground">
-                現在の在庫数
-              </span>
-              <span className="text-2xl font-bold">
-                {selectedItem?.currentStock || 0}
-              </span>
+            <div className="flex items-center justify-between rounded-xl bg-slate-100 dark:bg-slate-800 p-4">
+              <span className="text-sm text-muted-foreground">現在の在庫数</span>
+              <span className="text-2xl font-bold">{selectedItem?.currentStock || 0}</span>
             </div>
             <div className="space-y-2">
               <Label>調整タイプ</Label>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   type="button"
                   variant={adjustmentType === 'in' ? 'default' : 'outline'}
-                  className={cn("flex-1 rounded-xl", adjustmentType === 'in' && "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600")}
+                  className={cn(adjustmentType === 'in' && "bg-emerald-500 hover:bg-emerald-600")}
                   onClick={() => setAdjustmentType('in')}
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -417,7 +383,7 @@ export default function InventoryPage() {
                 <Button
                   type="button"
                   variant={adjustmentType === 'out' ? 'default' : 'outline'}
-                  className={cn("flex-1 rounded-xl", adjustmentType === 'out' && "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600")}
+                  className={cn(adjustmentType === 'out' && "bg-amber-500 hover:bg-amber-600")}
                   onClick={() => setAdjustmentType('out')}
                 >
                   <Minus className="mr-2 h-4 w-4" />
@@ -432,7 +398,6 @@ export default function InventoryPage() {
                 placeholder="0"
                 value={adjustmentQuantity}
                 onChange={(e) => setAdjustmentQuantity(e.target.value)}
-                className="rounded-xl"
                 min="1"
               />
             </div>
@@ -442,41 +407,29 @@ export default function InventoryPage() {
                 placeholder="調整理由を入力"
                 value={adjustmentReason}
                 onChange={(e) => setAdjustmentReason(e.target.value)}
-                className="rounded-xl"
                 rows={2}
               />
             </div>
             {adjustmentQuantity && selectedItem && (
-              <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-4 border border-blue-100 dark:border-blue-900/30">
-                <span className="text-sm text-muted-foreground">
-                  調整後の在庫数
-                </span>
-                <span className="text-2xl font-bold text-blue-600">
+              <div className="flex items-center justify-between rounded-xl bg-orange-50 dark:bg-orange-950/30 p-4 border border-orange-100 dark:border-orange-900/30">
+                <span className="text-sm text-muted-foreground">調整後</span>
+                <span className="text-2xl font-bold text-orange-600">
                   {selectedItem.currentStock + (adjustmentType === 'in' ? parseInt(adjustmentQuantity, 10) || 0 : -(parseInt(adjustmentQuantity, 10) || 0))}
                 </span>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" className="rounded-xl" onClick={() => setAdjustDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setAdjustDialogOpen(false)}>
               キャンセル
             </Button>
-            <Button 
-              className="btn-premium rounded-xl" 
-              onClick={handleAdjustStock}
-              disabled={isPending}
-            >
+            <Button onClick={handleAdjustStock} disabled={isPending} className="btn-premium">
               {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  処理中...
-                </>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  調整を実行
-                </>
+                <Save className="mr-2 h-4 w-4" />
               )}
+              調整を実行
             </Button>
           </DialogFooter>
         </DialogContent>

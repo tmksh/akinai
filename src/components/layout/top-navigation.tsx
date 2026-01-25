@@ -6,13 +6,9 @@ import { useTheme } from 'next-themes';
 import {
   IoHome,
   IoCube,
-  IoLayers,
   IoDocument,
   IoCart,
-  IoHelpCircle,
-  IoPeople,
   IoBusiness,
-  IoBarChart,
   IoSettings,
   IoMenu,
   IoClose,
@@ -47,13 +43,9 @@ const navigationItems: {
 }[] = [
   { title: 'ホーム', icon: IoHome, href: '/dashboard' },
   { title: '商品管理', icon: IoCube, href: '/products' },
-  { title: '在庫管理', icon: IoLayers, href: '/inventory' },
-  { title: 'コンテンツ', icon: IoDocument, href: '/contents' },
+  { title: 'お知らせ', icon: IoDocument, href: '/contents' },
   { title: '注文管理', icon: IoCart, href: '/orders', badge: 3 },
-  { title: '見積管理', icon: IoHelpCircle, href: '/quotes' },
-  { title: '顧客管理', icon: IoPeople, href: '/customers' },
   { title: '代理店', icon: IoBusiness, href: '/agents' },
-  { title: 'レポート', icon: IoBarChart, href: '/reports' },
   { title: '設定', icon: IoSettings, href: '/settings' },
 ];
 
@@ -128,7 +120,7 @@ function NavItem({
       </div>
       <span className={cn(
         'font-medium text-center leading-tight transition-colors',
-        isCompact ? 'text-[10px]' : 'text-xs',
+        isCompact ? 'text-xs' : 'text-sm',
         isActive 
           ? 'text-orange-600 dark:text-orange-400' 
           : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
@@ -176,7 +168,7 @@ function MoreMenu({
           <span className={cn(
             'font-medium',
             hasActiveItem ? 'text-orange-600 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400',
-            isCompact ? 'text-[10px]' : 'text-xs'
+            isCompact ? 'text-xs' : 'text-sm'
           )}>
             その他
           </span>
@@ -228,15 +220,12 @@ export function TopNavigation() {
         {/* メインヘッダー */}
         <div className="flex items-center justify-between h-16 md:h-20 px-3 md:px-4 lg:px-6">
           {/* ロゴ */}
-          <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+          <Link href="/dashboard" className="flex items-center shrink-0">
             <img
               src="/logo-shou.png?v=2"
               alt="AKINAI"
               className="h-10 w-10 md:h-12 md:w-12 object-contain drop-shadow-md"
             />
-            <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent hidden sm:block">
-              アキナイ
-            </span>
           </Link>
 
           {/* デスクトップナビゲーション - xl (1280px以上) */}
@@ -343,13 +332,17 @@ export function TopNavigation() {
                   <p className="font-medium text-sm">{currentUser.name}</p>
                   <p className="text-xs text-muted-foreground">{currentUser.email}</p>
                 </div>
-                <DropdownMenuItem>
-                  <IoPerson className="mr-2 h-4 w-4" />
-                  プロフィール
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">
+                    <IoPerson className="mr-2 h-4 w-4" />
+                    プロフィール
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <IoSettings className="mr-2 h-4 w-4" />
-                  アカウント設定
+                <DropdownMenuItem asChild>
+                  <Link href="/account">
+                    <IoSettings className="mr-2 h-4 w-4" />
+                    アカウント設定
+                  </Link>
                 </DropdownMenuItem>
                 {/* モバイルでのみテーマ切り替えを表示 */}
                 <DropdownMenuSeparator className="md:hidden" />
