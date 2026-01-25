@@ -42,26 +42,12 @@ export async function validateApiKey(request: NextRequest): Promise<ApiAuthResul
     };
   }
 
-  // TODO: 実際のSupabase接続に置き換える
-  // 現在はモックデータで動作確認
-  
-  // モック: APIキーが 'sk_live_' で始まる場合は有効とする
-  if (apiKey.startsWith('sk_live_') || apiKey.startsWith('sk_test_')) {
-    // モック組織データ
-    return {
-      success: true,
-      organizationId: 'org_123',
-      organizationName: '商い サンプルストア',
-      plan: 'pro',
-    };
-  }
-  
-  /* 
-  // 本番用コード（Supabase接続時に有効化）
+  // Supabase接続
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing Supabase configuration');
     return {
       success: false,
       error: 'Server configuration error',
@@ -71,10 +57,12 @@ export async function validateApiKey(request: NextRequest): Promise<ApiAuthResul
   
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
+  // APIキーで組織を検索
   const { data: org, error } = await supabase
     .from('organizations')
     .select('id, name, plan')
     .eq('frontend_api_key', apiKey)
+    .eq('is_active', true)
     .single();
   
   if (error || !org) {
@@ -90,13 +78,6 @@ export async function validateApiKey(request: NextRequest): Promise<ApiAuthResul
     organizationId: org.id,
     organizationName: org.name,
     plan: org.plan,
-  };
-  */
-  
-  return {
-    success: false,
-    error: 'Invalid API key',
-    status: 401,
   };
 }
 
