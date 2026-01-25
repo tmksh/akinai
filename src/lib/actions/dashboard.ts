@@ -347,15 +347,19 @@ export async function getLowStockItems(organizationId: string, limit: number = 5
   const lowStockItems = (data || [])
     .filter(item => item.stock <= item.low_stock_threshold)
     .slice(0, limit)
-    .map(item => ({
-      productId: item.product?.id,
-      variantId: item.id,
-      productName: item.product?.name || '',
-      variantName: item.name,
-      sku: item.sku,
-      stock: item.stock,
-      threshold: item.low_stock_threshold,
-    }));
+    .map(item => {
+      // Supabaseのjoinは配列として返される場合がある
+      const product = Array.isArray(item.product) ? item.product[0] : item.product;
+      return {
+        productId: product?.id,
+        variantId: item.id,
+        productName: product?.name || '',
+        variantName: item.name,
+        sku: item.sku,
+        stock: item.stock,
+        threshold: item.low_stock_threshold,
+      };
+    });
   
   return lowStockItems;
 }

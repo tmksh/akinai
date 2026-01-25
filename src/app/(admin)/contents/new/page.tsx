@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { ArrowLeft, Save, Eye, Smartphone, Monitor, EyeOff, Columns, ExternalLink, RefreshCw, Settings } from 'lucide-react';
+import { useState, useMemo, useTransition } from 'react';
+import { ArrowLeft, Save, Eye, Smartphone, Monitor, EyeOff, Columns, ExternalLink, RefreshCw, Settings, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +19,10 @@ import {
 } from '@/components/ui/select';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { cn } from '@/lib/utils';
-import { useFrontendUrl } from '@/components/providers/organization-provider';
+import { useFrontendUrl, useOrganization } from '@/components/providers/organization-provider';
+import { createContent } from '@/lib/actions/contents';
+import { toast } from 'sonner';
+import type { ContentType, ContentStatus } from '@/types';
 
 const contentTabs = [
   { label: '記事一覧', href: '/contents', exact: true },
@@ -31,15 +35,20 @@ export default function NewContentPage() {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [content, setContent] = useState('');
-  const [contentType, setContentType] = useState('article');
+  const [excerpt, setExcerpt] = useState('');
+  const [contentType, setContentType] = useState<ContentType>('article');
+  const [status, setStatus] = useState<ContentStatus>('draft');
   const [showPreview, setShowPreview] = useState(true);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
-  const [previewKey, setPreviewKey] = useState(0); // iframe再読み込み用
+  const [previewKey, setPreviewKey] = useState(0);
+  const [tags, setTags] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
 
-  // 組織設定からフロントエンドURLを取得
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const { organization } = useOrganization();
   const frontendUrl = useFrontendUrl();
-
-  // フロントエンドが接続されているかどうか
   const isFrontendConnected = !!frontendUrl;
 
   // プレビュー用のデータをURLパラメータとしてエンコード
@@ -83,6 +92,54 @@ export default function NewContentPage() {
     if (!slug || slug === generateSlug(title)) {
       setSlug(generateSlug(value));
     }
+  };
+
+  // 保存処理
+  const handleSave = async () => {
+    if (!organization?.id) {
+      toast.error('組織が設定されていません');
+      return;
+    }
+
+    if (!title.trim()) {
+      toast.error('タイトルを入力してください');
+      return;
+    }
+
+    if (!slug.trim()) {
+      toast.error('スラッグを入力してください');
+      return;
+    }
+
+    // マークダウン風コンテンツをブロック形式に変換
+    const blocks = content.split('\n').filter(Boolean).map((line, index) => ({
+      id: `block-${index}`,
+      type: line.startsWith('#') ? 'heading' : 'paragraph',
+      content: line.replace(/^#+\s*/, ''),
+      order: index,
+    }));
+
+    startTransition(async () => {
+      const { data, error } = await createContent({
+        type: contentType,
+        title: title.trim(),
+        slug: slug.trim(),
+        excerpt: excerpt.trim() || undefined,
+        blocks,
+        status,
+        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+        seoTitle: seoTitle.trim() || undefined,
+        seoDescription: seoDescription.trim() || undefined,
+        publishedAt: status === 'published' ? new Date().toISOString() : undefined,
+      }, organization.id);
+
+      if (data) {
+        toast.success(`「${data.title}」を作成しました`);
+        router.push('/contents');
+      } else {
+        toast.error(error || '保存に失敗しました');
+      }
+    });
   };
 
   // マークダウン風のシンプルなレンダリング
@@ -144,8 +201,12 @@ export default function NewContentPage() {
               <Columns className="h-4 w-4" />
             </Button>
           </div>
-          <Button className="btn-premium">
-            <Save className="mr-2 h-4 w-4" />
+          <Button className="btn-premium" onClick={handleSave} disabled={isPending}>
+            {isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
             保存
           </Button>
         </div>
@@ -184,6 +245,16 @@ export default function NewContentPage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="excerpt">概要</Label>
+                <Textarea
+                  id="excerpt"
+                  placeholder="記事の概要を入力（検索結果等に表示）"
+                  className="min-h-[80px]"
+                  value={excerpt}
+                  onChange={(e) => setExcerpt(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="content">本文</Label>
                 <Textarea
                   id="content"
@@ -205,7 +276,7 @@ export default function NewContentPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>ステータス</Label>
-                    <Select defaultValue="draft">
+                    <Select value={status} onValueChange={(v) => setStatus(v as ContentStatus)}>
                       <SelectTrigger>
                         <SelectValue placeholder="ステータスを選択" />
                       </SelectTrigger>
@@ -217,7 +288,7 @@ export default function NewContentPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>記事タイプ</Label>
-                    <Select value={contentType} onValueChange={setContentType}>
+                    <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
                       <SelectTrigger>
                         <SelectValue placeholder="タイプを選択" />
                       </SelectTrigger>
@@ -228,6 +299,30 @@ export default function NewContentPage() {
                         <SelectItem value="page">ページ</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="card-hover">
+                <CardHeader>
+                  <CardTitle>SEO設定</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>SEOタイトル</Label>
+                    <Input
+                      placeholder="検索結果に表示されるタイトル"
+                      value={seoTitle}
+                      onChange={(e) => setSeoTitle(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>SEOディスクリプション</Label>
+                    <Textarea
+                      placeholder="検索結果に表示される説明文"
+                      value={seoDescription}
+                      onChange={(e) => setSeoDescription(e.target.value)}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -381,7 +476,7 @@ export default function NewContentPage() {
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   <Label className="text-sm">ステータス</Label>
-                  <Select defaultValue="draft">
+                  <Select value={status} onValueChange={(v) => setStatus(v as ContentStatus)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="ステータスを選択" />
                     </SelectTrigger>
@@ -393,7 +488,7 @@ export default function NewContentPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm">記事タイプ</Label>
-                  <Select value={contentType} onValueChange={setContentType}>
+                  <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="タイプを選択" />
                     </SelectTrigger>
@@ -410,12 +505,25 @@ export default function NewContentPage() {
 
             <Card className="card-hover">
               <CardHeader className="pb-3">
+                <CardTitle className="text-base">タグ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Input 
+                  placeholder="タグを入力（カンマ区切り）" 
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="card-hover">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-base">サムネイル</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="border-2 border-dashed rounded-lg p-4 text-center">
                   <p className="text-xs text-muted-foreground">
-                    画像をアップロード
+                    画像をアップロード（保存後に設定可能）
                   </p>
                 </div>
               </CardContent>
@@ -433,7 +541,7 @@ export default function NewContentPage() {
               <CardContent>
                 <div className="border-2 border-dashed rounded-lg p-8 text-center">
                   <p className="text-sm text-muted-foreground">
-                    クリックまたはドラッグ&ドロップで画像をアップロード
+                    画像をアップロード（保存後に設定可能）
                   </p>
                 </div>
               </CardContent>
@@ -444,7 +552,11 @@ export default function NewContentPage() {
                 <CardTitle>タグ</CardTitle>
               </CardHeader>
               <CardContent>
-                <Input placeholder="タグを入力（カンマ区切り）" />
+                <Input 
+                  placeholder="タグを入力（カンマ区切り）" 
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                />
               </CardContent>
             </Card>
           </div>
