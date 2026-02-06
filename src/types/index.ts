@@ -49,6 +49,32 @@ export interface ProductVariant {
   options: Record<string, string>;
 }
 
+// ----- カスタムフィールド -----
+export type CustomFieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'boolean'
+  | 'date'
+  | 'url'
+  | 'email'
+  | 'phone'
+  | 'color'
+  | 'rating'
+  | 'image_url'
+  | 'list'
+  | 'select'
+  | 'json';
+
+export interface CustomField {
+  id: string;
+  key: string;
+  label: string;
+  value: string;
+  type: CustomFieldType;
+  options?: string[];
+}
+
 export interface Product extends BaseEntity {
   name: string;
   slug: string;
@@ -59,6 +85,7 @@ export interface Product extends BaseEntity {
   variants: ProductVariant[];
   categoryIds: ID[];
   tags: string[];
+  customFields: CustomField[];
   seoTitle?: string;
   seoDescription?: string;
   featured: boolean;

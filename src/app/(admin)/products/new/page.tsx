@@ -49,6 +49,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PageTabs } from '@/components/layout/page-tabs';
+import { CustomFields, type CustomField } from '@/components/products/custom-fields';
+import { FieldLabel } from '@/components/products/field-label';
 import { cn } from '@/lib/utils';
 import { getCategories, createProduct, generateUniqueSlug } from '@/lib/actions/products';
 import type { Database } from '@/types/database';
@@ -87,6 +89,7 @@ export default function NewProductPage() {
   const [variants, setVariants] = useState<ProductVariant[]>([
     { id: '1', name: 'デフォルト', sku: '', price: 0, stock: 0 },
   ]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [showPreview, setShowPreview] = useState(true);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('mobile');
   const [previewQuantity, setPreviewQuantity] = useState(1);
@@ -230,6 +233,9 @@ export default function NewProductPage() {
           seoTitle: seoTitle || undefined,
           seoDescription: seoDescription || undefined,
           categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
+          customFields: customFields.length > 0
+            ? customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) }))
+            : undefined,
           variants: variants.map(v => ({
             name: v.name,
             sku: v.sku,
@@ -342,7 +348,7 @@ export default function NewProductPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">商品名 *</Label>
+                <FieldLabel htmlFor="name" fieldKey="name">商品名 *</FieldLabel>
                 <Input
                   id="name"
                   placeholder="商品名を入力"
@@ -351,7 +357,7 @@ export default function NewProductPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="shortDescription">短い説明</Label>
+                <FieldLabel htmlFor="shortDescription" fieldKey="short_description">短い説明</FieldLabel>
                 <Textarea
                   id="shortDescription"
                   placeholder="商品の簡潔な説明（一覧表示などで使用）"
@@ -361,7 +367,7 @@ export default function NewProductPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">詳細説明</Label>
+                <FieldLabel htmlFor="description" fieldKey="description">詳細説明</FieldLabel>
                 <Textarea
                   id="description"
                   placeholder="商品の詳細な説明を入力"
@@ -486,6 +492,13 @@ export default function NewProductPage() {
             </CardContent>
           </Card>
 
+          {/* カスタムフィールド */}
+          <CustomFields
+            fields={customFields}
+            onChange={setCustomFields}
+            disabled={isPending}
+          />
+
           {/* SEO */}
           <Card>
             <CardHeader>
@@ -496,7 +509,7 @@ export default function NewProductPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="seoTitle">SEOタイトル</Label>
+                <FieldLabel htmlFor="seoTitle" fieldKey="seo_title">SEOタイトル</FieldLabel>
                 <Input
                   id="seoTitle"
                   placeholder="検索結果に表示されるタイトル"
@@ -505,7 +518,7 @@ export default function NewProductPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="seoDescription">メタディスクリプション</Label>
+                <FieldLabel htmlFor="seoDescription" fieldKey="seo_description">メタディスクリプション</FieldLabel>
                 <Textarea
                   id="seoDescription"
                   placeholder="検索結果に表示される説明文（120〜160文字推奨）"

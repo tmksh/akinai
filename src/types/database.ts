@@ -621,6 +621,7 @@ export interface Database {
           seo_title: string | null
           seo_description: string | null
           featured: boolean
+          custom_fields: Json
           published_at: string | null
           created_at: string
           updated_at: string
@@ -637,6 +638,7 @@ export interface Database {
           seo_title?: string | null
           seo_description?: string | null
           featured?: boolean
+          custom_fields?: Json
           published_at?: string | null
           created_at?: string
           updated_at?: string
@@ -653,6 +655,7 @@ export interface Database {
           seo_title?: string | null
           seo_description?: string | null
           featured?: boolean
+          custom_fields?: Json
           published_at?: string | null
           created_at?: string
           updated_at?: string

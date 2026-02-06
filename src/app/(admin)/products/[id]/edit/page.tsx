@@ -44,6 +44,8 @@ import { useFrontendUrl, useOrganization } from '@/components/providers/organiza
 import { cn } from '@/lib/utils';
 import { getProduct, getCategories, updateProduct, type ProductWithRelations } from '@/lib/actions/products';
 import { ImageUpload } from '@/components/products/image-upload';
+import { CustomFields, type CustomField } from '@/components/products/custom-fields';
+import { FieldLabel } from '@/components/products/field-label';
 import type { Database } from '@/types/database';
 
 type Category = Database['public']['Tables']['categories']['Row'];
@@ -83,6 +85,7 @@ export default function ProductEditPage() {
   
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [productImages, setProductImages] = useState<{
     id: string;
@@ -136,6 +139,18 @@ export default function ProductEditPage() {
         
         setSelectedCategories(p.categories.map(c => c.id));
         setTags(p.tags || []);
+        // カスタムフィールドを復元
+        const rawCustomFields = (p.custom_fields as unknown as { key: string; label?: string; value: string; type: string; options?: string[] }[]) || [];
+        setCustomFields(
+          rawCustomFields.map((f, i) => ({
+            id: `cf-${i}-${Date.now()}`,
+            key: f.key,
+            label: f.label || f.key,
+            value: f.value,
+            type: f.type as CustomField['type'],
+            ...(f.options && { options: f.options }),
+          }))
+        );
         setVariants(p.variants.map(v => ({
           id: v.id,
           name: v.name,
@@ -248,6 +263,7 @@ export default function ProductEditPage() {
           seoTitle: formData.seoTitle || undefined,
           seoDescription: formData.seoDescription || undefined,
           featured: formData.featured,
+          customFields: customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) })),
           categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
           variants: variants.map(v => ({
             name: v.name,
@@ -369,7 +385,7 @@ export default function ProductEditPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">商品名 *</Label>
+                <FieldLabel htmlFor="name" fieldKey="name">商品名 *</FieldLabel>
                 <Input
                   id="name"
                   value={formData.name}
@@ -378,7 +394,7 @@ export default function ProductEditPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="shortDescription">短い説明</Label>
+                <FieldLabel htmlFor="shortDescription" fieldKey="short_description">短い説明</FieldLabel>
                 <Textarea
                   id="shortDescription"
                   value={formData.shortDescription}
@@ -388,7 +404,7 @@ export default function ProductEditPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">商品説明</Label>
+                <FieldLabel htmlFor="description" fieldKey="description">商品説明</FieldLabel>
                 <Textarea
                   id="description"
                   value={formData.description}
@@ -495,6 +511,13 @@ export default function ProductEditPage() {
             </CardContent>
           </Card>
 
+          {/* カスタムフィールド */}
+          <CustomFields
+            fields={customFields}
+            onChange={setCustomFields}
+            disabled={isPending}
+          />
+
           {/* SEO設定 */}
           <Card className="card-hover">
             <CardHeader>
@@ -503,7 +526,7 @@ export default function ProductEditPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="seoTitle">SEOタイトル</Label>
+                <FieldLabel htmlFor="seoTitle" fieldKey="seo_title">SEOタイトル</FieldLabel>
                 <Input
                   id="seoTitle"
                   value={formData.seoTitle}
@@ -512,7 +535,7 @@ export default function ProductEditPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="seoDescription">メタディスクリプション</Label>
+                <FieldLabel htmlFor="seoDescription" fieldKey="seo_description">メタディスクリプション</FieldLabel>
                 <Textarea
                   id="seoDescription"
                   value={formData.seoDescription}

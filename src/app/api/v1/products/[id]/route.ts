@@ -1,225 +1,173 @@
 import { NextRequest } from 'next/server';
-import { 
-  validateApiKey, 
-  apiError, 
+import { createClient } from '@supabase/supabase-js';
+import {
+  validateApiKey,
+  apiError,
   apiSuccess,
   handleOptions,
   corsHeaders,
+  withApiLogging,
 } from '@/lib/api/auth';
 
-// モック商品データ（本来はDBから取得）
-const mockProducts: Record<string, {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  price: number;
-  compareAtPrice: number | null;
-  currency: string;
-  images: { id: string; url: string; alt: string }[];
-  variants: { id: string; name: string; sku: string; price: number; stock: number }[];
-  options: { name: string; values: string[] }[];
-  categoryIds: string[];
-  tags: string[];
-  status: string;
-  seo: { title: string; description: string };
-  createdAt: string;
-  updatedAt: string;
-}> = {
-  'prod-1': {
-    id: 'prod-1',
-    name: 'オーガニックコットンTシャツ',
-    slug: 'organic-cotton-tshirt',
-    description: '環境に優しいオーガニックコットン100%使用。肌触りが良く、着心地抜群のTシャツです。\n\n【特徴】\n- GOTS認証オーガニックコットン100%\n- 柔らかな肌触り\n- 通気性に優れた素材\n- 日本製\n\n【お手入れ方法】\n洗濯機で洗えます。タンブラー乾燥は避けてください。',
-    price: 4500,
-    compareAtPrice: 5500,
-    currency: 'JPY',
-    images: [
-      { id: 'img-1', url: 'https://picsum.photos/seed/tshirt1/800/800', alt: 'Tシャツ正面' },
-      { id: 'img-2', url: 'https://picsum.photos/seed/tshirt1-2/800/800', alt: 'Tシャツ背面' },
-      { id: 'img-3', url: 'https://picsum.photos/seed/tshirt1-3/800/800', alt: 'Tシャツ着用イメージ' },
-    ],
-    variants: [
-      { id: 'var-1', name: 'S / ホワイト', sku: 'OCT-S-WH', price: 4500, stock: 10 },
-      { id: 'var-2', name: 'M / ホワイト', sku: 'OCT-M-WH', price: 4500, stock: 15 },
-      { id: 'var-3', name: 'L / ホワイト', sku: 'OCT-L-WH', price: 4500, stock: 8 },
-      { id: 'var-4', name: 'S / ブラック', sku: 'OCT-S-BK', price: 4500, stock: 12 },
-      { id: 'var-5', name: 'M / ブラック', sku: 'OCT-M-BK', price: 4500, stock: 20 },
-      { id: 'var-6', name: 'L / ブラック', sku: 'OCT-L-BK', price: 4500, stock: 5 },
-    ],
-    options: [
-      { name: 'サイズ', values: ['S', 'M', 'L'] },
-      { name: 'カラー', values: ['ホワイト', 'ブラック'] },
-    ],
-    categoryIds: ['cat-apparel'],
-    tags: ['オーガニック', 'コットン', 'Tシャツ', '新着'],
-    status: 'published',
-    seo: {
-      title: 'オーガニックコットンTシャツ | サンプルストア',
-      description: 'GOTS認証オーガニックコットン100%使用の肌に優しいTシャツ。環境にも配慮したサステナブルな一枚。',
-    },
-    createdAt: '2024-01-15T00:00:00Z',
-    updatedAt: '2024-01-20T00:00:00Z',
-  },
-  'prod-2': {
-    id: 'prod-2',
-    name: 'リネンワイドパンツ',
-    slug: 'linen-wide-pants',
-    description: '通気性抜群のリネン素材を使用したワイドパンツ。夏でも快適に過ごせる一枚。',
-    price: 8900,
-    compareAtPrice: null,
-    currency: 'JPY',
-    images: [
-      { id: 'img-4', url: 'https://picsum.photos/seed/pants1/800/800', alt: 'パンツ正面' },
-    ],
-    variants: [
-      { id: 'var-7', name: 'S', sku: 'LWP-S', price: 8900, stock: 8 },
-      { id: 'var-8', name: 'M', sku: 'LWP-M', price: 8900, stock: 12 },
-      { id: 'var-9', name: 'L', sku: 'LWP-L', price: 8900, stock: 6 },
-    ],
-    options: [
-      { name: 'サイズ', values: ['S', 'M', 'L'] },
-    ],
-    categoryIds: ['cat-apparel'],
-    tags: ['リネン', 'パンツ', '夏'],
-    status: 'published',
-    seo: {
-      title: 'リネンワイドパンツ | サンプルストア',
-      description: '通気性抜群のリネン素材ワイドパンツ。夏でも涼しく快適に。',
-    },
-    createdAt: '2024-01-10T00:00:00Z',
-    updatedAt: '2024-01-18T00:00:00Z',
-  },
-  'prod-3': {
-    id: 'prod-3',
-    name: 'ハンドメイドレザーバッグ',
-    slug: 'handmade-leather-bag',
-    description: '職人が一つ一つ丁寧に仕上げたハンドメイドのレザーバッグ。',
-    price: 24800,
-    compareAtPrice: null,
-    currency: 'JPY',
-    images: [
-      { id: 'img-5', url: 'https://picsum.photos/seed/bag1/800/800', alt: 'バッグ' },
-    ],
-    variants: [
-      { id: 'var-10', name: 'ブラウン', sku: 'HLB-BR', price: 24800, stock: 5 },
-      { id: 'var-11', name: 'ブラック', sku: 'HLB-BK', price: 24800, stock: 3 },
-    ],
-    options: [
-      { name: 'カラー', values: ['ブラウン', 'ブラック'] },
-    ],
-    categoryIds: ['cat-accessories'],
-    tags: ['レザー', 'バッグ', 'ハンドメイド'],
-    status: 'published',
-    seo: {
-      title: 'ハンドメイドレザーバッグ | サンプルストア',
-      description: '職人の技が光るハンドメイドレザーバッグ。',
-    },
-    createdAt: '2024-01-05T00:00:00Z',
-    updatedAt: '2024-01-15T00:00:00Z',
-  },
-  'prod-4': {
-    id: 'prod-4',
-    name: 'オーガニックソープセット',
-    slug: 'organic-soap-set',
-    description: '天然素材100%のオーガニックソープ3個セット。敏感肌の方にもおすすめ。',
-    price: 3500,
-    compareAtPrice: null,
-    currency: 'JPY',
-    images: [
-      { id: 'img-6', url: 'https://picsum.photos/seed/soap/800/800', alt: 'ソープセット' },
-    ],
-    variants: [
-      { id: 'var-12', name: 'デフォルト', sku: 'OSS-01', price: 3500, stock: 30 },
-    ],
-    options: [],
-    categoryIds: ['cat-home'],
-    tags: ['オーガニック', 'ソープ', 'ギフト'],
-    status: 'published',
-    seo: {
-      title: 'オーガニックソープセット | サンプルストア',
-      description: '天然素材100%のオーガニックソープ。敏感肌にも安心。',
-    },
-    createdAt: '2024-01-08T00:00:00Z',
-    updatedAt: '2024-01-12T00:00:00Z',
-  },
-};
+// 統一フィールド型
+interface UnifiedField {
+  key: string;
+  label: string;
+  value: string;
+  type: string;
+  system: boolean;
+  options?: string[];
+}
+
+// 商品データを統一フィールド形式に変換
+function buildFields(
+  product: Record<string, unknown>,
+  variants: Record<string, unknown>[],
+  customFields: { key: string; label: string; value: string; type: string; options?: string[] }[]
+): UnifiedField[] {
+  const fields: UnifiedField[] = [];
+
+  // --- システム固定フィールド ---
+  fields.push({ key: 'name',              label: '商品名',           value: (product.name as string) || '',               type: 'text',     system: true });
+  fields.push({ key: 'slug',              label: 'スラッグ',         value: (product.slug as string) || '',               type: 'text',     system: true });
+  fields.push({ key: 'short_description', label: '短い説明',         value: (product.short_description as string) || '',  type: 'text',     system: true });
+  fields.push({ key: 'description',       label: '詳細説明',         value: (product.description as string) || '',        type: 'textarea', system: true });
+  fields.push({ key: 'status',            label: 'ステータス',       value: (product.status as string) || 'draft',        type: 'select',   system: true, options: ['draft', 'published', 'archived'] });
+  fields.push({ key: 'featured',          label: 'おすすめ',         value: String(product.featured ?? false),            type: 'boolean',  system: true });
+  fields.push({ key: 'seo_title',         label: 'SEOタイトル',      value: (product.seo_title as string) || '',          type: 'text',     system: true });
+  fields.push({ key: 'seo_description',   label: 'メタディスクリプション', value: (product.seo_description as string) || '', type: 'textarea', system: true });
+  fields.push({ key: 'tags',              label: 'タグ',             value: JSON.stringify(product.tags || []),           type: 'list',     system: true });
+
+  // 価格（最低・最高）
+  const prices = variants.map(v => Number(v.price) || 0);
+  if (prices.length > 0) {
+    fields.push({ key: 'min_price', label: '最低価格', value: String(Math.min(...prices)), type: 'number', system: true });
+    fields.push({ key: 'max_price', label: '最高価格', value: String(Math.max(...prices)), type: 'number', system: true });
+  }
+
+  // 在庫合計
+  const totalStock = variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+  fields.push({ key: 'total_stock', label: '在庫合計', value: String(totalStock), type: 'number', system: true });
+
+  // --- カスタムフィールド ---
+  for (const cf of customFields) {
+    fields.push({
+      key: cf.key,
+      label: cf.label,
+      value: cf.value,
+      type: cf.type,
+      system: false,
+      ...(cf.options && { options: cf.options }),
+    });
+  }
+
+  return fields;
+}
 
 // GET /api/v1/products/[id] - 商品詳細
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // API認証
   const auth = await validateApiKey(request);
   if (!auth.success) {
     return apiError(auth.error!, auth.status);
   }
 
-  const { id } = await params;
+  return withApiLogging(request, auth, async () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  // 商品を検索（IDまたはslugで検索）
-  let product = mockProducts[id];
-  
-  // slugで検索
-  if (!product) {
-    product = Object.values(mockProducts).find(p => p.slug === id) || null as typeof product;
-  }
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return apiError('Server configuration error', 500);
+    }
 
-  if (!product) {
-    return apiError('Product not found', 404);
-  }
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { id } = await params;
 
-  // 非公開商品は返さない
-  if (product.status !== 'published') {
-    return apiError('Product not found', 404);
-  }
+    // IDまたはslugで検索
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  // 公開用にデータを整形
-  const publicProduct = {
-    id: product.id,
-    name: product.name,
-    slug: product.slug,
-    description: product.description,
-    price: product.price,
-    compareAtPrice: product.compareAtPrice,
-    currency: product.currency,
-    images: product.images,
-    variants: product.variants.map(v => ({
-      id: v.id,
-      name: v.name,
-      price: v.price,
-      available: v.stock > 0,
-    })),
-    options: product.options,
-    tags: product.tags,
-    seo: product.seo,
-    createdAt: product.createdAt,
-    updatedAt: product.updatedAt,
-  };
+    let query = supabase
+      .from('products')
+      .select('*')
+      .eq('organization_id', auth.organizationId);
 
-  const response = apiSuccess(publicProduct);
-  
-  // CORSヘッダーを追加
-  Object.entries(corsHeaders()).forEach(([key, value]) => {
-    response.headers.set(key, value);
+    if (isUUID) {
+      query = query.eq('id', id);
+    } else {
+      query = query.eq('slug', id);
+    }
+
+    const { data: product, error: productError } = await query.single();
+
+    if (productError || !product) {
+      return apiError('Product not found', 404);
+    }
+
+    // 非公開商品は返さない（status=all パラメータがない限り）
+    const allowAll = new URL(request.url).searchParams.get('status') === 'all';
+    if (!allowAll && product.status !== 'published') {
+      return apiError('Product not found', 404);
+    }
+
+    // --- 関連データを一括取得 ---
+    const [variantsRes, imagesRes, pcRes] = await Promise.all([
+      supabase.from('product_variants').select('*').eq('product_id', product.id),
+      supabase.from('product_images').select('*').eq('product_id', product.id).order('sort_order', { ascending: true }),
+      supabase.from('product_categories').select('category_id').eq('product_id', product.id),
+    ]);
+
+    const variants = variantsRes.data || [];
+    const images = imagesRes.data || [];
+    const productCategories = pcRes.data || [];
+
+    // カテゴリ詳細
+    const categoryIds = productCategories.map(pc => pc.category_id);
+    let categories: Record<string, unknown>[] = [];
+    if (categoryIds.length > 0) {
+      const { data } = await supabase.from('categories').select('*').in('id', categoryIds);
+      categories = data || [];
+    }
+
+    // カスタムフィールド
+    const customFields = (product.custom_fields as { key: string; label: string; value: string; type: string; options?: string[] }[]) || [];
+
+    // --- レスポンス構築 ---
+    const publicProduct = {
+      id: product.id,
+      fields: buildFields(product, variants, customFields),
+      variants: variants.map(v => ({
+        id: v.id,
+        name: v.name,
+        sku: v.sku,
+        price: v.price,
+        compareAtPrice: v.compare_at_price,
+        stock: v.stock,
+        available: v.stock > 0,
+        options: v.options || {},
+      })),
+      images: images.map(img => ({
+        id: img.id,
+        url: img.url,
+        alt: img.alt,
+      })),
+      categories: categories.map((c: Record<string, unknown>) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+      })),
+      createdAt: product.created_at,
+      updatedAt: product.updated_at,
+    };
+
+    const response = apiSuccess(publicProduct, undefined, auth.rateLimit);
+    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
+    return response;
   });
-  
-  return response;
 }
 
 // OPTIONS /api/v1/products/[id] - CORS preflight
 export async function OPTIONS() {
   return handleOptions();
 }
-
-
-
-
-
-
-
-
-
-
-

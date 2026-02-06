@@ -365,6 +365,7 @@ interface CreateProductInput {
   seoTitle?: string;
   seoDescription?: string;
   featured?: boolean;
+  customFields?: { key: string; label: string; value: string; type: string; options?: string[] }[];
   categoryIds?: string[];
   variants: {
     name: string;
@@ -397,6 +398,7 @@ export async function createProduct(input: CreateProductInput): Promise<{
         seo_title: input.seoTitle || null,
         seo_description: input.seoDescription || null,
         featured: input.featured || false,
+        custom_fields: input.customFields || [],
         published_at: input.status === 'published' ? new Date().toISOString() : null,
       })
       .select()
@@ -457,6 +459,7 @@ interface UpdateProductInput {
   seoTitle?: string;
   seoDescription?: string;
   featured?: boolean;
+  customFields?: { key: string; label: string; value: string; type: string; options?: string[] }[];
   categoryIds?: string[];
   variants?: {
     id?: string;
@@ -492,6 +495,7 @@ export async function updateProduct(input: UpdateProductInput): Promise<{
     if (input.seoTitle !== undefined) updateData.seo_title = input.seoTitle;
     if (input.seoDescription !== undefined) updateData.seo_description = input.seoDescription;
     if (input.featured !== undefined) updateData.featured = input.featured;
+    if (input.customFields !== undefined) updateData.custom_fields = input.customFields;
 
     const { data: product, error: productError } = await supabase
       .from('products')

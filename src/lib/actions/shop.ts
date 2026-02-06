@@ -10,6 +10,15 @@ type ProductImage = Database['public']['Tables']['product_images']['Row'];
 type Category = Database['public']['Tables']['categories']['Row'];
 type Content = Database['public']['Tables']['contents']['Row'];
 
+// カスタムフィールド型
+export interface ShopCustomField {
+  key: string;
+  label: string;
+  value: string;
+  type: string;
+  options?: string[];
+}
+
 // ショップ用商品型（公開情報のみ）
 export interface ShopProduct {
   id: string;
@@ -36,6 +45,7 @@ export interface ShopProduct {
     name: string;
     slug: string;
   }[];
+  customFields: ShopCustomField[];
   minPrice: number;
   maxPrice: number;
   totalStock: number;
@@ -193,6 +203,9 @@ export async function getShopProducts(options?: {
       const totalStock = productVariants.reduce((sum, v) => sum + v.stock, 0);
       const hasDiscount = productVariants.some(v => v.compare_at_price && v.compare_at_price > v.price);
 
+      // カスタムフィールドを整形
+      const rawCustomFields = (product.custom_fields as unknown as ShopCustomField[]) || [];
+
       return {
         id: product.id,
         name: product.name,
@@ -218,6 +231,7 @@ export async function getShopProducts(options?: {
           name: c.name,
           slug: c.slug,
         })),
+        customFields: rawCustomFields,
         minPrice,
         maxPrice,
         totalStock,
@@ -313,6 +327,9 @@ export async function getShopProduct(productIdOrSlug: string): Promise<{
     const totalStock = variants?.reduce((sum, v) => sum + v.stock, 0) || 0;
     const hasDiscount = variants?.some(v => v.compare_at_price && v.compare_at_price > v.price) || false;
 
+    // カスタムフィールドを整形
+    const rawCustomFields = (product.custom_fields as unknown as ShopCustomField[]) || [];
+
     const shopProduct: ShopProduct = {
       id: product.id,
       name: product.name,
@@ -338,6 +355,7 @@ export async function getShopProduct(productIdOrSlug: string): Promise<{
         name: c.name,
         slug: c.slug,
       })),
+      customFields: rawCustomFields,
       minPrice,
       maxPrice,
       totalStock,
