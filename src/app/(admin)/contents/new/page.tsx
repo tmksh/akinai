@@ -40,6 +40,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { PageTabs } from '@/components/layout/page-tabs';
+import { CustomFields, type CustomField } from '@/components/products/custom-fields';
+import { FieldLabel } from '@/components/products/field-label';
 import { cn } from '@/lib/utils';
 import { useOrganization } from '@/components/providers/organization-provider';
 import { createContent } from '@/lib/actions/contents';
@@ -48,9 +50,6 @@ import type { ContentType, ContentStatus } from '@/types';
 
 const contentTabs = [
   { label: '一覧', href: '/contents', exact: true },
-  { label: '新規作成', href: '/contents/new' },
-  { label: 'ニュース', href: '/contents/news' },
-  { label: '特集', href: '/contents/features' },
 ];
 
 export default function NewContentPage() {
@@ -64,6 +63,7 @@ export default function NewContentPage() {
   const [tags, setTags] = useState('');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [showSettings, setShowSettings] = useState(false);
 
   const [isPending, startTransition] = useTransition();
@@ -143,6 +143,9 @@ export default function NewContentPage() {
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
         seoTitle: seoTitle.trim() || undefined,
         seoDescription: seoDescription.trim() || undefined,
+        customFields: customFields.length > 0
+          ? customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) }))
+          : undefined,
         publishedAt: status === 'published' ? new Date().toISOString() : undefined,
       }, organization.id);
 
@@ -252,7 +255,7 @@ export default function NewContentPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">記事タイプ</Label>
+                  <FieldLabel fieldKey="type">コンテンツタイプ</FieldLabel>
                   <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
                     <SelectTrigger className="h-9">
                       <SelectValue />
@@ -262,8 +265,18 @@ export default function NewContentPage() {
                       <SelectItem value="news">ニュース</SelectItem>
                       <SelectItem value="feature">特集</SelectItem>
                       <SelectItem value="page">ページ</SelectItem>
+                      <SelectItem value="qa">Q&A</SelectItem>
+                      <SelectItem value="faq">FAQ</SelectItem>
+                      <SelectItem value="guide">ガイド</SelectItem>
+                      <SelectItem value="announcement">お知らせ</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Input
+                    value={contentType}
+                    onChange={(e) => setContentType(e.target.value)}
+                    placeholder="または自由入力（例: review）"
+                    className="h-8 text-xs font-mono"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -451,6 +464,15 @@ export default function NewContentPage() {
                 </>
               )}
             </div>
+          </div>
+
+          {/* カスタムフィールド */}
+          <div className="mt-6">
+            <CustomFields
+              fields={customFields}
+              onChange={setCustomFields}
+              disabled={isPending}
+            />
           </div>
 
           {/* ヘルプテキスト */}

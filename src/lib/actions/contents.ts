@@ -41,6 +41,7 @@ export interface CreateContentInput {
   relatedProductIds?: string[];
   seoTitle?: string;
   seoDescription?: string;
+  customFields?: { key: string; label: string; value: string; type: string; options?: string[] }[];
   publishedAt?: string;
   scheduledAt?: string;
 }
@@ -58,6 +59,7 @@ export interface UpdateContentInput {
   relatedProductIds?: string[];
   seoTitle?: string | null;
   seoDescription?: string | null;
+  customFields?: { key: string; label: string; value: string; type: string; options?: string[] }[];
   publishedAt?: string | null;
   scheduledAt?: string | null;
 }
@@ -273,6 +275,7 @@ export async function createContent(
         seo_title: input.seoTitle || null,
         seo_description: input.seoDescription || null,
         published_at: input.publishedAt || null,
+        custom_fields: input.customFields || [],
         scheduled_at: input.scheduledAt || null,
         organization_id: organizationId,
       })
@@ -357,6 +360,7 @@ export async function updateContent(
     if (input.seoTitle !== undefined) updateData.seo_title = input.seoTitle;
     if (input.seoDescription !== undefined) updateData.seo_description = input.seoDescription;
     if (input.publishedAt !== undefined) updateData.published_at = input.publishedAt;
+    if (input.customFields !== undefined) updateData.custom_fields = input.customFields;
     if (input.scheduledAt !== undefined) updateData.scheduled_at = input.scheduledAt;
 
     const { data, error } = await supabase

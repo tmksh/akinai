@@ -70,17 +70,23 @@ import { toast } from 'sonner';
 
 const contentTabs = [
   { label: '一覧', href: '/contents', exact: true },
-  { label: '新規作成', href: '/contents/new' },
-  { label: 'ニュース', href: '/contents/news' },
-  { label: '特集', href: '/contents/features' },
 ];
 
-// タイプ設定
-const typeConfig: Record<ContentType, { label: string; icon: React.ElementType }> = {
+// デフォルトのタイプ設定
+const defaultTypeConfig: Record<string, { label: string; icon: React.ElementType }> = {
   article: { label: '記事', icon: FileText },
   news: { label: 'ニュース', icon: Newspaper },
   page: { label: '固定ページ', icon: FileText },
   feature: { label: '特集', icon: Star },
+  qa: { label: 'Q&A', icon: FileText },
+  faq: { label: 'FAQ', icon: FileText },
+  guide: { label: 'ガイド', icon: FileText },
+  announcement: { label: 'お知らせ', icon: Newspaper },
+};
+
+// タイプ設定を取得（未知のタイプにもフォールバック）
+const getTypeConfig = (type: string) => {
+  return defaultTypeConfig[type] || { label: type, icon: FileText };
 };
 
 // ステータス設定
@@ -192,7 +198,8 @@ export default function ContentsClient({ initialContents, stats, organizationId 
 
   // コンテンツ行をレンダリング
   const renderContentRow = (content: ContentData) => {
-    const TypeIcon = typeConfig[content.type].icon;
+    const typeInfo = getTypeConfig(content.type);
+    const TypeIcon = typeInfo.icon;
     return (
       <TableRow key={content.id}>
         <TableCell>
@@ -230,7 +237,7 @@ export default function ContentsClient({ initialContents, stats, organizationId 
           <div className="flex items-center gap-1">
             <TypeIcon className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm">
-              {typeConfig[content.type].label}
+              {typeInfo.label}
             </span>
           </div>
         </TableCell>
@@ -341,13 +348,16 @@ export default function ContentsClient({ initialContents, stats, organizationId 
       {/* ページタブナビゲーション */}
       <PageTabs tabs={contentTabs} />
 
-      {/* フィルタータブ */}
+      {/* フィルタータブ（実際に使用されているタイプから動的生成） */}
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">すべて</TabsTrigger>
-          <TabsTrigger value="article">記事</TabsTrigger>
-          <TabsTrigger value="news">ニュース</TabsTrigger>
-          <TabsTrigger value="feature">特集</TabsTrigger>
+          {[...new Set(contents.map(c => c.type))].map((type) => {
+            const info = getTypeConfig(type);
+            return (
+              <TabsTrigger key={type} value={type}>{info.label}</TabsTrigger>
+            );
+          })}
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
@@ -453,7 +463,7 @@ export default function ContentsClient({ initialContents, stats, organizationId 
         </TabsContent>
 
         {/* 他のタブも同様のコンテンツを表示（フィルター適用済み） */}
-        {['article', 'news', 'feature'].map((type) => (
+        {[...new Set(contents.map(c => c.type))].map((type) => (
           <TabsContent key={type} value={type}>
             <Card>
               <CardContent className="pt-6">
@@ -473,7 +483,7 @@ export default function ContentsClient({ initialContents, stats, organizationId 
                       {contents
                         .filter((c) => c.type === type)
                         .map((content) => {
-                          const TypeIcon = typeConfig[content.type].icon;
+                          const TypeIcon = getTypeConfig(content.type).icon;
                           return (
                             <TableRow key={content.id}>
                               <TableCell>

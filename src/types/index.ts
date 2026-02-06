@@ -127,7 +127,7 @@ export interface InventorySummary {
 }
 
 // ----- コンテンツ管理 -----
-export type ContentType = 'article' | 'news' | 'page' | 'feature';
+export type ContentType = string; // 'article' | 'news' | 'page' | 'feature' | 'qa' | 任意のタイプ
 export type ContentStatus = 'draft' | 'review' | 'published' | 'archived';
 
 export interface ContentBlock {

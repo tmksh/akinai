@@ -29,6 +29,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { PageTabs } from '@/components/layout/page-tabs';
+import { CustomFields, type CustomField } from '@/components/products/custom-fields';
+import { FieldLabel } from '@/components/products/field-label';
 import { cn } from '@/lib/utils';
 import { useFrontendUrl, useOrganization } from '@/components/providers/organization-provider';
 import { getContent, updateContent, deleteContent, publishContent } from '@/lib/actions/contents';
@@ -37,10 +39,8 @@ import type { ContentType, ContentStatus } from '@/types';
 import type { ContentData } from '@/lib/actions/contents';
 
 const contentTabs = [
-  { label: '記事一覧', href: '/contents', exact: true },
-  { label: '記事作成', href: '/contents/new' },
-  { label: 'ニュース', href: '/contents/news' },
-  { label: '特集', href: '/contents/features' },
+  { label: '一覧', href: '/contents', exact: true },
+  { label: '新規作成', href: '/contents/new' },
 ];
 
 export default function EditContentPage() {
@@ -62,6 +62,7 @@ export default function EditContentPage() {
   const [tags, setTags] = useState('');
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
 
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -87,6 +88,17 @@ export default function EditContentPage() {
         setTags(data.tags.join(', '));
         setSeoTitle(data.seoTitle || '');
         setSeoDescription(data.seoDescription || '');
+
+        // カスタムフィールドを復元
+        const rawCf = ((data as unknown as Record<string, unknown>).custom_fields as { key: string; label?: string; value: string; type: string; options?: string[] }[]) || [];
+        setCustomFields(rawCf.map((f, i) => ({
+          id: `cf-${i}-${Date.now()}`,
+          key: f.key,
+          label: f.label || f.key,
+          value: f.value,
+          type: f.type as CustomField['type'],
+          ...(f.options && { options: f.options }),
+        })));
         
         // ブロックからテキストコンテンツに変換
         if (data.blocks && Array.isArray(data.blocks)) {
@@ -162,6 +174,7 @@ export default function EditContentPage() {
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
         seoTitle: seoTitle.trim() || null,
         seoDescription: seoDescription.trim() || null,
+        customFields: customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) })),
       }, organization.id);
 
       if (data) {
@@ -322,7 +335,7 @@ export default function EditContentPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="title">タイトル</Label>
+                <FieldLabel htmlFor="title" fieldKey="title">タイトル</FieldLabel>
                 <Input
                   id="title"
                   placeholder="記事のタイトルを入力"
@@ -331,7 +344,7 @@ export default function EditContentPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="slug">スラッグ</Label>
+                <FieldLabel htmlFor="slug" fieldKey="slug">スラッグ</FieldLabel>
                 <Input
                   id="slug"
                   placeholder="article-slug"
@@ -340,7 +353,7 @@ export default function EditContentPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="excerpt">概要</Label>
+                <FieldLabel htmlFor="excerpt" fieldKey="excerpt">概要</FieldLabel>
                 <Textarea
                   id="excerpt"
                   placeholder="記事の概要を入力"
@@ -350,7 +363,7 @@ export default function EditContentPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="content">本文</Label>
+                <FieldLabel htmlFor="content" fieldKey="blocks">本文</FieldLabel>
                 <Textarea
                   id="content"
                   placeholder="記事の本文を入力..."
@@ -361,6 +374,13 @@ export default function EditContentPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* カスタムフィールド */}
+          <CustomFields
+            fields={customFields}
+            onChange={setCustomFields}
+            disabled={isPending}
+          />
 
           {!showPreview && (
             <Card className="card-hover">
@@ -382,7 +402,7 @@ export default function EditContentPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>記事タイプ</Label>
+                  <FieldLabel fieldKey="type">コンテンツタイプ</FieldLabel>
                   <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
                     <SelectTrigger>
                       <SelectValue />
@@ -392,8 +412,18 @@ export default function EditContentPage() {
                       <SelectItem value="news">ニュース</SelectItem>
                       <SelectItem value="feature">特集</SelectItem>
                       <SelectItem value="page">ページ</SelectItem>
+                      <SelectItem value="qa">Q&A</SelectItem>
+                      <SelectItem value="faq">FAQ</SelectItem>
+                      <SelectItem value="guide">ガイド</SelectItem>
+                      <SelectItem value="announcement">お知らせ</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Input
+                    value={contentType}
+                    onChange={(e) => setContentType(e.target.value)}
+                    placeholder="または自由入力"
+                    className="h-8 text-xs font-mono"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -493,7 +523,7 @@ export default function EditContentPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm">記事タイプ</Label>
+                  <FieldLabel fieldKey="type">コンテンツタイプ</FieldLabel>
                   <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
                     <SelectTrigger className="h-9">
                       <SelectValue />
@@ -503,8 +533,18 @@ export default function EditContentPage() {
                       <SelectItem value="news">ニュース</SelectItem>
                       <SelectItem value="feature">特集</SelectItem>
                       <SelectItem value="page">ページ</SelectItem>
+                      <SelectItem value="qa">Q&A</SelectItem>
+                      <SelectItem value="faq">FAQ</SelectItem>
+                      <SelectItem value="guide">ガイド</SelectItem>
+                      <SelectItem value="announcement">お知らせ</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Input
+                    value={contentType}
+                    onChange={(e) => setContentType(e.target.value)}
+                    placeholder="または自由入力"
+                    className="h-8 text-xs font-mono"
+                  />
                 </div>
               </CardContent>
             </Card>

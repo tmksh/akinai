@@ -223,7 +223,7 @@ export interface Database {
           name: string
           slug: string
           description: string | null
-          type: 'article' | 'news' | 'page' | 'feature'
+          type: string
           parent_id: string | null
           sort_order: number
           created_at: string
@@ -235,7 +235,7 @@ export interface Database {
           name: string
           slug: string
           description?: string | null
-          type: 'article' | 'news' | 'page' | 'feature'
+          type: string
           parent_id?: string | null
           sort_order?: number
           created_at?: string
@@ -247,7 +247,7 @@ export interface Database {
           name?: string
           slug?: string
           description?: string | null
-          type?: 'article' | 'news' | 'page' | 'feature'
+          type?: string
           parent_id?: string | null
           sort_order?: number
           created_at?: string
@@ -272,7 +272,7 @@ export interface Database {
         Row: {
           id: string
           organization_id: string
-          type: 'article' | 'news' | 'page' | 'feature'
+          type: string
           title: string
           slug: string
           excerpt: string | null
@@ -284,6 +284,7 @@ export interface Database {
           related_product_ids: string[]
           seo_title: string | null
           seo_description: string | null
+          custom_fields: Json
           published_at: string | null
           scheduled_at: string | null
           created_at: string
@@ -292,7 +293,7 @@ export interface Database {
         Insert: {
           id?: string
           organization_id: string
-          type: 'article' | 'news' | 'page' | 'feature'
+          type: string
           title: string
           slug: string
           excerpt?: string | null
@@ -304,6 +305,7 @@ export interface Database {
           related_product_ids?: string[]
           seo_title?: string | null
           seo_description?: string | null
+          custom_fields?: Json
           published_at?: string | null
           scheduled_at?: string | null
           created_at?: string
@@ -312,7 +314,7 @@ export interface Database {
         Update: {
           id?: string
           organization_id?: string
-          type?: 'article' | 'news' | 'page' | 'feature'
+          type?: string
           title?: string
           slug?: string
           excerpt?: string | null
@@ -324,6 +326,7 @@ export interface Database {
           related_product_ids?: string[]
           seo_title?: string | null
           seo_description?: string | null
+          custom_fields?: Json
           published_at?: string | null
           scheduled_at?: string | null
           created_at?: string
