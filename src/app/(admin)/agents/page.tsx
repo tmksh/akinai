@@ -426,6 +426,7 @@ export default function AgentsPage() {
             commissionRate: editingAgent.commission_rate,
             totalSales: editingAgent.total_sales,
             totalCommission: editingAgent.total_commission,
+            ordersCount: 0,
             joinedAt: editingAgent.joined_at,
           } : newAgentCode ? {
             id: '',
@@ -439,6 +440,7 @@ export default function AgentsPage() {
             commissionRate: 10,
             totalSales: 0,
             totalCommission: 0,
+            ordersCount: 0,
             joinedAt: new Date().toISOString(),
           } : null}
           onSubmit={handleFormSubmit}
@@ -459,6 +461,7 @@ export default function AgentsPage() {
             commissionRate: deletingAgent.commission_rate,
             totalSales: deletingAgent.total_sales,
             totalCommission: deletingAgent.total_commission,
+            ordersCount: 0,
             joinedAt: deletingAgent.joined_at,
           } : null}
           onConfirm={() => deletingAgent && handleDeleteConfirm(deletingAgent)}
