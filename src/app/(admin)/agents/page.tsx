@@ -464,7 +464,7 @@ export default function AgentsPage() {
             ordersCount: 0,
             joinedAt: deletingAgent.joined_at,
           } : null}
-          onConfirm={() => deletingAgent && handleDeleteConfirm(deletingAgent)}
+          onConfirm={async () => { if (deletingAgent) await handleDeleteConfirm(deletingAgent); }}
         />
       </div>
     </TooltipProvider>
