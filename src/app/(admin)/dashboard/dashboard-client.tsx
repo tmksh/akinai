@@ -24,7 +24,15 @@ import {
   YAxis,
   ResponsiveContainer,
 } from 'recharts';
-import { Responsive, useContainerWidth, Layout, ResponsiveLayouts as Layouts } from 'react-grid-layout';
+import { Responsive as ResponsiveOrig, useContainerWidth } from 'react-grid-layout';
+
+// react-grid-layout v2 の型定義が不完全なためanyでラップ
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Responsive = ResponsiveOrig as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Layout = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Layouts = any;
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -328,8 +336,9 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
   }, []);
 
   // レイアウト変更時に保存
-  const handleLayoutChange = useCallback((currentLayout: Layout[], allLayouts: Layouts) => {
-    setLayouts(allLayouts);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleLayoutChange = useCallback((_currentLayout: any, allLayouts: any) => {
+    setLayouts(allLayouts as Layouts);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allLayouts));
   }, []);
 
