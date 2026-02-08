@@ -300,6 +300,7 @@ export default function AgentsPage() {
       commissionRate: agent.commission_rate,
       totalSales: agent.total_sales,
       totalCommission: agent.total_commission,
+      ordersCount: 0,
       joinedAt: agent.joined_at,
     }));
   }, [filteredAgents]);
