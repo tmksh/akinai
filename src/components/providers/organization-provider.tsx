@@ -23,9 +23,18 @@ export interface Organization {
   updatedAt: string;
 }
 
+// 現在ログイン中のユーザー（表示用）
+export interface CurrentUser {
+  id: string;
+  email: string;
+  name: string;
+  avatar: string | null;
+}
+
 // コンテキストの型
 interface OrganizationContextType {
   organization: Organization | null;
+  currentUser: CurrentUser | null;
   isLoading: boolean;
   error: Error | null;
   setOrganization: (org: Organization | null) => void;
@@ -35,6 +44,7 @@ interface OrganizationContextType {
 // デフォルト値
 const defaultContext: OrganizationContextType = {
   organization: null,
+  currentUser: null,
   isLoading: true,
   error: null,
   setOrganization: () => {},
@@ -69,6 +79,7 @@ function transformOrganization(row: Record<string, unknown>): Organization {
 // プロバイダーコンポーネント
 export function OrganizationProvider({ children }: { children: ReactNode }) {
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -83,10 +94,24 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        // 未ログインの場合は組織情報なし
         setOrganization(null);
+        setCurrentUser(null);
         return;
       }
+
+      // 表示用のユーザー情報（public.users）を取得
+      const { data: profile } = await supabase
+        .from('users')
+        .select('name, avatar')
+        .eq('id', user.id)
+        .single();
+
+      setCurrentUser({
+        id: user.id,
+        email: user.email ?? '',
+        name: (profile?.name as string) ?? user.user_metadata?.name ?? user.email ?? 'ユーザー',
+        avatar: (profile?.avatar as string) ?? user.user_metadata?.avatar_url ?? null,
+      });
 
       // ユーザーが所属する組織を取得（最初の組織を使用）
       const { data: membership, error: memberError } = await supabase
@@ -132,6 +157,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     <OrganizationContext.Provider
       value={{
         organization,
+        currentUser,
         isLoading,
         error,
         setOrganization,

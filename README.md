@@ -344,6 +344,50 @@ npm run dev
 supabase db push
 ```
 
+### Google ログインの有効化（任意）
+
+ログイン画面の「Googleでログイン」を有効にするには、以下を実施してください。
+
+1. **Google Cloud Console**
+   - [Google Cloud Console](https://console.cloud.google.com/) でプロジェクトを作成または選択
+   - **APIとサービス** → **認証情報** → **認証情報を作成** → **OAuth 2.0 クライアント ID**
+   - アプリケーションの種類: **ウェブアプリケーション**
+   - **承認済みのリダイレクト URI** に以下を追加:
+     - `https://<プロジェクト参照ID>.supabase.co/auth/v1/callback`
+     - （Supabase Dashboard → **Project Settings** → **API** の **Project URL** のホスト部分が参照IDです）
+   - クライアント ID とクライアント シークレットをコピー
+
+2. **Supabase Dashboard**
+   - **Authentication** → **Providers** → **Google** を有効化
+   - Client ID と Client Secret を貼り付け、保存
+   - **URL Configuration** の **Redirect URLs** に次の **2件** を追加（ローカルと本番の両方でログインできるようにする）:
+     - `http://localhost:3000/auth/callback`
+     - `https://akinai.netlify.app/auth/callback`
+
+3. ログインページで「Googleでログイン」をクリックし、Google認証後に `/auth/callback` 経由でダッシュボードへリダイレクトされることを確認してください。  
+   新規でGoogleログインしたユーザーは、いずれかの組織の管理者から **設定 → メンバー** で招待される必要があります。
+
+**Googleログインで「This page isn't working」や invalid response が出る場合**
+
+- **Google Cloud Console** の「承認済みのリダイレクト URI」には **アプリのURLではなく Supabase のURL** を 1 件だけ登録します。  
+  `https://<あなたのプロジェクト参照ID>.supabase.co/auth/v1/callback`  
+  （例: `https://mvedkgtujsuctaemfnij.supabase.co/auth/v1/callback`）  
+  `http://localhost:3000/...` や `https://akinai.netlify.app/...` は **登録しない**でください。
+- **Supabase** の **Authentication → Providers → Google** で、Google を有効にし、Client ID と Client Secret を正しく貼り付けて保存しているか確認してください。
+- 認証後にログイン画面に戻りエラーが出る場合は、画面に表示されるメッセージ（`detail`）を確認してください。
+
+### ローカルと本番（Netlify）の両方で動かす
+
+- **認証のリダイレクト**  
+  アプリは `window.location.origin` を使うため、ローカルでは `http://localhost:3000/auth/callback`、本番では `https://akinai.netlify.app/auth/callback` に自動で戻ります。  
+  Supabase の **Authentication → URL Configuration → Redirect URLs** に上記 2 件を登録しておけば、どちらの環境でもログイン・Googleログインが動作します。
+
+- **Netlify の環境変数**  
+  本番で Supabase と連携するため、Netlify の **Site settings → Environment variables** で以下を設定してください。
+  - `NEXT_PUBLIC_SUPABASE_URL` … Supabase の Project URL
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY` … Supabase の anon key  
+  Stripe 連携を使う場合は `NEXT_PUBLIC_APP_URL` に `https://akinai.netlify.app` を設定してください。
+
 ---
 
 ## 開発コマンド

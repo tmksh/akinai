@@ -1,13 +1,16 @@
 'use client';
 
-import { Sparkles, Plus, Search } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Sparkles, Plus, Search, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { mockContents } from '@/lib/mock-data';
 import { PageTabs } from '@/components/layout/page-tabs';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getContents } from '@/lib/actions/contents';
+import type { ContentData } from '@/lib/actions/contents';
 
 const contentTabs = [
   { label: '記事一覧', href: '/contents', exact: true },
@@ -17,7 +20,20 @@ const contentTabs = [
 ];
 
 export default function FeaturesPage() {
-  const featureItems = mockContents.filter((content) => content.type === 'feature');
+  const { organization } = useOrganization();
+  const [featureItems, setFeatureItems] = useState<ContentData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchFeatures = useCallback(async () => {
+    if (!organization?.id) return;
+    const { data } = await getContents(organization.id, { type: 'feature' });
+    setFeatureItems(data ?? []);
+    setIsLoading(false);
+  }, [organization?.id]);
+
+  useEffect(() => {
+    fetchFeatures();
+  }, [fetchFeatures]);
 
   return (
     <div className="space-y-6">
@@ -52,7 +68,11 @@ export default function FeaturesPage() {
             </div>
           </div>
 
-          {featureItems.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : featureItems.length > 0 ? (
             <div className="space-y-4">
               {featureItems.map((feature) => (
                 <div
@@ -65,7 +85,7 @@ export default function FeaturesPage() {
                   <div className="flex-1">
                     <div className="font-medium">{feature.title}</div>
                     <div className="text-sm text-muted-foreground">
-                      {feature.publishedAt ? new Date(feature.publishedAt).toLocaleDateString('ja-JP') : '-'} • {feature.authorId}
+                      {feature.publishedAt ? new Date(feature.publishedAt).toLocaleDateString('ja-JP') : '-'} • {feature.authorName ?? feature.authorId ?? '-'}
                     </div>
                   </div>
                   <Badge variant={feature.status === 'published' ? 'default' : 'secondary'}>

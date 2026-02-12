@@ -1,13 +1,16 @@
 'use client';
 
-import { Newspaper, Plus, Search } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Newspaper, Plus, Search, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { mockContents } from '@/lib/mock-data';
 import { PageTabs } from '@/components/layout/page-tabs';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getContents } from '@/lib/actions/contents';
+import type { ContentData } from '@/lib/actions/contents';
 
 const contentTabs = [
   { label: '記事一覧', href: '/contents', exact: true },
@@ -17,7 +20,20 @@ const contentTabs = [
 ];
 
 export default function NewsPage() {
-  const newsItems = mockContents.filter((content) => content.type === 'news');
+  const { organization } = useOrganization();
+  const [newsItems, setNewsItems] = useState<ContentData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchNews = useCallback(async () => {
+    if (!organization?.id) return;
+    const { data } = await getContents(organization.id, { type: 'news' });
+    setNewsItems(data ?? []);
+    setIsLoading(false);
+  }, [organization?.id]);
+
+  useEffect(() => {
+    fetchNews();
+  }, [fetchNews]);
 
   return (
     <div className="space-y-6">
@@ -52,7 +68,11 @@ export default function NewsPage() {
             </div>
           </div>
 
-          {newsItems.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : newsItems.length > 0 ? (
             <div className="space-y-4">
               {newsItems.map((news) => (
                 <div
@@ -65,7 +85,7 @@ export default function NewsPage() {
                   <div className="flex-1">
                     <div className="font-medium">{news.title}</div>
                     <div className="text-sm text-muted-foreground">
-                      {news.publishedAt ? new Date(news.publishedAt).toLocaleDateString('ja-JP') : '-'} • {news.authorId}
+                      {news.publishedAt ? new Date(news.publishedAt).toLocaleDateString('ja-JP') : '-'} • {news.authorName ?? news.authorId ?? '-'}
                     </div>
                   </div>
                   <Badge variant={news.status === 'published' ? 'default' : 'secondary'}>

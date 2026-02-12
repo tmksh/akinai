@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,13 @@ import {
 } from '@/components/ui/card';
 import { Loader2, Mail, Lock } from 'lucide-react';
 
+const ERROR_MESSAGES: Record<string, string> = {
+  auth_failed:
+    '認証に失敗しました。Googleの設定を確認するか、メール・パスワードでログインしてください。',
+  no_organization:
+    '所属する組織がありません。管理者に招待を依頼してください。',
+};
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,7 +27,21 @@ export default function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  // URLの ?error= と ?detail= を表示し、表示後にURLから削除
+  useEffect(() => {
+    const err = searchParams.get('error');
+    const detail = searchParams.get('detail');
+    if (err) {
+      const message = detail
+        ? decodeURIComponent(detail)
+        : ERROR_MESSAGES[err] ?? '認証に失敗しました。';
+      setError(message);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +81,7 @@ export default function LoginPage() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
         },
       });
 
@@ -224,7 +247,10 @@ export default function LoginPage() {
           <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
             アカウントをお持ちでない場合は、
             <br />
-            管理者にお問い合わせください
+            <Link href="/signup" className="text-orange-500 hover:underline font-medium">
+              新規登録
+            </Link>
+            または管理者にお問い合わせください
           </p>
         </CardContent>
       </Card>

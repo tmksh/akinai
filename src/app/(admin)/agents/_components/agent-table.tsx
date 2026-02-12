@@ -34,17 +34,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { type Agent } from '@/lib/mock-data';
+import type { AgentDisplay } from '../types';
 import { cn } from '@/lib/utils';
 
 interface AgentTableProps {
-  agents: Agent[];
+  agents: AgentDisplay[];
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
-  onView: (agent: Agent) => void;
-  onEdit: (agent: Agent) => void;
-  onDelete: (agent: Agent) => void;
-  onStatusChange: (agent: Agent, status: Agent['status']) => void;
+  onView: (agent: AgentDisplay) => void;
+  onEdit: (agent: AgentDisplay) => void;
+  onDelete: (agent: AgentDisplay) => void;
+  onStatusChange: (agent: AgentDisplay, status: AgentDisplay['status']) => void;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   onSort?: (column: string) => void;

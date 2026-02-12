@@ -41,7 +41,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { currentUser } from '@/lib/mock-data';
+import { useOrganization } from '@/components/providers/organization-provider';
 
 const navigationItems = [
   {
@@ -118,6 +118,7 @@ function ThemeToggle() {
 }
 
 export function AppSidebar() {
+  const { currentUser } = useOrganization();
   const pathname = usePathname();
 
   const isActive = (href: string) => {
@@ -240,15 +241,15 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-sidebar-accent"
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={currentUser.avatar} />
+                    <AvatarImage src={currentUser?.avatar ?? undefined} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                      {currentUser.name.slice(0, 2)}
+                      {currentUser ? currentUser.name.slice(0, 2) : '?'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start text-sm group-data-[collapsible=icon]:hidden">
-                    <span className="font-medium">{currentUser.name}</span>
+                    <span className="font-medium">{currentUser?.name ?? 'ユーザー'}</span>
                     <span className="text-xs text-sidebar-foreground/60">
-                      {currentUser.email}
+                      {currentUser?.email ?? ''}
                     </span>
                   </div>
                   <ChevronDown className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />

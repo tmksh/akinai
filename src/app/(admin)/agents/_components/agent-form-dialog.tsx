@@ -29,13 +29,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { type Agent } from '@/lib/mock-data';
+import type { AgentDisplay } from '../types';
 import { toast } from 'sonner';
 
 interface AgentFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  agent?: Agent | null;
+  agent?: AgentDisplay | null;
   onSubmit: (data: AgentFormData) => Promise<void>;
 }
 
@@ -47,7 +47,7 @@ export interface AgentFormData {
   phone: string;
   address: string;
   commissionRate: number;
-  status: Agent['status'];
+  status: AgentDisplay['status'];
 }
 
 export function AgentFormDialog({

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { 
@@ -20,13 +21,45 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { mockCustomers, mockOrders } from '@/lib/mock-data';
+import { getCustomer, getCustomerOrders } from '@/lib/actions/customers';
+
+type CustomerData = {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  total_orders: number;
+  total_spent: number;
+  created_at: string;
+  addresses: { postal_code: string; prefecture: string; city: string; line1: string; line2?: string | null }[];
+};
+
+type OrderData = { id: string; orderNumber: string; total: number; status: string; createdAt: string };
 
 export default function CustomerDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const customer = mockCustomers.find((c) => c.id === id);
-  const customerOrders = mockOrders.filter((o) => o.customerId === id).slice(0, 5);
+  const [customer, setCustomer] = useState<CustomerData | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<OrderData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([getCustomer(id), getCustomerOrders(id)]).then(([custRes, ordersRes]) => {
+      if (cancelled) return;
+      setLoading(false);
+      if (custRes.data) setCustomer(custRes.data as CustomerData);
+      else setCustomer(null);
+      if (ordersRes.data) setCustomerOrders(ordersRes.data.slice(0, 5));
+      else setCustomerOrders([]);
+    });
+    return () => { cancelled = true; };
+  }, [id]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ja-JP', {
@@ -43,6 +76,14 @@ export default function CustomerDetailPage() {
     });
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+        <p className="text-lg text-slate-500">読み込み中...</p>
+      </div>
+    );
+  }
+
   if (!customer) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
@@ -57,9 +98,9 @@ export default function CustomerDetailPage() {
     );
   }
 
-  const isVip = customer.totalOrders >= 5;
-  const averageOrderValue = customer.totalOrders > 0 
-    ? Math.round(customer.totalSpent / customer.totalOrders) 
+  const isVip = customer.total_orders >= 5;
+  const averageOrderValue = customer.total_orders > 0 
+    ? Math.round(customer.total_spent / customer.total_orders) 
     : 0;
 
   return (
@@ -91,7 +132,7 @@ export default function CustomerDetailPage() {
                   {isVip ? 'VIP会員' : '一般会員'}
                 </Badge>
               </div>
-              <p className="text-sm text-slate-500">{formatDate(customer.createdAt)} から登録</p>
+              <p className="text-sm text-slate-500">{formatDate(customer.created_at)} から登録</p>
             </div>
           </div>
         </div>
@@ -116,7 +157,7 @@ export default function CustomerDetailPage() {
             </div>
             <span className="text-xs font-medium text-orange-700 dark:text-orange-300">総注文数</span>
           </div>
-          <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{customer.totalOrders}<span className="text-sm font-normal ml-1">件</span></p>
+          <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{customer.total_orders}<span className="text-sm font-normal ml-1">件</span></p>
         </div>
 
         <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40">
@@ -126,7 +167,7 @@ export default function CustomerDetailPage() {
             </div>
             <span className="text-xs font-medium text-orange-800 dark:text-orange-200">総購入額</span>
           </div>
-          <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{formatCurrency(customer.totalSpent)}</p>
+          <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{formatCurrency(customer.total_spent)}</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50">
@@ -187,7 +228,7 @@ export default function CustomerDetailPage() {
                 <div>
                   <p className="text-xs text-slate-500">住所</p>
                   <p className="text-sm font-medium">
-                    〒{customer.addresses[0].postalCode}<br />
+                    〒{customer.addresses[0].postal_code}<br />
                     {customer.addresses[0].prefecture}{customer.addresses[0].city}{customer.addresses[0].line1}
                     {customer.addresses[0].line2 && ` ${customer.addresses[0].line2}`}
                   </p>
@@ -201,7 +242,7 @@ export default function CustomerDetailPage() {
               </div>
               <div>
                 <p className="text-xs text-slate-500">登録日</p>
-                <p className="text-sm font-medium">{formatDate(customer.createdAt)}</p>
+                <p className="text-sm font-medium">{formatDate(customer.created_at)}</p>
               </div>
             </div>
 
@@ -244,7 +285,7 @@ export default function CustomerDetailPage() {
                       </div>
                       <div>
                         <p className="text-sm font-medium">{order.orderNumber}</p>
-                        <p className="text-xs text-slate-500">{formatDate(order.createdAt)}</p>
+                        <p className="text-xs text-slate-500">{formatDate(order.createdAt ?? '')}</p>
                       </div>
                     </div>
                     <div className="text-right">

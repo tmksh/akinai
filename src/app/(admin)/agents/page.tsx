@@ -28,14 +28,33 @@ import {
   type AgentStats,
 } from '@/lib/actions/agents';
 import type { Database } from '@/types/database';
+import type { AgentDisplay } from './types';
 
-type Agent = Database['public']['Tables']['agents']['Row'];
+type AgentRow = Database['public']['Tables']['agents']['Row'];
+
+function mapAgentFromDb(row: AgentRow): AgentDisplay {
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    company: row.company,
+    email: row.email,
+    phone: row.phone ?? '',
+    address: row.address ?? '',
+    commissionRate: Number(row.commission_rate),
+    status: row.status,
+    totalSales: Number(row.total_sales),
+    totalCommission: Number(row.total_commission),
+    ordersCount: 0, // DB に orders_count がなければ 0
+    joinedAt: row.joined_at,
+  };
+}
 
 export default function AgentsPage() {
   const { organization, isLoading: orgLoading } = useOrganization();
   
   // データ状態
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<AgentDisplay[]>([]);
   const [stats, setStats] = useState<AgentStats>({
     total: 0,
     active: 0,
@@ -60,8 +79,8 @@ export default function AgentsPage() {
   // ダイアログ状態
   const [showFormDialog, setShowFormDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
-  const [deletingAgent, setDeletingAgent] = useState<Agent | null>(null);
+  const [editingAgent, setEditingAgent] = useState<AgentDisplay | null>(null);
+  const [deletingAgent, setDeletingAgent] = useState<AgentDisplay | null>(null);
   const [newAgentCode, setNewAgentCode] = useState('');
 
   // データ取得
@@ -75,7 +94,7 @@ export default function AgentsPage() {
       ]);
 
       if (agentsResult.data) {
-        setAgents(agentsResult.data);
+        setAgents(agentsResult.data.map(mapAgentFromDb));
       }
       if (statsResult.data) {
         setStats(statsResult.data);
@@ -127,9 +146,9 @@ export default function AgentsPage() {
         case 'company':
           return order * a.company.localeCompare(b.company);
         case 'total_sales':
-          return order * (a.total_sales - b.total_sales);
+          return order * (a.totalSales - b.totalSales);
         case 'joined_at':
-          return order * (new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime());
+          return order * (new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
         default:
           return 0;
       }
@@ -149,22 +168,22 @@ export default function AgentsPage() {
   }, [sortBy]);
 
   // アクション
-  const handleView = useCallback((agent: Agent) => {
+  const handleView = useCallback((agent: AgentDisplay) => {
     toast.info(`${agent.company}の詳細ページへ遷移します`);
     // TODO: 詳細ページへ遷移
   }, []);
 
-  const handleEdit = useCallback((agent: Agent) => {
+  const handleEdit = useCallback((agent: AgentDisplay) => {
     setEditingAgent(agent);
     setShowFormDialog(true);
   }, []);
 
-  const handleDelete = useCallback((agent: Agent) => {
+  const handleDelete = useCallback((agent: AgentDisplay) => {
     setDeletingAgent(agent);
     setShowDeleteDialog(true);
   }, []);
 
-  const handleStatusChange = useCallback(async (agent: Agent, newStatus: Agent['status']) => {
+  const handleStatusChange = useCallback(async (agent: AgentDisplay, newStatus: AgentDisplay['status']) => {
     const result = await updateAgent(agent.id, { status: newStatus });
     
     if (result.error) {
@@ -233,7 +252,7 @@ export default function AgentsPage() {
     fetchData();
   }, [editingAgent, organization?.id, fetchData]);
 
-  const handleDeleteConfirm = useCallback(async (agent: Agent) => {
+  const handleDeleteConfirm = useCallback(async (agent: AgentDisplay) => {
     const result = await deleteAgent(agent.id);
     
     if (result.error) {
@@ -285,25 +304,6 @@ export default function AgentsPage() {
     setSelectedIds([]);
     fetchData();
   }, [selectedIds, fetchData]);
-
-  // モックデータ形式に変換（既存のコンポーネントとの互換性のため）
-  const agentsForComponents = useMemo(() => {
-    return filteredAgents.map(agent => ({
-      id: agent.id,
-      code: agent.code,
-      company: agent.company,
-      name: agent.name,
-      email: agent.email,
-      phone: agent.phone || '',
-      address: agent.address || '',
-      status: agent.status,
-      commissionRate: agent.commission_rate,
-      totalSales: agent.total_sales,
-      totalCommission: agent.total_commission,
-      ordersCount: 0,
-      joinedAt: agent.joined_at,
-    }));
-  }, [filteredAgents]);
 
   // ローディング
   if (orgLoading || isLoading) {
@@ -367,7 +367,7 @@ export default function AgentsPage() {
         {/* 代理店一覧 */}
         {viewMode === 'card' ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {agentsForComponents.map((agent) => (
+            {filteredAgents.map((agent) => (
               <AgentCard
                 key={agent.id}
                 agent={agent}
@@ -388,7 +388,7 @@ export default function AgentsPage() {
           </div>
         ) : (
           <AgentTable
-            agents={agentsForComponents}
+            agents={filteredAgents}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             onView={(agent) => handleView(filteredAgents.find(a => a.id === agent.id)!)}
@@ -414,21 +414,7 @@ export default function AgentsPage() {
         <AgentFormDialog
           open={showFormDialog}
           onOpenChange={setShowFormDialog}
-          agent={editingAgent ? {
-            id: editingAgent.id,
-            code: editingAgent.code,
-            company: editingAgent.company,
-            name: editingAgent.name,
-            email: editingAgent.email,
-            phone: editingAgent.phone || '',
-            address: editingAgent.address || '',
-            status: editingAgent.status,
-            commissionRate: editingAgent.commission_rate,
-            totalSales: editingAgent.total_sales,
-            totalCommission: editingAgent.total_commission,
-            ordersCount: 0,
-            joinedAt: editingAgent.joined_at,
-          } : newAgentCode ? {
+          agent={editingAgent ?? (newAgentCode ? {
             id: '',
             code: newAgentCode,
             company: '',
@@ -442,28 +428,14 @@ export default function AgentsPage() {
             totalCommission: 0,
             ordersCount: 0,
             joinedAt: new Date().toISOString(),
-          } : null}
+          } : null)}
           onSubmit={handleFormSubmit}
         />
 
         <AgentDeleteDialog
           open={showDeleteDialog}
           onOpenChange={setShowDeleteDialog}
-          agent={deletingAgent ? {
-            id: deletingAgent.id,
-            code: deletingAgent.code,
-            company: deletingAgent.company,
-            name: deletingAgent.name,
-            email: deletingAgent.email,
-            phone: deletingAgent.phone || '',
-            address: deletingAgent.address || '',
-            status: deletingAgent.status,
-            commissionRate: deletingAgent.commission_rate,
-            totalSales: deletingAgent.total_sales,
-            totalCommission: deletingAgent.total_commission,
-            ordersCount: 0,
-            joinedAt: deletingAgent.joined_at,
-          } : null}
+          agent={deletingAgent}
           onConfirm={async () => { if (deletingAgent) await handleDeleteConfirm(deletingAgent); }}
         />
       </div>

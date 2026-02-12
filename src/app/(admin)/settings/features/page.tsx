@@ -5,8 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { mockSettings } from '@/lib/mock-data';
 import { PageTabs } from '@/components/layout/page-tabs';
+import { useOrganization } from '@/components/providers/organization-provider';
+
+const defaultFeatureFlags = {
+  enableGuestCheckout: false,
+  enableEstimates: true,
+  enableAdvancedInventory: false,
+  enableAgentManagement: true,
+};
 
 const settingsTabs = [
   { label: '基本設定', href: '/settings', exact: true },
@@ -19,6 +26,10 @@ const settingsTabs = [
 ];
 
 export default function FeaturesSettingsPage() {
+  const { organization } = useOrganization();
+  const settings = (organization?.settings as Record<string, boolean> | undefined) ?? {};
+  const flags = { ...defaultFeatureFlags, ...settings };
+
   return (
     <div className="space-y-6">
       {/* ヘッダー */}
@@ -53,7 +64,7 @@ export default function FeaturesSettingsPage() {
                   会員登録なしで購入を許可する
                 </p>
               </div>
-              <Switch defaultChecked={mockSettings.enableGuestCheckout} />
+              <Switch defaultChecked={flags.enableGuestCheckout} />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -62,7 +73,7 @@ export default function FeaturesSettingsPage() {
                   見積書の作成・管理機能を有効にする
                 </p>
               </div>
-              <Switch defaultChecked={mockSettings.enableEstimates} />
+              <Switch defaultChecked={flags.enableEstimates} />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -71,7 +82,7 @@ export default function FeaturesSettingsPage() {
                   複数倉庫・ロット管理などの高度な在庫機能
                 </p>
               </div>
-              <Switch defaultChecked={mockSettings.enableAdvancedInventory} />
+              <Switch defaultChecked={flags.enableAdvancedInventory} />
             </div>
           </CardContent>
         </Card>
@@ -89,7 +100,7 @@ export default function FeaturesSettingsPage() {
                   代理店・営業担当者の管理機能
                 </p>
               </div>
-              <Switch defaultChecked={mockSettings.enableAgentManagement} />
+              <Switch defaultChecked={flags.enableAgentManagement} />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">

@@ -18,7 +18,6 @@ import {
   IoLogOut,
   IoPerson,
   IoChevronDown,
-  IoEllipsisHorizontal,
 } from 'react-icons/io5';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { currentUser } from '@/lib/mock-data';
+import { useOrganization } from '@/components/providers/organization-provider';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { IconType } from 'react-icons';
@@ -134,78 +133,10 @@ function NavItem({
   );
 }
 
-// その他メニューコンポーネント
-function MoreMenu({ 
-  items, 
-  isActive,
-  size = 'default' 
-}: { 
-  items: typeof navigationItems; 
-  isActive: (href: string) => boolean;
-  size?: 'default' | 'compact';
-}) {
-  const isCompact = size === 'compact';
-  const hasActiveItem = items.some(item => isActive(item.href));
-  
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button 
-          className={cn(
-            'flex flex-col items-center rounded-xl transition-all duration-200',
-            isCompact 
-              ? 'gap-1 px-3 py-2 min-w-[60px]' 
-              : 'gap-1.5 px-4 py-2.5 min-w-[70px]',
-            hasActiveItem
-              ? 'bg-orange-50 dark:bg-orange-950/30'
-              : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
-          )}
-        >
-          <IoEllipsisHorizontal className={cn(
-            hasActiveItem ? "text-orange-500" : "text-slate-500 dark:text-slate-400",
-            isCompact ? 'h-5 w-5' : 'h-6 w-6'
-          )} />
-          <span className={cn(
-            'font-medium',
-            hasActiveItem ? 'text-orange-600 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400',
-            isCompact ? 'text-xs' : 'text-sm'
-          )}>
-            その他
-          </span>
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.href);
-          return (
-            <DropdownMenuItem key={item.href} asChild>
-              <Link 
-                href={item.href} 
-                className={cn(
-                  'flex items-center gap-3',
-                  active && 'bg-orange-50 dark:bg-orange-950/30'
-                )}
-              >
-                <Icon className={cn("h-4 w-4", active ? "text-orange-500" : "text-slate-500")} />
-                <span className={active ? 'font-medium text-orange-600 dark:text-orange-400' : ''}>{item.title}</span>
-                {item.badge && (
-                  <Badge variant="destructive" className="ml-auto h-5 w-5 rounded-full p-0 text-[10px] flex items-center justify-center">
-                    {item.badge}
-                  </Badge>
-                )}
-              </Link>
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 export function TopNavigation() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { currentUser } = useOrganization();
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -242,7 +173,7 @@ export function TopNavigation() {
 
           {/* タブレット/中画面ナビゲーション - lg (1024px〜1279px) */}
           <nav className="hidden lg:flex xl:hidden items-center gap-0.5 flex-1 justify-center mx-4">
-            {navigationItems.slice(0, 7).map((item) => (
+            {navigationItems.map((item) => (
               <NavItem 
                 key={item.href} 
                 item={item} 
@@ -250,16 +181,11 @@ export function TopNavigation() {
                 size="compact"
               />
             ))}
-            <MoreMenu 
-              items={navigationItems.slice(7)} 
-              isActive={isActive}
-              size="compact"
-            />
           </nav>
 
           {/* 小タブレットナビゲーション - md (768px〜1023px) */}
           <nav className="hidden md:flex lg:hidden items-center gap-0.5 flex-1 justify-center mx-2">
-            {navigationItems.slice(0, 5).map((item) => (
+            {navigationItems.map((item) => (
               <NavItem 
                 key={item.href} 
                 item={item} 
@@ -267,11 +193,6 @@ export function TopNavigation() {
                 size="compact"
               />
             ))}
-            <MoreMenu 
-              items={navigationItems.slice(5)} 
-              isActive={isActive}
-              size="compact"
-            />
           </nav>
 
           {/* 右側のアクション */}
@@ -319,9 +240,9 @@ export function TopNavigation() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-1 md:gap-2 h-8 md:h-9 px-1.5 md:px-2">
                   <Avatar className="h-6 w-6 md:h-7 md:w-7">
-                    <AvatarImage src={currentUser.avatar} />
+                    <AvatarImage src={currentUser?.avatar ?? undefined} />
                     <AvatarFallback className="bg-orange-500 text-white text-[10px] md:text-xs">
-                      {currentUser.name.slice(0, 2)}
+                      {currentUser ? currentUser.name.slice(0, 2) : '?'}
                     </AvatarFallback>
                   </Avatar>
                   <IoChevronDown className="h-3 w-3 text-muted-foreground hidden lg:block" />
@@ -329,8 +250,8 @@ export function TopNavigation() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-3 py-2 border-b">
-                  <p className="font-medium text-sm">{currentUser.name}</p>
-                  <p className="text-xs text-muted-foreground">{currentUser.email}</p>
+                  <p className="font-medium text-sm">{currentUser?.name ?? 'ユーザー'}</p>
+                  <p className="text-xs text-muted-foreground">{currentUser?.email ?? ''}</p>
                 </div>
                 <DropdownMenuItem asChild>
                   <Link href="/profile">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, Plus, Search, MoreHorizontal, Shield, Mail, Check, Minus, X, Key, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +13,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { mockUsers, mockRoles } from '@/lib/mock-data';
 import { PageTabs } from '@/components/layout/page-tabs';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getOrganizationMembers } from '@/lib/actions/settings';
 import { cn } from '@/lib/utils';
+
+type MemberRow = {
+  id: string;
+  userId: string;
+  email: string;
+  name: string;
+  role: string;
+  isActive: boolean;
+  avatar?: string | null;
+};
 
 const settingsTabs = [
   { label: '基本設定', href: '/settings', exact: true },
@@ -71,12 +82,26 @@ const permissionCategories = [
 ];
 
 const rolePermissions: Record<string, Record<string, 'full' | 'partial' | 'none'>> = {
+  owner: {
+    'products.view': 'full', 'products.create': 'full', 'products.edit': 'full', 'products.delete': 'full',
+    'orders.view': 'full', 'orders.process': 'full', 'orders.cancel': 'full',
+    'customers.view': 'full', 'customers.edit': 'full',
+    'content.view': 'full', 'content.create': 'full', 'content.publish': 'full',
+    'settings.view': 'full', 'settings.edit': 'full', 'users.manage': 'full',
+  },
   admin: {
     'products.view': 'full', 'products.create': 'full', 'products.edit': 'full', 'products.delete': 'full',
     'orders.view': 'full', 'orders.process': 'full', 'orders.cancel': 'full',
     'customers.view': 'full', 'customers.edit': 'full',
     'content.view': 'full', 'content.create': 'full', 'content.publish': 'full',
     'settings.view': 'full', 'settings.edit': 'full', 'users.manage': 'full',
+  },
+  manager: {
+    'products.view': 'full', 'products.create': 'partial', 'products.edit': 'full', 'products.delete': 'none',
+    'orders.view': 'full', 'orders.process': 'full', 'orders.cancel': 'full',
+    'customers.view': 'full', 'customers.edit': 'full',
+    'content.view': 'full', 'content.create': 'partial', 'content.publish': 'none',
+    'settings.view': 'partial', 'settings.edit': 'none', 'users.manage': 'none',
   },
   editor: {
     'products.view': 'full', 'products.create': 'full', 'products.edit': 'full', 'products.delete': 'partial',
@@ -94,9 +119,50 @@ const rolePermissions: Record<string, Record<string, 'full' | 'partial' | 'none'
   },
 };
 
+const ORG_ROLES = [
+  { id: 'owner', name: 'オーナー', description: '組織のすべての権限' },
+  { id: 'admin', name: '管理者', description: '設定・メンバー管理を含む全機能' },
+  { id: 'manager', name: 'マネージャー', description: '注文・見積・顧客の管理' },
+  { id: 'editor', name: '編集者', description: '商品・コンテンツの作成・編集' },
+  { id: 'viewer', name: '閲覧者', description: 'データの閲覧のみ' },
+];
+
 export default function UsersSettingsPage() {
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>('users');
   const [permissions, setPermissions] = useState(rolePermissions);
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [membersLoading, setMembersLoading] = useState(true);
+  const { organization } = useOrganization();
+
+  useEffect(() => {
+    if (!organization?.id) {
+      setMembers([]);
+      setMembersLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setMembersLoading(true);
+    getOrganizationMembers(organization.id).then(({ data, error }) => {
+      if (cancelled) return;
+      setMembersLoading(false);
+      if (error || !data) {
+        setMembers([]);
+        return;
+      }
+      setMembers(
+        data.map((m: { id: string; user_id: string; role: string; is_active: boolean; user: { id: string; email: string; name: string; avatar?: string | null } | null }) => ({
+          id: m.id,
+          userId: m.user_id,
+          email: (m.user as { email?: string } | null)?.email ?? '',
+          name: (m.user as { name?: string } | null)?.name ?? 'ユーザー',
+          role: m.role,
+          isActive: m.is_active,
+          avatar: (m.user as { avatar?: string | null } | null)?.avatar ?? null,
+        }))
+      );
+    });
+    return () => { cancelled = true; };
+  }, [organization?.id]);
 
   const subTabs = [
     { key: 'users' as SubTabType, label: 'ユーザー管理', icon: Users },
@@ -106,18 +172,16 @@ export default function UsersSettingsPage() {
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
+      case 'owner':
       case 'admin': return 'default';
+      case 'manager':
       case 'editor': return 'secondary';
       default: return 'outline';
     }
   };
 
   const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin': return '管理者';
-      case 'editor': return '編集者';
-      default: return '閲覧者';
-    }
+    return ORG_ROLES.find((r) => r.id === role)?.name ?? role;
   };
 
   const handlePermissionToggle = (roleId: string, permissionId: string) => {
@@ -195,19 +259,19 @@ export default function UsersSettingsPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card className="card-hover">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">総ユーザー数</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">総メンバー数</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockUsers.length}</div>
+                <div className="text-2xl font-bold">{membersLoading ? '—' : members.length}</div>
               </CardContent>
             </Card>
             <Card className="card-hover">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">管理者</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">管理者以上</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {mockUsers.filter((u) => u.role === 'admin').length}
+                  {membersLoading ? '—' : members.filter((u) => ['owner', 'admin'].includes(u.role)).length}
                 </div>
               </CardContent>
             </Card>
@@ -217,7 +281,7 @@ export default function UsersSettingsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-500">
-                  {mockUsers.filter((u) => u.isActive).length}
+                  {membersLoading ? '—' : members.filter((u) => u.isActive).length}
                 </div>
               </CardContent>
             </Card>
@@ -238,7 +302,12 @@ export default function UsersSettingsPage() {
               </div>
 
               <div className="space-y-4">
-                {mockUsers.map((user) => (
+                {membersLoading ? (
+                  <p className="text-sm text-muted-foreground py-4">読み込み中...</p>
+                ) : members.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">メンバーがいません。設定 → メンバー から招待できます。</p>
+                ) : (
+                  members.map((user) => (
                   <div
                     key={user.id}
                     className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
@@ -252,7 +321,7 @@ export default function UsersSettingsPage() {
                       <div>
                         <div className="font-medium flex items-center gap-2">
                           {user.name}
-                          {user.role === 'admin' && (
+                          {['owner', 'admin'].includes(user.role) && (
                             <Shield className="h-4 w-4 text-primary" />
                           )}
                         </div>
@@ -285,7 +354,8 @@ export default function UsersSettingsPage() {
                       </DropdownMenu>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -301,7 +371,7 @@ export default function UsersSettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockRoles.map((role) => (
+              {ORG_ROLES.map((role) => (
                 <div
                   key={role.id}
                   className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
@@ -322,7 +392,7 @@ export default function UsersSettingsPage() {
                   </div>
                   <div className="flex items-center gap-4">
                     <Badge variant="secondary">
-                      {mockUsers.filter(u => u.role === role.id).length}人
+                      {members.filter(u => u.role === role.id).length}人
                     </Badge>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -357,7 +427,7 @@ export default function UsersSettingsPage() {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-medium">権限</th>
-                    {mockRoles.map(role => (
+                    {ORG_ROLES.map(role => (
                       <th key={role.id} className="text-center py-3 px-4 font-medium min-w-[100px]">
                         {role.name}
                       </th>
@@ -368,14 +438,14 @@ export default function UsersSettingsPage() {
                   {permissionCategories.map((category) => (
                     <>
                       <tr key={category.name} className="bg-muted/30">
-                        <td colSpan={mockRoles.length + 1} className="py-2 px-4 font-semibold text-sm">
+                        <td colSpan={ORG_ROLES.length + 1} className="py-2 px-4 font-semibold text-sm">
                           {category.name}
                         </td>
                       </tr>
                       {category.permissions.map((permission) => (
                         <tr key={permission.id} className="border-b hover:bg-muted/50">
                           <td className="py-3 px-4 text-sm">{permission.name}</td>
-                          {mockRoles.map(role => (
+                          {ORG_ROLES.map(role => (
                             <td key={role.id} className="text-center py-3 px-4">
                               <button
                                 onClick={() => handlePermissionToggle(role.id, permission.id)}

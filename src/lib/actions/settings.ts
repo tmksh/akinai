@@ -146,7 +146,7 @@ export async function getOrganizationMembers(organizationId: string) {
     .from('organization_members')
     .select(`
       *,
-      user:users(id, email, name, avatar_url)
+      user:users(id, email, name, avatar)
     `)
     .eq('organization_id', organizationId)
     .eq('is_active', true)

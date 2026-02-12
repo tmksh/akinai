@@ -18,13 +18,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { type Agent } from '@/lib/mock-data';
+import type { AgentDisplay } from '../types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface AgentCardProps {
-  agent: Agent;
-  onView: (agent: Agent) => void;
+  agent: AgentDisplay;
+  onView: (agent: AgentDisplay) => void;
 }
 
 const statusConfig = {

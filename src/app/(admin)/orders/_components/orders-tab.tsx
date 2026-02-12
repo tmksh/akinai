@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getOrders } from '@/lib/actions/orders';
 import {
   Search,
   Filter,
@@ -44,7 +46,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { mockOrders } from '@/lib/mock-data';
 import type { Order, OrderStatus, PaymentStatus } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -177,14 +178,74 @@ const OrderRow = memo(function OrderRow({
   );
 });
 
+function mapOrderFromApi(row: Record<string, unknown>): Order {
+  const items = (row.items as Record<string, unknown>[] || []).map((item) => ({
+    id: item.id as string,
+    productId: item.product_id as string,
+    variantId: item.variant_id as string,
+    productName: (item.product_name as string) ?? '',
+    variantName: (item.variant_name as string) ?? '',
+    sku: (item.sku as string) ?? '',
+    quantity: (item.quantity as number) ?? 0,
+    unitPrice: (item.unit_price as number) ?? 0,
+    totalPrice: (item.total_price as number) ?? 0,
+  }));
+  return {
+    id: row.id as string,
+    orderNumber: (row.order_number as string) ?? '',
+    customerId: (row.customer_id as string) ?? '',
+    customerName: (row.customer_name as string) ?? '',
+    customerEmail: (row.customer_email as string) ?? '',
+    items,
+    subtotal: (row.subtotal as number) ?? 0,
+    shippingCost: (row.shipping_cost as number) ?? 0,
+    tax: (row.tax as number) ?? 0,
+    total: (row.total as number) ?? 0,
+    status: (row.status as OrderStatus) ?? 'pending',
+    paymentStatus: (row.payment_status as PaymentStatus) ?? 'pending',
+    paymentMethod: (row.payment_method as string) ?? '',
+    shippingAddress: (row.shipping_address as Order['shippingAddress']) ?? { postalCode: '', prefecture: '', city: '', line1: '', phone: '' },
+    billingAddress: row.billing_address as Order['billingAddress'] | undefined,
+    notes: row.notes as string | undefined,
+    trackingNumber: row.tracking_number as string | undefined,
+    shippedAt: row.shipped_at as string | undefined,
+    deliveredAt: row.delivered_at as string | undefined,
+    createdAt: (row.created_at as string) ?? '',
+    updatedAt: (row.updated_at as string) ?? '',
+  };
+}
+
 export function OrdersTab() {
   const router = useRouter();
+  const { organization } = useOrganization();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [datePreset, setDatePreset] = useState<PresetType>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [calendarOpen, setCalendarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!organization?.id) {
+      setOrders([]);
+      setOrdersLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setOrdersLoading(true);
+    getOrders(organization.id).then(({ data, error }) => {
+      if (cancelled) return;
+      setOrdersLoading(false);
+      if (error || !data) {
+        setOrders([]);
+        return;
+      }
+      setOrders(data.map((o) => mapOrderFromApi(o as Record<string, unknown>)));
+    });
+    return () => { cancelled = true; };
+  }, [organization?.id]);
 
   const handlePresetChange = useCallback((preset: PresetType) => {
     setDatePreset(preset);
@@ -220,7 +281,7 @@ export function OrdersTab() {
   }, [datePreset, dateRange]);
 
   const filteredOrders = useMemo(() => {
-    return mockOrders.filter((order) => {
+    return orders.filter((order) => {
       const query = searchQuery.toLowerCase();
       const matchesSearch =
         order.orderNumber.toLowerCase().includes(query) ||
@@ -247,7 +308,7 @@ export function OrdersTab() {
 
       return matchesSearch && matchesStatus && matchesPayment && matchesDate;
     });
-  }, [searchQuery, statusFilter, paymentFilter, dateRange]);
+  }, [orders, searchQuery, statusFilter, paymentFilter, dateRange]);
 
   const resetFilters = useCallback(() => {
     setSearchQuery('');
@@ -404,7 +465,13 @@ export function OrdersTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredOrders.length === 0 ? (
+            {ordersLoading ? (
+              <TableRow>
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                  読み込み中...
+                </TableCell>
+              </TableRow>
+            ) : filteredOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-24 text-center">
                   <div className="flex flex-col items-center gap-2">

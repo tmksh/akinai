@@ -11,14 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { type Agent } from '@/lib/mock-data';
+import type { AgentDisplay } from '../types';
 import { toast } from 'sonner';
 
 interface AgentDeleteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  agent: Agent | null;
-  onConfirm: (agent: Agent) => Promise<void>;
+  agent: AgentDisplay | null;
+  onConfirm: (agent: AgentDisplay) => Promise<void>;
 }
 
 export function AgentDeleteDialog({

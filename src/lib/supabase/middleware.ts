@@ -37,23 +37,29 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 認証が必要なルートの保護
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login');
-  const isPublicRoute = 
-    request.nextUrl.pathname === '/' ||
-    request.nextUrl.pathname.startsWith('/auth');
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup');
+  const isPublicRoute =
+    pathname === '/' ||
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/shop');
+  const isOnboardingRoute = pathname.startsWith('/onboarding');
 
-  if (!user && !isAuthRoute && !isPublicRoute) {
-    // 未ログインユーザーをログインページにリダイレクト
+  if (!user && !isAuthRoute && !isPublicRoute && !isOnboardingRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
   if (user && isAuthRoute) {
-    // ログイン済みユーザーがログインページにアクセスした場合、ダッシュボードにリダイレクト
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
+  }
+
+  if (!user && isOnboardingRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
