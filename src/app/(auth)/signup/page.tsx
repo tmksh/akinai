@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Loader2, Mail, Lock, User } from 'lucide-react';
 
-export default function SignupPage() {
+function SignupForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -203,5 +203,24 @@ export default function SignupPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-orange-50 via-amber-50 to-orange-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
+          <Card className="w-full max-w-md shadow-xl border-0 bg-white dark:bg-slate-900">
+            <CardContent className="pt-10 pb-8 px-8 flex flex-col items-center justify-center min-h-[320px]">
+              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+              <p className="mt-4 text-sm text-slate-500">読み込み中...</p>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <SignupForm />
+    </Suspense>
   );
 }
