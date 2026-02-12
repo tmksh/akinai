@@ -183,7 +183,7 @@ export function AgentFormDialog({
               <Label htmlFor="status">ステータス</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => handleChange('status', value as Agent['status'])}
+                onValueChange={(value) => handleChange('status', value as AgentDisplay['status'])}
               >
                 <SelectTrigger>
                   <SelectValue />
