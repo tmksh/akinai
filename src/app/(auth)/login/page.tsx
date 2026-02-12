@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -20,7 +20,7 @@ const ERROR_MESSAGES: Record<string, string> = {
     '所属する組織がありません。管理者に招待を依頼してください。',
 };
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -260,5 +260,24 @@ export default function LoginPage() {
         © {new Date().getFullYear()} AKINAI CMS. All rights reserved.
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-orange-50 via-amber-50 to-orange-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
+          <Card className="w-full max-w-md shadow-xl border-0 bg-white dark:bg-slate-900">
+            <CardContent className="pt-10 pb-8 px-8 flex flex-col items-center justify-center min-h-[320px]">
+              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+              <p className="mt-4 text-sm text-slate-500">読み込み中...</p>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
