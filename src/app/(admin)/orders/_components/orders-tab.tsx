@@ -242,7 +242,7 @@ export function OrdersTab() {
         setOrders([]);
         return;
       }
-      setOrders(data.map((o) => mapOrderFromApi(o as Record<string, unknown>)));
+      setOrders(data.map((o) => mapOrderFromApi(o as unknown as Record<string, unknown>)));
     });
     return () => { cancelled = true; };
   }, [organization?.id]);
