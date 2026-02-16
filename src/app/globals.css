@@ -137,6 +137,35 @@
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', 'Noto Sans JP', sans-serif;
   }
+  /* 同一オリジンリンクのタップ時フィードバック（押した感） */
+  a[href^="/"]:active {
+    opacity: 0.85;
+  }
+}
+
+/* TipTap リッチテキストエディタ */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: oklch(0.6 0 0);
+  pointer-events: none;
+  height: 0;
+}
+.tiptap:focus {
+  outline: none;
+}
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+}
+.tiptap img.ProseMirror-selectednode {
+  outline: 2px solid oklch(0.7 0.18 50);
+  border-radius: 0.5rem;
+}
+.tiptap mark {
+  background-color: oklch(0.92 0.12 90);
+  padding: 0.1em 0.2em;
+  border-radius: 0.2em;
 }
 
 /* メインコンテンツの背景グラデーション - 薄いウォームグレー */

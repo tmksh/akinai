@@ -3,6 +3,7 @@
 import { useState, useMemo, useTransition, useEffect } from 'react';
 import { ArrowLeft, Save, Eye, Smartphone, Monitor, EyeOff, Columns, ExternalLink, RefreshCw, Settings, Loader2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,14 @@ import { getContent, updateContent, deleteContent, publishContent } from '@/lib/
 import { toast } from 'sonner';
 import type { ContentType, ContentStatus } from '@/types';
 import type { ContentData } from '@/lib/actions/contents';
+import type { QAPairBlock, GalleryItemBlock } from '@/types/content-blocks';
+import { getEditorType, contentTypeConfig } from '@/lib/content-types';
+import { getEnabledContentTypes } from '@/lib/actions/settings';
+import { getContentCategories, getContentCategoryIds, setContentCategories, type ContentCategory } from '@/lib/actions/contents';
+import { Checkbox } from '@/components/ui/checkbox';
+import { QAEditor } from '../../_components/qa-editor';
+import { GalleryEditor } from '../../_components/gallery-editor';
+import { RichTextEditor, blocksToHtml, htmlToBlocks } from '@/components/editor/rich-text-editor';
 
 const contentTabs = [
   { label: '一覧', href: '/contents', exact: true },
@@ -51,7 +60,7 @@ export default function EditContentPage() {
   const [contentData, setContentData] = useState<ContentData | null>(null);
   
   const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
+  const [slug, setSlug] = useState(''); // 内部保持（保存時に送信、UIには表示しない）
   const [content, setContent] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [contentType, setContentType] = useState<ContentType>('article');
@@ -63,12 +72,37 @@ export default function EditContentPage() {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [qaPairs, setQaPairs] = useState<QAPairBlock[]>([]);
+  const [galleryItems, setGalleryItems] = useState<GalleryItemBlock[]>([]);
+  const [enabledContentTypes, setEnabledContentTypes] = useState<string[]>([]);
+  const [allCategories, setAllCategories] = useState<ContentCategory[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const { organization } = useOrganization();
   const frontendUrl = useFrontendUrl();
   const isFrontendConnected = !!frontendUrl;
+
+  // 有効タイプとカテゴリを取得
+  useEffect(() => {
+    if (!organization?.id) return;
+    Promise.all([
+      getEnabledContentTypes(organization.id),
+      getContentCategories(organization.id),
+    ]).then(([typeResult, catResult]) => {
+      setEnabledContentTypes(typeResult.data || []);
+      setAllCategories(catResult.data || []);
+    });
+  }, [organization?.id]);
+
+  // コンテンツのカテゴリ紐付けを取得
+  useEffect(() => {
+    if (!contentId) return;
+    getContentCategoryIds(contentId).then(({ data }) => {
+      setSelectedCategoryIds(data || []);
+    });
+  }, [contentId]);
 
   // コンテンツを取得
   useEffect(() => {
@@ -100,17 +134,32 @@ export default function EditContentPage() {
           ...(f.options && { options: f.options }),
         })));
         
-        // ブロックからテキストコンテンツに変換
+        // ブロックをタイプに応じて復元
         if (data.blocks && Array.isArray(data.blocks)) {
-          const blocks = data.blocks as Array<{ type?: string; content?: string; level?: number }>;
-          const textContent = blocks.map((block) => {
-            if (block.type === 'heading' && block.content) {
-              const level = block.level || 2;
-              return '#'.repeat(level) + ' ' + block.content;
-            }
-            return block.content || '';
-          }).join('\n\n');
-          setContent(textContent);
+          const edType = getEditorType(data.type);
+          if (edType === 'qa') {
+            setQaPairs(
+              (data.blocks as QAPairBlock[]).map((b, i) => ({
+                id: b.id || `qa-${i}`,
+                question: b.question || '',
+                answer: b.answer || '',
+                order: b.order ?? i,
+              }))
+            );
+          } else if (edType === 'gallery') {
+            setGalleryItems(
+              (data.blocks as GalleryItemBlock[]).map((b, i) => ({
+                id: b.id || `gallery-${i}`,
+                url: b.url || '',
+                caption: b.caption || '',
+                alt: b.alt || '',
+                order: b.order ?? i,
+              }))
+            );
+          } else {
+            const rawBlocks = data.blocks as Array<{ id: string; type: string; content?: string; level?: number; order: number; src?: string; alt?: string; items?: string[]; textAlign?: string }>;
+            setContent(blocksToHtml(rawBlocks));
+          }
         }
       } else if (error) {
         toast.error(error);
@@ -149,19 +198,16 @@ export default function EditContentPage() {
       return;
     }
 
-    // マークダウン風コンテンツをブロック形式に変換
-    const blocks = content.split('\n').filter(Boolean).map((line, index) => {
-      if (line.startsWith('### ')) {
-        return { id: `block-${index}`, type: 'heading', content: line.slice(4), level: 3, order: index };
-      }
-      if (line.startsWith('## ')) {
-        return { id: `block-${index}`, type: 'heading', content: line.slice(3), level: 2, order: index };
-      }
-      if (line.startsWith('# ')) {
-        return { id: `block-${index}`, type: 'heading', content: line.slice(2), level: 1, order: index };
-      }
-      return { id: `block-${index}`, type: 'paragraph', content: line, order: index };
-    });
+    // タイプ別にブロックを構築
+    const edType = getEditorType(contentType);
+    let blocks: unknown[];
+    if (edType === 'qa') {
+      blocks = qaPairs.map((p, i) => ({ ...p, order: i }));
+    } else if (edType === 'gallery') {
+      blocks = galleryItems.map((item, i) => ({ ...item, order: i }));
+    } else {
+      blocks = htmlToBlocks(content);
+    }
 
     startTransition(async () => {
       const { data, error } = await updateContent(contentId, {
@@ -179,6 +225,7 @@ export default function EditContentPage() {
 
       if (data) {
         setContentData(data);
+        await setContentCategories(data.id, selectedCategoryIds);
         toast.success(`「${data.title}」を更新しました`);
       } else {
         toast.error(error || '保存に失敗しました');
@@ -213,19 +260,6 @@ export default function EditContentPage() {
       } else {
         toast.error(error || '公開に失敗しました');
       }
-    });
-  };
-
-  // マークダウン風レンダリング
-  const renderContent = (text: string) => {
-    if (!text) return null;
-    const lines = text.split('\n');
-    return lines.map((line, index) => {
-      if (line.startsWith('### ')) return <h3 key={index} className="text-lg font-semibold mt-4 mb-2">{line.slice(4)}</h3>;
-      if (line.startsWith('## ')) return <h2 key={index} className="text-xl font-bold mt-6 mb-3">{line.slice(3)}</h2>;
-      if (line.startsWith('# ')) return <h1 key={index} className="text-2xl font-bold mt-6 mb-4">{line.slice(2)}</h1>;
-      if (line.trim() === '') return <br key={index} />;
-      return <p key={index} className="mb-2 leading-relaxed">{line}</p>;
     });
   };
 
@@ -335,21 +369,36 @@ export default function EditContentPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
+                <FieldLabel fieldKey="type">コンテンツタイプ</FieldLabel>
+                <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="タイプを選択" /></SelectTrigger>
+                  <SelectContent>
+                    {(enabledContentTypes.length > 0
+                      ? enabledContentTypes
+                      : [contentType]
+                    ).map((key) => {
+                      const config = contentTypeConfig[key];
+                      if (!config) return null;
+                      return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  設定で追加したタイプのみ選択できます
+                  {contentType && (
+                    <span className="block mt-1">
+                      APIで使う値: <code className="text-[10px] font-mono bg-muted/50 px-1 py-0.5 rounded">{contentType}</code>
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div className="space-y-2">
                 <FieldLabel htmlFor="title" fieldKey="title">タイトル</FieldLabel>
                 <Input
                   id="title"
                   placeholder="記事のタイトルを入力"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <FieldLabel htmlFor="slug" fieldKey="slug">スラッグ</FieldLabel>
-                <Input
-                  id="slug"
-                  placeholder="article-slug"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -363,14 +412,31 @@ export default function EditContentPage() {
                 />
               </div>
               <div className="space-y-2">
-                <FieldLabel htmlFor="content" fieldKey="blocks">本文</FieldLabel>
-                <Textarea
-                  id="content"
-                  placeholder="記事の本文を入力..."
-                  className="min-h-[300px] font-mono"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                />
+                <FieldLabel htmlFor="content" fieldKey="blocks">
+                  {getEditorType(contentType) === 'qa' ? '質問と回答' : getEditorType(contentType) === 'gallery' ? '画像' : '本文'}
+                </FieldLabel>
+                {getEditorType(contentType) === 'qa' ? (
+                  <QAEditor
+                    pairs={qaPairs}
+                    onChange={setQaPairs}
+                    disabled={isPending}
+                  />
+                ) : getEditorType(contentType) === 'gallery' ? (
+                  <GalleryEditor
+                    items={galleryItems}
+                    onChange={setGalleryItems}
+                    organizationId={organization?.id || ''}
+                    disabled={isPending}
+                  />
+                ) : (
+                  <RichTextEditor
+                    content={content}
+                    onChange={setContent}
+                    placeholder="ここに本文を入力..."
+                    disabled={isPending}
+                    minHeight="300px"
+                  />
+                )}
               </div>
             </CardContent>
           </Card>
@@ -408,22 +474,16 @@ export default function EditContentPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="article">記事</SelectItem>
-                      <SelectItem value="news">ニュース</SelectItem>
-                      <SelectItem value="feature">特集</SelectItem>
-                      <SelectItem value="page">ページ</SelectItem>
-                      <SelectItem value="qa">Q&A</SelectItem>
-                      <SelectItem value="faq">FAQ</SelectItem>
-                      <SelectItem value="guide">ガイド</SelectItem>
-                      <SelectItem value="announcement">お知らせ</SelectItem>
+                      {(enabledContentTypes.length > 0
+                        ? enabledContentTypes
+                        : [contentType]
+                      ).map((key) => {
+                        const config = contentTypeConfig[key];
+                        if (!config) return null;
+                        return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
+                      })}
                     </SelectContent>
                   </Select>
-                  <Input
-                    value={contentType}
-                    onChange={(e) => setContentType(e.target.value)}
-                    placeholder="または自由入力"
-                    className="h-8 text-xs font-mono"
-                  />
                 </div>
               </CardContent>
             </Card>
@@ -477,7 +537,7 @@ export default function EditContentPage() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="bg-white dark:bg-slate-700 rounded-md px-3 py-1 text-xs text-muted-foreground truncate">
-                    {isFrontendConnected ? `${frontendUrl}/articles/${slug}` : `https://example.com/${slug}`}
+                    {isFrontendConnected ? `${frontendUrl}/articles/${slug || 'article'}` : `https://example.com/${slug || 'article'}`}
                   </div>
                 </div>
               </div>
@@ -488,10 +548,37 @@ export default function EditContentPage() {
                 </div>
               ) : (
                 <div className={cn("p-6 min-h-[400px] overflow-auto", previewMode === 'mobile' ? "text-sm" : "")}>
-                  {title || content ? (
+                  {title || content || qaPairs.length > 0 || galleryItems.length > 0 ? (
                     <article className="prose dark:prose-invert max-w-none">
                       {title && <h1 className={cn("font-bold mb-4", previewMode === 'mobile' ? "text-xl" : "text-3xl")}>{title}</h1>}
-                      {content && <div className="text-slate-600 dark:text-slate-300">{renderContent(content)}</div>}
+                      {getEditorType(contentType) === 'qa' && qaPairs.length > 0 && (
+                        <div className="space-y-4 not-prose">
+                          {qaPairs.map((pair, i) => (
+                            <div key={pair.id} className="border rounded-lg p-4">
+                              <p className="font-semibold text-sm">Q{i + 1}. {pair.question || '（未入力）'}</p>
+                              <p className="text-sm text-muted-foreground mt-2">{pair.answer || '（未入力）'}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {getEditorType(contentType) === 'gallery' && galleryItems.length > 0 && (
+                        <div className="grid grid-cols-2 gap-2 not-prose">
+                          {galleryItems.map((item) => (
+                            <div key={item.id} className="space-y-1">
+                              <div className="relative aspect-square rounded overflow-hidden bg-muted">
+                                <Image src={item.url} alt={item.alt} fill className="object-cover" />
+                              </div>
+                              {item.caption && <p className="text-xs text-muted-foreground">{item.caption}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {getEditorType(contentType) === 'text' && content && (
+                        <div
+                          className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300"
+                          dangerouslySetInnerHTML={{ __html: content }}
+                        />
+                      )}
                     </article>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
@@ -529,22 +616,16 @@ export default function EditContentPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="article">記事</SelectItem>
-                      <SelectItem value="news">ニュース</SelectItem>
-                      <SelectItem value="feature">特集</SelectItem>
-                      <SelectItem value="page">ページ</SelectItem>
-                      <SelectItem value="qa">Q&A</SelectItem>
-                      <SelectItem value="faq">FAQ</SelectItem>
-                      <SelectItem value="guide">ガイド</SelectItem>
-                      <SelectItem value="announcement">お知らせ</SelectItem>
+                      {(enabledContentTypes.length > 0
+                        ? enabledContentTypes
+                        : [contentType]
+                      ).map((key) => {
+                        const config = contentTypeConfig[key];
+                        if (!config) return null;
+                        return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
+                      })}
                     </SelectContent>
                   </Select>
-                  <Input
-                    value={contentType}
-                    onChange={(e) => setContentType(e.target.value)}
-                    placeholder="または自由入力"
-                    className="h-8 text-xs font-mono"
-                  />
                 </div>
               </CardContent>
             </Card>
@@ -557,6 +638,31 @@ export default function EditContentPage() {
                 <Input placeholder="タグを入力（カンマ区切り）" value={tags} onChange={(e) => setTags(e.target.value)} />
               </CardContent>
             </Card>
+
+            {allCategories.filter((c) => c.type === contentType).length > 0 && (
+              <Card className="card-hover">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">カテゴリ</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {allCategories
+                    .filter((c) => c.type === contentType)
+                    .map((cat) => (
+                      <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={selectedCategoryIds.includes(cat.id)}
+                          onCheckedChange={(checked) =>
+                            setSelectedCategoryIds((prev) =>
+                              checked ? [...prev, cat.id] : prev.filter((id) => id !== cat.id)
+                            )
+                          }
+                        />
+                        <span className="text-sm">{cat.name}</span>
+                      </label>
+                    ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
@@ -570,6 +676,31 @@ export default function EditContentPage() {
                 <Input placeholder="タグを入力（カンマ区切り）" value={tags} onChange={(e) => setTags(e.target.value)} />
               </CardContent>
             </Card>
+
+            {allCategories.filter((c) => c.type === contentType).length > 0 && (
+              <Card className="card-hover">
+                <CardHeader>
+                  <CardTitle>カテゴリ</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {allCategories
+                    .filter((c) => c.type === contentType)
+                    .map((cat) => (
+                      <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={selectedCategoryIds.includes(cat.id)}
+                          onCheckedChange={(checked) =>
+                            setSelectedCategoryIds((prev) =>
+                              checked ? [...prev, cat.id] : prev.filter((id) => id !== cat.id)
+                            )
+                          }
+                        />
+                        <span className="text-sm">{cat.name}</span>
+                      </label>
+                    ))}
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="card-hover">
               <CardHeader>

@@ -1,201 +1,134 @@
 import { NextRequest } from 'next/server';
-import { 
-  validateApiKey, 
-  apiError, 
+import { createClient } from '@supabase/supabase-js';
+import {
+  validateApiKey,
+  apiError,
   apiSuccess,
   handleOptions,
   corsHeaders,
+  withApiLogging,
 } from '@/lib/api/auth';
-
-// モックコンテンツデータ
-const mockContents: Record<string, {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  featuredImage: string;
-  categoryId: string;
-  author: { name: string; avatar: string };
-  tags: string[];
-  status: string;
-  seo: { title: string; description: string };
-  publishedAt: string;
-  createdAt: string;
-  updatedAt: string;
-}> = {
-  'content-1': {
-    id: 'content-1',
-    title: '春の新作コレクションのお知らせ',
-    slug: 'spring-collection-2024',
-    excerpt: '待望の春の新作コレクションが入荷しました。今シーズンのトレンドを取り入れた...',
-    content: `
-      <h2>春の新作コレクション</h2>
-      <p>待望の春の新作コレクションが入荷しました。今シーズンのトレンドを取り入れた、軽やかで華やかなアイテムをご用意しております。</p>
-      <h3>注目アイテム</h3>
-      <ul>
-        <li>オーガニックコットンTシャツ - 新色追加</li>
-        <li>リネンワイドパンツ - 春限定カラー</li>
-        <li>フラワープリントワンピース - 新作</li>
-      </ul>
-      <p>ぜひ店頭またはオンラインショップでご覧ください。</p>
-    `,
-    featuredImage: 'https://picsum.photos/seed/spring/1200/600',
-    categoryId: 'news',
-    author: {
-      name: '山田 太郎',
-      avatar: 'https://picsum.photos/seed/avatar1/100/100',
-    },
-    tags: ['新作', '春コレクション', 'お知らせ'],
-    status: 'published',
-    seo: {
-      title: '春の新作コレクションのお知らせ | サンプルストア',
-      description: '待望の春の新作コレクションが入荷しました。今シーズンのトレンドアイテムをご紹介。',
-    },
-    publishedAt: '2024-03-01T09:00:00Z',
-    createdAt: '2024-02-28T00:00:00Z',
-    updatedAt: '2024-03-01T09:00:00Z',
-  },
-  'content-2': {
-    id: 'content-2',
-    title: 'サステナブルファッションへの取り組み',
-    slug: 'sustainable-fashion',
-    excerpt: '当店では環境に配慮したサステナブルファッションを推進しています...',
-    content: `
-      <h2>サステナブルファッションとは</h2>
-      <p>サステナブルファッションとは、環境や社会に配慮した持続可能なファッションのことです。</p>
-      <h3>私たちの取り組み</h3>
-      <ul>
-        <li>オーガニック素材の使用</li>
-        <li>フェアトレード認証工場での生産</li>
-        <li>リサイクル素材の活用</li>
-        <li>エコパッケージの採用</li>
-      </ul>
-      <p>私たちは、ファッションを通じて社会に貢献することを目指しています。</p>
-    `,
-    featuredImage: 'https://picsum.photos/seed/sustainable/1200/600',
-    categoryId: 'blog',
-    author: {
-      name: '佐藤 花子',
-      avatar: 'https://picsum.photos/seed/avatar2/100/100',
-    },
-    tags: ['サステナブル', '環境', 'エシカル'],
-    status: 'published',
-    seo: {
-      title: 'サステナブルファッションへの取り組み | サンプルストア',
-      description: '当店の環境配慮への取り組みをご紹介。サステナブルファッションを推進しています。',
-    },
-    publishedAt: '2024-02-15T10:00:00Z',
-    createdAt: '2024-02-10T00:00:00Z',
-    updatedAt: '2024-02-15T10:00:00Z',
-  },
-  'content-3': {
-    id: 'content-3',
-    title: 'お手入れガイド: コットン製品の正しい洗い方',
-    slug: 'cotton-care-guide',
-    excerpt: 'コットン製品を長く愛用いただくための正しいお手入れ方法をご紹介...',
-    content: `
-      <h2>コットン製品のお手入れ方法</h2>
-      <p>コットン製品を長く愛用いただくための正しいお手入れ方法をご紹介します。</p>
-      <h3>洗濯のポイント</h3>
-      <ol>
-        <li>裏返してネットに入れる</li>
-        <li>弱水流で洗う</li>
-        <li>タンブラー乾燥は避ける</li>
-        <li>形を整えて干す</li>
-      </ol>
-      <h3>保管のポイント</h3>
-      <ul>
-        <li>直射日光を避ける</li>
-        <li>湿気の少ない場所で保管</li>
-        <li>防虫剤を使用する</li>
-      </ul>
-    `,
-    featuredImage: 'https://picsum.photos/seed/care/1200/600',
-    categoryId: 'guide',
-    author: {
-      name: '山田 太郎',
-      avatar: 'https://picsum.photos/seed/avatar1/100/100',
-    },
-    tags: ['お手入れ', 'ガイド', 'コットン'],
-    status: 'published',
-    seo: {
-      title: 'コットン製品のお手入れガイド | サンプルストア',
-      description: 'コットン製品を長く愛用するための正しい洗い方と保管方法をご紹介。',
-    },
-    publishedAt: '2024-02-01T09:00:00Z',
-    createdAt: '2024-01-28T00:00:00Z',
-    updatedAt: '2024-02-01T09:00:00Z',
-  },
-};
 
 // GET /api/v1/contents/[id] - コンテンツ詳細
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // API認証
   const auth = await validateApiKey(request);
   if (!auth.success) {
-    return apiError(auth.error!, auth.status);
+    return apiError(auth.error!, auth.status, auth.rateLimit);
   }
 
-  const { id } = await params;
+  return withApiLogging(request, auth, async () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  // コンテンツを検索（IDまたはslugで検索）
-  let content = mockContents[id];
-  
-  // slugで検索
-  if (!content) {
-    content = Object.values(mockContents).find(c => c.slug === id) || null as typeof content;
-  }
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return apiError('Server configuration error', 500);
+    }
 
-  if (!content) {
-    return apiError('Content not found', 404);
-  }
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { id } = await params;
 
-  // 非公開コンテンツは返さない
-  if (content.status !== 'published') {
-    return apiError('Content not found', 404);
-  }
+    // IDまたはslugで検索
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  // 公開用にデータを整形
-  const publicContent = {
-    id: content.id,
-    title: content.title,
-    slug: content.slug,
-    excerpt: content.excerpt,
-    content: content.content,
-    featuredImage: content.featuredImage,
-    categoryId: content.categoryId,
-    author: content.author,
-    tags: content.tags,
-    seo: content.seo,
-    publishedAt: content.publishedAt,
-  };
+    let query = supabase
+      .from('contents')
+      .select('*')
+      .eq('organization_id', auth.organizationId);
 
-  const response = apiSuccess(publicContent);
-  
-  // CORSヘッダーを追加
-  Object.entries(corsHeaders()).forEach(([key, value]) => {
-    response.headers.set(key, value);
+    if (isUUID) {
+      query = query.eq('id', id);
+    } else {
+      query = query.eq('slug', id);
+    }
+
+    const { data: content, error: contentError } = await query.single();
+
+    if (contentError || !content) {
+      return apiError('Content not found', 404);
+    }
+
+    // 非公開コンテンツは返さない
+    if (content.status !== 'published') {
+      return apiError('Content not found', 404);
+    }
+
+    // 著者情報を取得
+    let author: { name: string; avatar: string | null } | null = null;
+    if (content.author_id) {
+      const { data: authorData } = await supabase
+        .from('users')
+        .select('full_name, avatar_url')
+        .eq('id', content.author_id)
+        .single();
+
+      if (authorData) {
+        author = {
+          name: authorData.full_name || '不明',
+          avatar: authorData.avatar_url,
+        };
+      }
+    }
+
+    // カテゴリ情報を取得
+    const { data: catRelations } = await supabase
+      .from('content_category_relations')
+      .select('content_categories(id, name, slug)')
+      .eq('content_id', content.id);
+
+    const categories = (catRelations || [])
+      .map(rel => {
+        const cat = rel.content_categories as unknown as Record<string, unknown> | null;
+        return cat ? { id: cat.id as string, name: cat.name as string, slug: cat.slug as string } : null;
+      })
+      .filter(Boolean);
+
+    // 関連商品情報を取得
+    let relatedProducts: { id: string; name: string; slug: string }[] = [];
+    if (content.related_product_ids && content.related_product_ids.length > 0) {
+      const { data: products } = await supabase
+        .from('products')
+        .select('id, name, slug')
+        .in('id', content.related_product_ids)
+        .eq('status', 'published');
+
+      relatedProducts = (products || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+      }));
+    }
+
+    // 公開用にデータを整形
+    const publicContent = {
+      id: content.id,
+      type: content.type,
+      title: content.title,
+      slug: content.slug,
+      excerpt: content.excerpt,
+      blocks: content.blocks || [],
+      featuredImage: content.featured_image,
+      categories,
+      author,
+      tags: content.tags || [],
+      customFields: content.custom_fields || [],
+      relatedProducts,
+      seo: {
+        title: content.seo_title || content.title,
+        description: content.seo_description || content.excerpt || '',
+      },
+      publishedAt: content.published_at,
+    };
+
+    const response = apiSuccess(publicContent, undefined, auth.rateLimit);
+    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
+    return response;
   });
-  
-  return response;
 }
 
 // OPTIONS /api/v1/contents/[id] - CORS preflight
 export async function OPTIONS() {
   return handleOptions();
 }
-
-
-
-
-
-
-
-
-
-
-

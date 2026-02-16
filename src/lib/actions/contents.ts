@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { ContentType, ContentStatus } from '@/types';
+import { getEnabledContentTypes } from '@/lib/actions/settings';
 
 // コンテンツ型定義
 export interface ContentData {
@@ -239,6 +240,12 @@ export async function createContent(
 ): Promise<{ data: ContentData | null; error: string | null }> {
   try {
     const supabase = await createClient();
+
+    // 設定で有効にしたタイプのみ作成可能
+    const { data: enabledTypes } = await getEnabledContentTypes(organizationId);
+    if (Array.isArray(enabledTypes) && enabledTypes.length > 0 && !enabledTypes.includes(input.type)) {
+      return { data: null, error: 'このコンテンツタイプは利用できません。設定で有効にしてください。' };
+    }
     
     // 現在のユーザーを取得
     const { data: { user } } = await supabase.auth.getUser();
@@ -331,6 +338,14 @@ export async function updateContent(
 ): Promise<{ data: ContentData | null; error: string | null }> {
   try {
     const supabase = await createClient();
+
+    // 設定で有効にしたタイプのみ更新可能
+    if (input.type) {
+      const { data: enabledTypes } = await getEnabledContentTypes(organizationId);
+      if (Array.isArray(enabledTypes) && enabledTypes.length > 0 && !enabledTypes.includes(input.type)) {
+        return { data: null, error: 'このコンテンツタイプは利用できません。設定で有効にしてください。' };
+      }
+    }
 
     // スラッグの重複チェック（自分以外）
     if (input.slug) {
@@ -580,7 +595,218 @@ export async function duplicateContent(
   }
 }
 
+// ============================================
+// コンテンツカテゴリ CRUD
+// ============================================
 
+export interface ContentCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  type: string;
+  parentId: string | null;
+  sortOrder: number;
+  contentCount: number;
+  organizationId: string;
+}
 
+// カテゴリ一覧（件数付き）
+export async function getContentCategories(
+  organizationId: string
+): Promise<{ data: ContentCategory[]; error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('content_categories')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('sort_order', { ascending: true });
 
+    if (error) return { data: [], error: error.message };
+
+    // 各カテゴリのコンテンツ件数
+    const ids = (data || []).map((c) => c.id);
+    let countMap: Record<string, number> = {};
+    if (ids.length > 0) {
+      const { data: rels } = await supabase
+        .from('content_category_relations')
+        .select('category_id')
+        .in('category_id', ids);
+      if (rels) {
+        for (const r of rels) {
+          countMap[r.category_id] = (countMap[r.category_id] || 0) + 1;
+        }
+      }
+    }
+
+    const categories: ContentCategory[] = (data || []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
+      type: c.type,
+      parentId: c.parent_id,
+      sortOrder: c.sort_order,
+      contentCount: countMap[c.id] || 0,
+      organizationId: c.organization_id,
+    }));
+
+    return { data: categories, error: null };
+  } catch (err) {
+    return { data: [], error: (err as Error).message };
+  }
+}
+
+// カテゴリ作成
+export async function createContentCategory(input: {
+  organizationId: string;
+  name: string;
+  slug: string;
+  description?: string;
+  type: string;
+}): Promise<{ data: ContentCategory | null; error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('content_categories')
+      .insert({
+        name: input.name,
+        slug: input.slug,
+        description: input.description || null,
+        type: input.type,
+        organization_id: input.organizationId,
+      })
+      .select()
+      .single();
+
+    if (error) return { data: null, error: error.message };
+
+    revalidatePath('/contents');
+    return {
+      data: {
+        id: data.id,
+        name: data.name,
+        slug: data.slug,
+        description: data.description,
+        type: data.type,
+        parentId: data.parent_id,
+        sortOrder: data.sort_order,
+        contentCount: 0,
+        organizationId: data.organization_id,
+      },
+      error: null,
+    };
+  } catch (err) {
+    return { data: null, error: (err as Error).message };
+  }
+}
+
+// カテゴリ更新
+export async function updateContentCategory(
+  categoryId: string,
+  input: { name?: string; slug?: string; description?: string; type?: string }
+): Promise<{ data: ContentCategory | null; error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const updateData: Record<string, unknown> = {};
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.slug !== undefined) updateData.slug = input.slug;
+    if (input.description !== undefined) updateData.description = input.description;
+    if (input.type !== undefined) updateData.type = input.type;
+
+    const { data, error } = await supabase
+      .from('content_categories')
+      .update(updateData)
+      .eq('id', categoryId)
+      .select()
+      .single();
+
+    if (error) return { data: null, error: error.message };
+
+    revalidatePath('/contents');
+    return {
+      data: {
+        id: data.id,
+        name: data.name,
+        slug: data.slug,
+        description: data.description,
+        type: data.type,
+        parentId: data.parent_id,
+        sortOrder: data.sort_order,
+        contentCount: 0,
+        organizationId: data.organization_id,
+      },
+      error: null,
+    };
+  } catch (err) {
+    return { data: null, error: (err as Error).message };
+  }
+}
+
+// カテゴリ削除
+export async function deleteContentCategory(
+  categoryId: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('content_categories')
+      .delete()
+      .eq('id', categoryId);
+
+    if (error) return { success: false, error: error.message };
+    revalidatePath('/contents');
+    return { success: true, error: null };
+  } catch (err) {
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+// コンテンツにカテゴリを紐付け（上書き）
+export async function setContentCategories(
+  contentId: string,
+  categoryIds: string[]
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const supabase = await createClient();
+
+    // 既存を削除
+    await supabase
+      .from('content_category_relations')
+      .delete()
+      .eq('content_id', contentId);
+
+    // 新規追加
+    if (categoryIds.length > 0) {
+      const { error } = await supabase
+        .from('content_category_relations')
+        .insert(categoryIds.map((cid) => ({ content_id: contentId, category_id: cid })));
+      if (error) return { success: false, error: error.message };
+    }
+
+    revalidatePath('/contents');
+    return { success: true, error: null };
+  } catch (err) {
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+// コンテンツのカテゴリを取得
+export async function getContentCategoryIds(
+  contentId: string
+): Promise<{ data: string[]; error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('content_category_relations')
+      .select('category_id')
+      .eq('content_id', contentId);
+
+    if (error) return { data: [], error: error.message };
+    return { data: (data || []).map((r) => r.category_id), error: null };
+  } catch (err) {
+    return { data: [], error: (err as Error).message };
+  }
+}
 

@@ -379,3 +379,146 @@ export async function resetShopTheme(organizationId: string): Promise<{
   return updateShopTheme(organizationId, DEFAULT_SHOP_THEME);
 }
 
+// ============================================
+// 銀行振込口座設定
+// ============================================
+
+export interface BankTransferSettings {
+  bankName: string;
+  branchName: string;
+  accountType: string;
+  accountNumber: string;
+  accountHolder: string;
+  transferDeadlineDays: number;
+}
+
+export async function getBankTransferSettings(organizationId: string): Promise<{
+  data: BankTransferSettings | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching bank transfer settings:', error);
+    return { data: null, error: error.message };
+  }
+
+  const settings = (data?.settings as Record<string, unknown>) || {};
+  const bank = settings.bank_transfer as BankTransferSettings | undefined;
+  return { data: bank || null, error: null };
+}
+
+export async function updateBankTransferSettings(
+  organizationId: string,
+  bank: BankTransferSettings
+): Promise<{ data: BankTransferSettings | null; error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: currentData, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) {
+    return { data: null, error: fetchError.message };
+  }
+
+  const currentSettings = (currentData?.settings as Record<string, unknown>) || {};
+  const newSettings = {
+    ...currentSettings,
+    bank_transfer: bank,
+  };
+
+  const { data: updated, error: updateError } = await supabase
+    .from('organizations')
+    .update({
+      settings: newSettings,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organizationId)
+    .select('settings')
+    .single();
+
+  if (updateError) {
+    return { data: null, error: updateError.message };
+  }
+
+  revalidatePath('/settings/payments');
+  const result = (updated?.settings as Record<string, unknown>)?.bank_transfer as BankTransferSettings;
+  return { data: result || bank, error: null };
+}
+
+// ============================================
+// お知らせ（コンテンツ）で使うタイプ
+// ============================================
+
+export async function getEnabledContentTypes(organizationId: string): Promise<{
+  data: string[];
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching enabled content types:', error);
+    return { data: [], error: error.message };
+  }
+
+  const settings = (data?.settings as Record<string, unknown>) || {};
+  const types = settings.enabled_content_types as string[] | undefined;
+  return { data: Array.isArray(types) ? types : [], error: null };
+}
+
+export async function updateEnabledContentTypes(
+  organizationId: string,
+  types: string[]
+): Promise<{ data: string[] | null; error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: currentData, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) {
+    return { data: null, error: fetchError.message };
+  }
+
+  const currentSettings = (currentData?.settings as Record<string, unknown>) || {};
+  const newSettings = {
+    ...currentSettings,
+    enabled_content_types: types,
+  };
+
+  const { data: updated, error: updateError } = await supabase
+    .from('organizations')
+    .update({
+      settings: newSettings,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organizationId)
+    .select('settings')
+    .single();
+
+  if (updateError) {
+    return { data: null, error: updateError.message };
+  }
+
+  revalidatePath('/settings/contents');
+  revalidatePath('/contents');
+  revalidatePath('/contents/new');
+  const result = (updated?.settings as Record<string, unknown>)?.enabled_content_types as string[];
+  return { data: Array.isArray(result) ? result : types, error: null };
+}
+

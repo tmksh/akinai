@@ -91,7 +91,7 @@ function NavItem({
     <Link
       href={item.href}
       className={cn(
-        'flex flex-col items-center rounded-xl transition-all duration-200 relative group shrink-0',
+        'flex flex-col items-center rounded-xl transition-all duration-200 relative group shrink-0 active:scale-[0.97]',
         isCompact
           ? 'gap-1 px-2 py-2'
           : 'gap-1.5 px-3 py-2.5',

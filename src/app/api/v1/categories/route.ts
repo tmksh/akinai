@@ -1,146 +1,159 @@
 import { NextRequest } from 'next/server';
-import { 
-  validateApiKey, 
-  apiError, 
+import { createClient } from '@supabase/supabase-js';
+import {
+  validateApiKey,
+  apiError,
   apiSuccess,
   handleOptions,
   corsHeaders,
+  withApiLogging,
 } from '@/lib/api/auth';
 
-// カテゴリー型定義
-interface Category {
+// カテゴリー型定義（レスポンス用）
+interface CategoryResponse {
   id: string;
   name: string;
   slug: string;
-  description: string;
+  description: string | null;
   image: string | null;
   parentId: string | null;
   sortOrder: number;
   productCount: number;
-  children: Category[];
+  children: CategoryResponse[];
 }
 
-// モックカテゴリーデータ
-const mockCategories: Category[] = [
-  {
-    id: 'cat-apparel',
-    name: 'アパレル',
-    slug: 'apparel',
-    description: '衣類・ファッションアイテム',
-    image: 'https://picsum.photos/seed/apparel/400/400',
-    parentId: null,
-    sortOrder: 1,
-    productCount: 2,
-    children: [
-      {
-        id: 'cat-tops',
-        name: 'トップス',
-        slug: 'tops',
-        description: 'Tシャツ・シャツなど',
-        image: null,
-        parentId: 'cat-apparel',
-        sortOrder: 1,
-        productCount: 1,
-        children: [],
-      },
-      {
-        id: 'cat-bottoms',
-        name: 'ボトムス',
-        slug: 'bottoms',
-        description: 'パンツ・スカートなど',
-        image: null,
-        parentId: 'cat-apparel',
-        sortOrder: 2,
-        productCount: 1,
-        children: [],
-      },
-    ],
-  },
-  {
-    id: 'cat-accessories',
-    name: 'アクセサリー',
-    slug: 'accessories',
-    description: 'バッグ・アクセサリー',
-    image: 'https://picsum.photos/seed/accessories/400/400',
-    parentId: null,
-    sortOrder: 2,
-    productCount: 1,
-    children: [],
-  },
-  {
-    id: 'cat-home',
-    name: 'ホーム&リビング',
-    slug: 'home',
-    description: '生活雑貨・インテリア',
-    image: 'https://picsum.photos/seed/home/400/400',
-    parentId: null,
-    sortOrder: 3,
-    productCount: 1,
-    children: [],
-  },
-];
+// DBレコード型
+interface CategoryRow {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  image: string | null;
+  parent_id: string | null;
+  sort_order: number;
+}
 
-// カテゴリーをフラット化
-function flattenCategories(
-  categories: Category[], 
-  result: Omit<Category, 'children'>[] = []
-): Omit<Category, 'children'>[] {
-  for (const cat of categories) {
-    const { children, ...rest } = cat;
-    result.push(rest);
-    if (children && children.length > 0) {
-      flattenCategories(children, result);
-    }
-  }
-  return result;
+// フラット形式のカテゴリーをツリー構造に変換
+function buildTree(
+  categories: CategoryRow[],
+  productCounts: Record<string, number>,
+  parentId: string | null = null
+): CategoryResponse[] {
+  return categories
+    .filter(c => c.parent_id === parentId)
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map(c => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
+      image: c.image,
+      parentId: c.parent_id,
+      sortOrder: c.sort_order,
+      productCount: productCounts[c.id] || 0,
+      children: buildTree(categories, productCounts, c.id),
+    }));
 }
 
 // GET /api/v1/categories - カテゴリー一覧
 export async function GET(request: NextRequest) {
-  // API認証
   const auth = await validateApiKey(request);
   if (!auth.success) {
-    return apiError(auth.error!, auth.status);
+    return apiError(auth.error!, auth.status, auth.rateLimit);
   }
 
-  // クエリパラメータ
-  const { searchParams } = new URL(request.url);
-  const flat = searchParams.get('flat') === 'true';
-  const parentId = searchParams.get('parent');
+  return withApiLogging(request, auth, async () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  let categories;
-
-  if (flat) {
-    // フラット形式で返す
-    categories = flattenCategories(mockCategories);
-  } else if (parentId) {
-    // 特定の親カテゴリーの子カテゴリーを返す
-    const parent = flattenCategories(mockCategories).find(c => c.id === parentId);
-    if (!parent) {
-      return apiError('Parent category not found', 404);
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return apiError('Server configuration error', 500);
     }
-    categories = mockCategories
-      .flatMap(c => [c, ...(c.children || [])])
-      .filter(c => c.parentId === parentId)
-      .map(({ children, ...rest }) => rest);
-  } else {
-    // ツリー形式で返す（デフォルト）
-    categories = mockCategories;
-  }
 
-  const response = apiSuccess(categories);
-  
-  // CORSヘッダーを追加
-  Object.entries(corsHeaders()).forEach(([key, value]) => {
-    response.headers.set(key, value);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // クエリパラメータ
+    const { searchParams } = new URL(request.url);
+    const flat = searchParams.get('flat') === 'true';
+    const parentId = searchParams.get('parent');
+
+    // カテゴリを取得
+    const { data: categories, error: catError } = await supabase
+      .from('categories')
+      .select('id, name, slug, description, image, parent_id, sort_order')
+      .eq('organization_id', auth.organizationId)
+      .order('sort_order', { ascending: true });
+
+    if (catError) {
+      console.error('Error fetching categories:', catError);
+      return apiError('Failed to fetch categories', 500);
+    }
+
+    const rows: CategoryRow[] = categories || [];
+
+    // 各カテゴリの商品数を取得
+    const categoryIds = rows.map(c => c.id);
+    let productCounts: Record<string, number> = {};
+
+    if (categoryIds.length > 0) {
+      const { data: pcData } = await supabase
+        .from('product_categories')
+        .select('category_id')
+        .in('category_id', categoryIds);
+
+      if (pcData) {
+        productCounts = pcData.reduce((acc: Record<string, number>, pc) => {
+          acc[pc.category_id] = (acc[pc.category_id] || 0) + 1;
+          return acc;
+        }, {});
+      }
+    }
+
+    let result;
+
+    if (flat) {
+      // フラット形式で返す
+      result = rows.map(c => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        description: c.description,
+        image: c.image,
+        parentId: c.parent_id,
+        sortOrder: c.sort_order,
+        productCount: productCounts[c.id] || 0,
+      }));
+    } else if (parentId) {
+      // 特定の親カテゴリーの子カテゴリーを返す
+      const parent = rows.find(c => c.id === parentId);
+      if (!parent) {
+        return apiError('Parent category not found', 404);
+      }
+      result = rows
+        .filter(c => c.parent_id === parentId)
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          description: c.description,
+          image: c.image,
+          parentId: c.parent_id,
+          sortOrder: c.sort_order,
+          productCount: productCounts[c.id] || 0,
+        }));
+    } else {
+      // ツリー形式で返す（デフォルト）
+      result = buildTree(rows, productCounts, null);
+    }
+
+    const response = apiSuccess(result, undefined, auth.rateLimit);
+    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
+    return response;
   });
-  
-  return response;
 }
 
 // OPTIONS /api/v1/categories - CORS preflight
 export async function OPTIONS() {
   return handleOptions();
 }
-
-

@@ -23,6 +23,25 @@ export async function GET(request: NextRequest) {
       token_hash,
     });
     if (!error) {
+      // メール確認後: 組織に未所属ならオンボーディングへ
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: memberships } = await supabase
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .limit(1);
+        if (!memberships || memberships.length === 0) {
+          redirectTo.pathname = '/onboarding';
+        } else {
+          redirectTo.pathname = next;
+        }
+      } else {
+        redirectTo.pathname = next;
+      }
+      redirectTo.searchParams.delete('token_hash');
+      redirectTo.searchParams.delete('type');
       redirectTo.searchParams.delete('next');
       return NextResponse.redirect(redirectTo);
     }

@@ -14,10 +14,9 @@ import {
   Copy,
   Archive,
   FileText,
-  Newspaper,
-  Star,
   Calendar,
   Loader2,
+  Settings,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -26,16 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
-  CardHeader,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,7 +41,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,26 +57,17 @@ import type { ContentType, ContentStatus } from '@/types';
 import type { ContentData } from '@/lib/actions/contents';
 import { deleteContent, archiveContent, duplicateContent, publishContent } from '@/lib/actions/contents';
 import { toast } from 'sonner';
+import { contentTypeConfig, getContentTypeConfig } from '@/lib/content-types';
 
 const contentTabs = [
   { label: '一覧', href: '/contents', exact: true },
+  { label: 'カテゴリ', href: '/contents/categories' },
 ];
 
-// デフォルトのタイプ設定
-const defaultTypeConfig: Record<string, { label: string; icon: React.ElementType }> = {
-  article: { label: '記事', icon: FileText },
-  news: { label: 'ニュース', icon: Newspaper },
-  page: { label: '固定ページ', icon: FileText },
-  feature: { label: '特集', icon: Star },
-  qa: { label: 'Q&A', icon: FileText },
-  faq: { label: 'FAQ', icon: FileText },
-  guide: { label: 'ガイド', icon: FileText },
-  announcement: { label: 'お知らせ', icon: Newspaper },
-};
-
-// タイプ設定を取得（未知のタイプにもフォールバック）
+// タイプ設定を取得（共通設定から）
 const getTypeConfig = (type: string) => {
-  return defaultTypeConfig[type] || { label: type, icon: FileText };
+  const config = getContentTypeConfig(type);
+  return { label: config.label, icon: config.icon };
 };
 
 // ステータス設定
@@ -116,9 +97,11 @@ interface ContentsClientProps {
     scheduled: number;
   };
   organizationId: string;
+  /** 設定で「使う」にしたタイプのみ。空のときは新規作成不可・タイプフィルターはすべて非表示 */
+  enabledContentTypes: string[];
 }
 
-export default function ContentsClient({ initialContents, stats, organizationId }: ContentsClientProps) {
+export default function ContentsClient({ initialContents, stats, organizationId, enabledContentTypes }: ContentsClientProps) {
   const [contents, setContents] = useState<ContentData[]>(initialContents);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -196,134 +179,111 @@ export default function ContentsClient({ initialContents, stats, organizationId 
     });
   };
 
-  // コンテンツ行をレンダリング
-  const renderContentRow = (content: ContentData) => {
+  // コンテンツカードをレンダリング
+  const renderContentCard = (content: ContentData) => {
     const typeInfo = getTypeConfig(content.type);
     const TypeIcon = typeInfo.icon;
+    const statusInfo = statusConfig[content.status];
+
     return (
-      <TableRow key={content.id}>
-        <TableCell>
-          <div className="relative h-12 w-16 overflow-hidden rounded-md bg-muted">
+      <Card key={content.id} className="group relative overflow-hidden transition-shadow hover:shadow-md">
+        {/* サムネイル */}
+        <Link href={`/contents/${content.id}/edit`} className="block">
+          <div className="relative aspect-[4/3] bg-muted overflow-hidden">
             {content.featuredImage ? (
               <Image
                 src={content.featuredImage}
                 alt={content.title}
                 fill
-                className="object-cover"
+                sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
+                loading="lazy"
+                className="object-cover transition-transform group-hover:scale-105"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                <TypeIcon className="h-5 w-5" />
+              <div className="flex h-full w-full items-center justify-center text-muted-foreground bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+                <TypeIcon className="h-8 w-8 opacity-40" />
               </div>
             )}
-          </div>
-        </TableCell>
-        <TableCell>
-          <div>
-            <Link
-              href={`/contents/${content.id}/edit`}
-              className="font-medium hover:underline hover:text-orange-600 line-clamp-1"
-            >
-              {content.title}
-            </Link>
-            {content.excerpt && (
-              <p className="text-xs text-muted-foreground line-clamp-1">
-                {content.excerpt}
-              </p>
-            )}
-          </div>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-1">
-            <TypeIcon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">
-              {typeInfo.label}
-            </span>
-          </div>
-        </TableCell>
-        <TableCell>
-          <Badge variant={statusConfig[content.status].variant}>
-            {statusConfig[content.status].label}
-          </Badge>
-        </TableCell>
-        <TableCell>
-          {content.authorName && (
-            <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={content.authorAvatar || undefined} />
-                <AvatarFallback className="text-xs">
-                  {content.authorName.slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm">{content.authorName}</span>
+            {/* ステータス */}
+            <div className="absolute top-1.5 left-1.5">
+              <Badge variant={statusInfo.variant} className="shadow-sm text-[10px] px-1.5 py-0">
+                {statusInfo.label}
+              </Badge>
             </div>
-          )}
-        </TableCell>
-        <TableCell>
-          {content.scheduledAt ? (
-            <div className="flex items-center gap-1 text-sm">
-              <Calendar className="h-3 w-3 text-muted-foreground" />
-              {formatDate(content.scheduledAt)}
+            {/* タイプ */}
+            <div className="absolute top-1.5 right-1.5">
+              <Badge variant="secondary" className="shadow-sm text-[10px] px-1.5 py-0 gap-0.5">
+                <TypeIcon className="h-3 w-3" />
+                {typeInfo.label}
+              </Badge>
             </div>
-          ) : (
-            <span className="text-sm">
-              {formatDate(content.publishedAt)}
-            </span>
-          )}
-        </TableCell>
-        <TableCell>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={isPending}>
-                {isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <MoreHorizontal className="h-4 w-4" />
-                )}
-                <span className="sr-only">メニュー</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/contents/${content.id}`}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  プレビュー
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={`/contents/${content.id}/edit`}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  編集
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDuplicate(content)}>
-                <Copy className="mr-2 h-4 w-4" />
-                複製
-              </DropdownMenuItem>
-              {content.status === 'draft' && (
-                <DropdownMenuItem onClick={() => handlePublish(content)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  公開する
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              {content.status !== 'archived' && (
-                <DropdownMenuItem onClick={() => handleArchive(content)}>
-                  <Archive className="mr-2 h-4 w-4" />
-                  アーカイブ
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem 
-                className="text-destructive"
-                onClick={() => setDeleteTarget(content)}
+          </div>
+        </Link>
+
+        {/* 情報 */}
+        <CardContent className="p-2">
+          <div className="flex items-start justify-between gap-1">
+            <div className="min-w-0 flex-1">
+              <Link
+                href={`/contents/${content.id}/edit`}
+                className="font-medium text-xs leading-tight line-clamp-2 hover:underline hover:text-orange-600"
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                削除
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
-      </TableRow>
+                {content.title}
+              </Link>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" disabled={isPending}>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href={`/contents/${content.id}`}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    プレビュー
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/contents/${content.id}/edit`}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    編集
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDuplicate(content)}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  複製
+                </DropdownMenuItem>
+                {content.status === 'draft' && (
+                  <DropdownMenuItem onClick={() => handlePublish(content)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    公開する
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                {content.status !== 'archived' && (
+                  <DropdownMenuItem onClick={() => handleArchive(content)}>
+                    <Archive className="mr-2 h-4 w-4" />
+                    アーカイブ
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => setDeleteTarget(content)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  削除
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          {/* 日付 */}
+          <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            <span>{formatDate(content.publishedAt || content.scheduledAt)}</span>
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -337,22 +297,32 @@ export default function ContentsClient({ initialContents, stats, organizationId 
             記事・ニュース・特集などを作成・管理します
           </p>
         </div>
-        <Button asChild className="btn-premium">
-          <Link href="/contents/new">
-            <Plus className="mr-2 h-4 w-4" />
-            新規作成
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/settings/contents">
+              <Settings className="mr-2 h-4 w-4" />
+              タイプ管理
+            </Link>
+          </Button>
+          {enabledContentTypes.length > 0 && (
+            <Button asChild className="btn-premium">
+              <Link href="/contents/new">
+                <Plus className="mr-2 h-4 w-4" />
+                新規作成
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ページタブナビゲーション */}
       <PageTabs tabs={contentTabs} />
 
-      {/* フィルタータブ（実際に使用されているタイプから動的生成） */}
+      {/* フィルタータブ（設定で有効にしたタイプはすべて表示。0件でもタブを出して「このタイプで追加」できる） */}
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">すべて</TabsTrigger>
-          {[...new Set(contents.map(c => c.type))].map((type) => {
+          {enabledContentTypes.map((type) => {
             const info = getTypeConfig(type);
             return (
               <TabsTrigger key={type} value={type}>{info.label}</TabsTrigger>
@@ -388,180 +358,112 @@ export default function ContentsClient({ initialContents, stats, organizationId 
           </div>
 
           {/* フィルター・検索 */}
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="タイトルで検索..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[140px]">
-                      <Filter className="mr-2 h-4 w-4" />
-                      <SelectValue placeholder="ステータス" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">すべて</SelectItem>
-                      <SelectItem value="published">公開中</SelectItem>
-                      <SelectItem value="draft">下書き</SelectItem>
-                      <SelectItem value="review">レビュー中</SelectItem>
-                      <SelectItem value="archived">アーカイブ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="タイプ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">すべて</SelectItem>
-                      <SelectItem value="article">記事</SelectItem>
-                      <SelectItem value="news">ニュース</SelectItem>
-                      <SelectItem value="feature">特集</SelectItem>
-                      <SelectItem value="page">固定ページ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[80px]">画像</TableHead>
-                      <TableHead>タイトル</TableHead>
-                      <TableHead>タイプ</TableHead>
-                      <TableHead>ステータス</TableHead>
-                      <TableHead>著者</TableHead>
-                      <TableHead>公開日</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredContents.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
-                          {contents.length === 0 
-                            ? 'コンテンツがありません。「コンテンツを作成」から新しいコンテンツを追加してください。'
-                            : '該当するコンテンツがありません'}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredContents.map(renderContentRow)
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="タイトルで検索..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="ステータス" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">すべて</SelectItem>
+                  <SelectItem value="published">公開中</SelectItem>
+                  <SelectItem value="draft">下書き</SelectItem>
+                  <SelectItem value="review">レビュー中</SelectItem>
+                  <SelectItem value="archived">アーカイブ</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="タイプ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">すべて</SelectItem>
+                  {enabledContentTypes.map((key) => {
+                    const config = contentTypeConfig[key];
+                    if (!config) return null;
+                    return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* カード一覧 */}
+          {filteredContents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              {contents.length === 0 ? (
+                <>
+                  <FileText className="h-12 w-12 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground mb-3">
+                    {enabledContentTypes.length === 0
+                      ? 'お知らせで使うタイプを設定すると、ここでコンテンツを作成できます'
+                      : 'コンテンツがまだありません'}
+                  </p>
+                  {enabledContentTypes.length > 0 ? (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/contents/new">
+                        <Plus className="mr-2 h-4 w-4" />
+                        最初のコンテンツを作成
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/settings/contents">
+                        <Plus className="mr-2 h-4 w-4" />
+                        タイプを設定する
+                      </Link>
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Search className="h-10 w-10 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">該当するコンテンツがありません</p>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {filteredContents.map(renderContentCard)}
+            </div>
+          )}
         </TabsContent>
 
-        {/* 他のタブも同様のコンテンツを表示（フィルター適用済み） */}
-        {[...new Set(contents.map(c => c.type))].map((type) => (
-          <TabsContent key={type} value={type}>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[80px]">画像</TableHead>
-                        <TableHead>タイトル</TableHead>
-                        <TableHead>ステータス</TableHead>
-                        <TableHead>著者</TableHead>
-                        <TableHead>公開日</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {contents
-                        .filter((c) => c.type === type)
-                        .map((content) => {
-                          const TypeIcon = getTypeConfig(content.type).icon;
-                          return (
-                            <TableRow key={content.id}>
-                              <TableCell>
-                                <div className="relative h-12 w-16 overflow-hidden rounded-md bg-muted">
-                                  {content.featuredImage ? (
-                                    <Image
-                                      src={content.featuredImage}
-                                      alt={content.title}
-                                      fill
-                                      className="object-cover"
-                                    />
-                                  ) : (
-                                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                                      <TypeIcon className="h-5 w-5" />
-                                    </div>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Link
-                                  href={`/contents/${content.id}/edit`}
-                                  className="font-medium hover:underline hover:text-orange-600"
-                                >
-                                  {content.title}
-                                </Link>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={statusConfig[content.status].variant}>
-                                  {statusConfig[content.status].label}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {content.authorName && (
-                                  <span className="text-sm">{content.authorName}</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {formatDate(content.publishedAt)}
-                              </TableCell>
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" disabled={isPending}>
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem asChild>
-                                      <Link href={`/contents/${content.id}/edit`}>
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        編集
-                                      </Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleDuplicate(content)}>
-                                      <Copy className="mr-2 h-4 w-4" />
-                                      複製
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      className="text-destructive"
-                                      onClick={() => setDeleteTarget(content)}
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      削除
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                    </TableBody>
-                  </Table>
+        {/* 有効タイプごとのタブ（0件でもタブを表示し、そのタイプで新規作成できる） */}
+        {enabledContentTypes.map((type) => {
+          const typeContents = contents.filter((c) => c.type === type);
+          const typeInfo = getTypeConfig(type);
+          return (
+            <TabsContent key={type} value={type}>
+              {typeContents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <FileText className="h-10 w-10 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground mb-3">このタイプのコンテンツはまだありません</p>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/contents/new?type=${encodeURIComponent(type)}`}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      {typeInfo.label}を追加
+                    </Link>
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {typeContents.map(renderContentCard)}
+                </div>
+              )}
+            </TabsContent>
+          );
+        })}
       </Tabs>
 
       {/* 削除確認ダイアログ */}

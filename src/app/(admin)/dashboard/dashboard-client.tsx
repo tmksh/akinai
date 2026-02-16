@@ -27,33 +27,39 @@ import {
 import { Responsive as ResponsiveOrig } from 'react-grid-layout';
 
 // デバウンス付きコンテナ幅フック（ResizeObserver の過剰発火を防ぐ）
-function useStableContainerWidth(initialWidth = 1200) {
+function useStableContainerWidth() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(initialWidth);
+  const [width, setWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevWidthRef = useRef(initialWidth);
+  const prevWidthRef = useRef(0);
 
+  // まず mounted を true にして containerRef の div を DOM に出す
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // mounted 後に幅を測定し ResizeObserver を設定
+  useEffect(() => {
+    if (!mounted) return;
     const el = containerRef.current;
     if (!el) return;
 
-    const MIN_WIDTH_DELTA = 20; // 20px 以上変わったときだけ更新（スクロールバー等のノイズを無視）
-    const update = () => {
+    const MIN_WIDTH_DELTA = 20;
+    const update = (force = false) => {
       const newWidth = el.clientWidth;
-      if (newWidth > 0 && Math.abs(newWidth - prevWidthRef.current) >= MIN_WIDTH_DELTA) {
+      if (newWidth > 0 && (force || Math.abs(newWidth - prevWidthRef.current) >= MIN_WIDTH_DELTA)) {
         prevWidthRef.current = newWidth;
         setWidth(newWidth);
       }
     };
 
-    // 初回測定
-    update();
+    // 初回測定（強制更新）
+    update(true);
 
     const observer = new ResizeObserver(() => {
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(update, 200);
+      timerRef.current = setTimeout(() => update(false), 150);
     });
     observer.observe(el);
 
@@ -61,7 +67,7 @@ function useStableContainerWidth(initialWidth = 1200) {
       observer.disconnect();
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, []);
+  }, [mounted]);
 
   return { width, mounted, containerRef };
 }
@@ -151,11 +157,22 @@ const defaultLayouts: Layouts = {
     { i: 'orders', x: 2, y: 0, w: 2, h: 4, minW: 2, minH: 3 },
     { i: 'products', x: 0, y: 4, w: 2, h: 4, minW: 2, minH: 3 },
     { i: 'customers', x: 2, y: 4, w: 2, h: 4, minW: 2, minH: 3 },
-    { i: 'chart', x: 0, y: 8, w: 4, h: 7, minW: 4, minH: 5 },
-    { i: 'performance', x: 0, y: 15, w: 4, h: 7, minW: 3, minH: 5 },
-    { i: 'recent-orders', x: 0, y: 22, w: 4, h: 6, minW: 4, minH: 4 },
-    { i: 'stock-alert', x: 0, y: 28, w: 4, h: 6, minW: 3, minH: 4 },
-    { i: 'top-products', x: 0, y: 34, w: 4, h: 6, minW: 4, minH: 4 },
+    { i: 'chart', x: 0, y: 8, w: 4, h: 7, minW: 2, minH: 5 },
+    { i: 'performance', x: 0, y: 15, w: 4, h: 7, minW: 2, minH: 5 },
+    { i: 'recent-orders', x: 0, y: 22, w: 4, h: 6, minW: 2, minH: 4 },
+    { i: 'stock-alert', x: 0, y: 28, w: 4, h: 6, minW: 2, minH: 4 },
+    { i: 'top-products', x: 0, y: 34, w: 4, h: 6, minW: 2, minH: 4 },
+  ],
+  xs: [
+    { i: 'revenue', x: 0, y: 0, w: 2, h: 4, minW: 1, minH: 3 },
+    { i: 'orders', x: 0, y: 4, w: 2, h: 4, minW: 1, minH: 3 },
+    { i: 'products', x: 0, y: 8, w: 2, h: 4, minW: 1, minH: 3 },
+    { i: 'customers', x: 0, y: 12, w: 2, h: 4, minW: 1, minH: 3 },
+    { i: 'chart', x: 0, y: 16, w: 2, h: 7, minW: 1, minH: 5 },
+    { i: 'performance', x: 0, y: 23, w: 2, h: 8, minW: 1, minH: 5 },
+    { i: 'recent-orders', x: 0, y: 31, w: 2, h: 6, minW: 1, minH: 4 },
+    { i: 'stock-alert', x: 0, y: 37, w: 2, h: 6, minW: 1, minH: 4 },
+    { i: 'top-products', x: 0, y: 43, w: 2, h: 6, minW: 1, minH: 4 },
   ],
 };
 
@@ -360,7 +377,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
   const [layouts, setLayouts] = useState<Layouts>(defaultLayouts);
   
   // コンテナの幅を取得（デバウンス付き）
-  const { width, mounted, containerRef } = useStableContainerWidth(1200);
+  const { width, mounted, containerRef } = useStableContainerWidth();
 
   // クライアントサイドでのみレイアウトを読み込む
   useEffect(() => {
@@ -368,6 +385,10 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        // 保存レイアウトに xs がなければデフォルトから補完
+        if (!parsed.xs) {
+          parsed.xs = defaultLayouts.xs;
+        }
         setLayouts(parsed);
       } catch {
         // Invalid JSON, use default
@@ -436,8 +457,8 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <p className="text-lg font-semibold text-white/90">売上</p>
-          <p className="text-4xl font-extrabold mt-2">{formatCompactCurrency(revenueStats.total)}</p>
+          <p className="text-sm sm:text-lg font-semibold text-white/90">売上</p>
+          <p className="text-2xl sm:text-4xl font-extrabold mt-1 sm:mt-2">{formatCompactCurrency(revenueStats.total)}</p>
           {revenuePeriod !== 'total' && (
             <div className="flex items-center gap-2 mt-auto pt-3">
               <span className="text-sm font-bold bg-white/20 px-3 py-1 rounded-full">
@@ -473,8 +494,8 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <p className="text-lg font-semibold text-white/90">注文数</p>
-          <p className="text-4xl font-extrabold mt-2">{formatNumber(ordersStats.total)}<span className="text-2xl font-bold ml-1.5 opacity-80">件</span></p>
+          <p className="text-sm sm:text-lg font-semibold text-white/90">注文数</p>
+          <p className="text-2xl sm:text-4xl font-extrabold mt-1 sm:mt-2">{formatNumber(ordersStats.total)}<span className="text-lg sm:text-2xl font-bold ml-1 sm:ml-1.5 opacity-80">件</span></p>
           {ordersPeriod !== 'total' && (
             <div className="flex items-center gap-2 mt-auto pt-3">
               <span className="text-sm font-bold bg-white/20 px-3 py-1 rounded-full">
@@ -498,8 +519,8 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
               <Package className="h-6 w-6 text-white" />
             </div>
           </div>
-          <p className="text-lg font-semibold text-white/90">商品数</p>
-          <p className="text-4xl font-extrabold mt-2">{formatNumber(initialData.products.total)}<span className="text-2xl font-bold ml-1.5 opacity-80">点</span></p>
+          <p className="text-sm sm:text-lg font-semibold text-white/90">商品数</p>
+          <p className="text-2xl sm:text-4xl font-extrabold mt-1 sm:mt-2">{formatNumber(initialData.products.total)}<span className="text-lg sm:text-2xl font-bold ml-1 sm:ml-1.5 opacity-80">点</span></p>
           <div className="flex items-center gap-2 mt-auto pt-3">
             <span className="text-sm font-bold bg-white/20 px-3 py-1 rounded-full">
               +{initialData.products.newThisMonth}
@@ -533,8 +554,8 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <p className="text-lg font-semibold text-white/90">顧客数</p>
-          <p className="text-4xl font-extrabold mt-2">{formatNumber(customersStats.total)}<span className="text-2xl font-bold ml-1.5 opacity-80">人</span></p>
+          <p className="text-sm sm:text-lg font-semibold text-white/90">顧客数</p>
+          <p className="text-2xl sm:text-4xl font-extrabold mt-1 sm:mt-2">{formatNumber(customersStats.total)}<span className="text-lg sm:text-2xl font-bold ml-1 sm:ml-1.5 opacity-80">人</span></p>
           {customersPeriod !== 'total' && (
             <div className="flex items-center gap-2 mt-auto pt-3">
               <span className="text-sm font-bold bg-white/20 px-3 py-1 rounded-full">
@@ -780,7 +801,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           </Button>
         </div>
         {initialData.topProducts.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-3 overflow-y-auto h-[calc(100%-52px)] scrollbar-thin">
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 overflow-y-auto h-[calc(100%-52px)] scrollbar-thin">
             {initialData.topProducts.map((product, index) => (
               <Link 
                 key={product.id}
@@ -835,22 +856,22 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
   return (
     <div className="space-y-4">
       {/* ヘッダー */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">ダッシュボード</h1>
-          <p className="text-sm text-slate-500">ショップの概要・ドラッグで並び替え可能</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">ダッシュボード</h1>
+          <p className="text-xs sm:text-sm text-slate-500">ショップの概要・ドラッグで並び替え可能</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleResetLayout}
-            className="text-slate-500 hover:text-slate-700 rounded-xl"
+            className="text-slate-500 hover:text-slate-700 rounded-xl text-xs sm:text-sm"
           >
             <RotateCcw className="h-4 w-4 mr-1.5" />
-            レイアウトをリセット
+            <span className="hidden xs:inline">レイアウトを</span>リセット
           </Button>
-          <Button className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-300" asChild>
+          <Button className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-300 text-xs sm:text-sm" asChild>
             <Link href="/reports">レポートを見る</Link>
           </Button>
         </div>
@@ -858,16 +879,17 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
       {/* ウィジェットグリッド */}
       <div ref={containerRef} className="overflow-x-hidden w-full min-w-0">
+        {width > 0 && (
         <Responsive
           className="layout"
           width={width}
           layouts={layouts}
-          breakpoints={{ lg: 1024, md: 768, sm: 640 }}
-          cols={{ lg: 12, md: 8, sm: 4 }}
+          breakpoints={{ lg: 1024, md: 768, sm: 480, xs: 0 }}
+          cols={{ lg: 12, md: 8, sm: 4, xs: 2 }}
           rowHeight={40}
           onLayoutChange={handleLayoutChange}
           isResizable={false}
-          margin={[16, 16]}
+          margin={width < 480 ? [10, 10] : [16, 16]}
           containerPadding={[0, 0]}
         >
           <div key="revenue">{widgets.revenue}</div>
@@ -880,6 +902,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           <div key="stock-alert">{widgets['stock-alert']}</div>
           <div key="top-products">{widgets['top-products']}</div>
         </Responsive>
+        )}
       </div>
     </div>
   );

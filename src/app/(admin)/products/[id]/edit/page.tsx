@@ -23,6 +23,7 @@ import {
   Settings,
   Loader2,
   GripVertical,
+  Upload,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -57,6 +58,7 @@ interface ProductVariant {
   price: number;
   compareAtPrice?: number;
   stock: number;
+  imageUrl?: string;
 }
 
 export default function ProductEditPage() {
@@ -158,6 +160,7 @@ export default function ProductEditPage() {
           price: v.price,
           compareAtPrice: v.compare_at_price || undefined,
           stock: v.stock,
+          imageUrl: (v.options as Record<string, string>)?.imageUrl || undefined,
         })));
         setProductImages(p.images.map(img => ({
           id: img.id,
@@ -271,6 +274,7 @@ export default function ProductEditPage() {
             price: v.price,
             compareAtPrice: v.compareAtPrice,
             stock: v.stock,
+            options: v.imageUrl ? { imageUrl: v.imageUrl } : {},
           })),
         });
 
@@ -433,7 +437,7 @@ export default function ProductEditPage() {
           </Card>
 
           {/* バリエーション */}
-          <Card className="card-hover">
+          <Card id="product-variants-card" className="card-hover">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>色やサイズの種類</CardTitle>
@@ -450,56 +454,100 @@ export default function ProductEditPage() {
                   {variants.map((variant, index) => (
                     <div
                       key={variant.id}
-                      className="flex items-start gap-4 rounded-lg border p-4"
+                      className="rounded-lg border p-4 space-y-3"
                     >
-                      <div className="flex items-center self-center text-muted-foreground cursor-grab">
-                        <GripVertical className="h-4 w-4" />
+                      {/* 上段: ドラッグ・画像・名前・削除 */}
+                      <div className="flex items-center gap-3">
+                        <div className="text-muted-foreground cursor-grab">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                        {!variant.id.startsWith('new-') && (
+                          <span className="text-xs text-muted-foreground font-mono shrink-0" title="バリエーションID">
+                            ID: {variant.id}
+                          </span>
+                        )}
+                        <label className="block cursor-pointer group shrink-0">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              updateVariantField(variant.id, 'imageUrl', URL.createObjectURL(file));
+                            }}
+                          />
+                          <div className={cn(
+                            "h-10 w-10 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors",
+                            "hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20",
+                            variant.imageUrl ? "border-transparent" : "border-slate-200 dark:border-slate-700"
+                          )}>
+                            {variant.imageUrl ? (
+                              <img src={variant.imageUrl} alt={variant.name} className="h-full w-full object-cover rounded-lg" />
+                            ) : (
+                              <Upload className="h-4 w-4 text-muted-foreground group-hover:text-orange-500" />
+                            )}
+                          </div>
+                        </label>
+                        <span className="text-sm font-medium flex-1 truncate">
+                          {variant.name || `バリエーション ${index + 1}`}
+                        </span>
+                        {variant.imageUrl && (
+                          <button
+                            type="button"
+                            className="text-xs text-muted-foreground hover:text-destructive"
+                            onClick={() => updateVariantField(variant.id, 'imageUrl', '')}
+                          >
+                            画像削除
+                          </button>
+                        )}
+                        {variants.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeVariant(variant.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
-                      <div className="flex-1 grid gap-4 sm:grid-cols-4">
-                        <div className="space-y-2">
+                      {/* 下段: 入力フィールド */}
+                      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+                        <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground">バリエーション名</Label>
-                          <Input 
+                          <Input
                             value={variant.name}
                             onChange={(e) => updateVariantField(variant.id, 'name', e.target.value)}
                             placeholder="例: ホワイト / M"
                           />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground">SKU *</Label>
-                          <Input 
+                          <Input
                             value={variant.sku}
                             onChange={(e) => updateVariantField(variant.id, 'sku', e.target.value)}
                             className="font-mono"
                             placeholder="PRD-001"
                           />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground">価格</Label>
-                          <Input 
+                          <Input
                             type="number"
                             value={variant.price || ''}
                             onChange={(e) => updateVariantField(variant.id, 'price', parseInt(e.target.value) || 0)}
                           />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground">在庫</Label>
-                          <Input 
+                          <Input
                             type="number"
                             value={variant.stock || ''}
                             onChange={(e) => updateVariantField(variant.id, 'stock', parseInt(e.target.value) || 0)}
                           />
                         </div>
                       </div>
-                      {variants.length > 1 && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-destructive shrink-0 self-center"
-                          onClick={() => removeVariant(variant.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
                     </div>
                   ))}
                 </div>

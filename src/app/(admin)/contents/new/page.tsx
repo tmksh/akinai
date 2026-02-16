@@ -1,25 +1,27 @@
 'use client';
 
-import { useState, useTransition, useRef, useEffect } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Save, 
   Smartphone, 
   Monitor, 
   Loader2,
-  Image as ImageIcon,
-  Settings2,
-  ChevronDown,
-  Calendar,
-  Tag,
-  Globe,
-  FileText,
+  Eye,
+  EyeOff,
+  Columns,
+  Settings,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -27,26 +29,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { CustomFields, type CustomField } from '@/components/products/custom-fields';
 import { FieldLabel } from '@/components/products/field-label';
 import { cn } from '@/lib/utils';
-import { useOrganization } from '@/components/providers/organization-provider';
+import { useFrontendUrl, useOrganization } from '@/components/providers/organization-provider';
 import { createContent } from '@/lib/actions/contents';
 import { toast } from 'sonner';
 import type { ContentType, ContentStatus } from '@/types';
+import type { QAPairBlock, GalleryItemBlock } from '@/types/content-blocks';
+import { getEditorType, contentTypeConfig } from '@/lib/content-types';
+import { getEnabledContentTypes } from '@/lib/actions/settings';
+import { getContentCategories, setContentCategories, type ContentCategory } from '@/lib/actions/contents';
+import { Checkbox } from '@/components/ui/checkbox';
+import { QAEditor } from '../_components/qa-editor';
+import { GalleryEditor } from '../_components/gallery-editor';
+import { RichTextEditor, htmlToBlocks } from '@/components/editor/rich-text-editor';
 
 const contentTabs = [
   { label: '一覧', href: '/contents', exact: true },
@@ -54,7 +53,6 @@ const contentTabs = [
 
 export default function NewContentPage() {
   const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
   const [content, setContent] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [contentType, setContentType] = useState<ContentType>('article');
@@ -64,48 +62,53 @@ export default function NewContentPage() {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
-  const [showSettings, setShowSettings] = useState(false);
+  const [qaPairs, setQaPairs] = useState<QAPairBlock[]>([]);
+  const [galleryItems, setGalleryItems] = useState<GalleryItemBlock[]>([]);
+  const [enabledContentTypes, setEnabledContentTypes] = useState<string[]>([]);
+  const [enabledTypesLoaded, setEnabledTypesLoaded] = useState(false);
+  const [allCategories, setAllCategories] = useState<ContentCategory[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
+  const [showPreview, setShowPreview] = useState(true);
+  const [previewKey, setPreviewKey] = useState(0);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { organization } = useOrganization();
-  
-  const titleRef = useRef<HTMLTextAreaElement>(null);
-  const contentRef = useRef<HTMLTextAreaElement>(null);
-
-  // テキストエリアの高さを自動調整
-  const autoResize = (element: HTMLTextAreaElement | null) => {
-    if (element) {
-      element.style.height = 'auto';
-      element.style.height = `${element.scrollHeight}px`;
-    }
-  };
+  const frontendUrl = useFrontendUrl();
+  const isFrontendConnected = !!frontendUrl;
 
   useEffect(() => {
-    autoResize(titleRef.current);
-  }, [title]);
+    if (!organization?.id) return;
+    Promise.all([
+      getEnabledContentTypes(organization.id),
+      getContentCategories(organization.id),
+    ]).then(([typeResult, catResult]) => {
+      const enabled = typeResult.data || [];
+      setEnabledContentTypes(enabled);
+      setEnabledTypesLoaded(true);
+      setAllCategories(catResult.data || []);
 
-  useEffect(() => {
-    autoResize(contentRef.current);
-  }, [content]);
+      const typeParam = searchParams.get('type');
+      if (typeParam && enabled.includes(typeParam)) {
+        setContentType(typeParam as ContentType);
+      } else if (enabled.length > 0 && !enabled.includes(contentType)) {
+        setContentType(enabled[0] as ContentType);
+      }
+    });
+  }, [organization?.id]);
 
-  // スラッグを自動生成
-  const generateSlug = (text: string) => {
-    return text
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-  };
-
-  // タイトル変更時にスラッグも自動更新
-  const handleTitleChange = (value: string) => {
-    setTitle(value);
-    if (!slug || slug === generateSlug(title)) {
-      setSlug(generateSlug(value));
-    }
-  };
+  // プレビュー用データ・URL
+  const previewData = useMemo(() => ({ title, content, contentType }), [title, content, contentType]);
+  const previewUrl = useMemo(() => {
+    if (!frontendUrl) return null;
+    const params = new URLSearchParams({
+      preview: 'true',
+      data: btoa(encodeURIComponent(JSON.stringify(previewData))),
+    });
+    return `${frontendUrl}/articles/preview?${params.toString()}`;
+  }, [frontendUrl, previewData]);
+  const refreshPreview = () => setPreviewKey((k) => k + 1);
 
   // 保存処理
   const handleSave = async () => {
@@ -119,24 +122,30 @@ export default function NewContentPage() {
       return;
     }
 
-    if (!slug.trim()) {
-      toast.error('スラッグを入力してください');
-      return;
+    // タイプ別にブロックを構築
+    const editorType = getEditorType(contentType);
+    let blocks: unknown[];
+    if (editorType === 'qa') {
+      blocks = qaPairs.map((p, i) => ({ ...p, order: i }));
+    } else if (editorType === 'gallery') {
+      blocks = galleryItems.map((item, i) => ({ ...item, order: i }));
+    } else {
+      blocks = htmlToBlocks(content);
     }
 
-    // マークダウン風コンテンツをブロック形式に変換
-    const blocks = content.split('\n').filter(Boolean).map((line, index) => ({
-      id: `block-${index}`,
-      type: line.startsWith('#') ? 'heading' : 'paragraph',
-      content: line.replace(/^#+\s*/, ''),
-      order: index,
-    }));
+    // スラッグをタイトルから自動生成
+    const autoSlug = title.trim()
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim() || `content-${Date.now().toString(36)}`;
 
     startTransition(async () => {
       const { data, error } = await createContent({
         type: contentType,
         title: title.trim(),
-        slug: slug.trim(),
+        slug: autoSlug,
         excerpt: excerpt.trim() || undefined,
         blocks,
         status,
@@ -150,6 +159,10 @@ export default function NewContentPage() {
       }, organization.id);
 
       if (data) {
+        // カテゴリ紐付け
+        if (selectedCategoryIds.length > 0) {
+          await setContentCategories(data.id, selectedCategoryIds);
+        }
         toast.success(`「${data.title}」を作成しました`);
         router.push('/contents');
       } else {
@@ -158,35 +171,42 @@ export default function NewContentPage() {
     });
   };
 
-  // マークダウン風のレンダリング（プレビュー用）
-  const renderPreviewContent = (text: string) => {
-    if (!text) return null;
-    
-    const lines = text.split('\n');
-    return lines.map((line, index) => {
-      if (line.startsWith('### ')) {
-        return <h3 key={index} className="text-lg font-semibold mt-6 mb-2">{line.slice(4)}</h3>;
-      }
-      if (line.startsWith('## ')) {
-        return <h2 key={index} className="text-xl font-bold mt-8 mb-3">{line.slice(3)}</h2>;
-      }
-      if (line.startsWith('# ')) {
-        return <h1 key={index} className="text-2xl font-bold mt-8 mb-4">{line.slice(2)}</h1>;
-      }
-      if (line.trim() === '') {
-        return <div key={index} className="h-4" />;
-      }
-      return <p key={index} className="mb-4 leading-relaxed text-slate-600 dark:text-slate-300">{line}</p>;
-    });
-  };
+  const editorType = getEditorType(contentType);
 
-  const statusLabel = status === 'draft' ? '下書き' : '公開';
-  const typeLabel = {
-    article: '記事',
-    news: 'ニュース',
-    feature: '特集',
-    page: 'ページ',
-  }[contentType];
+  if (!enabledTypesLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (enabledContentTypes.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/contents">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">お知らせ</h1>
+            <p className="text-muted-foreground">コンテンツを作成するには、まず使うタイプを設定してください</p>
+          </div>
+        </div>
+        <PageTabs tabs={contentTabs} />
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-muted-foreground mb-4">設定で「お知らせで使うタイプ」を追加すると、ここでコンテンツを作成できます</p>
+            <Button asChild>
+              <Link href="/settings/contents">タイプを設定する</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -204,282 +224,334 @@ export default function NewContentPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* デバイス切り替え */}
-          <div className="hidden md:flex items-center gap-1 border rounded-lg p-1 bg-muted/30">
+          <div className="flex items-center border rounded-lg p-1 bg-muted/30">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setPreviewMode('desktop')}
-              className={cn(
-                "h-7 px-2",
-                previewMode === 'desktop' && "bg-background shadow-sm"
-              )}
+              onClick={() => setShowPreview(!showPreview)}
+              className={cn(!showPreview && 'bg-background shadow-sm')}
             >
-              <Monitor className="h-4 w-4" />
+              {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setPreviewMode('mobile')}
-              className={cn(
-                "h-7 px-2",
-                previewMode === 'mobile' && "bg-background shadow-sm"
-              )}
+              onClick={() => setShowPreview(true)}
+              className={cn(showPreview && 'bg-background shadow-sm')}
             >
-              <Smartphone className="h-4 w-4" />
+              <Columns className="h-4 w-4" />
             </Button>
           </div>
+          <Button className="btn-premium" onClick={handleSave} disabled={isPending}>
+            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            保存
+          </Button>
+        </div>
+      </div>
 
-          {/* 設定ポップオーバー */}
-          <Popover open={showSettings} onOpenChange={setShowSettings}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Settings2 className="h-4 w-4" />
-                <span className="hidden sm:inline">設定</span>
-                <ChevronDown className="h-3 w-3" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="end">
-              <div className="space-y-4">
+      <PageTabs tabs={contentTabs} />
+
+      {/* 左: 入力エリア / 右: プレビュー（商品登録と同じレイアウト） */}
+      <div className={cn('grid gap-6', showPreview ? 'lg:grid-cols-2' : 'lg:grid-cols-3')}>
+        {/* 左: 基本情報・本文・カスタムフィールド */}
+        <div className={cn(showPreview ? '' : 'lg:col-span-2', 'space-y-6')}>
+          <Card>
+            <CardHeader>
+              <CardTitle>基本情報</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <FieldLabel fieldKey="type">コンテンツタイプ</FieldLabel>
+                <Select
+                  value={enabledContentTypes.includes(contentType) ? contentType : (enabledContentTypes[0] ?? '')}
+                  onValueChange={(v) => setContentType(v as ContentType)}
+                >
+                  <SelectTrigger className="w-full"><SelectValue placeholder="タイプを選択" /></SelectTrigger>
+                  <SelectContent>
+                    {enabledContentTypes.map((key) => {
+                      const config = contentTypeConfig[key];
+                      if (!config) return null;
+                      return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  設定で追加したタイプのみ選択できます
+                  {contentType && (
+                    <span className="block mt-1">
+                      APIで使う値: <code className="text-[10px] font-mono bg-muted/50 px-1 py-0.5 rounded">{contentType}</code>
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <FieldLabel htmlFor="title" fieldKey="title">タイトル</FieldLabel>
+                <Input
+                  id="title"
+                  placeholder="記事のタイトルを入力"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <FieldLabel htmlFor="excerpt" fieldKey="excerpt">概要</FieldLabel>
+                <Textarea
+                  id="excerpt"
+                  placeholder="記事の概要を入力"
+                  className="min-h-[80px]"
+                  value={excerpt}
+                  onChange={(e) => setExcerpt(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <FieldLabel htmlFor="content" fieldKey="blocks">
+                  {editorType === 'qa' ? '質問と回答' : editorType === 'gallery' ? '画像' : '本文'}
+                </FieldLabel>
+                {editorType === 'qa' ? (
+                  <QAEditor pairs={qaPairs} onChange={setQaPairs} disabled={isPending} />
+                ) : editorType === 'gallery' ? (
+                  <GalleryEditor
+                    items={galleryItems}
+                    onChange={setGalleryItems}
+                    organizationId={organization?.id || ''}
+                    disabled={isPending}
+                  />
+                ) : (
+                  <RichTextEditor
+                    content={content}
+                    onChange={setContent}
+                    placeholder="ここに本文を入力..."
+                    disabled={isPending}
+                    minHeight="300px"
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <CustomFields fields={customFields} onChange={setCustomFields} disabled={isPending} />
+
+          {!showPreview && (
+            <Card>
+              <CardHeader>
+                <CardTitle>公開設定</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">ステータス</Label>
+                  <Label>ステータス</Label>
                   <Select value={status} onValueChange={(v) => setStatus(v as ContentStatus)}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="draft">下書き</SelectItem>
                       <SelectItem value="published">公開</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* 右: リアルタイムプレビュー + 公開設定・タグ */}
+        {showPreview && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-muted-foreground">リアルタイムプレビュー</h3>
+                {isFrontendConnected && (
+                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">接続済み</Badge>
+                )}
+                {!isFrontendConnected && (
+                  <Link href="/settings/organization" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+                    <Settings className="h-3 w-3" />
+                    フロントエンド連携を設定
+                  </Link>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isFrontendConnected && (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={refreshPreview} className="h-7 px-2">
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => previewUrl && window.open(previewUrl, '_blank')} className="h-7 px-2">
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/30">
+                  <Button variant="ghost" size="sm" onClick={() => setPreviewMode('desktop')} className={cn('h-7 px-2', previewMode === 'desktop' && 'bg-background shadow-sm')}>
+                    <Monitor className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setPreviewMode('mobile')} className={cn('h-7 px-2', previewMode === 'mobile' && 'bg-background shadow-sm')}>
+                    <Smartphone className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className={cn('border rounded-xl bg-white dark:bg-slate-900 shadow-lg overflow-hidden', previewMode === 'mobile' ? 'max-w-[375px] mx-auto' : '')}>
+              <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 flex items-center gap-2 border-b">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-400" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <div className="w-3 h-3 rounded-full bg-green-400" />
+                </div>
+                <div className="flex-1 mx-4">
+                  <div className="bg-white dark:bg-slate-700 rounded-md px-3 py-1 text-xs text-muted-foreground truncate">
+                    {isFrontendConnected ? `${frontendUrl}/articles/new-article` : `https://example.com/new-article`}
+                  </div>
+                </div>
+              </div>
+
+              {isFrontendConnected && previewUrl ? (
+                <div className={cn('relative', previewMode === 'mobile' ? 'h-[500px]' : 'h-[600px]')}>
+                  <iframe key={previewKey} src={previewUrl} className="w-full h-full border-0" title="記事プレビュー" />
+                </div>
+              ) : (
+                <div className={cn('p-6 min-h-[400px] overflow-auto', previewMode === 'mobile' && 'text-sm')}>
+                  {title || content || qaPairs.length > 0 || galleryItems.length > 0 ? (
+                    <article className="prose dark:prose-invert max-w-none">
+                      {title && <h1 className={cn('font-bold mb-4', previewMode === 'mobile' ? 'text-xl' : 'text-3xl')}>{title}</h1>}
+                      {editorType === 'qa' && qaPairs.length > 0 && (
+                        <div className="space-y-4 not-prose">
+                          {qaPairs.map((pair, i) => (
+                            <div key={pair.id} className="border rounded-lg p-4">
+                              <p className="font-semibold text-sm">Q{i + 1}. {pair.question || '（未入力）'}</p>
+                              <p className="text-sm text-muted-foreground mt-2">{pair.answer || '（未入力）'}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {editorType === 'gallery' && galleryItems.length > 0 && (
+                        <div className="grid grid-cols-2 gap-2 not-prose">
+                          {galleryItems.map((item) => (
+                            <div key={item.id} className="space-y-1">
+                              <div className="relative aspect-square rounded overflow-hidden bg-muted">
+                                <Image src={item.url} alt={item.alt} fill className="object-cover" />
+                              </div>
+                              {item.caption && <p className="text-xs text-muted-foreground">{item.caption}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {editorType === 'text' && content && (
+                        <div
+                          className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300"
+                          dangerouslySetInnerHTML={{ __html: content }}
+                        />
+                      )}
+                    </article>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                      <Eye className="h-12 w-12 mb-4 opacity-20" />
+                      <p className="text-sm">タイトルや本文を入力すると</p>
+                      <p className="text-sm">ここにプレビューが表示されます</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">公開設定</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <FieldLabel fieldKey="type">コンテンツタイプ</FieldLabel>
-                  <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Label className="text-sm">ステータス</Label>
+                  <Select value={status} onValueChange={(v) => setStatus(v as ContentStatus)}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="article">記事</SelectItem>
-                      <SelectItem value="news">ニュース</SelectItem>
-                      <SelectItem value="feature">特集</SelectItem>
-                      <SelectItem value="page">ページ</SelectItem>
-                      <SelectItem value="qa">Q&A</SelectItem>
-                      <SelectItem value="faq">FAQ</SelectItem>
-                      <SelectItem value="guide">ガイド</SelectItem>
-                      <SelectItem value="announcement">お知らせ</SelectItem>
+                      <SelectItem value="draft">下書き</SelectItem>
+                      <SelectItem value="published">公開</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input
-                    value={contentType}
-                    onChange={(e) => setContentType(e.target.value)}
-                    placeholder="または自由入力（例: review）"
-                    className="h-8 text-xs font-mono"
-                  />
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">スラッグ（URL）</Label>
-                  <Input
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    placeholder="article-slug"
-                    className="h-9 font-mono text-sm"
-                  />
-                </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">タグ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Input placeholder="タグを入力（カンマ区切り）" value={tags} onChange={(e) => setTags(e.target.value)} />
+              </CardContent>
+            </Card>
 
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">タグ（カンマ区切り）</Label>
-                  <Input 
-                    placeholder="タグ1, タグ2, タグ3" 
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    className="h-9"
-                  />
-                </div>
-
-                <Separator />
-
-                <Collapsible>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
-                    SEO設定
-                    <ChevronDown className="h-4 w-4" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-3 space-y-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">SEOタイトル</Label>
-                      <Input
-                        placeholder="検索結果に表示されるタイトル"
-                        value={seoTitle}
-                        onChange={(e) => setSeoTitle(e.target.value)}
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">SEOディスクリプション</Label>
-                      <Input
-                        placeholder="検索結果に表示される説明文"
-                        value={seoDescription}
-                        onChange={(e) => setSeoDescription(e.target.value)}
-                        className="h-9"
-                      />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* 保存ボタン */}
-          <Button className="btn-premium" onClick={handleSave} disabled={isPending}>
-            {isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
+            {allCategories.filter((c) => c.type === contentType).length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">カテゴリ</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {allCategories
+                    .filter((c) => c.type === contentType)
+                    .map((cat) => (
+                      <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={selectedCategoryIds.includes(cat.id)}
+                          onCheckedChange={(checked) =>
+                            setSelectedCategoryIds((prev) =>
+                              checked ? [...prev, cat.id] : prev.filter((id) => id !== cat.id)
+                            )
+                          }
+                        />
+                        <span className="text-sm">{cat.name}</span>
+                      </label>
+                    ))}
+                </CardContent>
+              </Card>
             )}
-            保存
-          </Button>
-        </div>
-      </div>
-
-      {/* タブナビゲーション */}
-      <PageTabs tabs={contentTabs} />
-
-      {/* メインエディタ（プレビュー一体型） */}
-      <div className="flex justify-center">
-        <div className={cn(
-          "w-full transition-all duration-300",
-          previewMode === 'mobile' ? "max-w-[375px]" : "max-w-4xl"
-        )}>
-          {/* モックブラウザ */}
-          <div className="border rounded-xl bg-white dark:bg-slate-900 shadow-lg overflow-hidden">
-            {/* ブラウザバー */}
-            <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2.5 flex items-center gap-3 border-b">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-400" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                <div className="w-3 h-3 rounded-full bg-green-400" />
-              </div>
-              <div className="flex-1">
-                <div className="bg-white dark:bg-slate-700 rounded-md px-3 py-1.5 text-xs text-muted-foreground flex items-center gap-2">
-                  <Globe className="h-3 w-3" />
-                  <span className="truncate">yoursite.com/articles/{slug || 'new-article'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 記事メタ情報バー */}
-            <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/50 border-b flex items-center gap-3 text-xs text-muted-foreground">
-              <Badge variant="outline" className="gap-1">
-                <FileText className="h-3 w-3" />
-                {typeLabel}
-              </Badge>
-              <Badge variant={status === 'published' ? 'default' : 'secondary'} className="gap-1">
-                {status === 'published' ? <Globe className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
-                {statusLabel}
-              </Badge>
-              {tags && (
-                <div className="flex items-center gap-1">
-                  <Tag className="h-3 w-3" />
-                  <span>{tags.split(',').length}個のタグ</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1 ml-auto">
-                <Calendar className="h-3 w-3" />
-                <span>{new Date().toLocaleDateString('ja-JP')}</span>
-              </div>
-            </div>
-
-            {/* エディタ本体 */}
-            <div className={cn(
-              "p-6 md:p-10 min-h-[500px]",
-              previewMode === 'mobile' && "p-4"
-            )}>
-              {/* サムネイル追加エリア */}
-              <button className="w-full mb-8 border-2 border-dashed rounded-xl p-6 text-center hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 transition-colors group">
-                <ImageIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground group-hover:text-orange-500 transition-colors" />
-                <p className="text-sm text-muted-foreground group-hover:text-orange-600">
-                  アイキャッチ画像を追加
-                </p>
-              </button>
-
-              {/* タイトル入力 */}
-              <textarea
-                ref={titleRef}
-                value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="タイトルを入力..."
-                className={cn(
-                  "w-full bg-transparent border-0 outline-none resize-none font-bold placeholder:text-slate-300 dark:placeholder:text-slate-600",
-                  previewMode === 'mobile' ? "text-2xl" : "text-4xl",
-                  "leading-tight mb-4"
-                )}
-                rows={1}
-              />
-
-              {/* 概要入力 */}
-              <input
-                value={excerpt}
-                onChange={(e) => setExcerpt(e.target.value)}
-                placeholder="記事の概要を入力（検索結果やSNSシェア時に表示されます）"
-                className="w-full bg-transparent border-0 outline-none text-lg text-muted-foreground placeholder:text-slate-300 dark:placeholder:text-slate-600 mb-8"
-              />
-
-              <Separator className="mb-8" />
-
-              {/* 本文入力 */}
-              <textarea
-                ref={contentRef}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="本文を入力...
-
-# で見出し1
-## で見出し2  
-### で見出し3
-
-普通のテキストは段落になります。
-空行で段落を分けられます。"
-                className={cn(
-                  "w-full bg-transparent border-0 outline-none resize-none placeholder:text-slate-300 dark:placeholder:text-slate-600 leading-relaxed",
-                  previewMode === 'mobile' ? "text-base" : "text-lg"
-                )}
-                rows={10}
-              />
-
-              {/* リアルタイムプレビュー（入力内容をレンダリング） */}
-              {content && (
-                <>
-                  <Separator className="my-8" />
-                  <div className="pt-4">
-                    <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1">
-                      <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      プレビュー
-                    </p>
-                    <article className="prose dark:prose-invert max-w-none">
-                      {renderPreviewContent(content)}
-                    </article>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
+        )}
 
-          {/* カスタムフィールド */}
-          <div className="mt-6">
-            <CustomFields
-              fields={customFields}
-              onChange={setCustomFields}
-              disabled={isPending}
-            />
+        {!showPreview && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader><CardTitle>タグ</CardTitle></CardHeader>
+              <CardContent>
+                <Input placeholder="タグを入力（カンマ区切り）" value={tags} onChange={(e) => setTags(e.target.value)} />
+              </CardContent>
+            </Card>
+            {allCategories.filter((c) => c.type === contentType).length > 0 && (
+              <Card>
+                <CardHeader><CardTitle>カテゴリ</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  {allCategories
+                    .filter((c) => c.type === contentType)
+                    .map((cat) => (
+                      <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={selectedCategoryIds.includes(cat.id)}
+                          onCheckedChange={(checked) =>
+                            setSelectedCategoryIds((prev) =>
+                              checked ? [...prev, cat.id] : prev.filter((id) => id !== cat.id)
+                            )
+                          }
+                        />
+                        <span className="text-sm">{cat.name}</span>
+                      </label>
+                    ))}
+                </CardContent>
+              </Card>
+            )}
+            <Card>
+              <CardHeader><CardTitle>SEO設定</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>SEOタイトル</Label>
+                  <Input placeholder="検索結果に表示されるタイトル" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>SEOディスクリプション</Label>
+                  <Textarea placeholder="検索結果に表示される説明文" value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} />
+                </div>
+              </CardContent>
+            </Card>
           </div>
-
-          {/* ヘルプテキスト */}
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            タイトルと本文に直接入力してください。「#」で見出し、空行で段落を作成できます。
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );

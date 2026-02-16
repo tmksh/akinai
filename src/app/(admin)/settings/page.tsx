@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook } from 'lucide-react';
+import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,13 @@ const settingsCategories = [
     href: '/settings/shop-theme',
     icon: Store,
     badge: 'NEW',
+  },
+  {
+    title: 'お知らせで使うタイプ',
+    description: '記事・ニュース・特集など、使うコンテンツタイプを選択',
+    href: '/settings/contents',
+    icon: FileText,
+    badge: null,
   },
   {
     title: 'アカウント設定',

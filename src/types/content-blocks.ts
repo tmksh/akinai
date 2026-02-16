@@ -62,15 +62,31 @@ export interface ListBlock extends BaseBlock {
   style: 'bullet' | 'number';
 }
 
-export type ContentBlock = 
-  | HeadingBlock 
-  | ParagraphBlock 
-  | ImageBlock 
-  | ButtonBlock 
-  | SpacerBlock 
+export type ContentBlock =
+  | HeadingBlock
+  | ParagraphBlock
+  | ImageBlock
+  | ButtonBlock
+  | SpacerBlock
   | DividerBlock
   | QuoteBlock
   | ListBlock;
+
+// Q&A / ギャラリー用ブロック型
+export interface QAPairBlock {
+  id: string;
+  question: string;
+  answer: string;
+  order: number;
+}
+
+export interface GalleryItemBlock {
+  id: string;
+  url: string;
+  caption: string;
+  alt: string;
+  order: number;
+}
 
 export interface ContentPage {
   id: string;

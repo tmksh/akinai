@@ -100,12 +100,31 @@ const categoryLabels = {
   advanced: '高度',
 };
 
-/** ラベルから API キーを自動生成 */
+/** ラベルから API キーを自動生成（英数字スネークケース） */
 function generateKeyFromLabel(label: string): string {
-  return label
-    .toLowerCase()
-    .replace(/[^a-z0-9\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]+/g, '_')
+  // よく使われる日本語→英語の簡易マッピング
+  const map: Record<string, string> = {
+    '素材': 'material', '材質': 'material', 'サイズ': 'size', '色': 'color',
+    'カラー': 'color', '重量': 'weight', '重さ': 'weight', '幅': 'width',
+    '高さ': 'height', '奥行': 'depth', '長さ': 'length', 'ブランド': 'brand',
+    'メーカー': 'maker', '型番': 'model_number', '産地': 'origin', '原産地': 'origin',
+    '容量': 'capacity', '数量': 'quantity', '賞味期限': 'expiry_date',
+    '保証期間': 'warranty', '送料': 'shipping_fee', '備考': 'notes',
+    '説明': 'description', 'タイトル': 'title', '名前': 'name',
+    'リンク': 'link', '画像': 'image', '動画': 'video', 'URL': 'url',
+  };
+
+  const trimmed = label.trim();
+  if (map[trimmed]) return map[trimmed];
+
+  // 英数字のみ抽出してスネークケースに
+  const ascii = trimmed
+    .replace(/[A-Z]/g, (c) => '_' + c.toLowerCase())
+    .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
+
+  // 英数字が取れなかった場合はタイムスタンプベースで生成
+  return ascii || `field_${Date.now().toString(36)}`;
 }
 
 interface CustomFieldsProps {
@@ -534,7 +553,8 @@ export function CustomFields({ fields, onChange, disabled = false }: CustomField
                   <div className="flex items-center gap-2 px-4 pt-3 pb-1">
                     <Icon className={`h-4 w-4 shrink-0 ${config.color}`} />
                     <span className="text-sm font-medium flex-1">{field.label}</span>
-                    <Badge variant="secondary" className="text-[10px] font-mono px-1.5 h-5 bg-muted">
+                    <Badge variant="secondary" className="text-[10px] font-mono px-1.5 h-5 bg-muted gap-0.5">
+                      <Code className="h-2.5 w-2.5 opacity-50" />
                       {field.key}
                     </Badge>
                     <Badge variant="outline" className="text-[10px] px-1.5 h-5">

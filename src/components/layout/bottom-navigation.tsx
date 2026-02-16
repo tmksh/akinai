@@ -95,7 +95,7 @@ export function BottomNavigation() {
                     key={item.href}
                     onClick={() => setIsMoreOpen(true)}
                     className={cn(
-                      'flex flex-col items-center justify-center min-w-[4rem] py-1 px-2 rounded-xl transition-all',
+                      'flex flex-col items-center justify-center min-w-[4rem] py-1 px-2 rounded-xl transition-all active:scale-[0.97]',
                       active
                         ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -114,7 +114,7 @@ export function BottomNavigation() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'flex flex-col items-center justify-center min-w-[4rem] py-1 px-2 rounded-xl transition-all',
+                    'flex flex-col items-center justify-center min-w-[4rem] py-1 px-2 rounded-xl transition-all active:scale-[0.97]',
                     active
                       ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'

@@ -30,6 +30,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const supabase = createClient();
 
+  const successMessage = searchParams.get('message');
+
   // URLの ?error= と ?detail= を表示し、表示後にURLから削除
   useEffect(() => {
     const err = searchParams.get('error');
@@ -115,6 +117,20 @@ function LoginForm() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
+            {successMessage === 'signup_confirm_email' && (
+              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                <p className="text-sm text-green-700 dark:text-green-400">
+                  確認メールを送信しました。メール内のリンクをクリックしてアカウントを有効化してください。
+                </p>
+              </div>
+            )}
+            {successMessage === 'signup_done' && (
+              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                <p className="text-sm text-green-700 dark:text-green-400">
+                  アカウントを作成しました。ログインしてください。
+                </p>
+              </div>
+            )}
             {error && (
               <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900">
                 <p className="text-sm text-red-600 dark:text-red-400">

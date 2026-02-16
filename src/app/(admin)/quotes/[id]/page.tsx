@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import {
@@ -13,6 +13,7 @@ import {
   Download,
   Edit,
   FileText,
+  Loader2,
   Mail,
   MoreHorizontal,
   Phone,
@@ -24,11 +25,10 @@ import {
   XCircle,
   MessageSquare,
   AlertCircle,
-  History,
   Package,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -58,8 +58,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { mockQuotes, mockCustomers } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
+import { getQuote, updateQuoteStatus, convertQuoteToOrder, type QuoteWithItems } from '@/lib/actions/quotes';
+import { getCustomer, type CustomerWithAddresses } from '@/lib/actions/customers';
 import type { QuoteStatus } from '@/types';
 
 // ステータス設定
@@ -82,22 +83,43 @@ const formatDate = (dateString: string) =>
 const formatDateTime = (dateString: string) =>
   new Date(dateString).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-// タイムライン（モック）
-const mockTimeline = [
-  { id: 1, action: '見積作成', user: '管理者', date: '2024-01-10T10:00:00Z', note: '' },
-  { id: 2, action: '顧客へ送付', user: '管理者', date: '2024-01-10T14:00:00Z', note: 'メールで送付' },
-  { id: 3, action: '顧客からの返答', user: '山田 太郎', date: '2024-01-11T09:30:00Z', note: '数量について相談したい' },
-];
-
 export default function QuoteDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [quote, setQuote] = useState<QuoteWithItems | null>(null);
+  const [customer, setCustomer] = useState<CustomerWithAddresses | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
 
-  const quote = mockQuotes.find((q) => q.id === id);
-  const customer = mockCustomers.find((c) => c.id === quote?.customerId);
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchData = async () => {
+      setLoading(true);
+      const { data: quoteData } = await getQuote(id);
+      if (quoteData) {
+        setQuote(quoteData);
+        if (quoteData.customer_id) {
+          const { data: customerData } = await getCustomer(quoteData.customer_id);
+          setCustomer(customerData);
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!quote) {
     return (
@@ -114,16 +136,34 @@ export default function QuoteDetailPage() {
 
   const config = statusConfig[quote.status];
   const StatusIcon = config.icon;
-  const isExpired = new Date(quote.validUntil) < new Date() && quote.status !== 'ordered';
+  const isExpired = new Date(quote.valid_until) < new Date() && quote.status !== 'ordered';
 
   const handleStatusChange = (newStatus: QuoteStatus) => {
-    console.log(`Status changed to: ${newStatus}`);
-    // API呼び出し
+    startTransition(async () => {
+      const { error } = await updateQuoteStatus(quote.id, newStatus);
+      if (error) {
+        alert('ステータスの更新に失敗しました: ' + error);
+        return;
+      }
+      // データを再取得
+      const { data: updatedQuote } = await getQuote(quote.id);
+      if (updatedQuote) {
+        setQuote(updatedQuote);
+      }
+    });
   };
 
   const handleConvertToOrder = () => {
-    console.log('Converting to order...');
-    router.push(`/orders/new?quoteId=${quote.id}`);
+    startTransition(async () => {
+      const { orderId, error } = await convertQuoteToOrder(quote.id);
+      if (error) {
+        alert('注文への変換に失敗しました: ' + error);
+        return;
+      }
+      if (orderId) {
+        router.push(`/orders/${orderId}`);
+      }
+    });
   };
 
   return (
@@ -138,14 +178,14 @@ export default function QuoteDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{quote.quoteNumber}</h1>
+              <h1 className="text-2xl font-bold">{quote.quote_number}</h1>
               <Badge className={cn("gap-1", config.bgColor, config.color, "border-0")}>
                 <StatusIcon className="h-3 w-3" />
                 {config.label}
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              作成日: {formatDateTime(quote.createdAt)}
+              作成日: {formatDateTime(quote.created_at)}
             </p>
           </div>
         </div>
@@ -153,26 +193,26 @@ export default function QuoteDetailPage() {
         <div className="flex items-center gap-2">
           {/* ステータスに応じたアクションボタン */}
           {quote.status === 'draft' && (
-            <Button onClick={() => handleStatusChange('sent')}>
+            <Button onClick={() => handleStatusChange('sent')} disabled={isPending}>
               <Send className="mr-2 h-4 w-4" />
               顧客へ送付
             </Button>
           )}
           {quote.status === 'sent' && (
-            <Button onClick={() => handleStatusChange('negotiating')} variant="outline">
+            <Button onClick={() => handleStatusChange('negotiating')} variant="outline" disabled={isPending}>
               <MessageSquare className="mr-2 h-4 w-4" />
               交渉開始
             </Button>
           )}
           {(quote.status === 'sent' || quote.status === 'negotiating') && (
             <>
-              <Button onClick={() => handleStatusChange('accepted')} className="bg-emerald-600 hover:bg-emerald-700">
+              <Button onClick={() => handleStatusChange('accepted')} className="bg-emerald-600 hover:bg-emerald-700" disabled={isPending}>
                 <CheckCircle className="mr-2 h-4 w-4" />
                 承認
               </Button>
               <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
+                  <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" disabled={isPending}>
                     <XCircle className="mr-2 h-4 w-4" />
                     却下
                   </Button>
@@ -200,6 +240,7 @@ export default function QuoteDetailPage() {
                     </Button>
                     <Button
                       variant="destructive"
+                      disabled={isPending}
                       onClick={() => {
                         handleStatusChange('rejected');
                         setShowRejectDialog(false);
@@ -213,7 +254,7 @@ export default function QuoteDetailPage() {
             </>
           )}
           {quote.status === 'accepted' && (
-            <Button onClick={handleConvertToOrder} className="btn-premium">
+            <Button onClick={handleConvertToOrder} className="btn-premium" disabled={isPending}>
               <ShoppingCart className="mr-2 h-4 w-4" />
               注文に変換
             </Button>
@@ -280,14 +321,14 @@ export default function QuoteDetailPage() {
                     <TableRow key={item.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{item.productName}</p>
-                          <p className="text-sm text-muted-foreground">{item.variantName}</p>
+                          <p className="font-medium">{item.product_name}</p>
+                          <p className="text-sm text-muted-foreground">{item.variant_name}</p>
                           {item.notes && (
                             <p className="text-xs text-amber-600 mt-1">※ {item.notes}</p>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
                       <TableCell className="text-right">
                         {item.discount > 0 ? (
@@ -297,7 +338,7 @@ export default function QuoteDetailPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(item.totalPrice)}
+                        {formatCurrency(item.total_price)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -350,42 +391,6 @@ export default function QuoteDetailPage() {
               </CardContent>
             </Card>
           )}
-
-          {/* タイムライン */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5 text-primary" />
-                履歴
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockTimeline.map((event, index) => (
-                  <div key={event.id} className="flex gap-4">
-                    <div className="relative flex flex-col items-center">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <Clock className="h-4 w-4" />
-                      </div>
-                      {index < mockTimeline.length - 1 && (
-                        <div className="w-px flex-1 bg-border mt-2" />
-                      )}
-                    </div>
-                    <div className="flex-1 pb-4">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{event.action}</p>
-                        <Badge variant="outline" className="text-xs">{event.user}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{formatDateTime(event.date)}</p>
-                      {event.note && (
-                        <p className="text-sm mt-1 text-amber-600">{event.note}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* サイドバー */}
@@ -400,7 +405,7 @@ export default function QuoteDetailPage() {
             </CardHeader>
             <CardContent>
               <p className={cn("text-2xl font-bold", isExpired && "text-red-600")}>
-                {formatDate(quote.validUntil)}
+                {formatDate(quote.valid_until)}
               </p>
               {isExpired && (
                 <p className="text-sm text-red-600 mt-1">有効期限が切れています</p>
@@ -418,10 +423,10 @@ export default function QuoteDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="font-semibold text-lg">{quote.customerCompany}</p>
+                <p className="font-semibold text-lg">{quote.customer_company}</p>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                   <User className="h-4 w-4" />
-                  {quote.customerName}
+                  {quote.customer_name}
                 </div>
               </div>
               {customer && (
@@ -445,16 +450,18 @@ export default function QuoteDetailPage() {
                   </div>
                 </>
               )}
-              <Button variant="outline" className="w-full" asChild>
-                <Link href={`/customers/${quote.customerId}`}>
-                  顧客詳細を見る
-                </Link>
-              </Button>
+              {quote.customer_id && (
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href={`/customers/${quote.customer_id}`}>
+                    顧客詳細を見る
+                  </Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
 
           {/* 発注済みの場合：注文リンク */}
-          {quote.status === 'ordered' && quote.orderId && (
+          {quote.status === 'ordered' && quote.order_id && (
             <Card className="border-purple-200 bg-purple-50/50">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -464,7 +471,7 @@ export default function QuoteDetailPage() {
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="w-full" asChild>
-                  <Link href={`/orders/${quote.orderId}`}>
+                  <Link href={`/orders/${quote.order_id}`}>
                     注文詳細を見る
                   </Link>
                 </Button>
@@ -476,5 +483,3 @@ export default function QuoteDetailPage() {
     </div>
   );
 }
-
-

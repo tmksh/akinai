@@ -70,6 +70,7 @@ interface ProductVariant {
   price: number;
   compareAtPrice?: number;
   stock: number;
+  imageUrl?: string;
 }
 
 export default function NewProductPage() {
@@ -242,6 +243,7 @@ export default function NewProductPage() {
             price: v.price,
             compareAtPrice: v.compareAtPrice,
             stock: v.stock,
+            options: v.imageUrl ? { imageUrl: v.imageUrl } : {},
           })),
         });
 
@@ -399,7 +401,7 @@ export default function NewProductPage() {
           </Card>
 
           {/* バリエーション */}
-          <Card>
+          <Card id="product-variants-card">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -419,73 +421,96 @@ export default function NewProductPage() {
                 {variants.map((variant, index) => (
                   <div
                     key={variant.id}
-                    className="flex items-start gap-4 rounded-lg border p-4"
+                    className="rounded-lg border p-4 space-y-3"
                   >
-                    <div className="flex items-center self-center text-muted-foreground cursor-grab">
-                      <GripVertical className="h-4 w-4" />
+                    {/* 上段: ドラッグ・画像・削除 */}
+                    <div className="flex items-center gap-3">
+                      <div className="text-muted-foreground cursor-grab">
+                        <GripVertical className="h-4 w-4" />
+                      </div>
+                      <label className="block cursor-pointer group shrink-0">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
+                          }}
+                        />
+                        <div className={cn(
+                          "h-10 w-10 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors",
+                          "hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20",
+                          variant.imageUrl ? "border-transparent" : "border-slate-200 dark:border-slate-700"
+                        )}>
+                          {variant.imageUrl ? (
+                            <img src={variant.imageUrl} alt={variant.name} className="h-full w-full object-cover rounded-lg" />
+                          ) : (
+                            <Upload className="h-4 w-4 text-muted-foreground group-hover:text-orange-500" />
+                          )}
+                        </div>
+                      </label>
+                      <span className="text-sm font-medium flex-1 truncate">
+                        {variant.name || `バリエーション ${index + 1}`}
+                      </span>
+                      {variant.imageUrl && (
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground hover:text-destructive"
+                          onClick={() => updateVariant(variant.id, 'imageUrl', '')}
+                        >
+                          画像削除
+                        </button>
+                      )}
+                      {variants.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeVariant(variant.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    <div className="grid flex-1 gap-4 sm:grid-cols-4">
-                      <div className="space-y-2">
-                        <Label>バリエーション名</Label>
+                    {/* 下段: 入力フィールド */}
+                    <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">バリエーション名</Label>
                         <Input
                           placeholder="例: ホワイト / M"
                           value={variant.name}
-                          onChange={(e) =>
-                            updateVariant(variant.id, 'name', e.target.value)
-                          }
+                          onChange={(e) => updateVariant(variant.id, 'name', e.target.value)}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>SKU *</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">SKU *</Label>
                         <Input
                           placeholder="例: PRD-001-WH-M"
                           value={variant.sku}
-                          onChange={(e) =>
-                            updateVariant(variant.id, 'sku', e.target.value)
-                          }
+                          onChange={(e) => updateVariant(variant.id, 'sku', e.target.value)}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>価格（税込）</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">価格（税込）</Label>
                         <Input
                           type="number"
                           placeholder="0"
                           value={variant.price || ''}
-                          onChange={(e) =>
-                            updateVariant(
-                              variant.id,
-                              'price',
-                              parseInt(e.target.value) || 0
-                            )
-                          }
+                          onChange={(e) => updateVariant(variant.id, 'price', parseInt(e.target.value) || 0)}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>在庫数</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">在庫数</Label>
                         <Input
                           type="number"
                           placeholder="0"
                           value={variant.stock || ''}
-                          onChange={(e) =>
-                            updateVariant(
-                              variant.id,
-                              'stock',
-                              parseInt(e.target.value) || 0
-                            )
-                          }
+                          onChange={(e) => updateVariant(variant.id, 'stock', parseInt(e.target.value) || 0)}
                         />
                       </div>
                     </div>
-                    {variants.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="self-center text-muted-foreground hover:text-destructive"
-                        onClick={() => removeVariant(variant.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
                   </div>
                 ))}
               </div>

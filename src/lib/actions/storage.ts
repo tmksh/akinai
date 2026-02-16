@@ -192,6 +192,60 @@ export async function updateImageOrder(
   }
 }
 
+// コンテンツ（ギャラリー）画像をアップロード
+export async function uploadContentImage(
+  organizationId: string,
+  formData: FormData
+): Promise<{
+  data: { url: string } | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  try {
+    const file = formData.get('file') as File;
+    if (!file) {
+      return { data: null, error: 'ファイルが選択されていません' };
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      return { data: null, error: 'ファイルサイズは10MB以下にしてください' };
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      return { data: null, error: 'サポートされていないファイル形式です（JPG, PNG, WEBP, GIFのみ）' };
+    }
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${organizationId}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('contents')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('Content image upload error:', uploadError);
+      return { data: null, error: 'アップロードに失敗しました' };
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('contents')
+      .getPublicUrl(uploadData.path);
+
+    return {
+      data: { url: publicUrlData.publicUrl },
+      error: null,
+    };
+  } catch (error) {
+    console.error('Content image upload error:', error);
+    return { data: null, error: 'アップロードに失敗しました' };
+  }
+}
+
 // Storageバケットを初期化（存在しない場合は作成）
 export async function initializeStorageBucket(): Promise<{
   success: boolean;

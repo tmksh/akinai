@@ -17,6 +17,7 @@ function SignupForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -25,16 +26,26 @@ function SignupForm() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
+
+    if (password.length < 6) {
+      setError('パスワードは6文字以上で入力してください');
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setError('パスワードとパスワード（確認）が一致しません');
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const { error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
-          data: { name: name || email },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: { name: (name || email).trim() || email },
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
         },
       });
 
@@ -53,15 +64,15 @@ function SignupForm() {
         return;
       }
 
-      // メール確認なしで即ログインされる場合はダッシュボードへ（オンボーディングで組織作成）
+      // メール確認なしで即ログインされる場合はオンボーディングへ（組織作成）
       if (user) {
         router.push('/onboarding');
         router.refresh();
         return;
       }
 
-      // メール確認ありの場合はログインへ
-      router.push('/login?message=signup_done');
+      // メール確認ありの場合は案内を表示（confirm メール送信済み）
+      router.push('/login?message=signup_confirm_email');
       router.refresh();
     } catch {
       setError('登録中にエラーが発生しました');
@@ -170,6 +181,28 @@ function SignupForm() {
                   placeholder="6文字以上"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  disabled={isLoading}
+                  className="h-12 pl-11 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="passwordConfirm" className="text-slate-700 dark:text-slate-300">
+                パスワード（確認）
+              </Label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <Input
+                  id="passwordConfirm"
+                  type="password"
+                  placeholder="もう一度入力"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
                   required
                   minLength={6}
                   disabled={isLoading}

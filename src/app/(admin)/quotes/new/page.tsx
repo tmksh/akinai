@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -17,6 +17,7 @@ import {
   EyeOff,
   Columns,
   Download,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,20 +40,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { mockCustomers, mockProducts, mockCategories } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { QuoteTemplate } from '@/components/quotes/quote-template';
 import { useOrganization } from '@/components/providers/organization-provider';
 import { createQuote, sendQuote } from '@/lib/actions/quotes';
+import { getCustomers, type CustomerWithAddresses } from '@/lib/actions/customers';
+import { getProducts, type ProductWithRelations } from '@/lib/actions/products';
+import { getCategoriesWithProductCount } from '@/lib/actions/products';
+import type { Database } from '@/types/database';
+
+type Category = Database['public']['Tables']['categories']['Row'];
+type CategoryWithCount = Category & { productCount: number };
 
 interface QuoteItem {
   id: string;
@@ -92,7 +90,34 @@ export default function NewQuotePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSendDialog, setShowSendDialog] = useState(false);
 
-  const selectedCustomer = mockCustomers.find((c) => c.id === customerId);
+  // 実データ用のstate
+  const [customers, setCustomers] = useState<CustomerWithAddresses[]>([]);
+  const [products, setProducts] = useState<ProductWithRelations[]>([]);
+  const [categories, setCategories] = useState<CategoryWithCount[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // 顧客・商品・カテゴリを取得
+  useEffect(() => {
+    if (!organization?.id) return;
+
+    const fetchData = async () => {
+      setDataLoading(true);
+      const [customersResult, productsResult, categoriesResult] = await Promise.all([
+        getCustomers(organization.id),
+        getProducts(organization.id),
+        getCategoriesWithProductCount(organization.id),
+      ]);
+
+      setCustomers(customersResult.data || []);
+      setProducts(productsResult.data || []);
+      setCategories(categoriesResult.data || []);
+      setDataLoading(false);
+    };
+
+    fetchData();
+  }, [organization?.id]);
+
+  const selectedCustomer = customers.find((c) => c.id === customerId);
 
   // 見積番号（プレビュー用：実際の番号はDB保存時に生成）
   const quoteNumber = `QT-${new Date().getFullYear()}-****`;
@@ -106,9 +131,9 @@ export default function NewQuotePage() {
   });
 
   // 商品フィルタリング
-  const filteredProducts = mockProducts.filter((p) => {
+  const filteredProducts = products.filter((p) => {
     // カテゴリフィルター
-    if (categoryFilter !== 'all' && !p.categoryIds.includes(categoryFilter)) {
+    if (categoryFilter !== 'all' && !p.categories.some(c => c.id === categoryFilter)) {
       return false;
     }
     // 検索フィルター（商品名とバリエーション名）
@@ -123,17 +148,17 @@ export default function NewQuotePage() {
 
   // カテゴリごとの商品数
   const productCountByCategory = useMemo(() => {
-    const counts: Record<string, number> = { all: mockProducts.length };
-    mockCategories.forEach(cat => {
-      counts[cat.id] = mockProducts.filter(p => p.categoryIds.includes(cat.id)).length;
+    const counts: Record<string, number> = { all: products.length };
+    categories.forEach(cat => {
+      counts[cat.id] = cat.productCount;
     });
     return counts;
-  }, []);
+  }, [products, categories]);
 
   // 商品を追加
   const addProduct = (
-    product: (typeof mockProducts)[0],
-    variant: (typeof mockProducts)[0]['variants'][0]
+    product: ProductWithRelations,
+    variant: ProductWithRelations['variants'][0]
   ) => {
     const newItem: QuoteItem = {
       id: `item-${Date.now()}`,
@@ -240,16 +265,19 @@ export default function NewQuotePage() {
   };
 
   // プレビュー用の顧客データ
+  const getDefaultAddress = (cust: CustomerWithAddresses) => {
+    const defaultAddr = cust.addresses.find(a => a.is_default) || cust.addresses[0];
+    if (!defaultAddr) return undefined;
+    return `${defaultAddr.prefecture}${defaultAddr.city}${defaultAddr.line1}`;
+  };
+
   const customerData = customerMode === 'select' && selectedCustomer
     ? {
         name: selectedCustomer.name,
-        company: selectedCustomer.company,
+        company: selectedCustomer.company || '',
         email: selectedCustomer.email,
-        phone: selectedCustomer.phone,
-        address:
-          selectedCustomer.addresses[selectedCustomer.defaultAddressIndex]
-            ? `${selectedCustomer.addresses[selectedCustomer.defaultAddressIndex].prefecture}${selectedCustomer.addresses[selectedCustomer.defaultAddressIndex].city}${selectedCustomer.addresses[selectedCustomer.defaultAddressIndex].line1}`
-            : undefined,
+        phone: selectedCustomer.phone || '',
+        address: getDefaultAddress(selectedCustomer),
       }
     : customerMode === 'manual' && (manualCustomer.company || manualCustomer.name)
     ? {
@@ -263,6 +291,14 @@ export default function NewQuotePage() {
 
   // 顧客が入力されているか
   const hasCustomer = customerMode === 'select' ? !!customerId : !!(manualCustomer.company || manualCustomer.name);
+
+  if (dataLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -403,7 +439,7 @@ export default function NewQuotePage() {
                         <SelectValue placeholder="顧客を選択してください" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockCustomers.map((customer) => (
+                        {customers.map((customer) => (
                           <SelectItem key={customer.id} value={customer.id}>
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{customer.company || customer.name}</span>
@@ -524,7 +560,7 @@ export default function NewQuotePage() {
                             {productCountByCategory.all}
                           </Badge>
                         </Button>
-                        {mockCategories.map((category) => (
+                        {categories.map((category) => (
                           <Button
                             key={category.id}
                             variant={categoryFilter === category.id ? 'default' : 'outline'}
@@ -556,7 +592,7 @@ export default function NewQuotePage() {
                           </div>
                         ) : (
                           filteredProducts.map((product) => {
-                            const category = mockCategories.find(c => product.categoryIds.includes(c.id));
+                            const category = product.categories[0];
                             return (
                               <div key={product.id} className="border rounded-lg overflow-hidden">
                                 <div className="flex items-center justify-between p-3 bg-muted/30">

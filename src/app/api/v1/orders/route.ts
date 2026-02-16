@@ -320,23 +320,50 @@ export async function POST(request: NextRequest) {
           '商品の発送準備を開始します',
         ];
         break;
-      case 'bank_transfer':
-        responseData.paymentInstructions = `
-下記口座にお振込みください：
-銀行名: サンプル銀行
-支店名: 本店
-口座種別: 普通
-口座番号: 1234567
-口座名義: カ）サンプルストア
+      case 'bank_transfer': {
+        const accountTypeLabel: Record<string, string> = {
+          ordinary: '普通',
+          current: '当座',
+          savings: '貯蓄',
+        };
+        const { data: orgRow } = await supabase
+          .from('organizations')
+          .select('settings')
+          .eq('id', auth.organizationId)
+          .single();
+        const settings = (orgRow?.settings as Record<string, unknown>) || {};
+        const bank = settings.bank_transfer as {
+          bankName?: string;
+          branchName?: string;
+          accountType?: string;
+          accountNumber?: string;
+          accountHolder?: string;
+          transferDeadlineDays?: number;
+        } | undefined;
+        const days = bank?.transferDeadlineDays ?? 7;
+        const deadline = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toLocaleDateString('ja-JP');
 
-※お振込み期限: ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('ja-JP')}
+        if (bank?.bankName && bank?.accountNumber && bank?.accountHolder) {
+          responseData.paymentInstructions = `
+下記口座にお振込みください：
+銀行名: ${bank.bankName}
+支店名: ${bank.branchName || '―'}
+口座種別: ${accountTypeLabel[bank.accountType || 'ordinary'] || bank.accountType || '普通'}
+口座番号: ${bank.accountNumber}
+口座名義: ${bank.accountHolder}
+
+※お振込み期限: ${deadline}
 ※振込手数料はお客様負担となります
-        `.trim();
+          `.trim();
+        } else {
+          responseData.paymentInstructions = '振込先は注文確認メールでご案内します。';
+        }
         responseData.nextSteps = [
           '注文を受け付けました',
           'お振込みを確認次第、発送準備を開始します',
         ];
         break;
+      }
       case 'cod':
         responseData.nextSteps = [
           '注文を受け付けました',

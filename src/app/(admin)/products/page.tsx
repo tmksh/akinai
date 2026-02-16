@@ -29,14 +29,6 @@ import {
   CardHeader,
 } from '@/components/ui/card';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -276,217 +268,203 @@ export default function ProductsPage() {
       </div>
 
       {/* フィルター・検索 */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="商品名・SKUで検索..."
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="ステータス" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">すべて</SelectItem>
-                  <SelectItem value="published">公開中</SelectItem>
-                  <SelectItem value="draft">下書き</SelectItem>
-                  <SelectItem value="archived">アーカイブ</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="カテゴリー" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">すべてのカテゴリー</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table className="min-w-[700px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">画像</TableHead>
-                  <TableHead>商品名</TableHead>
-                  <TableHead>ステータス</TableHead>
-                  <TableHead>価格</TableHead>
-                  <TableHead className="text-right">在庫</TableHead>
-                  <TableHead>カテゴリー</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      {products.length === 0 ? (
-                        <div className="flex flex-col items-center gap-2">
-                          <Package className="h-8 w-8 text-muted-foreground" />
-                          <p>商品がまだ登録されていません</p>
-                          <Button asChild variant="outline" size="sm">
-                            <Link href="/products/new">
-                              <Plus className="mr-2 h-4 w-4" />
-                              最初の商品を登録
-                            </Link>
-                          </Button>
-                        </div>
-                      ) : (
-                        '該当する商品がありません'
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredProducts.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <div className="relative h-12 w-12 overflow-hidden rounded-md bg-muted">
-                          {product.images[0] ? (
-                            <Image
-                              src={product.images[0].url}
-                              alt={product.images[0].alt || product.name}
-                              fill
-                              sizes="48px"
-                              loading="lazy"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                              <Package className="h-6 w-6" />
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <Link
-                            href={`/products/${product.id}`}
-                            className="font-medium hover:underline"
-                          >
-                            {product.name}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="商品名・SKUで検索..."
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="ステータス" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">すべて</SelectItem>
+              <SelectItem value="published">公開中</SelectItem>
+              <SelectItem value="draft">下書き</SelectItem>
+              <SelectItem value="archived">アーカイブ</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="カテゴリー" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">すべてのカテゴリー</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* 商品カード一覧 */}
+      {filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          {products.length === 0 ? (
+            <>
+              <Package className="h-12 w-12 text-muted-foreground mb-3" />
+              <p className="text-muted-foreground mb-3">商品がまだ登録されていません</p>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/products/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  最初の商品を登録
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Search className="h-10 w-10 text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">該当する商品がありません</p>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {filteredProducts.map((product) => {
+            const totalStock = getTotalStock(product.variants);
+            const statusInfo = statusConfig[product.status];
+
+            return (
+              <Card key={product.id} className="group relative overflow-hidden transition-shadow hover:shadow-md">
+                {/* 画像 */}
+                <Link href={`/products/${product.id}`} className="block">
+                  <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+                    {product.images[0] ? (
+                      <Image
+                        src={product.images[0].url}
+                        alt={product.images[0].alt || product.name}
+                        fill
+                        sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
+                        loading="lazy"
+                        className="object-cover transition-transform group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                        <Package className="h-8 w-8 opacity-40" />
+                      </div>
+                    )}
+                    {/* ステータスバッジ */}
+                    <div className="absolute top-1.5 left-1.5">
+                      <Badge variant={statusInfo.variant} className="shadow-sm text-[10px] px-1.5 py-0">
+                        {statusInfo.label}
+                      </Badge>
+                    </div>
+                    {/* 在庫切れ警告 */}
+                    {totalStock === 0 && (
+                      <div className="absolute top-1.5 right-1.5">
+                        <Badge variant="destructive" className="shadow-sm text-[10px] px-1.5 py-0">在庫切れ</Badge>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+
+                {/* 情報 */}
+                <CardContent className="p-2">
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/products/${product.id}`}
+                        className="font-medium text-xs leading-tight line-clamp-2 hover:underline"
+                      >
+                        {product.name}
+                      </Link>
+                    </div>
+                    {/* メニュー */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" disabled={isPending}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/products/${product.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            詳細を見る
                           </Link>
-                          <p className="text-xs text-muted-foreground">
-                            {product.variants.length}バリエーション
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={statusConfig[product.status].variant}>
-                          {statusConfig[product.status].label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{getPriceRange(product.variants)}</TableCell>
-                      <TableCell className="text-right">
-                        <span
-                          className={
-                            getTotalStock(product.variants) <= 10
-                              ? 'text-destructive font-medium'
-                              : ''
-                          }
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/products/${product.id}/edit`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            編集
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            startTransition(async () => {
+                              const result = await duplicateProduct(product.id);
+                              if (result.data) {
+                                toast.success('商品を複製しました', { description: `${result.data.name} を作成しました` });
+                                if (organization?.id) {
+                                  const { data } = await getProducts(organization.id);
+                                  if (data) setProducts(data);
+                                }
+                              } else {
+                                toast.error(result.error || '複製に失敗しました');
+                              }
+                            });
+                          }}
                         >
-                          {getTotalStock(product.variants)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {product.categories.map(c => c.name).join(', ') || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={isPending}>
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">メニュー</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/products/${product.id}`}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                詳細を見る
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/products/${product.id}/edit`}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                編集
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={async () => {
-                                startTransition(async () => {
-                                  const result = await duplicateProduct(product.id);
-                                  if (result.data) {
-                                    toast.success('商品を複製しました', {
-                                      description: `${result.data.name} を作成しました`,
-                                    });
-                                    // 商品リストを再取得
-                                    if (organization?.id) {
-                                      const { data } = await getProducts(organization.id);
-                                      if (data) setProducts(data);
-                                    }
-                                  } else {
-                                    toast.error(result.error || '複製に失敗しました');
-                                  }
-                                });
-                              }}
-                            >
-                              <Copy className="mr-2 h-4 w-4" />
-                              複製
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {product.status !== 'published' && (
-                              <DropdownMenuItem onClick={() => handleStatusUpdate(product.id, 'published')}>
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                公開する
-                              </DropdownMenuItem>
-                            )}
-                            {product.status === 'published' && (
-                              <DropdownMenuItem onClick={() => handleStatusUpdate(product.id, 'draft')}>
-                                <FileEdit className="mr-2 h-4 w-4" />
-                                下書きに戻す
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(product.id, 'archived')}>
-                              <Archive className="mr-2 h-4 w-4" />
-                              アーカイブ
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => {
-                                setProductToDelete(product);
-                                setDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              削除
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                          <Copy className="mr-2 h-4 w-4" />
+                          複製
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {product.status !== 'published' && (
+                          <DropdownMenuItem onClick={() => handleStatusUpdate(product.id, 'published')}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            公開する
+                          </DropdownMenuItem>
+                        )}
+                        {product.status === 'published' && (
+                          <DropdownMenuItem onClick={() => handleStatusUpdate(product.id, 'draft')}>
+                            <FileEdit className="mr-2 h-4 w-4" />
+                            下書きに戻す
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleStatusUpdate(product.id, 'archived')}>
+                          <Archive className="mr-2 h-4 w-4" />
+                          アーカイブ
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => {
+                            setProductToDelete(product);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          削除
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* 価格・在庫 */}
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                      {getPriceRange(product.variants)}
+                    </span>
+                    <span className={`text-[10px] ${totalStock <= 10 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                      在庫 {totalStock}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* 削除確認ダイアログ */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

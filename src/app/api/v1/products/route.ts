@@ -167,16 +167,20 @@ export async function GET(request: NextRequest) {
       return {
         id: product.id,
         fields: buildFields(product, pVariants, customFields),
-        variants: pVariants.map(v => ({
-          id: v.id,
-          name: v.name,
-          sku: v.sku,
-          price: v.price,
-          compareAtPrice: v.compare_at_price,
-          stock: v.stock,
-          available: v.stock > 0,
-          options: v.options || {},
-        })),
+        variants: pVariants.map(v => {
+          const opts = (v.options || {}) as Record<string, unknown>;
+          return {
+            id: v.id,
+            name: v.name,
+            sku: v.sku,
+            price: v.price,
+            compareAtPrice: v.compare_at_price,
+            stock: v.stock,
+            available: v.stock > 0,
+            imageUrl: (opts.imageUrl as string) || null,
+            options: opts,
+          };
+        }),
         images: pImages.map(img => ({
           id: img.id,
           url: img.url,

@@ -31,6 +31,12 @@ import {
   AlertTitle,
 } from '@/components/ui/alert';
 import { PageTabs } from '@/components/layout/page-tabs';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getBankTransferSettings, updateBankTransferSettings, type BankTransferSettings } from '@/lib/actions/settings';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const settingsTabs = [
@@ -78,7 +84,17 @@ const paymentMethods = [
   },
 ];
 
+const defaultBankTransfer: BankTransferSettings = {
+  bankName: '',
+  branchName: '',
+  accountType: 'ordinary',
+  accountNumber: '',
+  accountHolder: '',
+  transferDeadlineDays: 7,
+};
+
 function PaymentsSettingsContent() {
+  const { organization } = useOrganization();
   const searchParams = useSearchParams();
   const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -92,6 +108,9 @@ function PaymentsSettingsContent() {
     convenience: false,
     cod: true,
   });
+  const [bankTransfer, setBankTransfer] = useState<BankTransferSettings>(defaultBankTransfer);
+  const [bankTransferLoading, setBankTransferLoading] = useState(true);
+  const [bankTransferSaving, setBankTransferSaving] = useState(false);
 
   // URL パラメータからのメッセージ処理
   const stripeParam = searchParams.get('stripe');
@@ -114,6 +133,30 @@ function PaymentsSettingsContent() {
     };
     fetchStatus();
   }, [stripeParam]);
+
+  // 銀行振込口座設定を取得
+  useEffect(() => {
+    if (!organization?.id) return;
+    (async () => {
+      setBankTransferLoading(true);
+      const { data } = await getBankTransferSettings(organization.id);
+      if (data) setBankTransfer(data);
+      setBankTransferLoading(false);
+    })();
+  }, [organization?.id]);
+
+  const handleSaveBankTransfer = async () => {
+    if (!organization?.id) return;
+    setBankTransferSaving(true);
+    const { data, error } = await updateBankTransferSettings(organization.id, bankTransfer);
+    setBankTransferSaving(false);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    if (data) setBankTransfer(data);
+    toast.success('振込口座を保存しました');
+  };
 
   // Stripe連携開始
   const handleConnectStripe = () => {
@@ -421,6 +464,103 @@ function PaymentsSettingsContent() {
                 );
               })}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 銀行振込の振込先 */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">銀行振込の振込先</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">振込口座情報</CardTitle>
+            <CardDescription>
+              銀行振込を選択したお客様に案内する口座情報です。未設定の場合は「振込先は注文確認メールでご案内します」と表示されます。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {bankTransferLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="bankName">銀行名</Label>
+                    <Input
+                      id="bankName"
+                      value={bankTransfer.bankName}
+                      onChange={(e) => setBankTransfer((p) => ({ ...p, bankName: e.target.value }))}
+                      placeholder="例: 〇〇銀行"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="branchName">支店名</Label>
+                    <Input
+                      id="branchName"
+                      value={bankTransfer.branchName}
+                      onChange={(e) => setBankTransfer((p) => ({ ...p, branchName: e.target.value }))}
+                      placeholder="例: 本店"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="accountType">口座種別</Label>
+                    <Select
+                      value={bankTransfer.accountType}
+                      onValueChange={(v) => setBankTransfer((p) => ({ ...p, accountType: v }))}
+                    >
+                      <SelectTrigger id="accountType">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ordinary">普通</SelectItem>
+                        <SelectItem value="current">当座</SelectItem>
+                        <SelectItem value="savings">貯蓄</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="accountNumber">口座番号</Label>
+                    <Input
+                      id="accountNumber"
+                      value={bankTransfer.accountNumber}
+                      onChange={(e) => setBankTransfer((p) => ({ ...p, accountNumber: e.target.value }))}
+                      placeholder="例: 1234567"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accountHolder">口座名義（カタカナ）</Label>
+                  <Input
+                    id="accountHolder"
+                    value={bankTransfer.accountHolder}
+                    onChange={(e) => setBankTransfer((p) => ({ ...p, accountHolder: e.target.value }))}
+                    placeholder="例: カ）ショウナイストア"
+                  />
+                </div>
+                <div className="space-y-2 max-w-xs">
+                  <Label htmlFor="transferDeadlineDays">振込期限（日数）</Label>
+                  <Input
+                    id="transferDeadlineDays"
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={bankTransfer.transferDeadlineDays}
+                    onChange={(e) => setBankTransfer((p) => ({ ...p, transferDeadlineDays: Number(e.target.value) || 7 }))}
+                  />
+                </div>
+                <Button onClick={handleSaveBankTransfer} disabled={bankTransferSaving}>
+                  {bankTransferSaving ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />保存中...</>
+                  ) : (
+                    '振込口座を保存'
+                  )}
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
