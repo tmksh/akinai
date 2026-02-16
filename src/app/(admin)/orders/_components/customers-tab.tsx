@@ -225,7 +225,7 @@ export function CustomersTab() {
     return () => {
       mounted = false;
     };
-  }, [organization]);
+  }, [organization?.id]);
 
   const filteredCustomers = useMemo(() => {
     const query = searchQuery.toLowerCase();

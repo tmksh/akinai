@@ -63,8 +63,8 @@ function LoginForm() {
         return;
       }
 
-      router.push('/dashboard');
-      router.refresh();
+      // フルページ遷移でクッキーを確実に送る
+      window.location.href = '/dashboard';
     } catch {
       setError('ログイン中にエラーが発生しました');
     } finally {
@@ -97,8 +97,8 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-orange-50 via-amber-50 to-orange-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
-      <Card className="w-full max-w-md shadow-xl border-0 bg-white dark:bg-slate-900">
-        <CardContent className="pt-10 pb-8 px-8">
+      <Card className="relative z-10 w-full max-w-md shadow-xl border-0 bg-white dark:bg-slate-900">
+        <CardContent className="pt-10 pb-8 px-8 relative z-10">
           {/* ロゴ */}
           <div className="flex flex-col items-center mb-8">
             <img

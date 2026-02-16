@@ -208,7 +208,7 @@ export function QuotesTab() {
     return () => {
       mounted = false;
     };
-  }, [organization]);
+  }, [organization?.id]);
 
   const filteredQuotes = useMemo(() => {
     return quotes.filter((quote) => {

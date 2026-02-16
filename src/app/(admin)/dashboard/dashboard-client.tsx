@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -24,7 +24,47 @@ import {
   YAxis,
   ResponsiveContainer,
 } from 'recharts';
-import { Responsive as ResponsiveOrig, useContainerWidth } from 'react-grid-layout';
+import { Responsive as ResponsiveOrig } from 'react-grid-layout';
+
+// デバウンス付きコンテナ幅フック（ResizeObserver の過剰発火を防ぐ）
+function useStableContainerWidth(initialWidth = 1200) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(initialWidth);
+  const [mounted, setMounted] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevWidthRef = useRef(initialWidth);
+
+  useEffect(() => {
+    setMounted(true);
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const newWidth = el.clientWidth;
+      if (newWidth > 0 && newWidth !== prevWidthRef.current) {
+        prevWidthRef.current = newWidth;
+        setWidth(newWidth);
+      }
+    };
+
+    // 初回測定
+    update();
+
+    const observer = new ResizeObserver(() => {
+      // 150ms デバウンス — 連続リサイズで毎フレーム setState しない
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(update, 150);
+    });
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return { width, mounted, containerRef };
+}
 
 // react-grid-layout v2 の型定義が不完全なためanyでラップ
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,26 +136,26 @@ const defaultLayouts: Layouts = {
     { i: 'top-products', x: 0, y: 17, w: 12, h: 6, minW: 6, minH: 4 },
   ],
   md: [
-    { i: 'revenue', x: 0, y: 0, w: 5, h: 4, minW: 2, minH: 3 },
-    { i: 'orders', x: 5, y: 0, w: 5, h: 4, minW: 2, minH: 3 },
-    { i: 'products', x: 0, y: 4, w: 5, h: 4, minW: 2, minH: 3 },
-    { i: 'customers', x: 5, y: 4, w: 5, h: 4, minW: 2, minH: 3 },
-    { i: 'chart', x: 0, y: 8, w: 10, h: 7, minW: 4, minH: 5 },
-    { i: 'performance', x: 0, y: 15, w: 10, h: 7, minW: 3, minH: 5 },
-    { i: 'recent-orders', x: 0, y: 22, w: 10, h: 6, minW: 4, minH: 4 },
-    { i: 'stock-alert', x: 0, y: 28, w: 10, h: 6, minW: 3, minH: 4 },
-    { i: 'top-products', x: 0, y: 34, w: 10, h: 6, minW: 6, minH: 4 },
+    { i: 'revenue', x: 0, y: 0, w: 4, h: 4, minW: 2, minH: 3 },
+    { i: 'orders', x: 4, y: 0, w: 4, h: 4, minW: 2, minH: 3 },
+    { i: 'products', x: 0, y: 4, w: 4, h: 4, minW: 2, minH: 3 },
+    { i: 'customers', x: 4, y: 4, w: 4, h: 4, minW: 2, minH: 3 },
+    { i: 'chart', x: 0, y: 8, w: 8, h: 7, minW: 4, minH: 5 },
+    { i: 'performance', x: 0, y: 15, w: 8, h: 7, minW: 3, minH: 5 },
+    { i: 'recent-orders', x: 0, y: 22, w: 8, h: 6, minW: 4, minH: 4 },
+    { i: 'stock-alert', x: 0, y: 28, w: 8, h: 6, minW: 3, minH: 4 },
+    { i: 'top-products', x: 0, y: 34, w: 8, h: 6, minW: 4, minH: 4 },
   ],
   sm: [
-    { i: 'revenue', x: 0, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
-    { i: 'orders', x: 3, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
-    { i: 'products', x: 0, y: 4, w: 3, h: 4, minW: 2, minH: 3 },
-    { i: 'customers', x: 3, y: 4, w: 3, h: 4, minW: 2, minH: 3 },
-    { i: 'chart', x: 0, y: 8, w: 6, h: 7, minW: 4, minH: 5 },
-    { i: 'performance', x: 0, y: 15, w: 6, h: 7, minW: 3, minH: 5 },
-    { i: 'recent-orders', x: 0, y: 22, w: 6, h: 6, minW: 4, minH: 4 },
-    { i: 'stock-alert', x: 0, y: 28, w: 6, h: 6, minW: 3, minH: 4 },
-    { i: 'top-products', x: 0, y: 34, w: 6, h: 6, minW: 4, minH: 4 },
+    { i: 'revenue', x: 0, y: 0, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: 'orders', x: 2, y: 0, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: 'products', x: 0, y: 4, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: 'customers', x: 2, y: 4, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: 'chart', x: 0, y: 8, w: 4, h: 7, minW: 4, minH: 5 },
+    { i: 'performance', x: 0, y: 15, w: 4, h: 7, minW: 3, minH: 5 },
+    { i: 'recent-orders', x: 0, y: 22, w: 4, h: 6, minW: 4, minH: 4 },
+    { i: 'stock-alert', x: 0, y: 28, w: 4, h: 6, minW: 3, minH: 4 },
+    { i: 'top-products', x: 0, y: 34, w: 4, h: 6, minW: 4, minH: 4 },
   ],
 };
 
@@ -319,8 +359,8 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
   const [isLoadingPerformance, setIsLoadingPerformance] = useState(false);
   const [layouts, setLayouts] = useState<Layouts>(defaultLayouts);
   
-  // コンテナの幅を取得
-  const { width, mounted, containerRef } = useContainerWidth({ initialWidth: 1200 });
+  // コンテナの幅を取得（デバウンス付き）
+  const { width, mounted, containerRef } = useStableContainerWidth(1200);
 
   // クライアントサイドでのみレイアウトを読み込む
   useEffect(() => {
@@ -550,98 +590,97 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
       </WidgetWrapper>
     ),
 
-    // パフォーマンス
+    // パフォーマンス（モダンUI）
     performance: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-orange-50/30 to-amber-50/50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800/90 border border-orange-100/50 dark:border-slate-700/50 shadow-sm p-4 cursor-grab active:cursor-grabbing">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-200/30 to-amber-200/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-amber-200/20 to-orange-200/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
-        
-        <div className="relative h-full flex flex-col">
-          {/* 月選択ヘッダー */}
-          <div className="mb-3">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl bg-card border border-border shadow-sm p-5 cursor-grab active:cursor-grabbing">
+        <div className="relative h-full flex flex-col gap-5">
+          {/* ヘッダー: タイトル + 月セレクタ（ピル） */}
+          <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <button
-                onClick={() => handlePerformanceMonthChange(Math.min(performanceMonth + 1, 5))}
-                disabled={performanceMonth >= 5 || isLoadingPerformance}
-                className="p-1 rounded-lg hover:bg-orange-100/50 dark:hover:bg-slate-700/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-4 w-4 text-slate-600 dark:text-slate-300" />
-              </button>
-              <div className="text-center">
-                <h3 className="font-semibold text-slate-900 dark:text-white text-sm">パフォーマンス</h3>
-                <p className="text-xs text-orange-500 font-medium">{getMonthLabel(performanceMonth)}</p>
+              <h3 className="text-sm font-semibold text-foreground tracking-tight">パフォーマンス</h3>
+              <div className="flex items-center rounded-full bg-muted/80 p-0.5">
+                <button
+                  onClick={() => handlePerformanceMonthChange(Math.max(performanceMonth - 1, 0))}
+                  disabled={performanceMonth <= 0 || isLoadingPerformance}
+                  className="rounded-full p-1.5 text-muted-foreground hover:bg-background hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <span className="min-w-[4.5rem] text-center text-xs font-medium text-foreground px-1">
+                  {getMonthLabel(performanceMonth)}
+                </span>
+                <button
+                  onClick={() => handlePerformanceMonthChange(Math.min(performanceMonth + 1, 5))}
+                  disabled={performanceMonth >= 5 || isLoadingPerformance}
+                  className="rounded-full p-1.5 text-muted-foreground hover:bg-background hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
               </div>
-              <button
-                onClick={() => handlePerformanceMonthChange(Math.max(performanceMonth - 1, 0))}
-                disabled={performanceMonth <= 0 || isLoadingPerformance}
-                className="p-1 rounded-lg hover:bg-orange-100/50 dark:hover:bg-slate-700/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-4 w-4 text-slate-600 dark:text-slate-300" />
-              </button>
             </div>
-            {/* 月インジケーター */}
-            <div className="flex justify-center gap-1 mt-1.5">
+            <div className="flex gap-1">
               {[0, 1, 2, 3, 4, 5].map((month) => (
                 <button
                   key={month}
                   onClick={() => handlePerformanceMonthChange(month)}
                   disabled={isLoadingPerformance}
                   className={cn(
-                    "h-1 rounded-full transition-all duration-300",
-                    performanceMonth === month 
-                      ? "w-3 bg-orange-500" 
-                      : "w-1 bg-slate-300 dark:bg-slate-600 hover:bg-orange-300"
+                    "h-1 rounded-full transition-all duration-200",
+                    performanceMonth === month
+                      ? "w-4 bg-primary"
+                      : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                   )}
                 />
               ))}
             </div>
           </div>
-          
-          <div className={cn("flex justify-center gap-4 flex-1 items-center", isLoadingPerformance && "opacity-50")}>
-            <CircleProgress 
-              value={Math.min(performanceData.salesAchievement, 150)} 
-              size={80}
-              strokeWidth={8}
+
+          {/* KPI サークル（コンパクト） */}
+          <div className={cn("grid grid-cols-3 gap-3 flex-1 min-h-0", isLoadingPerformance && "opacity-50 pointer-events-none")}>
+            <CircleProgress
+              value={Math.min(performanceData.salesAchievement, 150)}
+              size={72}
+              strokeWidth={6}
               colorVariant="orange"
-              label="売上目標"
+              label="売上"
               sublabel={`¥${Math.round(performanceData.salesTarget / 10000)}万 / ¥${Math.round(performanceData.salesActual / 10000)}万`}
             />
-            <CircleProgress 
-              value={Math.min(performanceData.ordersAchievement, 150)} 
-              size={80}
-              strokeWidth={8}
+            <CircleProgress
+              value={Math.min(performanceData.ordersAchievement, 150)}
+              size={72}
+              strokeWidth={6}
               colorVariant="amber"
-              label="注文目標"
+              label="注文"
               sublabel={`${performanceData.ordersTarget}件 / ${performanceData.ordersActual}件`}
             />
-            <CircleProgress 
-              value={Math.min(performanceData.customersAchievement, 150)} 
-              size={80}
-              strokeWidth={8}
+            <CircleProgress
+              value={Math.min(performanceData.customersAchievement, 150)}
+              size={72}
+              strokeWidth={6}
               colorVariant="warm"
-              label="顧客獲得"
+              label="顧客"
               sublabel={`${performanceData.customersTarget}人 / ${performanceData.customersActual}人`}
             />
           </div>
-          
-          {/* 追加の統計 */}
-          <div className="mt-auto grid grid-cols-3 gap-2">
-            <div className="bg-white/40 dark:bg-slate-700/40 rounded-xl p-2 text-center border border-white/20 dark:border-slate-600/20 backdrop-blur-sm">
-              <p className={cn(
-                "text-lg font-extrabold",
-                performanceData.growthRate >= 0 ? "text-orange-600 dark:text-orange-400" : "text-red-500"
+
+          {/* サマリー行（モダン・フラット） */}
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+            <div className="flex items-center gap-4 min-w-0">
+              <span className="text-xs text-muted-foreground">前月比</span>
+              <span className={cn(
+                "text-sm font-semibold tabular-nums",
+                performanceData.growthRate >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
               )}>
                 {performanceData.growthRate >= 0 ? '+' : ''}{performanceData.growthRate}%
-              </p>
-              <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400">前月比成長</p>
+              </span>
             </div>
-            <div className="bg-white/40 dark:bg-slate-700/40 rounded-xl p-2 text-center border border-white/20 dark:border-slate-600/20 backdrop-blur-sm">
-              <p className="text-lg font-extrabold text-amber-600 dark:text-amber-400">{performanceData.avgAchievement}%</p>
-              <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400">平均達成率</p>
+            <div className="flex items-center gap-4 min-w-0">
+              <span className="text-xs text-muted-foreground">平均達成</span>
+              <span className="text-sm font-semibold text-foreground tabular-nums">{performanceData.avgAchievement}%</span>
             </div>
-            <div className="bg-white/40 dark:bg-slate-700/40 rounded-xl p-2 text-center border border-white/20 dark:border-slate-600/20 backdrop-blur-sm">
-              <p className="text-lg font-extrabold text-orange-600 dark:text-orange-400">{performanceData.grade}</p>
-              <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400">評価</p>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs text-muted-foreground">評価</span>
+              <span className="text-sm font-semibold text-primary">{performanceData.grade}</span>
             </div>
           </div>
         </div>
@@ -659,26 +698,31 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
         </div>
         {initialData.recentOrders.length > 0 ? (
           <div className="space-y-1 overflow-y-auto h-[calc(100%-44px)] scrollbar-thin">
-            {initialData.recentOrders.map((order) => (
-              <Link 
-                key={order.id}
-                href={`/orders/${order.id}`}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-orange-50/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
-              >
-                <Avatar className="h-8 w-8 rounded-full shadow-sm flex-shrink-0">
-                  <AvatarFallback className="text-[10px] font-medium text-white bg-gradient-to-br from-orange-400 to-amber-500">
-                    {order.customer_name.slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-slate-900 dark:text-white truncate">{order.customer_name}</p>
-                  <p className="text-[10px] text-slate-500">{formatCurrency(order.total)}</p>
-                </div>
-                <Badge className={cn("text-[9px] font-medium rounded-full px-1.5 py-0.5 flex-shrink-0", orderStatusConfig[order.status].color)}>
-                  {orderStatusConfig[order.status].label}
-                </Badge>
-              </Link>
-            ))}
+            {initialData.recentOrders.map((order) => {
+              const statusConfig = orderStatusConfig[order.status as OrderStatus] ?? { label: String(order.status), color: 'bg-slate-100 text-slate-700' };
+              const customerName = order.customer_name ?? '顧客';
+              const total = Number(order.total) || 0;
+              return (
+                <Link 
+                  key={order.id}
+                  href={`/orders/${order.id}`}
+                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-orange-50/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+                >
+                  <Avatar className="h-8 w-8 rounded-full shadow-sm flex-shrink-0">
+                    <AvatarFallback className="text-[10px] font-medium text-white bg-gradient-to-br from-orange-400 to-amber-500">
+                      {customerName.slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-slate-900 dark:text-white truncate">{customerName}</p>
+                    <p className="text-[10px] text-slate-500">{formatCurrency(total)}</p>
+                  </div>
+                  <Badge className={cn("text-[9px] font-medium rounded-full px-1.5 py-0.5 flex-shrink-0", statusConfig.color)}>
+                    {statusConfig.label}
+                  </Badge>
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-6 text-sm text-slate-500">
@@ -817,8 +861,8 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           className="layout"
           width={width}
           layouts={layouts}
-          breakpoints={{ lg: 1200, md: 996, sm: 768 }}
-          cols={{ lg: 12, md: 10, sm: 6 }}
+          breakpoints={{ lg: 1024, md: 768, sm: 640 }}
+          cols={{ lg: 12, md: 8, sm: 4 }}
           rowHeight={40}
           onLayoutChange={handleLayoutChange}
           isResizable={false}

@@ -97,7 +97,7 @@ export default function QuotesPage() {
     }
 
     fetchQuotes();
-  }, [organization]);
+  }, [organization?.id]);
 
   // フィルタリング
   const filteredQuotes = quotes.filter((quote) => {

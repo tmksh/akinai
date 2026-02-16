@@ -364,35 +364,51 @@ export async function getLowStockItems(organizationId: string, limit: number = 5
   return lowStockItems;
 }
 
-// 月別売上データを取得（チャート用）
+// 月別売上データを取得（チャート用）― 1 クエリで全期間を取得して JS 側で月ごとに集計
 export async function getMonthlySalesData(organizationId: string, months: number = 7) {
   const supabase = await createClient();
-  
-  const result: { name: string; sales: number; orders: number }[] = [];
+
   const now = new Date();
-  
+  const rangeStart = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  const rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('total, created_at')
+    .eq('organization_id', organizationId)
+    .in('status', ['confirmed', 'processing', 'shipped', 'delivered'])
+    .gte('created_at', rangeStart.toISOString())
+    .lte('created_at', rangeEnd.toISOString());
+
+  // 月キー → 集計値のマップを作る
+  const buckets: Record<string, { sales: number; orders: number }> = {};
   for (let i = months - 1; i >= 0; i--) {
-    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
-    
-    const { data: orders } = await supabase
-      .from('orders')
-      .select('total')
-      .eq('organization_id', organizationId)
-      .in('status', ['confirmed', 'processing', 'shipped', 'delivered'])
-      .gte('created_at', monthStart.toISOString())
-      .lte('created_at', monthEnd.toISOString());
-    
-    const sales = orders?.reduce((sum, o) => sum + o.total, 0) || 0;
-    const orderCount = orders?.length || 0;
-    
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    buckets[key] = { sales: 0, orders: 0 };
+  }
+
+  for (const o of orders ?? []) {
+    const d = new Date(o.created_at);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (buckets[key]) {
+      buckets[key].sales += Number(o.total) || 0;
+      buckets[key].orders += 1;
+    }
+  }
+
+  // 結果を古い月から順に返す
+  const result: { name: string; sales: number; orders: number }[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
     result.push({
-      name: `${monthStart.getMonth() + 1}月`,
-      sales: Math.round(sales / 1000), // 千円単位
-      orders: orderCount,
+      name: `${d.getMonth() + 1}月`,
+      sales: Math.round(buckets[key].sales / 1000),
+      orders: buckets[key].orders,
     });
   }
-  
+
   return result;
 }
 

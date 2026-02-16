@@ -47,7 +47,7 @@ export default function CustomersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [organization]);
+  }, [organization?.id]);
 
   useEffect(() => {
     fetchData();

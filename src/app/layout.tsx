@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   description: 'B2B向け編集型EC対応 汎用CMS',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
