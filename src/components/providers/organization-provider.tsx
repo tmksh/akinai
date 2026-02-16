@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 // 組織の型定義
@@ -83,23 +83,21 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchOrganization = async () => {
+  const fetchOrganization = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
       const supabase = createClient();
-      
-      // 現在のユーザーを取得
+
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         setOrganization(null);
         setCurrentUser(null);
         return;
       }
 
-      // 表示用のユーザー情報（public.users）を取得
       const { data: profile } = await supabase
         .from('users')
         .select('name, avatar')
@@ -113,7 +111,6 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         avatar: (profile?.avatar as string) ?? user.user_metadata?.avatar_url ?? null,
       });
 
-      // ユーザーが所属する組織を取得（最初の組織を使用）
       const { data: membership, error: memberError } = await supabase
         .from('organization_members')
         .select('organization_id')
@@ -131,7 +128,6 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // 組織詳細を取得
       const { data: org, error: orgError } = await supabase
         .from('organizations')
         .select('*')
@@ -147,23 +143,26 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchOrganization();
-  }, []);
+  }, [fetchOrganization]);
+
+  const value = useMemo(
+    () => ({
+      organization,
+      currentUser,
+      isLoading,
+      error,
+      setOrganization,
+      refetch: fetchOrganization,
+    }),
+    [organization, currentUser, isLoading, error, fetchOrganization]
+  );
 
   return (
-    <OrganizationContext.Provider
-      value={{
-        organization,
-        currentUser,
-        isLoading,
-        error,
-        setOrganization,
-        refetch: fetchOrganization,
-      }}
-    >
+    <OrganizationContext.Provider value={value}>
       {children}
     </OrganizationContext.Provider>
   );

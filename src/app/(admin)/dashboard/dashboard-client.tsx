@@ -39,9 +39,10 @@ function useStableContainerWidth(initialWidth = 1200) {
     const el = containerRef.current;
     if (!el) return;
 
+    const MIN_WIDTH_DELTA = 20; // 20px 以上変わったときだけ更新（スクロールバー等のノイズを無視）
     const update = () => {
       const newWidth = el.clientWidth;
-      if (newWidth > 0 && newWidth !== prevWidthRef.current) {
+      if (newWidth > 0 && Math.abs(newWidth - prevWidthRef.current) >= MIN_WIDTH_DELTA) {
         prevWidthRef.current = newWidth;
         setWidth(newWidth);
       }
@@ -51,9 +52,8 @@ function useStableContainerWidth(initialWidth = 1200) {
     update();
 
     const observer = new ResizeObserver(() => {
-      // 150ms デバウンス — 連続リサイズで毎フレーム setState しない
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(update, 150);
+      timerRef.current = setTimeout(update, 200);
     });
     observer.observe(el);
 

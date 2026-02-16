@@ -1,9 +1,24 @@
 import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getDashboardData } from '@/lib/actions/dashboard';
-import DashboardClient from './dashboard-client';
 import { Loader2 } from 'lucide-react';
+
+const DashboardClient = dynamic(() => import('./dashboard-client'), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">ダッシュボード</h1>
+        <p className="text-sm text-slate-500">読み込み中...</p>
+      </div>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+      </div>
+    </div>
+  ),
+});
 
 // エラー時のフォールバックデータ
 const fallbackData = {
