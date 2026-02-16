@@ -91,10 +91,10 @@ function NavItem({
     <Link
       href={item.href}
       className={cn(
-        'flex flex-col items-center rounded-xl transition-all duration-200 relative group',
-        isCompact 
-          ? 'gap-1 px-3 py-2 min-w-[60px]' 
-          : 'gap-1.5 px-4 py-2.5 min-w-[70px]',
+        'flex flex-col items-center rounded-xl transition-all duration-200 relative group shrink-0',
+        isCompact
+          ? 'gap-1 px-2 py-2'
+          : 'gap-1.5 px-3 py-2.5',
         isActive
           ? 'bg-orange-50 dark:bg-orange-950/30'
           : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
@@ -184,7 +184,7 @@ export function TopNavigation() {
           </nav>
 
           {/* 小タブレットナビゲーション - md (768px〜1023px) */}
-          <nav className="hidden md:flex lg:hidden items-center gap-0.5 flex-1 justify-center mx-2">
+          <nav className="hidden md:flex lg:hidden items-center gap-0.5 flex-1 justify-center mx-2 overflow-x-auto scrollbar-none">
             {navigationItems.map((item) => (
               <NavItem 
                 key={item.href} 

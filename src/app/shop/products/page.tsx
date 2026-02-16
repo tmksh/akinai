@@ -103,7 +103,7 @@ async function ProductList({
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-6 md:gap-y-14 pt-10">
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-8 sm:gap-x-4 sm:gap-y-10 md:gap-x-6 md:gap-y-14 pt-8 sm:pt-10">
       {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
@@ -121,13 +121,13 @@ async function CategoryTabs({ currentCategory }: { currentCategory: string }) {
   ];
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin">
       {allCategories.map((category) => (
         <Link
           key={category.id}
           href={category.slug === 'all' ? '/shop/products' : `/shop/products?category=${category.slug}`}
           className={cn(
-            "px-4 py-2 text-sm transition-colors",
+            "px-4 py-2 text-sm transition-colors whitespace-nowrap",
             currentCategory === category.slug
               ? "text-slate-800 border-b-2 border-slate-800"
               : "text-slate-400 hover:text-slate-600"
@@ -186,7 +186,7 @@ function SortSelect({ currentSort, currentCategory }: { currentSort: string; cur
 // ローディングスケルトン
 function ProductSkeleton() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-6 md:gap-y-14 pt-10">
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-8 sm:gap-x-4 sm:gap-y-10 md:gap-x-6 md:gap-y-14 pt-8 sm:pt-10">
       {[...Array(8)].map((_, i) => (
         <div key={i} className="animate-pulse">
           <div className="aspect-[3/4] bg-slate-200 rounded mb-4" />
@@ -223,7 +223,7 @@ export default async function ProductsPage({
     <div className="min-h-screen bg-white">
       {/* ヘッダー */}
       <div className="border-b border-slate-100">
-        <div className="max-w-6xl mx-auto px-6 py-16 md:py-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-24">
           <p className="text-xs tracking-[0.3em] text-slate-400 uppercase mb-3">Products</p>
           <h1 className="text-3xl md:text-4xl font-light tracking-wide text-slate-800">
             {categoryName}
@@ -234,7 +234,7 @@ export default async function ProductsPage({
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* フィルターバー */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-10 border-b border-slate-100">
           {/* カテゴリータブ */}

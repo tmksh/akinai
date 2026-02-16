@@ -89,7 +89,7 @@ export default function CustomersPage() {
       </div>
 
             {/* 統計カード - オレンジグラデーション */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               {/* 総顧客数 - 薄いオレンジ */}
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
                 <div className="flex items-center gap-2 mb-3">

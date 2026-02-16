@@ -98,40 +98,42 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('users')
-        .select('name, avatar')
-        .eq('id', user.id)
-        .single();
+      // プロフィールとメンバーシップを並列取得
+      const [profileRes, membershipRes] = await Promise.all([
+        supabase
+          .from('users')
+          .select('name, avatar')
+          .eq('id', user.id)
+          .single(),
+        supabase
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .limit(1)
+          .single(),
+      ]);
 
       setCurrentUser({
         id: user.id,
         email: user.email ?? '',
-        name: (profile?.name as string) ?? user.user_metadata?.name ?? user.email ?? 'ユーザー',
-        avatar: (profile?.avatar as string) ?? user.user_metadata?.avatar_url ?? null,
+        name: (profileRes.data?.name as string) ?? user.user_metadata?.name ?? user.email ?? 'ユーザー',
+        avatar: (profileRes.data?.avatar as string) ?? user.user_metadata?.avatar_url ?? null,
       });
 
-      const { data: membership, error: memberError } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .limit(1)
-        .single();
-
-      if (memberError && memberError.code !== 'PGRST116') {
-        throw memberError;
+      if (membershipRes.error && membershipRes.error.code !== 'PGRST116') {
+        throw membershipRes.error;
       }
 
-      if (!membership) {
+      if (!membershipRes.data) {
         setOrganization(null);
         return;
       }
 
       const { data: org, error: orgError } = await supabase
         .from('organizations')
-        .select('*')
-        .eq('id', membership.organization_id)
+        .select('id, name, slug, logo, email, phone, website, address, frontend_url, frontend_api_key, plan, settings, owner_id, is_active, created_at, updated_at')
+        .eq('id', membershipRes.data.organization_id)
         .single();
 
       if (orgError) throw orgError;

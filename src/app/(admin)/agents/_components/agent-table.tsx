@@ -166,8 +166,8 @@ export function AgentTable({
   }
 
   return (
-    <div className="rounded-lg border overflow-hidden">
-      <Table>
+    <div className="rounded-lg border overflow-x-auto">
+      <Table className="min-w-[600px]">
         <TableHeader>
           <TableRow className="bg-muted/50">
             <TableHead className="w-12">
@@ -314,7 +314,7 @@ export function AgentTable({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-8 w-8 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>

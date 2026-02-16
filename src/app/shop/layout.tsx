@@ -281,8 +281,8 @@ function ShopLayoutContent({ children }: { children: React.ReactNode }) {
   const { theme } = useShopTheme();
   
   return (
-    <div 
-      className="min-h-screen flex flex-col"
+    <div
+      className="min-h-screen flex flex-col overflow-x-hidden"
       style={{ 
         backgroundColor: 'var(--shop-color-background, #ffffff)',
         fontFamily: 'var(--shop-font-body)',

@@ -208,9 +208,9 @@ export default function CartPage() {
           ショッピングカート ({cartItems.length}点)
         </h1>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* カートアイテム */}
-          <div className="lg:col-span-2">
+          <div className="md:col-span-2 lg:col-span-2">
             <div className="bg-white rounded-2xl p-6">
               {cartItems.map(item => (
                 <CartItem
@@ -242,8 +242,8 @@ export default function CartPage() {
           </div>
 
           {/* 注文サマリー */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl p-6 sticky top-28">
+          <div className="md:col-span-2 lg:col-span-1">
+            <div className="bg-white rounded-2xl p-5 sm:p-6 sticky top-20 lg:top-28">
               <h2 className="text-lg font-bold text-slate-900 mb-4">注文内容</h2>
               
               <div className="space-y-3 text-sm">

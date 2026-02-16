@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition, useMemo, useCallback } from 'react';
+import { useState, useEffect, useTransition, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -99,8 +99,17 @@ export default function ProductsPage() {
   const [isPending, startTransition] = useTransition();
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 検索入力のデバウンス（300ms）
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(value), 300);
+  };
   
   // 削除ダイアログ
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -134,13 +143,13 @@ export default function ProductsPage() {
     fetchData();
   }, [organization?.id]);
 
-  // 商品の合計在庫を計算
-  const getTotalStock = useCallback((variants: ProductWithRelations['variants']) => {
+  // 商品の合計在庫を計算（純粋関数）
+  const getTotalStock = (variants: ProductWithRelations['variants']) => {
     return variants.reduce((sum, v) => sum + v.stock, 0);
-  }, []);
+  };
 
-  // 価格範囲を取得
-  const getPriceRange = useCallback((variants: ProductWithRelations['variants']) => {
+  // 価格範囲を取得（純粋関数）
+  const getPriceRange = (variants: ProductWithRelations['variants']) => {
     if (variants.length === 0) return '-';
     const prices = variants.map((v) => v.price);
     const min = Math.min(...prices);
@@ -149,13 +158,14 @@ export default function ProductsPage() {
       return formatCurrency(min);
     }
     return `${formatCurrency(min)} ~ ${formatCurrency(max)}`;
-  }, []);
+  };
 
-  // フィルタリング（メモ化で再計算を防ぐ）
+  // フィルタリング（デバウンスされた検索値で再計算）
   const filteredProducts = useMemo(() => {
-    const searchLower = searchQuery.toLowerCase();
+    const searchLower = debouncedSearch.toLowerCase();
     return products.filter((product) => {
       const matchesSearch =
+        !searchLower ||
         product.name.toLowerCase().includes(searchLower) ||
         product.variants.some((v) =>
           v.sku.toLowerCase().includes(searchLower)
@@ -167,7 +177,7 @@ export default function ProductsPage() {
         product.categories.some(c => c.id === categoryFilter);
       return matchesSearch && matchesStatus && matchesCategory;
     });
-  }, [products, searchQuery, statusFilter, categoryFilter]);
+  }, [products, debouncedSearch, statusFilter, categoryFilter]);
 
   // 削除処理
   const handleDelete = async () => {
@@ -206,8 +216,8 @@ export default function ProductsPage() {
     total: products.length,
     published: products.filter(p => p.status === 'published').length,
     draft: products.filter(p => p.status === 'draft').length,
-    outOfStock: products.filter(p => getTotalStock(p.variants) === 0).length,
-  }), [products, getTotalStock]);
+    outOfStock: products.filter(p => p.variants.reduce((sum, v) => sum + v.stock, 0) === 0).length,
+  }), [products]);
 
   // ローディング表示
   if (orgLoading || isLoading) {
@@ -219,9 +229,9 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* ページヘッダー */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">商品管理</h1>
           <p className="text-muted-foreground">
@@ -240,7 +250,7 @@ export default function ProductsPage() {
       <PageTabs tabs={productTabs} />
 
       {/* 統計バー */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 overflow-x-auto">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
           <Package className="h-3.5 w-3.5 text-slate-500" />
           <span className="text-xs text-muted-foreground">全商品</span>
@@ -274,7 +284,7 @@ export default function ProductsPage() {
               <Input
                 placeholder="商品名・SKUで検索..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-9"
               />
             </div>
@@ -308,8 +318,8 @@ export default function ProductsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[700px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">画像</TableHead>

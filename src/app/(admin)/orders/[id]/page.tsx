@@ -377,9 +377,9 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* メイン情報 */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="md:col-span-2 lg:col-span-2 space-y-6">
           {/* 注文明細 */}
           <Card>
             <CardHeader>
@@ -389,8 +389,8 @@ export default function OrderDetailPage() {
               </CardTitle>
               <CardDescription>{order.items.length}点の商品</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Table>
+            <CardContent className="overflow-x-auto">
+              <Table className="min-w-[500px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>商品</TableHead>

@@ -288,7 +288,7 @@ export default function QuotesPage() {
         </CardHeader>
         <CardContent>
           {/* 検索・フィルター */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -299,7 +299,7 @@ export default function QuotesPage() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="ステータス" />
               </SelectTrigger>
@@ -317,8 +317,8 @@ export default function QuotesPage() {
           </div>
 
           {/* テーブル */}
-          <div className="rounded-lg border">
-            <Table>
+          <div className="rounded-lg border overflow-x-auto">
+            <Table className="min-w-[700px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>見積番号</TableHead>
@@ -398,7 +398,7 @@ export default function QuotesPage() {
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                              <Button variant="ghost" size="icon" className="sm:opacity-0 sm:group-hover:opacity-100">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>

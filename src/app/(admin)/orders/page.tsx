@@ -119,8 +119,8 @@ export default function OrdersPage() {
 
       {/* タブナビゲーション */}
       <Card className="overflow-hidden">
-        <div className="border-b">
-          <div className="flex">
+        <div className="border-b overflow-x-auto">
+          <div className="flex min-w-0">
             {tabs.map((tab) => (
               <TabButton
                 key={tab.id}

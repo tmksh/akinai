@@ -398,7 +398,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
   const customersStats = getCustomersData(customersPeriod);
 
   // パフォーマンス月を変更
-  const handlePerformanceMonthChange = async (newMonth: number) => {
+  const handlePerformanceMonthChange = useCallback(async (newMonth: number) => {
     setPerformanceMonth(newMonth);
     setIsLoadingPerformance(true);
     try {
@@ -409,7 +409,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
     } finally {
       setIsLoadingPerformance(false);
     }
-  };
+  }, [organizationId]);
 
   // ウィジェットコンテンツをメモ化
   const widgets = useMemo(() => ({
@@ -636,27 +636,27 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           </div>
 
           {/* KPI サークル（コンパクト） */}
-          <div className={cn("grid grid-cols-3 gap-3 flex-1 min-h-0", isLoadingPerformance && "opacity-50 pointer-events-none")}>
+          <div className={cn("grid grid-cols-3 gap-2 sm:gap-3 flex-1 min-h-0", isLoadingPerformance && "opacity-50 pointer-events-none")}>
             <CircleProgress
               value={Math.min(performanceData.salesAchievement, 150)}
-              size={72}
-              strokeWidth={6}
+              size={64}
+              strokeWidth={5}
               colorVariant="orange"
               label="売上"
               sublabel={`¥${Math.round(performanceData.salesTarget / 10000)}万 / ¥${Math.round(performanceData.salesActual / 10000)}万`}
             />
             <CircleProgress
               value={Math.min(performanceData.ordersAchievement, 150)}
-              size={72}
-              strokeWidth={6}
+              size={64}
+              strokeWidth={5}
               colorVariant="amber"
               label="注文"
               sublabel={`${performanceData.ordersTarget}件 / ${performanceData.ordersActual}件`}
             />
             <CircleProgress
               value={Math.min(performanceData.customersAchievement, 150)}
-              size={72}
-              strokeWidth={6}
+              size={64}
+              strokeWidth={5}
               colorVariant="warm"
               label="顧客"
               sublabel={`${performanceData.customersTarget}人 / ${performanceData.customersActual}人`}
@@ -780,7 +780,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           </Button>
         </div>
         {initialData.topProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 overflow-y-auto h-[calc(100%-52px)] scrollbar-thin">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-3 overflow-y-auto h-[calc(100%-52px)] scrollbar-thin">
             {initialData.topProducts.map((product, index) => (
               <Link 
                 key={product.id}
@@ -806,12 +806,13 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
         )}
       </WidgetWrapper>
     ),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [
     revenuePeriod, revenueStats,
     ordersPeriod, ordersStats,
     customersPeriod, customersStats,
-    initialData,
     performanceMonth, performanceData, isLoadingPerformance,
+    handlePerformanceMonthChange,
   ]);
 
   // SSRの問題を回避
@@ -856,7 +857,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
       </div>
 
       {/* ウィジェットグリッド */}
-      <div ref={containerRef}>
+      <div ref={containerRef} className="overflow-x-hidden w-full min-w-0">
         <Responsive
           className="layout"
           width={width}
