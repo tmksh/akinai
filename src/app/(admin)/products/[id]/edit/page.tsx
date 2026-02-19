@@ -274,7 +274,7 @@ export default function ProductEditPage() {
             price: v.price,
             compareAtPrice: v.compareAtPrice,
             stock: v.stock,
-            options: v.imageUrl ? { imageUrl: v.imageUrl } : {},
+            options: v.imageUrl ? { imageUrl: v.imageUrl } : undefined,
           })),
         });
 
