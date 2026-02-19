@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getDashboardData } from '@/lib/actions/dashboard';
-import { ensureDefaultOrganization } from '@/lib/actions/onboarding';
+import { createDefaultOrganizationForUser } from '@/lib/create-default-organization';
 import DashboardClient from './dashboard-client';
 import { Loader2 } from 'lucide-react';
 
@@ -68,8 +68,30 @@ export default async function DashboardPage() {
   let organizationId = userData?.current_organization_id;
 
   if (!organizationId) {
-    const { data } = await ensureDefaultOrganization();
-    organizationId = data?.organizationId ?? null;
+    // 組織が未所属の場合: 既存メンバーシップを確認 → なければデフォルト組織を作成
+    const { data: memberships } = await supabase
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .limit(1);
+
+    if (memberships && memberships.length > 0) {
+      organizationId = memberships[0].organization_id;
+      await supabase
+        .from('users')
+        .update({ current_organization_id: organizationId, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+    } else {
+      try {
+        const result = await createDefaultOrganizationForUser(supabase, user);
+        organizationId = result.organizationId;
+      } catch (err) {
+        console.error('[Dashboard] Failed to create default org:', err);
+        redirect('/onboarding');
+      }
+    }
+
     if (!organizationId) {
       redirect('/onboarding');
     }

@@ -43,14 +43,11 @@ export async function ensureDefaultOrganization() {
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
-    revalidatePath('/dashboard');
     return { data: { organizationId: orgId }, error: null };
   }
 
   try {
     const { organizationId } = await createDefaultOrganizationForUser(supabase, user);
-    revalidatePath('/onboarding');
-    revalidatePath('/dashboard');
     return { data: { organizationId }, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : '組織の作成に失敗しました';
