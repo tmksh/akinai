@@ -18,6 +18,7 @@ import {
   FileEdit,
   AlertTriangle,
   Loader2,
+  Upload,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,7 @@ import { PageTabs } from '@/components/layout/page-tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
 import { getProducts, getCategories, deleteProduct, updateProductStatus, duplicateProduct, type ProductWithRelations } from '@/lib/actions/products';
 import { toast } from 'sonner';
+import { ProductImportDialog } from '@/components/products/import-dialog';
 import type { ProductStatus } from '@/types';
 import type { Database } from '@/types/database';
 
@@ -103,6 +105,9 @@ export default function ProductsPage() {
     debounceRef.current = setTimeout(() => setDebouncedSearch(value), 300);
   };
   
+  // インポートダイアログ
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+
   // 削除ダイアログ
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<ProductWithRelations | null>(null);
@@ -230,12 +235,18 @@ export default function ProductsPage() {
             商品の登録・編集・在庫管理を行います
           </p>
         </div>
-        <Button asChild className="btn-premium">
-          <Link href="/products/new">
-            <Plus className="mr-2 h-4 w-4" />
-            商品を追加
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            CSVインポート
+          </Button>
+          <Button asChild className="btn-premium">
+            <Link href="/products/new">
+              <Plus className="mr-2 h-4 w-4" />
+              商品を追加
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* タブナビゲーション */}
@@ -464,6 +475,25 @@ export default function ProductsPage() {
             );
           })}
         </div>
+      )}
+
+      {/* インポートダイアログ */}
+      {organization?.id && (
+        <ProductImportDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          organizationId={organization.id}
+          onImportComplete={async () => {
+            if (!organization?.id) return;
+            const [productsResult, categoriesResult] = await Promise.all([
+              getProducts(organization.id),
+              getCategories(organization.id),
+            ]);
+            if (productsResult.data) setProducts(productsResult.data);
+            if (categoriesResult.data) setCategories(categoriesResult.data);
+            toast.success('インポートが完了しました');
+          }}
+        />
       )}
 
       {/* 削除確認ダイアログ */}

@@ -1,21 +1,54 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Pencil, Trash2, Eye, Package } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Pencil, Trash2, Eye, Package, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { mockProducts, mockCategories } from '@/lib/mock-data';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getProduct, type ProductWithRelations } from '@/lib/actions/products';
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('ja-JP', {
+    style: 'currency',
+    currency: 'JPY',
+  }).format(value);
+};
 
 export default function ProductDetailPage() {
   const params = useParams();
   const productId = params.id as string;
-  
-  const product = mockProducts.find((p) => p.id === productId);
-  
-  if (!product) {
+  const { isLoading: orgLoading } = useOrganization();
+  const [product, setProduct] = useState<ProductWithRelations | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setIsLoading(true);
+      const result = await getProduct(productId);
+      if (result.data) {
+        setProduct(result.data);
+      } else {
+        setNotFound(true);
+      }
+      setIsLoading(false);
+    };
+    fetchProduct();
+  }, [productId]);
+
+  if (orgLoading || isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (notFound || !product) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Package className="h-16 w-16 text-muted-foreground/50 mb-4" />
@@ -28,14 +61,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const category = mockCategories.find((c) => product.categoryIds?.includes(c.id));
-  
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('ja-JP', {
-      style: 'currency',
-      currency: 'JPY',
-    }).format(value);
-  };
+  const primaryCategory = product.categories?.[0];
 
   return (
     <div className="space-y-6">
@@ -72,28 +98,52 @@ export default function ProductDetailPage() {
           {/* 商品画像 */}
           <Card className="card-hover overflow-hidden">
             <CardContent className="p-0">
-              <div className="relative aspect-video">
-                <Image
-                  src={product.images[0]?.url || '/placeholder.png'}
-                  alt={product.images[0]?.alt || product.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
+              {product.images.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="relative aspect-video">
+                    <Image
+                      src={product.images[0].url}
+                      alt={product.images[0].alt || product.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  {product.images.length > 1 && (
+                    <div className="flex gap-2 p-3 overflow-x-auto">
+                      {product.images.slice(1).map((img) => (
+                        <div key={img.id} className="relative w-20 h-20 shrink-0 rounded-md overflow-hidden border">
+                          <Image
+                            src={img.url}
+                            alt={img.alt || product.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-48 text-muted-foreground">
+                  <Package className="h-12 w-12 opacity-40" />
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* 商品説明 */}
-          <Card className="card-hover">
-            <CardHeader>
-              <CardTitle>商品説明</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground whitespace-pre-wrap">
-                {product.description}
-              </p>
-            </CardContent>
-          </Card>
+          {product.description && (
+            <Card className="card-hover">
+              <CardHeader>
+                <CardTitle>商品説明</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground whitespace-pre-wrap">
+                  {product.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* バリエーション */}
           {product.variants && product.variants.length > 0 && (
@@ -113,6 +163,15 @@ export default function ProductDetailPage() {
                         <p className="text-sm text-muted-foreground font-mono">
                           SKU: {variant.sku}
                         </p>
+                        {variant.options && Object.keys(variant.options as Record<string, string>).length > 0 && (
+                          <div className="flex gap-1.5 mt-1">
+                            {Object.entries(variant.options as Record<string, string>).map(([key, val]) => (
+                              <Badge key={key} variant="outline" className="text-xs">
+                                {key}: {val}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="font-bold">{formatCurrency(variant.price)}</p>
@@ -138,14 +197,24 @@ export default function ProductDetailPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">公開状態</span>
-                <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
-                  {product.status === 'published' ? '公開中' : '下書き'}
+                <Badge variant={product.status === 'published' ? 'default' : product.status === 'archived' ? 'secondary' : 'outline'}>
+                  {product.status === 'published' ? '公開中' : product.status === 'archived' ? 'アーカイブ' : '下書き'}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">カテゴリー</span>
-                <span className="font-medium">{category?.name || '-'}</span>
+                <span className="font-medium">{primaryCategory?.name || '-'}</span>
               </div>
+              {product.tags && product.tags.length > 0 && (
+                <div>
+                  <span className="text-muted-foreground text-sm">タグ</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {product.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -159,11 +228,11 @@ export default function ProductDetailPage() {
                 <span className="text-muted-foreground">販売価格</span>
                 <span className="text-xl font-bold">{formatCurrency(product.variants[0]?.price || 0)}</span>
               </div>
-              {product.variants[0]?.compareAtPrice && (
+              {product.variants[0]?.compare_at_price && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">参考価格</span>
                   <span className="text-muted-foreground line-through">
-                    {formatCurrency(product.variants[0].compareAtPrice)}
+                    {formatCurrency(product.variants[0].compare_at_price)}
                   </span>
                 </div>
               )}
@@ -206,6 +275,3 @@ export default function ProductDetailPage() {
     </div>
   );
 }
-
-
-

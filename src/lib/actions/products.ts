@@ -674,6 +674,174 @@ export async function generateUniqueSlug(
   return slug;
 }
 
+// CSVインポート用の型
+export interface CsvProductRow {
+  name: string;
+  slug: string;
+  category: string;
+  subcategory: string;
+  size: string;
+  price: number;
+  status: string;
+  description: string;
+  sortOrder: number;
+  imageUrls: string[];
+}
+
+export interface ImportResult {
+  total: number;
+  success: number;
+  failed: number;
+  errors: { row: number; name: string; error: string }[];
+}
+
+// 商品を一括インポート
+export async function importProducts(
+  organizationId: string,
+  rows: CsvProductRow[]
+): Promise<ImportResult> {
+  const supabase = await createClient();
+  const result: ImportResult = { total: rows.length, success: 0, failed: 0, errors: [] };
+
+  // カテゴリキャッシュ（名前 → ID）
+  const categoryCache = new Map<string, string>();
+
+  // 既存カテゴリを取得してキャッシュ
+  const { data: existingCategories } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('organization_id', organizationId);
+
+  for (const cat of existingCategories || []) {
+    categoryCache.set(cat.slug, cat.id);
+  }
+
+  // カテゴリを取得or作成
+  async function getOrCreateCategory(slug: string, name: string): Promise<string | null> {
+    if (!slug) return null;
+    const cached = categoryCache.get(slug);
+    if (cached) return cached;
+
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({
+        organization_id: organizationId,
+        name,
+        slug,
+        sort_order: categoryCache.size,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        const { data: existing } = await supabase
+          .from('categories')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .eq('slug', slug)
+          .single();
+        if (existing) {
+          categoryCache.set(slug, existing.id);
+          return existing.id;
+        }
+      }
+      return null;
+    }
+    categoryCache.set(slug, data.id);
+    return data.id;
+  }
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      // slugの重複チェック
+      const slugExists = await checkSlugExists(organizationId, row.slug);
+      if (slugExists) {
+        result.errors.push({ row: i + 1, name: row.name, error: 'スラッグが既に存在します' });
+        result.failed++;
+        continue;
+      }
+
+      const validStatus = ['draft', 'published', 'archived'].includes(row.status)
+        ? row.status as 'draft' | 'published' | 'archived'
+        : 'draft';
+
+      // 商品を作成
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .insert({
+          organization_id: organizationId,
+          name: row.name,
+          slug: row.slug,
+          description: row.description || null,
+          status: validStatus,
+          tags: [],
+          featured: false,
+          custom_fields: [],
+          published_at: validStatus === 'published' ? new Date().toISOString() : null,
+        })
+        .select()
+        .single();
+
+      if (productError) throw productError;
+
+      // バリエーション作成
+      const options: Record<string, string> = {};
+      if (row.size) options['サイズ'] = row.size;
+      if (row.subcategory) options['サブカテゴリ'] = row.subcategory;
+
+      const { error: variantError } = await supabase
+        .from('product_variants')
+        .insert({
+          product_id: product.id,
+          name: 'デフォルト',
+          sku: row.slug,
+          price: row.price,
+          stock: 0,
+          options,
+        });
+
+      if (variantError) throw variantError;
+
+      // 画像を登録
+      if (row.imageUrls.length > 0) {
+        const imageInserts = row.imageUrls.map((url, idx) => ({
+          product_id: product.id,
+          url,
+          alt: row.name,
+          sort_order: idx,
+        }));
+
+        const { error: imageError } = await supabase
+          .from('product_images')
+          .insert(imageInserts);
+
+        if (imageError) throw imageError;
+      }
+
+      // カテゴリ関連付け
+      const categoryId = await getOrCreateCategory(row.category, row.category);
+      if (categoryId) {
+        await supabase.from('product_categories').insert({
+          product_id: product.id,
+          category_id: categoryId,
+        });
+      }
+
+      result.success++;
+    } catch (error) {
+      result.failed++;
+      const msg = error instanceof Error ? error.message : '不明なエラー';
+      result.errors.push({ row: i + 1, name: row.name, error: msg });
+    }
+  }
+
+  revalidatePath('/products');
+  revalidatePath('/products/categories');
+  return result;
+}
+
 // 商品を複製
 export async function duplicateProduct(productId: string): Promise<{
   data: Product | null;
