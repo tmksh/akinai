@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getDashboardData } from '@/lib/actions/dashboard';
+import { ensureDefaultOrganization } from '@/lib/actions/onboarding';
 import DashboardClient from './dashboard-client';
 import { Loader2 } from 'lucide-react';
 
@@ -64,10 +65,14 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single();
 
-  const organizationId = userData?.current_organization_id;
+  let organizationId = userData?.current_organization_id;
 
   if (!organizationId) {
-    redirect('/onboarding');
+    const { data } = await ensureDefaultOrganization();
+    organizationId = data?.organizationId ?? null;
+    if (!organizationId) {
+      redirect('/onboarding');
+    }
   }
 
   return (

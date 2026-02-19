@@ -1,6 +1,7 @@
 import { type EmailOtpType } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createDefaultOrganizationForUser } from '@/lib/create-default-organization';
 
 // Creating a handler to a GET request to route /auth/confirm
 export async function GET(request: NextRequest) {
@@ -22,8 +23,8 @@ export async function GET(request: NextRequest) {
       type,
       token_hash,
     });
-    if (!error) {
-      // メール確認後: 組織に未所属ならオンボーディングへ
+      if (!error) {
+      // メール確認後: 組織に未所属ならデフォルト組織を自動作成してダッシュボードへ
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: memberships } = await supabase
@@ -33,10 +34,13 @@ export async function GET(request: NextRequest) {
           .eq('is_active', true)
           .limit(1);
         if (!memberships || memberships.length === 0) {
-          redirectTo.pathname = '/onboarding';
-        } else {
-          redirectTo.pathname = next;
+          try {
+            await createDefaultOrganizationForUser(supabase, user);
+          } catch {
+            redirectTo.pathname = '/onboarding';
+          }
         }
+        redirectTo.pathname = next;
       } else {
         redirectTo.pathname = next;
       }

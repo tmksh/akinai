@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { createDefaultOrganizationForUser } from '@/lib/create-default-organization';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -42,9 +43,14 @@ export async function GET(request: Request) {
           .eq('id', data.user.id);
         return NextResponse.redirect(`${origin}${next}`);
       }
-      
-      // 所属組織がない場合はオンボーディング（組織作成）へ
-      return NextResponse.redirect(`${origin}/onboarding`);
+
+      // 所属組織がない場合はデフォルト組織を自動作成してダッシュボードへ
+      try {
+        await createDefaultOrganizationForUser(supabase, data.user);
+        return NextResponse.redirect(`${origin}${next}`);
+      } catch {
+        return NextResponse.redirect(`${origin}/onboarding`);
+      }
     }
   }
 

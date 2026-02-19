@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { ensureDefaultOrganization } from '@/lib/actions/onboarding';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,9 +65,19 @@ function SignupForm() {
         return;
       }
 
-      // メール確認なしで即ログインされる場合はオンボーディングへ（組織作成）
+      // メール確認なしで即ログインされる場合はデフォルト組織を作成してダッシュボードへ
       if (user) {
-        router.push('/onboarding');
+        const { data, error: orgError } = await ensureDefaultOrganization();
+        if (orgError) {
+          setError(orgError);
+          return;
+        }
+        if (data?.organizationId) {
+          router.push('/dashboard');
+          router.refresh();
+          return;
+        }
+        router.push('/dashboard');
         router.refresh();
         return;
       }
