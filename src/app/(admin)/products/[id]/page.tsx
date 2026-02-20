@@ -152,35 +152,44 @@ export default function ProductDetailPage() {
                 <CardTitle>色やサイズの種類</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {product.variants.map((variant) => (
-                    <div
-                      key={variant.id}
-                      className="flex items-center justify-between p-3 rounded-lg border"
-                    >
-                      <div>
-                        <p className="font-medium">{variant.name}</p>
-                        <p className="text-sm text-muted-foreground font-mono">
-                          SKU: {variant.sku}
-                        </p>
-                        {variant.options && Object.keys(variant.options as Record<string, string>).length > 0 && (
-                          <div className="flex gap-1.5 mt-1">
-                            {Object.entries(variant.options as Record<string, string>).map(([key, val]) => (
-                              <Badge key={key} variant="outline" className="text-xs">
-                                {key}: {val}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {product.variants.map((variant) => {
+                    const hiddenKeys = new Set(['imageUrl', 'image_url', 'image']);
+                    const displayOptions = variant.options
+                      ? Object.entries(variant.options as Record<string, string>).filter(
+                          ([key, val]) => !hiddenKeys.has(key) && val && !val.startsWith('http')
+                        )
+                      : [];
+
+                    return (
+                      <div
+                        key={variant.id}
+                        className="flex items-center justify-between p-3 rounded-lg border"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">{variant.name}</p>
+                          <p className="text-sm text-muted-foreground font-mono truncate">
+                            SKU: {variant.sku}
+                          </p>
+                          {displayOptions.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {displayOptions.map(([key, val]) => (
+                                <Badge key={key} variant="outline" className="text-xs">
+                                  {key}: {val}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0 ml-3">
+                          <p className="font-bold">{formatCurrency(variant.price)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            在庫: {variant.stock}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">{formatCurrency(variant.price)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          在庫: {variant.stock}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
