@@ -171,6 +171,129 @@ export async function GET(
   });
 }
 
+// PUT /api/v1/products/[id] - 商品を更新（バリエーション置換対応）
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await validateApiKey(request);
+  if (!auth.success) {
+    return apiError(auth.error!, auth.status, auth.rateLimit);
+  }
+
+  return withApiLogging(request, auth, async () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return apiError('Server configuration error', 500);
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { id } = await params;
+
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return apiError('Invalid JSON body', 400);
+    }
+
+    // ID または slug で商品を検索
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let query = supabase
+      .from('products')
+      .select('id')
+      .eq('organization_id', auth.organizationId);
+    if (isUUID) query = query.eq('id', id);
+    else query = query.eq('slug', id);
+
+    const { data: existing, error: findErr } = await query.single();
+    if (findErr || !existing) {
+      return apiError('Product not found', 404);
+    }
+
+    const productId = existing.id;
+
+    // 商品フィールドを更新
+    const updateData: Record<string, unknown> = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.shortDescription !== undefined) updateData.short_description = body.shortDescription;
+    if (body.status !== undefined) {
+      updateData.status = body.status;
+      if (body.status === 'published') updateData.published_at = new Date().toISOString();
+    }
+    if (body.tags !== undefined) updateData.tags = body.tags;
+
+    if (Object.keys(updateData).length > 0) {
+      const { error: updateErr } = await supabase
+        .from('products')
+        .update(updateData)
+        .eq('id', productId);
+      if (updateErr) {
+        return apiError(`Failed to update product: ${updateErr.message}`, 500);
+      }
+    }
+
+    // バリエーションを置換
+    const variants = body.variants as {
+      name: string; sku: string; price: number;
+      compareAtPrice?: number; stock?: number; options?: Record<string, string>;
+    }[] | undefined;
+
+    let insertedVariants: Record<string, unknown>[] = [];
+    if (variants && variants.length > 0) {
+      await supabase.from('product_variants').delete().eq('product_id', productId);
+
+      const { data: varData, error: varErr } = await supabase
+        .from('product_variants')
+        .insert(
+          variants.map(v => ({
+            product_id: productId,
+            name: v.name,
+            sku: v.sku,
+            price: v.price,
+            compare_at_price: v.compareAtPrice || null,
+            stock: v.stock ?? 0,
+            options: v.options || {},
+          }))
+        )
+        .select();
+
+      if (varErr) {
+        return apiError(`Failed to update variants: ${varErr.message}`, 500);
+      }
+      insertedVariants = varData || [];
+    }
+
+    // 画像を置換（指定された場合のみ）
+    const images = body.images as { url: string; alt?: string }[] | undefined;
+    if (images) {
+      await supabase.from('product_images').delete().eq('product_id', productId);
+      if (images.length > 0) {
+        await supabase.from('product_images').insert(
+          images.map((img, idx) => ({
+            product_id: productId,
+            url: img.url,
+            alt: img.alt || '',
+            sort_order: idx,
+          }))
+        );
+      }
+    }
+
+    const response = apiSuccess({
+      id: productId,
+      updated: true,
+      variants: insertedVariants.length,
+    }, undefined, auth.rateLimit);
+
+    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
+    return response;
+  });
+}
+
 // OPTIONS /api/v1/products/[id] - CORS preflight
 export async function OPTIONS() {
   return handleOptions();
