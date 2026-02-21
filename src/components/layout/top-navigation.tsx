@@ -43,7 +43,7 @@ const navigationItems: {
   { title: 'ホーム', icon: IoHome, href: '/dashboard' },
   { title: '商品管理', icon: IoCube, href: '/products' },
   { title: 'お知らせ', icon: IoDocument, href: '/contents' },
-  { title: '注文管理', icon: IoCart, href: '/orders', badge: 3 },
+  { title: '注文管理', icon: IoCart, href: '/orders' },
   { title: '代理店', icon: IoBusiness, href: '/agents' },
   { title: '設定', icon: IoSettings, href: '/settings' },
 ];
@@ -202,12 +202,6 @@ export function TopNavigation() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative h-8 w-8 md:h-9 md:w-9">
                   <IoNotifications className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
-                  <Badge
-                    variant="destructive"
-                    className="absolute -right-1 -top-1 h-4 w-4 rounded-full p-0 text-[9px] flex items-center justify-center"
-                  >
-                    3
-                  </Badge>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">

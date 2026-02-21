@@ -801,22 +801,33 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           </Button>
         </div>
         {initialData.topProducts.length > 0 ? (
-          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 overflow-y-auto h-[calc(100%-52px)] scrollbar-thin">
+          <div className="flex gap-3 overflow-x-auto overflow-y-hidden h-[calc(100%-52px)] pb-2 scrollbar-thin">
             {initialData.topProducts.map((product, index) => (
-              <Link 
+              <Link
                 key={product.id}
                 href={`/products/${product.id}`}
-                className="group/item relative p-2 rounded-xl bg-orange-50/50 dark:bg-slate-700/30 hover:bg-orange-100/50 dark:hover:bg-slate-700/50 transition-all cursor-pointer"
+                className="group/item relative flex-shrink-0 w-36 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-orange-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer overflow-hidden border border-slate-100 dark:border-slate-700/50"
               >
-                <div className="absolute -top-1.5 -left-1.5 h-5 w-5 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 text-white text-[10px] font-bold flex items-center justify-center shadow-lg">
+                <div className="absolute top-2 left-2 z-10 h-5.5 w-5.5 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md">
                   {index + 1}
                 </div>
-                <Avatar className="h-12 w-12 mx-auto rounded-xl shadow-sm">
-                  <AvatarImage src={product.image || ''} className="object-cover" />
-                  <AvatarFallback className="text-xs bg-gradient-to-br from-orange-100 to-amber-100 dark:from-slate-600 dark:to-slate-700 rounded-xl text-orange-600">{product.name.slice(0, 2)}</AvatarFallback>
-                </Avatar>
-                <p className="mt-1.5 text-xs font-medium text-slate-900 dark:text-white text-center truncate">{product.name}</p>
-                <p className="text-[10px] text-slate-500 text-center">{product.sales}件販売</p>
+                <div className="relative aspect-square bg-white dark:bg-slate-800 overflow-hidden">
+                  {product.image ? (
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover/item:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
+                      <Package className="h-8 w-8" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className="text-xs font-medium text-slate-900 dark:text-white truncate">{product.name}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">{product.sales}件販売</p>
+                </div>
               </Link>
             ))}
           </div>
