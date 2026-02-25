@@ -205,18 +205,22 @@
               </div>
               <div class="browser-url">https://yourshop.akinai.jp/settings/api</div>
             </div>
-            <div class="browser-body">
-              <div class="screenshot-mock">
-                <div class="mock-header">
-                  <span class="mock-title">🔑 APIキー管理</span>
-                  <button class="mock-btn">＋ 新しいキーを発行</button>
+            <div class="browser-body" style="padding:0;">
+              <div style="background:var(--gray-50);padding:.75rem 1rem;border-bottom:1px solid var(--gray-200);font-size:.8rem;color:var(--gray-500);">
+                ⚙️ 設定 → 外部連携 → <strong style="color:var(--primary);">APIキー</strong>
+              </div>
+              <div style="padding:1rem;background:#fff;border-radius:0 0 12px 12px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                  <strong style="font-size:.95rem;color:var(--gray-800);">🔑 APIキー管理</strong>
+                  <button class="mock-btn" style="background:var(--primary);border-radius:6px;padding:.35rem .9rem;">＋ キーを発行</button>
                 </div>
-                <div class="mock-list-item">
-                  <span class="mock-dot"></span>
-                  <span style="font-family:monospace;font-size:.8rem;">ak_live_xXxXxXxXxXxXxXxX</span>
-                  <span class="badge badge-green" style="margin-left:auto;">有効</span>
+                <div style="border:1px solid var(--gray-200);border-radius:8px;padding:.75rem 1rem;display:flex;align-items:center;gap:.75rem;">
+                  <span style="width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0;"></span>
+                  <code style="font-size:.8rem;color:var(--gray-700);flex:1;">ak_live_xXxXxXxX••••••••••••</code>
+                  <span style="font-size:.72rem;color:var(--gray-400);">2025-01-15 発行</span>
+                  <span class="badge badge-green">有効</span>
                 </div>
-                <p style="font-size:.8rem;color:var(--gray-400);margin-top:.75rem;">⚠️ このキーは他人に見せないでください</p>
+                <p style="font-size:.78rem;color:var(--gray-400);margin-top:.75rem;">⚠️ このキーは外部に公開しないでください。環境変数で管理してください。</p>
               </div>
             </div>
           </div>
