@@ -380,7 +380,7 @@ export default function UsersSettingsPage() {
                     <div className={cn(
                       "w-10 h-10 rounded-lg flex items-center justify-center",
                       role.id === 'admin' ? "bg-orange-100 text-orange-600" :
-                      role.id === 'editor' ? "bg-blue-100 text-blue-600" :
+                      role.id === 'editor' ? "bg-orange-100 text-orange-600" :
                       "bg-slate-100 text-slate-600"
                     )}>
                       <Shield className="h-5 w-5" />

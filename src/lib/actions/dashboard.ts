@@ -294,12 +294,11 @@ export async function getDashboardData(organizationId: string) {
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
       .limit(5),
-    // 人気商品集計用: 今月の注文ID
+    // 人気商品集計用: 全期間の注文ID（確定以上のステータス）
     supabase
       .from('orders')
       .select('id')
       .eq('organization_id', organizationId)
-      .gte('created_at', monthStart.toISOString())
       .in('status', ['confirmed', 'processing', 'shipped', 'delivered']),
     // 低在庫
     supabase
@@ -313,7 +312,8 @@ export async function getDashboardData(organizationId: string) {
         product:products!inner (
           id,
           name,
-          organization_id
+          organization_id,
+          product_images (url, sort_order)
         )
       `)
       .eq('product.organization_id', organizationId)
@@ -394,12 +394,13 @@ export async function getDashboardData(organizationId: string) {
         if (!salesByProduct[item.product_id]) {
           salesByProduct[item.product_id] = { id: item.product_id, name: item.product_name, sales: 0 };
         }
-        salesByProduct[item.product_id].sales += item.quantity;
+        // 注文数量（何個売れたか）で集計
+        salesByProduct[item.product_id].sales += (item.quantity ?? 1);
       }
 
       const sortedProducts = Object.values(salesByProduct)
         .sort((a, b) => b.sales - a.sales)
-        .slice(0, 5);
+        .slice(0, 7);
 
       const productIds = sortedProducts.map(p => p.id);
       const { data: images } = await supabase
@@ -424,7 +425,7 @@ export async function getDashboardData(organizationId: string) {
       .select('id, name, product_images (url)')
       .eq('organization_id', organizationId)
       .eq('status', 'published')
-      .limit(5);
+      .limit(7);
 
     topProducts = (products || []).map(p => ({
       id: p.id,
@@ -437,9 +438,11 @@ export async function getDashboardData(organizationId: string) {
   // --- 低在庫フィルタ ---
   const lowStockItems = (lowStockRes.data || [])
     .filter(item => item.stock <= item.low_stock_threshold)
-    .slice(0, 5)
+    .slice(0, 10)
     .map(item => {
       const product = Array.isArray(item.product) ? item.product[0] : item.product;
+      const images = product?.product_images || [];
+      const sortedImages = [...images].sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order);
       return {
         productId: product?.id,
         variantId: item.id,
@@ -448,6 +451,7 @@ export async function getDashboardData(organizationId: string) {
         sku: item.sku,
         stock: item.stock,
         threshold: item.low_stock_threshold,
+        image: sortedImages[0]?.url || null,
       };
     });
 

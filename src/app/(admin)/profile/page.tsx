@@ -63,7 +63,7 @@ export default function ProfilePage() {
       case 'admin':
         return { label: '管理者', color: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' };
       case 'manager':
-        return { label: 'マネージャー', color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' };
+        return { label: 'マネージャー', color: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300' };
       case 'editor':
         return { label: '編集者', color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' };
       default:

@@ -65,7 +65,7 @@ const mockRoles = [
     id: '2',
     name: '管理者',
     description: '課金以外の全機能にアクセス可能',
-    color: 'from-purple-500 to-violet-500',
+    color: 'from-orange-500 to-orange-600',
     icon: Shield,
     userCount: 2,
     isSystem: true,
@@ -75,7 +75,7 @@ const mockRoles = [
     id: '3',
     name: 'マネージャー',
     description: '日常業務の管理を行うロール',
-    color: 'from-blue-500 to-cyan-500',
+    color: 'from-amber-500 to-amber-600',
     icon: UserCog,
     userCount: 3,
     isSystem: false,
@@ -199,7 +199,7 @@ export default function RolesSettingsPage() {
 
       {/* 統計カード */}
       <div className="grid gap-4 md:grid-cols-4">
-        <div className="h-[100px] rounded-xl relative overflow-hidden bg-gradient-to-br from-violet-500 via-purple-500 to-purple-600 p-4 shadow-lg">
+        <div className="h-[100px] rounded-xl relative overflow-hidden bg-gradient-to-br from-orange-500 via-orange-500 to-orange-600 p-4 shadow-lg">
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div className="flex items-center justify-between">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">
@@ -210,7 +210,7 @@ export default function RolesSettingsPage() {
             <div className="text-2xl font-bold text-white">{mockRoles.length}</div>
           </div>
         </div>
-        <div className="h-[100px] rounded-xl relative overflow-hidden bg-gradient-to-br from-blue-400 via-blue-500 to-cyan-500 p-4 shadow-lg">
+        <div className="h-[100px] rounded-xl relative overflow-hidden bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 p-4 shadow-lg">
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div className="flex items-center justify-between">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20">

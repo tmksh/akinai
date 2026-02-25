@@ -63,12 +63,12 @@ const statusConfig: Record<
   { label: string; color: string; icon: React.ElementType; bgColor: string }
 > = {
   draft: { label: '作成中', color: 'text-slate-600', icon: FileText, bgColor: 'bg-slate-100' },
-  sent: { label: '送付済み', color: 'text-blue-600', icon: Send, bgColor: 'bg-blue-100' },
+  sent: { label: '送付済み', color: 'text-orange-600', icon: Send, bgColor: 'bg-orange-100' },
   negotiating: { label: 'やりとり中', color: 'text-amber-600', icon: MessageSquare, bgColor: 'bg-amber-100' },
   accepted: { label: 'OK済み', color: 'text-emerald-600', icon: CheckCircle, bgColor: 'bg-emerald-100' },
   rejected: { label: 'お断り', color: 'text-red-600', icon: XCircle, bgColor: 'bg-red-100' },
   expired: { label: '期限切れ', color: 'text-gray-600', icon: AlertCircle, bgColor: 'bg-gray-100' },
-  ordered: { label: '注文済み', color: 'text-purple-600', icon: ShoppingCart, bgColor: 'bg-purple-100' },
+  ordered: { label: '注文済み', color: 'text-amber-600', icon: ShoppingCart, bgColor: 'bg-amber-100' },
 };
 
 const formatCurrency = (value: number) =>
@@ -102,7 +102,7 @@ const QuoteRow = memo(function QuoteRow({
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500">
             <Building2 className="h-4 w-4 text-white" />
           </div>
           <div>

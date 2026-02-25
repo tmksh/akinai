@@ -128,6 +128,76 @@ export async function GET(
   });
 }
 
+// PUT /api/v1/contents/[id] - コンテンツを更新
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await validateApiKey(request);
+  if (!auth.success) {
+    return apiError(auth.error!, auth.status, auth.rateLimit);
+  }
+
+  return withApiLogging(request, auth, async () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return apiError('Server configuration error', 500);
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { id } = await params;
+
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return apiError('Invalid JSON body', 400);
+    }
+
+    // ID または slug でコンテンツを検索
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let query = supabase
+      .from('contents')
+      .select('id')
+      .eq('organization_id', auth.organizationId);
+    if (isUUID) query = query.eq('id', id);
+    else query = query.eq('slug', id);
+
+    const { data: existing, error: findErr } = await query.single();
+    if (findErr || !existing) {
+      return apiError('Content not found', 404);
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.excerpt !== undefined) updateData.excerpt = body.excerpt;
+    if (body.featuredImage !== undefined) updateData.featured_image = body.featuredImage;
+    if (body.tags !== undefined) updateData.tags = body.tags;
+    if (body.customFields !== undefined) updateData.custom_fields = body.customFields;
+    if (body.blocks !== undefined) updateData.blocks = body.blocks;
+    if (body.status !== undefined) {
+      updateData.status = body.status;
+      if (body.status === 'published') updateData.published_at = new Date().toISOString();
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      const { error: updateErr } = await supabase
+        .from('contents')
+        .update(updateData)
+        .eq('id', existing.id);
+      if (updateErr) {
+        return apiError(`Failed to update content: ${updateErr.message}`, 500);
+      }
+    }
+
+    const response = apiSuccess({ id: existing.id, updated: true }, undefined, auth.rateLimit);
+    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
+    return response;
+  });
+}
+
 // OPTIONS /api/v1/contents/[id] - CORS preflight
 export async function OPTIONS() {
   return handleOptions();

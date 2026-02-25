@@ -258,7 +258,7 @@ function PaymentsSettingsContent() {
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500">
                   <CreditCard className="h-6 w-6 text-white" />
                 </div>
                 <div>
@@ -392,7 +392,7 @@ function PaymentsSettingsContent() {
         {/* その他の決済プロバイダー（Coming Soon） */}
         <div className="grid gap-4 md:grid-cols-2">
           {[
-            { id: 'payjp', name: 'PAY.JP', icon: CreditCard, color: 'from-blue-500 to-cyan-500' },
+            { id: 'payjp', name: 'PAY.JP', icon: CreditCard, color: 'from-orange-400 to-amber-500' },
             { id: 'paypay', name: 'PayPay', icon: Wallet, color: 'from-red-500 to-pink-500' },
           ].map((provider) => (
             <Card key={provider.id} className="opacity-60">

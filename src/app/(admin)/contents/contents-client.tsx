@@ -109,6 +109,12 @@ export default function ContentsClient({ initialContents, stats, organizationId,
   const [deleteTarget, setDeleteTarget] = useState<ContentData | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // 設定で有効なタイプ + DBに実際に存在するタイプを合わせて表示（重複除去）
+  const allDisplayTypes = Array.from(new Set([
+    ...enabledContentTypes,
+    ...contents.map(c => c.type).filter(Boolean),
+  ]));
+
   // フィルタリング
   const filteredContents = contents.filter((content) => {
     const matchesSearch = content.title
@@ -322,7 +328,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">すべて</TabsTrigger>
-          {enabledContentTypes.map((type) => {
+          {allDisplayTypes.map((type) => {
             const info = getTypeConfig(type);
             return (
               <TabsTrigger key={type} value={type}>{info.label}</TabsTrigger>
@@ -388,10 +394,9 @@ export default function ContentsClient({ initialContents, stats, organizationId,
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">すべて</SelectItem>
-                  {enabledContentTypes.map((key) => {
-                    const config = contentTypeConfig[key];
-                    if (!config) return null;
-                    return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
+                  {allDisplayTypes.map((key) => {
+                    const info = getTypeConfig(key);
+                    return <SelectItem key={key} value={key}>{info.label}</SelectItem>;
                   })}
                 </SelectContent>
               </Select>
@@ -439,8 +444,8 @@ export default function ContentsClient({ initialContents, stats, organizationId,
           )}
         </TabsContent>
 
-        {/* 有効タイプごとのタブ（0件でもタブを表示し、そのタイプで新規作成できる） */}
-        {enabledContentTypes.map((type) => {
+        {/* タイプごとのタブ（設定で有効 or DBに存在するタイプ） */}
+        {allDisplayTypes.map((type) => {
           const typeContents = contents.filter((c) => c.type === type);
           const typeInfo = getTypeConfig(type);
           return (

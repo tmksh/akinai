@@ -60,12 +60,12 @@ import { getQuotes, deleteQuote, updateQuoteStatus, sendQuote, convertQuoteToOrd
 // ステータス設定
 const statusConfig: Record<QuoteStatus, { label: string; color: string; icon: React.ElementType; bgColor: string }> = {
   draft: { label: '下書き', color: 'text-slate-600', icon: FileText, bgColor: 'bg-slate-100' },
-  sent: { label: '送付済', color: 'text-blue-600', icon: Send, bgColor: 'bg-blue-100' },
+  sent: { label: '送付済', color: 'text-orange-600', icon: Send, bgColor: 'bg-orange-100' },
   negotiating: { label: '交渉中', color: 'text-amber-600', icon: MessageSquare, bgColor: 'bg-amber-100' },
   accepted: { label: '承認済', color: 'text-emerald-600', icon: CheckCircle, bgColor: 'bg-emerald-100' },
   rejected: { label: '却下', color: 'text-red-600', icon: XCircle, bgColor: 'bg-red-100' },
   expired: { label: '期限切れ', color: 'text-gray-600', icon: AlertCircle, bgColor: 'bg-gray-100' },
-  ordered: { label: '発注済', color: 'text-purple-600', icon: ShoppingCart, bgColor: 'bg-purple-100' },
+  ordered: { label: '発注済', color: 'text-amber-600', icon: ShoppingCart, bgColor: 'bg-amber-100' },
 };
 
 const formatCurrency = (value: number) => 
@@ -237,20 +237,20 @@ export default function QuotesPage() {
                     "flex-1 relative py-4 px-3 text-center",
                     index < 4 && "after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:border-t-[20px] after:border-b-[20px] after:border-l-[12px] after:border-t-transparent after:border-b-transparent after:border-l-border after:z-10",
                     index === 0 && "bg-slate-100 dark:bg-slate-800/50",
-                    index === 1 && "bg-blue-50 dark:bg-blue-950/30",
+                    index === 1 && "bg-orange-50 dark:bg-orange-950/30",
                     index === 2 && "bg-amber-50 dark:bg-amber-950/30",
                     index === 3 && "bg-green-50 dark:bg-green-950/30",
-                    index === 4 && "bg-purple-50 dark:bg-purple-950/30",
+                    index === 4 && "bg-amber-50 dark:bg-amber-950/30",
                   )}
                 >
                   <div className="flex flex-col items-center gap-1">
                     <div className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center mb-1",
                       index === 0 && "bg-slate-200 dark:bg-slate-700",
-                      index === 1 && "bg-blue-100 dark:bg-blue-900/50",
+                      index === 1 && "bg-orange-100 dark:bg-orange-900/50",
                       index === 2 && "bg-amber-100 dark:bg-amber-900/50",
                       index === 3 && "bg-green-100 dark:bg-green-900/50",
-                      index === 4 && "bg-purple-100 dark:bg-purple-900/50",
+                      index === 4 && "bg-amber-100 dark:bg-amber-900/50",
                     )}>
                       <Icon className={cn("h-5 w-5", statusConfig[step.status as QuoteStatus].color)} />
                     </div>
@@ -262,10 +262,10 @@ export default function QuotesPage() {
                         <span className={cn(
                           "text-xs px-1.5 py-0.5 rounded-full font-medium",
                           index === 0 && "bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-200",
-                          index === 1 && "bg-blue-200 text-blue-700 dark:bg-blue-800 dark:text-blue-200",
+                          index === 1 && "bg-orange-200 text-orange-700 dark:bg-orange-800 dark:text-orange-200",
                           index === 2 && "bg-amber-200 text-amber-700 dark:bg-amber-800 dark:text-amber-200",
                           index === 3 && "bg-green-200 text-green-700 dark:bg-green-800 dark:text-green-200",
-                          index === 4 && "bg-purple-200 text-purple-700 dark:bg-purple-800 dark:text-purple-200",
+                          index === 4 && "bg-amber-200 text-amber-700 dark:bg-amber-800 dark:text-amber-200",
                         )}>
                           {count}
                         </span>
@@ -364,7 +364,7 @@ export default function QuotesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500">
                               <Building2 className="h-4 w-4 text-white" />
                             </div>
                             <div>

@@ -66,12 +66,12 @@ import type { QuoteStatus } from '@/types';
 // ステータス設定
 const statusConfig: Record<QuoteStatus, { label: string; color: string; icon: React.ElementType; bgColor: string }> = {
   draft: { label: '下書き', color: 'text-slate-600', icon: FileText, bgColor: 'bg-slate-100' },
-  sent: { label: '送付済', color: 'text-blue-600', icon: Send, bgColor: 'bg-blue-100' },
+  sent: { label: '送付済', color: 'text-orange-600', icon: Send, bgColor: 'bg-orange-100' },
   negotiating: { label: '交渉中', color: 'text-amber-600', icon: MessageSquare, bgColor: 'bg-amber-100' },
   accepted: { label: '承認済', color: 'text-emerald-600', icon: CheckCircle, bgColor: 'bg-emerald-100' },
   rejected: { label: '却下', color: 'text-red-600', icon: XCircle, bgColor: 'bg-red-100' },
   expired: { label: '期限切れ', color: 'text-gray-600', icon: AlertCircle, bgColor: 'bg-gray-100' },
-  ordered: { label: '発注済', color: 'text-purple-600', icon: ShoppingCart, bgColor: 'bg-purple-100' },
+  ordered: { label: '発注済', color: 'text-amber-600', icon: ShoppingCart, bgColor: 'bg-amber-100' },
 };
 
 const formatCurrency = (value: number) =>
@@ -417,7 +417,7 @@ export default function QuoteDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-blue-500" />
+                <Building2 className="h-5 w-5 text-orange-500" />
                 顧客情報
               </CardTitle>
             </CardHeader>
@@ -462,10 +462,10 @@ export default function QuoteDetailPage() {
 
           {/* 発注済みの場合：注文リンク */}
           {quote.status === 'ordered' && quote.order_id && (
-            <Card className="border-purple-200 bg-purple-50/50">
+            <Card className="border-orange-200 bg-orange-50/50">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4 text-purple-600" />
+                  <ShoppingCart className="h-4 w-4 text-amber-600" />
                   関連注文
                 </CardTitle>
               </CardHeader>

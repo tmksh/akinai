@@ -52,9 +52,9 @@ const settingsTabs = [
 // ロール定義
 const roles = [
   { id: 'owner', name: 'オーナー', icon: Crown, color: 'from-amber-500 to-orange-500' },
-  { id: 'admin', name: '管理者', icon: Shield, color: 'from-purple-500 to-violet-500' },
-  { id: 'manager', name: 'マネージャー', icon: UserCog, color: 'from-blue-500 to-cyan-500' },
-  { id: 'staff', name: 'スタッフ', icon: User, color: 'from-emerald-500 to-teal-500' },
+  { id: 'admin', name: '管理者', icon: Shield, color: 'from-orange-500 to-orange-600' },
+  { id: 'manager', name: 'マネージャー', icon: UserCog, color: 'from-amber-500 to-amber-600' },
+  { id: 'staff', name: 'スタッフ', icon: User, color: 'from-orange-400 to-amber-500' },
   { id: 'viewer', name: '閲覧者', icon: Eye, color: 'from-slate-400 to-slate-500' },
 ];
 

@@ -46,7 +46,7 @@ import { toast } from 'sonner';
 const roleLabels: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   owner: { label: 'オーナー', icon: <Crown className="h-3 w-3" />, color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
   admin: { label: '管理者', icon: <Shield className="h-3 w-3" />, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-  manager: { label: 'マネージャー', icon: <Users className="h-3 w-3" />, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  manager: { label: 'マネージャー', icon: <Users className="h-3 w-3" />, color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
   editor: { label: '編集者', icon: <Edit3 className="h-3 w-3" />, color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
   viewer: { label: '閲覧者', icon: <Eye className="h-3 w-3" />, color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' },
 };

@@ -43,9 +43,9 @@ const productTabs = [
 
 const typeConfig = {
   in: { label: '入庫', color: 'text-emerald-600', bgColor: 'bg-emerald-100 dark:bg-emerald-900/30', icon: ArrowDownLeft },
-  out: { label: '出庫', color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30', icon: ArrowUpRight },
+  out: { label: '出庫', color: 'text-orange-600', bgColor: 'bg-orange-100 dark:bg-orange-900/30', icon: ArrowUpRight },
   adjustment: { label: '調整', color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30', icon: RefreshCw },
-  transfer: { label: '移動', color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900/30', icon: Truck },
+  transfer: { label: '移動', color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30', icon: Truck },
 };
 
 const formatDate = (dateString: string) =>
@@ -127,12 +127,12 @@ export default function StockMovementsPage() {
           </div>
           <div className="text-2xl font-bold text-emerald-600">+{stats.totalIn}</div>
         </div>
-        <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30">
+        <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30">
           <div className="flex items-center gap-2 mb-2">
-            <ArrowUpRight className="h-4 w-4 text-blue-500" />
-            <span className="text-xs font-medium text-blue-700 dark:text-blue-300">総出庫</span>
+            <ArrowUpRight className="h-4 w-4 text-orange-500" />
+            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">総出庫</span>
           </div>
-          <div className="text-2xl font-bold text-blue-600">-{stats.totalOut}</div>
+          <div className="text-2xl font-bold text-orange-600">-{stats.totalOut}</div>
         </div>
         <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30">
           <div className="flex items-center gap-2 mb-2">
@@ -243,7 +243,7 @@ export default function StockMovementsPage() {
                       <TableCell className="text-right">
                         <span className={cn(
                           "font-semibold tabular-nums",
-                          quantity > 0 ? "text-emerald-600" : "text-blue-600"
+                          quantity > 0 ? "text-emerald-600" : "text-orange-600"
                         )}>
                           {quantity > 0 ? '+' : ''}{quantity}
                         </span>

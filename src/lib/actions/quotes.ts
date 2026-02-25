@@ -403,16 +403,81 @@ export async function deleteQuote(quoteId: string): Promise<{
   }
 }
 
-// 見積を送信（ステータスをsentに変更 + メール送信など）
+// 見積を送信（ステータスをsentに変更 + メール送信）
 export async function sendQuote(quoteId: string): Promise<{
   data: Quote | null;
   error: string | null;
 }> {
+  const supabase = await createClient();
+
+  // 見積詳細を取得
+  const { data: quoteWithItems, error: fetchError } = await getQuote(quoteId);
+  if (fetchError || !quoteWithItems) {
+    return { data: null, error: fetchError || '見積が見つかりません' };
+  }
+
+  // 顧客のメールアドレスを取得
+  let customerEmail: string | null = null;
+  if (quoteWithItems.customer_id) {
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('email')
+      .eq('id', quoteWithItems.customer_id)
+      .single();
+    customerEmail = customer?.email || null;
+  }
+
   // ステータスを送信済みに変更
   const result = await updateQuoteStatus(quoteId, 'sent');
-  
-  // TODO: メール送信処理を追加
-  
+
+  // メール送信
+  if (customerEmail) {
+    const { sendEmail } = await import('@/lib/email');
+    const itemsHtml = quoteWithItems.items.map(item => `
+      <tr>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${item.product_name}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">¥${Number(item.unit_price).toLocaleString()}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">¥${Number(item.total_price).toLocaleString()}</td>
+      </tr>
+    `).join('');
+
+    await sendEmail({
+      to: customerEmail,
+      subject: `【見積書】${quoteWithItems.quote_number}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+          <h2 style="color:#f59e0b;">見積書のご送付</h2>
+          <p>${quoteWithItems.customer_name} 様</p>
+          <p>以下の通り、お見積りをご送付いたします。</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
+          <p><strong>見積番号:</strong> ${quoteWithItems.quote_number}</p>
+          <p><strong>有効期限:</strong> ${new Date(quoteWithItems.valid_until).toLocaleDateString('ja-JP')}</p>
+          <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+            <thead>
+              <tr style="background:#f8f8f8;">
+                <th style="padding:8px;text-align:left;border-bottom:2px solid #eee;">商品</th>
+                <th style="padding:8px;text-align:center;border-bottom:2px solid #eee;">数量</th>
+                <th style="padding:8px;text-align:right;border-bottom:2px solid #eee;">単価</th>
+                <th style="padding:8px;text-align:right;border-bottom:2px solid #eee;">金額</th>
+              </tr>
+            </thead>
+            <tbody>${itemsHtml}</tbody>
+          </table>
+          <div style="text-align:right;margin-top:10px;">
+            <p>小計: ¥${Number(quoteWithItems.subtotal).toLocaleString()}</p>
+            ${Number(quoteWithItems.discount) > 0 ? `<p>割引: -¥${Number(quoteWithItems.discount).toLocaleString()}</p>` : ''}
+            <p>消費税: ¥${Number(quoteWithItems.tax).toLocaleString()}</p>
+            <p style="font-size:1.2em;font-weight:bold;">合計: ¥${Number(quoteWithItems.total).toLocaleString()}</p>
+          </div>
+          ${quoteWithItems.notes ? `<p style="margin-top:20px;padding:15px;background:#f8f8f8;border-radius:8px;">${quoteWithItems.notes}</p>` : ''}
+          <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
+          <p style="color:#888;font-size:12px;">ご不明点がございましたら、お気軽にお問い合わせください。</p>
+        </div>
+      `,
+    });
+  }
+
   return result;
 }
 

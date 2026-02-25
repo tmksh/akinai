@@ -4,126 +4,62 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useShopTheme } from '@/components/providers/shop-theme-provider';
 import { ShopSectionId } from '@/types';
+import { getShopProducts, getShopCategories, getShopContents, type ShopProduct, type ShopCategory, type ShopContent } from '@/lib/actions/shop';
 
-// モックデータ
-const featuredProducts = [
-  { id: '1', name: 'オーガニックコットンTシャツ', variant: 'ホワイト / M', price: 4500, image: 'https://picsum.photos/seed/prod1/600/600', hoverImage: 'https://picsum.photos/seed/prod1-2/600/600' },
-  { id: '2', name: 'リネンワイドパンツ', variant: 'ベージュ / M', price: 8900, image: 'https://picsum.photos/seed/prod2/600/600', hoverImage: 'https://picsum.photos/seed/prod2-2/600/600' },
-  { id: '3', name: 'ハンドメイドレザーバッグ', variant: 'ブラウン', price: 24800, image: 'https://picsum.photos/seed/prod3/600/600', hoverImage: 'https://picsum.photos/seed/prod3-2/600/600' },
-  { id: '4', name: 'シルクスカーフ', variant: 'アイボリー', price: 12000, image: 'https://picsum.photos/seed/prod4/600/600', hoverImage: 'https://picsum.photos/seed/prod4-2/600/600' },
-];
-
-const popularProducts = [
-  { id: '5', name: 'オーガニックソープセット', variant: '3個入り', price: 3500, image: 'https://picsum.photos/seed/pop1/600/600', hoverImage: 'https://picsum.photos/seed/pop1-2/600/600' },
-  { id: '6', name: 'ウールニットカーディガン', variant: 'グレー / M', price: 15800, image: 'https://picsum.photos/seed/pop2/600/600', hoverImage: 'https://picsum.photos/seed/pop2-2/600/600' },
-  { id: '7', name: 'キャンバストートバッグ', variant: 'ナチュラル', price: 6800, image: 'https://picsum.photos/seed/pop3/600/600', hoverImage: 'https://picsum.photos/seed/pop3-2/600/600' },
-  { id: '8', name: 'リネンエプロン', variant: 'チャコール', price: 5900, image: 'https://picsum.photos/seed/pop4/600/600', hoverImage: 'https://picsum.photos/seed/pop4-2/600/600' },
-];
-
-const categories = [
-  { name: 'すべての製品', image: 'https://picsum.photos/seed/cat-all/800/600', href: '/shop/products' },
-  { name: 'アパレル', image: 'https://picsum.photos/seed/cat-apparel/800/600', href: '/shop/products?category=apparel' },
-  { name: 'アクセサリー', image: 'https://picsum.photos/seed/cat-acc/800/600', href: '/shop/products?category=accessories' },
-  { name: 'ホームグッズ', image: 'https://picsum.photos/seed/cat-home/800/600', href: '/shop/products?category=home' },
-];
-
-const newsItems = [
-  { id: '1', date: '2024.03.01', title: '春の新作コレクション発売開始のお知らせ' },
-  { id: '2', date: '2024.02.15', title: '送料無料キャンペーンのお知らせ' },
-  { id: '3', date: '2024.02.01', title: '年末年始の営業時間について' },
-];
-
-const articles = [
-  {
-    id: '1',
-    type: 'feature',
-    title: '暮らしを彩る、\n春のインテリア',
-    subtitle: '特集',
-    description: '新生活に向けて、心地よい空間づくりのヒントをご紹介',
-    image: 'https://picsum.photos/seed/article-feature1/800/1000',
-    color: 'from-amber-100 to-orange-50',
-    textColor: 'text-amber-900',
-  },
-  {
-    id: '2',
-    type: 'column',
-    title: '職人の手仕事',
-    subtitle: 'コラム',
-    description: '伝統を受け継ぐ、ものづくりの現場から',
-    image: 'https://picsum.photos/seed/article-craft/600/400',
-    readTime: '5min',
-  },
-  {
-    id: '3',
-    type: 'guide',
-    title: 'リネン製品のお手入れ',
-    subtitle: 'ガイド',
-    description: '長く愛用するための正しいケア方法',
-    image: 'https://picsum.photos/seed/article-linen/600/400',
-    readTime: '3min',
-  },
-  {
-    id: '4',
-    type: 'story',
-    title: 'つくり手の想い',
-    subtitle: 'ストーリー',
-    description: '素材選びから完成まで、一つの製品ができるまで',
-    image: 'https://picsum.photos/seed/article-story/600/400',
-    readTime: '7min',
-  },
-];
-
-// 商品カード
-function ProductCard({ product }: { product: typeof featuredProducts[0] }) {
+// ----- 商品カード -----
+function ProductCard({ product }: { product: ShopProduct }) {
   const [isHovered, setIsHovered] = useState(false);
+  const image = product.images[0]?.url || 'https://picsum.photos/seed/default/600/600';
+  const hoverImage = product.images[1]?.url || image;
 
   return (
     <Link
-      href={`/shop/products/${product.id}`}
+      href={`/shop/products/${product.slug || product.id}`}
       className="group block"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div 
+      <div
         className="relative aspect-square overflow-hidden mb-4"
         style={{ backgroundColor: 'var(--shop-color-surface, #f5f0eb)' }}
       >
         <Image
-          src={isHovered && product.hoverImage ? product.hoverImage : product.image}
+          src={isHovered ? hoverImage : image}
           alt={product.name}
           fill
           className="object-cover transition-all duration-700"
         />
       </div>
       <div className="space-y-1">
-        <h3 
+        <h3
           className="text-sm leading-relaxed"
           style={{ color: 'var(--shop-color-text, #1e293b)' }}
         >
-          {product.name} / {product.variant}
+          {product.name}
         </h3>
-        <p 
+        <p
           className="text-sm"
           style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
         >
-          ¥{product.price.toLocaleString()}
+          ¥{product.minPrice.toLocaleString()}
+          {product.minPrice !== product.maxPrice && ` 〜 ¥${product.maxPrice.toLocaleString()}`}
         </p>
       </div>
     </Link>
   );
 }
 
-// ヒーローセクション
+// ----- ヒーローセクション -----
 function HeroSection() {
   return (
     <section className="relative">
-      <div 
+      <div
         className="aspect-[16/7] relative overflow-hidden"
-        style={{ 
-          background: `linear-gradient(to bottom right, var(--shop-color-surface, #faf8f5), var(--shop-color-background, #ffffff))` 
+        style={{
+          background: `linear-gradient(to bottom right, var(--shop-color-surface, #faf8f5), var(--shop-color-background, #ffffff))`
         }}
       >
         <Image
@@ -138,16 +74,16 @@ function HeroSection() {
   );
 }
 
-// コンセプトセクション
+// ----- コンセプトセクション -----
 function ConceptSection() {
   return (
     <section className="py-24 md:py-32" style={{ backgroundColor: 'var(--shop-color-background, #ffffff)' }}>
       <div className="max-w-5xl mx-auto px-6">
         <div className="grid md:grid-cols-[200px_1fr] gap-12 md:gap-20">
           <div>
-            <h2 
+            <h2
               className="text-2xl font-light tracking-wide"
-              style={{ 
+              style={{
                 color: 'var(--shop-color-text, #1e293b)',
                 fontFamily: 'var(--shop-font-heading)',
               }}
@@ -156,16 +92,16 @@ function ConceptSection() {
             </h2>
           </div>
           <div className="space-y-6">
-            <h3 
+            <h3
               className="text-xl md:text-2xl font-light leading-relaxed"
-              style={{ 
+              style={{
                 color: 'var(--shop-color-text, #1e293b)',
                 fontFamily: 'var(--shop-font-heading)',
               }}
             >
               日々と共にあるすべてのものに
             </h3>
-            <div 
+            <div
               className="text-sm md:text-base leading-loose space-y-4"
               style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
             >
@@ -186,53 +122,102 @@ function ConceptSection() {
   );
 }
 
-// 注目製品セクション
+// ----- 注目製品セクション -----
 function FeaturedProductsSection() {
+  const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getShopProducts({ featured: true, limit: 4 }).then(({ data }) => {
+      if (data && data.length > 0) {
+        setProducts(data);
+      } else {
+        // featured商品がなければ新着順で4件
+        getShopProducts({ sortBy: 'new', limit: 4 }).then(({ data: d }) => {
+          setProducts(d || []);
+        });
+      }
+      setLoading(false);
+    });
+  }, []);
+
   return (
-    <section 
+    <section
       className="py-16 md:py-24"
-      style={{ 
-        background: `linear-gradient(to bottom, var(--shop-color-background, #ffffff), var(--shop-color-surface, #faf8f5))` 
+      style={{
+        background: `linear-gradient(to bottom, var(--shop-color-background, #ffffff), var(--shop-color-surface, #faf8f5))`
       }}
     >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between mb-10">
-          <h2 
+          <h2
             className="text-xl font-light tracking-wide"
-            style={{ 
+            style={{
               color: 'var(--shop-color-text, #1e293b)',
               fontFamily: 'var(--shop-font-heading)',
             }}
           >
             注目製品
           </h2>
-          <Link 
-            href="/shop/products?sort=featured" 
+          <Link
+            href="/shop/products?sort=featured"
             className="text-sm transition-colors flex items-center gap-1 hover:opacity-70"
             style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
           >
-            すべて見る
-            <ArrowRight className="h-4 w-4" />
+            すべて見る <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="space-y-3">
+                <div className="aspect-square bg-slate-100 animate-pulse rounded" />
+                <div className="h-3 bg-slate-100 animate-pulse rounded w-3/4" />
+                <div className="h-3 bg-slate-100 animate-pulse rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : products.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );
 }
 
-// カテゴリーセクション
+// ----- カテゴリーセクション -----
 function CategorySection() {
+  const [categories, setCategories] = useState<ShopCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getShopCategories().then(({ data }) => {
+      setCategories(data || []);
+      setLoading(false);
+    });
+  }, []);
+
+  const displayCategories = [
+    { name: 'すべての製品', image: 'https://picsum.photos/seed/cat-all/800/600', href: '/shop/products' },
+    ...categories.slice(0, 3).map(cat => ({
+      name: cat.name,
+      image: cat.image || `https://picsum.photos/seed/cat-${cat.slug}/800/600`,
+      href: `/shop/products?category=${cat.slug}`,
+    })),
+  ].slice(0, 4);
+
+  if (loading) return null;
+
   return (
     <section className="py-16 md:py-24" style={{ backgroundColor: 'var(--shop-color-surface, #faf8f5)' }}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {categories.map((category) => (
+          {displayCategories.map((category) => (
             <Link
               key={category.name}
               href={category.href}
@@ -258,42 +243,62 @@ function CategorySection() {
   );
 }
 
-// 人気製品セクション
+// ----- 人気製品セクション -----
 function PopularProductsSection() {
+  const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getShopProducts({ sortBy: 'popular', limit: 4 }).then(({ data }) => {
+      setProducts(data || []);
+      setLoading(false);
+    });
+  }, []);
+
   return (
     <section className="py-16 md:py-24" style={{ backgroundColor: 'var(--shop-color-background, #ffffff)' }}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between mb-10">
-          <h2 
+          <h2
             className="text-xl font-light tracking-wide"
-            style={{ 
+            style={{
               color: 'var(--shop-color-text, #1e293b)',
               fontFamily: 'var(--shop-font-heading)',
             }}
           >
             人気製品
           </h2>
-          <Link 
-            href="/shop/products?sort=popular" 
+          <Link
+            href="/shop/products?sort=popular"
             className="text-sm transition-colors flex items-center gap-1 hover:opacity-70"
             style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
           >
-            すべて見る
-            <ArrowRight className="h-4 w-4" />
+            すべて見る <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {popularProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="space-y-3">
+                <div className="aspect-square bg-slate-100 animate-pulse rounded" />
+                <div className="h-3 bg-slate-100 animate-pulse rounded w-3/4" />
+              </div>
+            ))}
+          </div>
+        ) : products.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );
 }
 
-// 法人・大口購入セクション
+// ----- 法人・大口購入セクション -----
 function BusinessSection() {
   const businessFeatures = [
     { number: '01', title: 'ロット購入', description: '10点以上のご注文で特別価格をご提供' },
@@ -305,15 +310,15 @@ function BusinessSection() {
     <section className="py-20 md:py-32" style={{ backgroundColor: 'var(--shop-color-surface, #f5f0eb)' }}>
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-16">
-          <p 
+          <p
             className="text-xs tracking-[0.3em] uppercase mb-3"
             style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
           >
             For Business
           </p>
-          <h2 
+          <h2
             className="text-2xl md:text-3xl font-light tracking-wide"
-            style={{ 
+            style={{
               color: 'var(--shop-color-text, #1e293b)',
               fontFamily: 'var(--shop-font-heading)',
             }}
@@ -325,19 +330,19 @@ function BusinessSection() {
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           {businessFeatures.map((feature, index) => (
             <div key={index} className="text-center group">
-              <p 
+              <p
                 className="text-4xl font-light mb-4 transition-colors"
                 style={{ color: 'var(--shop-color-primary, #f59e0b)', opacity: 0.4 }}
               >
                 {feature.number}
               </p>
-              <h3 
+              <h3
                 className="text-lg font-medium mb-2"
                 style={{ color: 'var(--shop-color-text, #1e293b)' }}
               >
                 {feature.title}
               </h3>
-              <p 
+              <p
                 className="text-sm leading-relaxed"
                 style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
               >
@@ -358,25 +363,18 @@ function BusinessSection() {
           </div>
 
           <div className="space-y-6">
-            <p 
+            <p
               className="leading-loose text-sm md:text-base"
               style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
             >
               商いストアでは、法人のお客様向けにロット購入・卸売価格でのご提供を行っております。
               OEM・オリジナル商品の企画開発、名入れなどのカスタマイズもご相談ください。
             </p>
-            <p 
-              className="leading-loose text-sm md:text-base"
-              style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
-            >
-              専任の担当者がお客様のご要望をお伺いし、最適なプランをご提案いたします。
-            </p>
-            
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link
                 href="/shop/business"
                 className="inline-block border px-8 py-3 text-sm text-center transition-colors hover:opacity-80"
-                style={{ 
+                style={{
                   borderColor: 'var(--shop-color-text, #1e293b)',
                   color: 'var(--shop-color-text, #1e293b)',
                 }}
@@ -386,7 +384,7 @@ function BusinessSection() {
               <Link
                 href="/shop/contact?type=quote"
                 className="inline-block border px-8 py-3 text-sm text-center transition-colors hover:opacity-80"
-                style={{ 
+                style={{
                   borderColor: 'var(--shop-color-border, #e2e8f0)',
                   color: 'var(--shop-color-text-muted, #64748b)',
                 }}
@@ -401,22 +399,37 @@ function BusinessSection() {
   );
 }
 
-// 記事・特集セクション
+// ----- 記事・特集セクション -----
 function ArticlesSection() {
+  const [articles, setArticles] = useState<ShopContent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getShopContents({ limit: 4 }).then(({ data }) => {
+      setArticles(data || []);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading || articles.length === 0) return null;
+
+  const mainArticle = articles[0];
+  const subArticles = articles.slice(1, 4);
+
   return (
     <section className="py-20 md:py-32 overflow-hidden" style={{ backgroundColor: 'var(--shop-color-background, #ffffff)' }}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-end justify-between mb-12 md:mb-16">
           <div>
-            <p 
+            <p
               className="text-xs tracking-[0.3em] uppercase mb-2"
               style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
             >
               Stories & Features
             </p>
-            <h2 
+            <h2
               className="text-3xl md:text-4xl font-light"
-              style={{ 
+              style={{
                 color: 'var(--shop-color-text, #1e293b)',
                 fontFamily: 'var(--shop-font-heading)',
               }}
@@ -424,8 +437,8 @@ function ArticlesSection() {
               読みもの
             </h2>
           </div>
-          <Link 
-            href="/shop/news" 
+          <Link
+            href="/shop/news"
             className="text-sm transition-colors flex items-center gap-2 group hover:opacity-70"
             style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
           >
@@ -435,30 +448,28 @@ function ArticlesSection() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-          <Link href={`/shop/news/${articles[0].id}`} className="lg:col-span-5 lg:row-span-2 group">
-            <div className={cn(
-              "relative h-full min-h-[500px] md:min-h-[600px] rounded-3xl overflow-hidden",
-              "bg-gradient-to-br",
-              articles[0].color
-            )}>
-              <Image
-                src={articles[0].image}
-                alt={articles[0].title}
-                fill
-                className="object-cover opacity-80 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700"
-              />
+          {/* メイン記事 */}
+          <Link href={`/shop/news/${mainArticle.slug || mainArticle.id}`} className="lg:col-span-5 lg:row-span-2 group">
+            <div className="relative h-full min-h-[500px] md:min-h-[600px] rounded-3xl overflow-hidden bg-gradient-to-br from-amber-100 to-orange-50">
+              {mainArticle.featuredImage && (
+                <Image
+                  src={mainArticle.featuredImage}
+                  alt={mainArticle.title}
+                  fill
+                  className="object-cover opacity-80 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-              
               <div className="absolute inset-0 p-8 md:p-10 flex flex-col justify-end">
                 <span className="inline-block text-xs tracking-[0.2em] text-white/80 uppercase mb-3">
-                  {articles[0].subtitle}
+                  {mainArticle.type}
                 </span>
-                <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white leading-tight whitespace-pre-line mb-4">
-                  {articles[0].title}
+                <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white leading-tight mb-4">
+                  {mainArticle.title}
                 </h3>
-                <p className="text-sm text-white/80 max-w-xs">
-                  {articles[0].description}
-                </p>
+                {mainArticle.excerpt && (
+                  <p className="text-sm text-white/80 max-w-xs line-clamp-2">{mainArticle.excerpt}</p>
+                )}
                 <div className="mt-6 flex items-center gap-2 text-white/60 group-hover:text-white transition-colors">
                   <span className="text-sm">Read more</span>
                   <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -467,49 +478,46 @@ function ArticlesSection() {
             </div>
           </Link>
 
+          {/* サブ記事 */}
           <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
-            {articles.slice(1).map((article) => (
-              <Link key={article.id} href={`/shop/news/${article.id}`} className="group">
-                <div 
+            {subArticles.map((article) => (
+              <Link key={article.id} href={`/shop/news/${article.slug || article.id}`} className="group">
+                <div
                   className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4"
                   style={{ backgroundColor: 'var(--shop-color-surface, #f5f0eb)' }}
                 >
-                  <Image
-                    src={article.image}
-                    alt={article.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  
-                  {article.readTime && (
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                      <span className="text-xs" style={{ color: 'var(--shop-color-text-muted, #64748b)' }}>
-                        {article.readTime}
-                      </span>
-                    </div>
+                  {article.featuredImage ? (
+                    <Image
+                      src={article.featuredImage}
+                      alt={article.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-slate-100" />
                   )}
                 </div>
-                
                 <div className="space-y-2">
-                  <span 
+                  <span
                     className="text-xs tracking-[0.15em] uppercase"
                     style={{ color: 'var(--shop-color-primary, #f59e0b)' }}
                   >
-                    {article.subtitle}
+                    {article.type}
                   </span>
-                  <h3 
-                    className="text-lg font-medium transition-colors"
+                  <h3
+                    className="text-lg font-medium transition-colors group-hover:opacity-70"
                     style={{ color: 'var(--shop-color-text, #1e293b)' }}
                   >
                     {article.title}
                   </h3>
-                  <p 
-                    className="text-sm line-clamp-2"
-                    style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
-                  >
-                    {article.description}
-                  </p>
+                  {article.excerpt && (
+                    <p
+                      className="text-sm line-clamp-2"
+                      style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+                    >
+                      {article.excerpt}
+                    </p>
+                  )}
                 </div>
               </Link>
             ))}
@@ -520,51 +528,62 @@ function ArticlesSection() {
   );
 }
 
-// ニュースセクション
+// ----- ニュースセクション -----
 function NewsSection() {
+  const [newsItems, setNewsItems] = useState<ShopContent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getShopContents({ limit: 5 }).then(({ data }) => {
+      setNewsItems(data || []);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading || newsItems.length === 0) return null;
+
   return (
     <section className="py-16 md:py-24" style={{ backgroundColor: 'var(--shop-color-surface, #faf8f5)' }}>
       <div className="max-w-4xl mx-auto px-6">
         <div className="flex items-start justify-between mb-10">
-          <div>
-            <h2 
-              className="text-xl font-light tracking-wide mb-2"
-              style={{ 
-                color: 'var(--shop-color-text, #1e293b)',
-                fontFamily: 'var(--shop-font-heading)',
-              }}
-            >
-              ニュース
-            </h2>
-            <Link 
-              href="/shop/news" 
-              className="text-sm transition-colors flex items-center gap-1 hover:opacity-70"
-              style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
-            >
-              すべて見る
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+          <h2
+            className="text-xl font-light tracking-wide mb-2"
+            style={{
+              color: 'var(--shop-color-text, #1e293b)',
+              fontFamily: 'var(--shop-font-heading)',
+            }}
+          >
+            ニュース
+          </h2>
+          <Link
+            href="/shop/news"
+            className="text-sm transition-colors flex items-center gap-1 hover:opacity-70"
+            style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
+          >
+            すべて見る <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
 
         <div className="space-y-0">
           {newsItems.map((item, index) => (
             <Link
               key={item.id}
-              href={`/shop/news/${item.id}`}
+              href={`/shop/news/${item.slug || item.id}`}
               className={cn(
                 "flex items-start gap-6 md:gap-10 py-5 group transition-colors -mx-4 px-4",
                 index !== newsItems.length - 1 && "border-b"
               )}
               style={{ borderColor: 'var(--shop-color-border, #e2e8f0)' }}
             >
-              <span 
+              <span
                 className="text-sm shrink-0 tabular-nums"
                 style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
               >
-                {item.date}
+                {item.publishedAt
+                  ? new Date(item.publishedAt).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')
+                  : new Date(item.createdAt).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')}
               </span>
-              <span 
+              <span
                 className="text-sm transition-colors group-hover:opacity-70"
                 style={{ color: 'var(--shop-color-text, #1e293b)' }}
               >
@@ -578,7 +597,7 @@ function NewsSection() {
   );
 }
 
-// Instagramセクション
+// ----- Instagramセクション -----
 function InstagramSection() {
   const images = [
     'https://picsum.photos/seed/insta1/400/400',
@@ -593,24 +612,23 @@ function InstagramSection() {
     <section className="py-16 md:py-24" style={{ backgroundColor: 'var(--shop-color-background, #ffffff)' }}>
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between mb-10">
-          <h2 
+          <h2
             className="text-xl font-light tracking-wide"
-            style={{ 
+            style={{
               color: 'var(--shop-color-text, #1e293b)',
               fontFamily: 'var(--shop-font-heading)',
             }}
           >
             Instagram
           </h2>
-          <a 
-            href="https://instagram.com" 
+          <a
+            href="https://instagram.com"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm transition-colors flex items-center gap-1 hover:opacity-70"
             style={{ color: 'var(--shop-color-text-muted, #64748b)' }}
           >
-            すべて見る
-            <ArrowRight className="h-4 w-4" />
+            すべて見る <ArrowRight className="h-4 w-4" />
           </a>
         </div>
 
@@ -638,7 +656,7 @@ function InstagramSection() {
   );
 }
 
-// ブランドイメージセクション
+// ----- ブランドイメージセクション -----
 function BrandImageSection() {
   return (
     <section className="relative h-[50vh] md:h-[60vh] overflow-hidden">
@@ -653,7 +671,7 @@ function BrandImageSection() {
   );
 }
 
-// セクションコンポーネントのマップ
+// ----- セクションマップ -----
 const sectionComponents: Record<ShopSectionId, React.FC> = {
   hero: HeroSection,
   concept: ConceptSection,
@@ -670,7 +688,6 @@ const sectionComponents: Record<ShopSectionId, React.FC> = {
 export default function StorePage() {
   const { theme } = useShopTheme();
 
-  // 有効なセクションを順序通りに取得
   const enabledSections = theme.sections
     .filter(s => s.enabled)
     .sort((a, b) => a.order - b.order);

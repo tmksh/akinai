@@ -5,8 +5,23 @@ import { Plus, Trash2, GripVertical, Upload, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { uploadContentImage } from '@/lib/actions/storage';
 import type { GalleryItemBlock } from '@/types/content-blocks';
+
+const SIZE_OPTIONS = [
+  { value: 'none', label: 'サイズ未設定' },
+  { value: 'extrasmall', label: 'XS（特小）' },
+  { value: 'small', label: 'S（小）' },
+  { value: 'medium', label: 'M（中）' },
+  { value: 'large', label: 'L（大）' },
+];
 
 interface GalleryEditorProps {
   items: GalleryItemBlock[];
@@ -55,7 +70,7 @@ export function GalleryEditor({ items, onChange, organizationId, disabled }: Gal
     }
   };
 
-  const updateItem = (index: number, field: 'caption' | 'alt', value: string) => {
+  const updateItem = (index: number, field: 'caption' | 'alt' | 'size', value: string) => {
     const updated = items.map((item, i) =>
       i === index ? { ...item, [field]: value } : item
     );
@@ -176,21 +191,23 @@ export function GalleryEditor({ items, onChange, organizationId, disabled }: Gal
                   </Button>
                 </div>
               </div>
-              <div className="p-2 space-y-1.5">
-                <Input
-                  placeholder="キャプション"
-                  value={item.caption}
-                  onChange={(e) => updateItem(index, 'caption', e.target.value)}
+              <div className="p-2">
+                <Select
+                  value={item.size || 'none'}
+                  onValueChange={(v) => updateItem(index, 'size', v === 'none' ? '' : v)}
                   disabled={disabled}
-                  className="h-7 text-xs"
-                />
-                <Input
-                  placeholder="alt テキスト"
-                  value={item.alt}
-                  onChange={(e) => updateItem(index, 'alt', e.target.value)}
-                  disabled={disabled}
-                  className="h-7 text-xs"
-                />
+                >
+                  <SelectTrigger className="h-7 text-xs">
+                    <SelectValue placeholder="サイズ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SIZE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           ))}

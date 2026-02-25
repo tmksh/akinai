@@ -296,7 +296,7 @@ export default function CustomerDetailPage() {
                           order.status === 'delivered' 
                             ? 'bg-green-50 text-green-600 border-green-200' 
                             : order.status === 'shipped'
-                            ? 'bg-blue-50 text-blue-600 border-blue-200'
+                            ? 'bg-orange-50 text-orange-600 border-orange-200'
                             : 'bg-orange-50 text-orange-600 border-orange-200'
                         }
                       >

@@ -164,7 +164,7 @@ export default function NewCustomerPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-500" />
+                <User className="h-5 w-5 text-orange-500" />
                 基本情報
               </CardTitle>
             </CardHeader>
@@ -355,7 +355,7 @@ export default function NewCustomerPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Tag className="h-5 w-5 text-purple-500" />
+                <Tag className="h-5 w-5 text-orange-500" />
                 タグ
               </CardTitle>
               <CardDescription>顧客を分類するためのタグを追加できます</CardDescription>

@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>統合ガイド — akinai Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .toc {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      position: sticky;
+      top: 80px;
+    }
+    .toc-title {
+      font-weight: 800;
+      font-size: .85rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--gray-500);
+      margin-bottom: 1rem;
+    }
+    .toc ul { list-style: none; }
+    .toc li { margin-bottom: .35rem; }
+    .toc a {
+      text-decoration: none;
+      color: var(--gray-600);
+      font-size: .88rem;
+      transition: color .15s;
+    }
+    .toc a:hover { color: var(--primary); }
+    .toc .toc-sub { padding-left: 1rem; margin-top: .25rem; }
+    .toc .toc-sub a { font-size: .82rem; color: var(--gray-400); }
+
+    .doc-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 3rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .doc-layout { grid-template-columns: 1fr; }
+      .toc { position: static; }
+    }
+
+    .doc-content h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin: 3rem 0 1rem;
+      padding-top: 1rem;
+      border-top: 2px solid var(--gray-200);
+      letter-spacing: -.5px;
+    }
+
+    .doc-content h2:first-child { border-top: none; margin-top: 0; }
+
+    .doc-content h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin: 2rem 0 .75rem;
+    }
+
+    .doc-content p {
+      color: var(--gray-700);
+      margin-bottom: 1rem;
+      line-height: 1.75;
+    }
+
+    .doc-content code {
+      background: var(--gray-100);
+      padding: .15em .45em;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: .88em;
+      color: var(--primary-dark);
+    }
+
+    /* Inline number badge */
+    .step-inline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      font-size: .72rem;
+      font-weight: 800;
+      vertical-align: middle;
+      margin-right: .3rem;
+    }
+
+    /* Section anchor */
+    .doc-content h2[id], .doc-content h3[id] {
+      scroll-margin-top: 80px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">akinai <span>Docs</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">はじめに</a></li>
+    <li><a href="guide.html" class="active">統合ガイド</a></li>
+    <li><a href="api.html">APIリファレンス</a></li>
+  </ul>
+  <span class="nav-badge">v1.0</span>
+</nav>
+
+<!-- ── Page Header ── -->
+<div style="background:linear-gradient(135deg,#1e293b,#1e3a5f); color:white; padding:60px 2rem;">
+  <div class="container">
+    <div class="section-label" style="background:rgba(255,255,255,.1); color:#93c5fd;">統合ガイド</div>
+    <h1 style="font-size:clamp(1.8rem,4vw,2.6rem); font-weight:900; margin-top:1rem; letter-spacing:-.5px;">
+      フロントエンドへの連携手順
+    </h1>
+    <p style="color:#93c5fd; margin-top:.75rem; font-size:1.05rem; max-width:600px;">
+      APIキーの取得から商品表示・カート・決済まで、順番に進めるだけで連携が完成します。
+    </p>
+  </div>
+</div>
+
+<!-- ── Main Layout ── -->
+<div class="doc-layout">
+
+  <!-- Sidebar TOC -->
+  <aside>
+    <div class="toc">
+      <div class="toc-title">目次</div>
+      <ul>
+        <li><a href="#prerequisites">事前準備</a></li>
+        <li><a href="#api-key">APIキーの取得</a></li>
+        <li><a href="#api-client">APIクライアントの作成</a></li>
+        <li><a href="#products">商品一覧を表示する</a>
+          <ul class="toc-sub">
+            <li><a href="#products-fetch">データ取得</a></li>
+            <li><a href="#products-display">UI表示</a></li>
+          </ul>
+        </li>
+        <li><a href="#cart">カートを実装する</a>
+          <ul class="toc-sub">
+            <li><a href="#cart-state">状態管理</a></li>
+            <li><a href="#cart-validate">カート検証</a></li>
+          </ul>
+        </li>
+        <li><a href="#checkout">決済を実装する</a>
+          <ul class="toc-sub">
+            <li><a href="#checkout-session">Stripeセッション作成</a></li>
+            <li><a href="#checkout-complete">完了処理</a></li>
+          </ul>
+        </li>
+        <li><a href="#contents">コンテンツを表示する</a></li>
+        <li><a href="#error-handling">エラーハンドリング</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="doc-content">
+
+    <!-- Prerequisites -->
+    <h2 id="prerequisites">事前準備</h2>
+    <p>連携を始める前に、以下の準備が必要です。</p>
+
+    <div style="display:grid; gap:1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin:1.5rem 0;">
+      <div class="card" style="padding:1.25rem;">
+        <div style="font-size:1.5rem; margin-bottom:.5rem;">✅</div>
+        <strong>akinai アカウント</strong>
+        <p style="font-size:.85rem; margin-top:.25rem;">管理画面にログインできる状態</p>
+      </div>
+      <div class="card" style="padding:1.25rem;">
+        <div style="font-size:1.5rem; margin-bottom:.5rem;">✅</div>
+        <strong>フロントエンド環境</strong>
+        <p style="font-size:.85rem; margin-top:.25rem;">Next.js / React / Vue.js など</p>
+      </div>
+      <div class="card" style="padding:1.25rem;">
+        <div style="font-size:1.5rem; margin-bottom:.5rem;">✅</div>
+        <strong>Node.js 18以上</strong>
+        <p style="font-size:.85rem; margin-top:.25rem;">fetch APIが標準で使えます</p>
+      </div>
+    </div>
+
+    <!-- API Key -->
+    <h2 id="api-key">APIキーの取得</h2>
+    <p>まず akinai 管理画面でAPIキーを発行します。</p>
+
+    <div class="steps" style="--steps-line: 0;">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>管理画面にログイン</h3>
+          <p>ブラウザで管理画面URL（例: <code>https://yourshop.akinai.jp/login</code>）を開き、メールアドレスとパスワードでログインします。</p>
+
+          <div class="browser-window" style="max-width:500px; margin-top:.75rem;">
+            <div class="browser-bar">
+              <div class="browser-dots">
+                <span style="background:#ef4444"></span>
+                <span style="background:#f59e0b"></span>
+                <span style="background:#10b981"></span>
+              </div>
+              <div class="browser-url">https://yourshop.akinai.jp/login</div>
+            </div>
+            <div class="browser-body">
+              <div class="screenshot-mock">
+                <div style="text-align:center; padding:1rem 0;">
+                  <div style="font-size:1.5rem; font-weight:800; color:var(--primary); margin-bottom:1.5rem;">akinai</div>
+                  <div style="background:white; border:1px solid var(--gray-200); border-radius:8px; padding:.75rem; margin-bottom:.75rem; font-size:.85rem; color:var(--gray-500); text-align:left;">📧 メールアドレス</div>
+                  <div style="background:white; border:1px solid var(--gray-200); border-radius:8px; padding:.75rem; margin-bottom:1rem; font-size:.85rem; color:var(--gray-500); text-align:left;">🔒 パスワード</div>
+                  <button class="mock-btn" style="width:100%; padding:.7rem;">ログイン</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>設定 → API キーページへ移動</h3>
+          <p>左サイドバーの <strong>「設定」</strong> をクリックし、<strong>「APIキー」</strong> または <strong>「外部連携」</strong> タブを選択します。</p>
+
+          <div class="browser-window" style="margin-top:.75rem;">
+            <div class="browser-bar">
+              <div class="browser-dots">
+                <span style="background:#ef4444"></span>
+                <span style="background:#f59e0b"></span>
+                <span style="background:#10b981"></span>
+              </div>
+              <div class="browser-url">https://yourshop.akinai.jp/settings/api</div>
+            </div>
+            <div class="browser-body">
+              <div style="display:flex; gap:1rem;">
+                <!-- Sidebar -->
+                <div style="width:160px; flex-shrink:0; background:var(--gray-50); border-radius:8px; padding:1rem; font-size:.82rem;">
+                  <div style="color:var(--gray-500); margin-bottom:.5rem; font-weight:700; font-size:.75rem; text-transform:uppercase;">メニュー</div>
+                  <div style="padding:.5rem .75rem; border-radius:6px; color:var(--gray-600); margin-bottom:.25rem;">🏠 ダッシュボード</div>
+                  <div style="padding:.5rem .75rem; border-radius:6px; color:var(--gray-600); margin-bottom:.25rem;">📦 商品</div>
+                  <div style="padding:.5rem .75rem; border-radius:6px; color:var(--gray-600); margin-bottom:.25rem;">🛒 注文</div>
+                  <div style="padding:.5rem .75rem; border-radius:6px; background:var(--primary-light); color:var(--primary); font-weight:700; margin-bottom:.25rem;">⚙️ 設定</div>
+                </div>
+                <!-- Content -->
+                <div style="flex:1;">
+                  <div class="screenshot-mock">
+                    <div class="mock-header">
+                      <span class="mock-title">🔑 APIキー管理</span>
+                      <button class="mock-btn">＋ キーを発行</button>
+                    </div>
+                    <div class="mock-list-item">
+                      <span class="mock-dot"></span>
+                      <div>
+                        <div style="font-family:monospace; font-size:.78rem; color:var(--gray-700);">ak_live_xXxXxXxX••••••••</div>
+                        <div style="font-size:.72rem; color:var(--gray-400);">作成日: 2025-01-15</div>
+                      </div>
+                      <span class="badge badge-green" style="margin-left:auto;">有効</span>
+                    </div>
+                    <p style="font-size:.78rem; color:var(--gray-400); margin-top:.5rem;">※ キーは一度しか表示されません。安全に保管してください。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>環境変数に保存する</h3>
+          <p>発行されたキーをプロジェクトの <code>.env.local</code> ファイルに保存します。</p>
+
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+              <span class="code-lang">.env.local</span>
+            </div>
+            <div class="code-body"><pre><span class="cm"># あなたのショップのURL（末尾スラッシュなし）</span>
+<span class="key">NEXT_PUBLIC_AKINAI_BASE_URL</span>=<span class="str">https://yourshop.akinai.jp</span>
+
+<span class="cm"># APIキー（サーバーサイドのみで使用 - NEXT_PUBLICを付けない）</span>
+<span class="key">AKINAI_API_KEY</span>=<span class="str">ak_live_xXxXxXxXxXxXxXxX</span></pre></div>
+          </div>
+
+          <div class="callout callout-warning">
+            <span class="callout-icon">⚠️</span>
+            <div class="callout-body">
+              <strong>APIキーはブラウザに露出させないでください</strong>
+              <code>NEXT_PUBLIC_</code>を付けると React のブラウザコードに含まれてしまいます。APIキーはサーバーサイド（Route Handlers や Server Actions）からのみ使用してください。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Client -->
+    <h2 id="api-client">APIクライアントの作成</h2>
+    <p>毎回 fetch を書くのは大変なので、共通のAPIクライアントファイルを作成しましょう。</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+        <span class="code-lang">lib/akinai.ts</span>
+      </div>
+      <div class="code-body"><pre><span class="cm">/**
+ * akinai API クライアント
+ * サーバーサイドでのみ使用してください
+ */</span>
+
+<span class="kw">const</span> <span class="var">BASE_URL</span> = <span class="var">process</span>.<span class="var">env</span>.<span class="var">NEXT_PUBLIC_AKINAI_BASE_URL</span>;
+<span class="kw">const</span> <span class="var">API_KEY</span>  = <span class="var">process</span>.<span class="var">env</span>.<span class="var">AKINAI_API_KEY</span>;
+
+<span class="kw">async function</span> <span class="fn">akinaiFetch</span>(
+  <span class="var">path</span>: <span class="kw">string</span>,
+  <span class="var">options</span>: <span class="fn">RequestInit</span> = {}
+) {
+  <span class="kw">const</span> <span class="var">res</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`${BASE_URL}${path}`</span>, {
+    ...<span class="var">options</span>,
+    <span class="key">headers</span>: {
+      <span class="str">'Authorization'</span>: <span class="str">`Bearer ${API_KEY}`</span>,
+      <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>,
+      ...<span class="var">options</span>.<span class="var">headers</span>,
+    },
+  });
+
+  <span class="kw">if</span> (!<span class="var">res</span>.<span class="var">ok</span>) {
+    <span class="kw">const</span> <span class="var">error</span> = <span class="kw">await</span> <span class="var">res</span>.<span class="fn">json</span>().<span class="fn">catch</span>(() => ({}));
+    <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="var">error</span>.<span class="var">message</span> ?? <span class="str">'APIエラーが発生しました'</span>);
+  }
+
+  <span class="kw">return</span> <span class="var">res</span>.<span class="fn">json</span>();
+}
+
+<span class="cm">// 商品一覧取得</span>
+<span class="kw">export async function</span> <span class="fn">getProducts</span>(<span class="var">params</span>?: {
+  <span class="key">page</span>?: <span class="kw">number</span>;
+  <span class="key">limit</span>?: <span class="kw">number</span>;
+  <span class="key">search</span>?: <span class="kw">string</span>;
+  <span class="key">category_id</span>?: <span class="kw">string</span>;
+}) {
+  <span class="kw">const</span> <span class="var">qs</span> = <span class="kw">new</span> <span class="fn">URLSearchParams</span>(
+    <span class="fn">Object</span>.<span class="fn">entries</span>(<span class="var">params</span> ?? {})
+      .<span class="fn">filter</span>(([, <span class="var">v</span>]) => <span class="var">v</span> != <span class="kw">null</span>)
+      .<span class="fn">map</span>(([<span class="var">k</span>, <span class="var">v</span>]) => [<span class="var">k</span>, <span class="fn">String</span>(<span class="var">v</span>)])
+  );
+  <span class="kw">return</span> <span class="fn">akinaiFetch</span>(<span class="str">`/api/v1/products?${qs}`</span>);
+}
+
+<span class="cm">// 商品詳細取得</span>
+<span class="kw">export async function</span> <span class="fn">getProduct</span>(<span class="var">id</span>: <span class="kw">string</span>) {
+  <span class="kw">return</span> <span class="fn">akinaiFetch</span>(<span class="str">`/api/v1/products/${id}`</span>);
+}
+
+<span class="cm">// コンテンツ一覧取得</span>
+<span class="kw">export async function</span> <span class="fn">getContents</span>(<span class="var">type</span>?: <span class="kw">string</span>) {
+  <span class="kw">const</span> <span class="var">qs</span> = <span class="var">type</span> ? <span class="str">`?type=${type}`</span> : <span class="str">''</span>;
+  <span class="kw">return</span> <span class="fn">akinaiFetch</span>(<span class="str">`/api/v1/contents${qs}`</span>);
+}
+
+<span class="cm">// カート検証</span>
+<span class="kw">export async function</span> <span class="fn">validateCart</span>(<span class="var">items</span>: {
+  <span class="key">product_id</span>: <span class="kw">string</span>;
+  <span class="key">variant_id</span>?: <span class="kw">string</span>;
+  <span class="key">quantity</span>: <span class="kw">number</span>;
+}[]) {
+  <span class="kw">return</span> <span class="fn">akinaiFetch</span>(<span class="str">'/api/v1/cart/validate'</span>, {
+    <span class="key">method</span>: <span class="str">'POST'</span>,
+    <span class="key">body</span>: <span class="fn">JSON.stringify</span>({ <span class="key">items</span> }),
+  });
+}
+
+<span class="cm">// チェックアウトセッション作成</span>
+<span class="kw">export async function</span> <span class="fn">createCheckout</span>(<span class="var">payload</span>: {
+  <span class="key">items</span>: { <span class="key">product_id</span>: <span class="kw">string</span>; <span class="key">variant_id</span>?: <span class="kw">string</span>; <span class="key">quantity</span>: <span class="kw">number</span> }[];
+  <span class="key">customer_email</span>: <span class="kw">string</span>;
+  <span class="key">shipping_address</span>: object;
+  <span class="key">success_url</span>: <span class="kw">string</span>;
+  <span class="key">cancel_url</span>: <span class="kw">string</span>;
+}) {
+  <span class="kw">return</span> <span class="fn">akinaiFetch</span>(<span class="str">'/api/v1/checkout'</span>, {
+    <span class="key">method</span>: <span class="str">'POST'</span>,
+    <span class="key">body</span>: <span class="fn">JSON.stringify</span>(<span class="var">payload</span>),
+  });
+}</pre></div>
+    </div>
+
+    <!-- Products Section -->
+    <h2 id="products">商品一覧を表示する</h2>
+    <p>商品一覧ページを作成します。Next.js の Server Component を使った例です。</p>
+
+    <h3 id="products-fetch">データ取得（サーバーサイド）</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+        <span class="code-lang">app/products/page.tsx（Next.js Server Component）</span>
+      </div>
+      <div class="code-body"><pre><span class="kw">import</span> { <span class="fn">getProducts</span> } <span class="kw">from</span> <span class="str">'@/lib/akinai'</span>;
+
+<span class="cm">// ページコンポーネント（サーバーサイドでAPIを呼ぶ）</span>
+<span class="kw">export default async function</span> <span class="fn">ProductsPage</span>() {
+  <span class="cm">// ★ サーバーで実行されるのでAPIキーは安全</span>
+  <span class="kw">const</span> { <span class="var">products</span>, <span class="var">total</span> } = <span class="kw">await</span> <span class="fn">getProducts</span>({
+    <span class="key">limit</span>: <span class="num">12</span>,
+    <span class="key">page</span>: <span class="num">1</span>,
+  });
+
+  <span class="kw">return</span> (
+    &lt;<span class="fn">div</span>&gt;
+      &lt;<span class="fn">h1</span>&gt;商品一覧&lt;/<span class="fn">h1</span>&gt;
+      &lt;<span class="fn">p</span>&gt;全 {<span class="var">total</span>} 件&lt;/<span class="fn">p</span>&gt;
+      &lt;<span class="fn">div</span> <span class="key">className</span>=<span class="str">"grid grid-cols-3 gap-4"</span>&gt;
+        {<span class="var">products</span>.<span class="fn">map</span>((<span class="var">product</span>) => (
+          &lt;<span class="fn">ProductCard</span> <span class="key">key</span>={<span class="var">product</span>.<span class="var">id</span>} <span class="key">product</span>={<span class="var">product</span>} /&gt;
+        ))}
+      &lt;/<span class="fn">div</span>&gt;
+    &lt;/<span class="fn">div</span>&gt;
+  );
+}</pre></div>
+    </div>
+
+    <h3 id="products-display">商品カードコンポーネント</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+        <span class="code-lang">components/ProductCard.tsx</span>
+      </div>
+      <div class="code-body"><pre><span class="kw">interface</span> <span class="fn">ProductCardProps</span> {
+  <span class="key">product</span>: {
+    <span class="key">id</span>: <span class="kw">string</span>;
+    <span class="key">name</span>: <span class="kw">string</span>;
+    <span class="key">price</span>: <span class="kw">number</span>;
+    <span class="key">images</span>: { <span class="key">url</span>: <span class="kw">string</span> }[];
+  };
+}
+
+<span class="kw">export function</span> <span class="fn">ProductCard</span>({ <span class="var">product</span> }: <span class="fn">ProductCardProps</span>) {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">a</span> <span class="key">href</span>={<span class="str">`/products/${product.id}`</span>}&gt;
+      &lt;<span class="fn">img</span>
+        <span class="key">src</span>={<span class="var">product</span>.<span class="var">images</span>[<span class="num">0</span>]?.<span class="var">url</span>}
+        <span class="key">alt</span>={<span class="var">product</span>.<span class="var">name</span>}
+        <span class="key">width</span>={<span class="num">300</span>}
+        <span class="key">height</span>={<span class="num">300</span>}
+      /&gt;
+      &lt;<span class="fn">h2</span>&gt;{<span class="var">product</span>.<span class="var">name</span>}&lt;/<span class="fn">h2</span>&gt;
+      &lt;<span class="fn">p</span>&gt;¥{<span class="var">product</span>.<span class="var">price</span>.<span class="fn">toLocaleString</span>()}&lt;/<span class="fn">p</span>&gt;
+    &lt;/<span class="fn">a</span>&gt;
+  );
+}</pre></div>
+    </div>
+
+    <!-- Mock Preview -->
+    <div class="browser-window">
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <span style="background:#ef4444"></span>
+          <span style="background:#f59e0b"></span>
+          <span style="background:#10b981"></span>
+        </div>
+        <div class="browser-url">https://yoursite.com/products</div>
+      </div>
+      <div class="browser-body">
+        <div class="screenshot-mock">
+          <div style="font-size:1.3rem; font-weight:800; margin-bottom:1rem; color:var(--gray-800);">商品一覧 <span style="font-size:.9rem; font-weight:400; color:var(--gray-500);">全42件</span></div>
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:.75rem;">
+            <div style="background:white; border-radius:8px; overflow:hidden; border:1px solid var(--gray-200);">
+              <div style="background:linear-gradient(135deg, #e2e8f0, #f1f5f9); height:100px; display:flex; align-items:center; justify-content:center; font-size:2rem;">👕</div>
+              <div style="padding:.6rem;">
+                <div style="font-weight:600; font-size:.82rem; margin-bottom:.25rem;">オーガニックTシャツ</div>
+                <div style="color:var(--primary); font-weight:800; font-size:.9rem;">¥3,500</div>
+              </div>
+            </div>
+            <div style="background:white; border-radius:8px; overflow:hidden; border:1px solid var(--gray-200);">
+              <div style="background:linear-gradient(135deg, #e2e8f0, #f1f5f9); height:100px; display:flex; align-items:center; justify-content:center; font-size:2rem;">👗</div>
+              <div style="padding:.6rem;">
+                <div style="font-weight:600; font-size:.82rem; margin-bottom:.25rem;">リネンワンピース</div>
+                <div style="color:var(--primary); font-weight:800; font-size:.9rem;">¥12,800</div>
+              </div>
+            </div>
+            <div style="background:white; border-radius:8px; overflow:hidden; border:1px solid var(--gray-200);">
+              <div style="background:linear-gradient(135deg, #e2e8f0, #f1f5f9); height:100px; display:flex; align-items:center; justify-content:center; font-size:2rem;">👟</div>
+              <div style="padding:.6rem;">
+                <div style="font-weight:600; font-size:.82rem; margin-bottom:.25rem;">キャンバススニーカー</div>
+                <div style="color:var(--primary); font-weight:800; font-size:.9rem;">¥8,200</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cart -->
+    <h2 id="cart">カートを実装する</h2>
+    <p>カートの状態管理と、akinai APIによる在庫確認・金額計算の方法です。</p>
+
+    <h3 id="cart-state">カートの状態管理</h3>
+    <p>React の <code>useState</code> または <code>localStorage</code> でカートを管理します。</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+        <span class="code-lang">hooks/useCart.ts</span>
+      </div>
+      <div class="code-body"><pre><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useCallback</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">interface</span> <span class="fn">CartItem</span> {
+  <span class="key">product_id</span>: <span class="kw">string</span>;
+  <span class="key">variant_id</span>?: <span class="kw">string</span>;
+  <span class="key">quantity</span>: <span class="kw">number</span>;
+  <span class="key">name</span>: <span class="kw">string</span>;
+  <span class="key">price</span>: <span class="kw">number</span>;
+}
+
+<span class="kw">export function</span> <span class="fn">useCart</span>() {
+  <span class="kw">const</span> [<span class="var">items</span>, <span class="fn">setItems</span>] = <span class="fn">useState</span>&lt;<span class="fn">CartItem</span>[]&gt;([]);
+
+  <span class="cm">// 商品をカートに追加</span>
+  <span class="kw">const</span> <span class="fn">addItem</span> = <span class="fn">useCallback</span>((<span class="var">item</span>: <span class="fn">CartItem</span>) => {
+    <span class="fn">setItems</span>(<span class="var">prev</span> => {
+      <span class="kw">const</span> <span class="var">exists</span> = <span class="var">prev</span>.<span class="fn">find</span>(<span class="var">i</span> => <span class="var">i</span>.<span class="var">product_id</span> === <span class="var">item</span>.<span class="var">product_id</span>);
+      <span class="kw">if</span> (<span class="var">exists</span>) {
+        <span class="cm">// すでにある場合は数量を増やす</span>
+        <span class="kw">return</span> <span class="var">prev</span>.<span class="fn">map</span>(<span class="var">i</span> =>
+          <span class="var">i</span>.<span class="var">product_id</span> === <span class="var">item</span>.<span class="var">product_id</span>
+            ? { ...<span class="var">i</span>, <span class="key">quantity</span>: <span class="var">i</span>.<span class="var">quantity</span> + <span class="var">item</span>.<span class="var">quantity</span> }
+            : <span class="var">i</span>
+        );
+      }
+      <span class="kw">return</span> [...<span class="var">prev</span>, <span class="var">item</span>];
+    });
+  }, []);
+
+  <span class="cm">// カートから削除</span>
+  <span class="kw">const</span> <span class="fn">removeItem</span> = <span class="fn">useCallback</span>((<span class="var">productId</span>: <span class="kw">string</span>) => {
+    <span class="fn">setItems</span>(<span class="var">prev</span> => <span class="var">prev</span>.<span class="fn">filter</span>(<span class="var">i</span> => <span class="var">i</span>.<span class="var">product_id</span> !== <span class="var">productId</span>));
+  }, []);
+
+  <span class="cm">// 合計金額</span>
+  <span class="kw">const</span> <span class="var">total</span> = <span class="var">items</span>.<span class="fn">reduce</span>(
+    (<span class="var">sum</span>, <span class="var">i</span>) => <span class="var">sum</span> + <span class="var">i</span>.<span class="var">price</span> * <span class="var">i</span>.<span class="var">quantity</span>, <span class="num">0</span>
+  );
+
+  <span class="kw">return</span> { <span class="var">items</span>, <span class="fn">addItem</span>, <span class="fn">removeItem</span>, <span class="var">total</span> };
+}</pre></div>
+    </div>
+
+    <h3 id="cart-validate">カートの検証（在庫・金額確認）</h3>
+    <p>チェックアウト前に akinai API でカートの内容を検証します。在庫切れや価格変更を検知できます。</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+        <span class="code-lang">app/cart/actions.ts（Next.js Server Action）</span>
+      </div>
+      <div class="code-body"><pre><span class="str">'use server'</span>;
+
+<span class="kw">import</span> { <span class="fn">validateCart</span> } <span class="kw">from</span> <span class="str">'@/lib/akinai'</span>;
+
+<span class="kw">export async function</span> <span class="fn">validateCartAction</span>(<span class="var">items</span>: {
+  <span class="key">product_id</span>: <span class="kw">string</span>;
+  <span class="key">variant_id</span>?: <span class="kw">string</span>;
+  <span class="key">quantity</span>: <span class="kw">number</span>;
+}[]) {
+  <span class="kw">const</span> <span class="var">result</span> = <span class="kw">await</span> <span class="fn">validateCart</span>(<span class="var">items</span>);
+  <span class="cm">/*
+   * result の例:
+   * {
+   *   valid: true,
+   *   items: [...],     // 検証済みアイテム
+   *   subtotal: 7000,   // 小計（円）
+   *   messages: []      // 警告メッセージ（在庫不足など）
+   * }
+   */</span>
+  <span class="kw">return</span> <span class="var">result</span>;
+}</pre></div>
+    </div>
+
+    <!-- Checkout -->
+    <h2 id="checkout">決済を実装する</h2>
+    <p>akinai は Stripe Connect を使った決済を提供しています。フロントエンドから Stripe の決済ページへリダイレクトする方法です。</p>
+
+    <!-- Flow Diagram -->
+    <div class="diagram-wrapper">
+      <div class="diagram-title">決済フロー</div>
+      <div class="flow-steps" style="flex-wrap:wrap; gap:.5rem;">
+        <div class="flow-step active">
+          <div class="flow-num">1</div>
+          <div class="flow-label">カート確認</div>
+          <div class="flow-sub">ユーザーが<br>購入ボタン押下</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <div class="flow-label">住所入力</div>
+          <div class="flow-sub">配送先を<br>フォームで入力</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-num">3</div>
+          <div class="flow-label">セッション作成</div>
+          <div class="flow-sub">akinai APIに<br>POST</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-num">4</div>
+          <div class="flow-label">Stripeへ遷移</div>
+          <div class="flow-sub">クレカ入力<br>画面</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-num">5</div>
+          <div class="flow-label">完了</div>
+          <div class="flow-sub">success_url<br>にリダイレクト</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 id="checkout-session">チェックアウトセッションの作成</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+        <span class="code-lang">app/checkout/actions.ts</span>
+      </div>
+      <div class="code-body"><pre><span class="str">'use server'</span>;
+
+<span class="kw">import</span> { <span class="fn">createCheckout</span> } <span class="kw">from</span> <span class="str">'@/lib/akinai'</span>;
+<span class="kw">import</span> { <span class="fn">redirect</span> } <span class="kw">from</span> <span class="str">'next/navigation'</span>;
+
+<span class="kw">export async function</span> <span class="fn">startCheckoutAction</span>(<span class="var">formData</span>: <span class="fn">FormData</span>) {
+  <span class="cm">// フォームデータを取得</span>
+  <span class="kw">const</span> <span class="var">email</span>    = <span class="var">formData</span>.<span class="fn">get</span>(<span class="str">'email'</span>) <span class="kw">as string</span>;
+  <span class="kw">const</span> <span class="var">address</span>  = {
+    <span class="key">postal_code</span>  : <span class="var">formData</span>.<span class="fn">get</span>(<span class="str">'postal_code'</span>),
+    <span class="key">prefecture</span>   : <span class="var">formData</span>.<span class="fn">get</span>(<span class="str">'prefecture'</span>),
+    <span class="key">city</span>         : <span class="var">formData</span>.<span class="fn">get</span>(<span class="str">'city'</span>),
+    <span class="key">line1</span>        : <span class="var">formData</span>.<span class="fn">get</span>(<span class="str">'line1'</span>),
+    <span class="key">name</span>         : <span class="var">formData</span>.<span class="fn">get</span>(<span class="str">'name'</span>),
+  };
+  <span class="kw">const</span> <span class="var">items</span> = <span class="fn">JSON</span>.<span class="fn">parse</span>(<span class="var">formData</span>.<span class="fn">get</span>(<span class="str">'items'</span>) <span class="kw">as string</span>);
+
+  <span class="cm">// akinai API でチェックアウトセッションを作成</span>
+  <span class="kw">const</span> { <span class="var">url</span> } = <span class="kw">await</span> <span class="fn">createCheckout</span>({
+    <span class="key">items</span>,
+    <span class="key">customer_email</span>   : <span class="var">email</span>,
+    <span class="key">shipping_address</span> : <span class="var">address</span>,
+    <span class="key">success_url</span>      : <span class="str">`${process.env.NEXT_PUBLIC_SITE_URL}/checkout/complete`</span>,
+    <span class="key">cancel_url</span>       : <span class="str">`${process.env.NEXT_PUBLIC_SITE_URL}/cart`</span>,
+  });
+
+  <span class="cm">// Stripe の決済ページへリダイレクト</span>
+  <span class="fn">redirect</span>(<span class="var">url</span>);
+}</pre></div>
+    </div>
+
+    <h3 id="checkout-complete">決済完了後の処理</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+        <span class="code-lang">app/checkout/complete/page.tsx</span>
+      </div>
+      <div class="code-body"><pre><span class="cm">// Stripe から success_url にリダイレクトされた後のページ</span>
+<span class="kw">export default function</span> <span class="fn">CheckoutCompletePage</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">div</span> <span class="key">style</span>={{ <span class="key">textAlign</span>: <span class="str">'center'</span>, <span class="key">padding</span>: <span class="str">'4rem'</span> }}&gt;
+      &lt;<span class="fn">h1</span>&gt;✅ ご注文ありがとうございます！&lt;/<span class="fn">h1</span>&gt;
+      &lt;<span class="fn">p</span>&gt;注文確認メールをお送りしました。&lt;/<span class="fn">p</span>&gt;
+      &lt;<span class="fn">a</span> <span class="key">href</span>=<span class="str">"/"</span>&gt;トップページへ戻る&lt;/<span class="fn">a</span>&gt;
+    &lt;/<span class="fn">div</span>&gt;
+  );
+}</pre></div>
+    </div>
+
+    <!-- Contents Section -->
+    <h2 id="contents">コンテンツを表示する</h2>
+    <p>ニュースやブログ記事などのコンテンツを表示する方法です。</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+        <span class="code-lang">app/news/page.tsx</span>
+      </div>
+      <div class="code-body"><pre><span class="kw">import</span> { <span class="fn">getContents</span> } <span class="kw">from</span> <span class="str">'@/lib/akinai'</span>;
+
+<span class="kw">export default async function</span> <span class="fn">NewsPage</span>() {
+  <span class="cm">// type パラメータで絞り込み可能（news, blog, page など）</span>
+  <span class="kw">const</span> { <span class="var">contents</span> } = <span class="kw">await</span> <span class="fn">getContents</span>(<span class="str">'news'</span>);
+
+  <span class="kw">return</span> (
+    &lt;<span class="fn">div</span>&gt;
+      &lt;<span class="fn">h1</span>&gt;お知らせ&lt;/<span class="fn">h1</span>&gt;
+      {<span class="var">contents</span>.<span class="fn">map</span>((<span class="var">content</span>) => (
+        &lt;<span class="fn">article</span> <span class="key">key</span>={<span class="var">content</span>.<span class="var">id</span>}&gt;
+          &lt;<span class="fn">h2</span>&gt;{<span class="var">content</span>.<span class="var">title</span>}&lt;/<span class="fn">h2</span>&gt;
+          &lt;<span class="fn">time</span>&gt;{<span class="kw">new</span> <span class="fn">Date</span>(<span class="var">content</span>.<span class="var">published_at</span>).<span class="fn">toLocaleDateString</span>(<span class="str">'ja-JP'</span>)}&lt;/<span class="fn">time</span>&gt;
+          &lt;<span class="fn">p</span>&gt;{<span class="var">content</span>.<span class="var">excerpt</span>}&lt;/<span class="fn">p</span>&gt;
+          &lt;<span class="fn">a</span> <span class="key">href</span>={<span class="str">`/news/${content.slug}`</span>}&gt;続きを読む →&lt;/<span class="fn">a</span>&gt;
+        &lt;/<span class="fn">article</span>&gt;
+      ))}
+    &lt;/<span class="fn">div</span>&gt;
+  );
+}</pre></div>
+    </div>
+
+    <!-- Error Handling -->
+    <h2 id="error-handling">エラーハンドリング</h2>
+    <p>APIエラーには適切な対処が必要です。代表的なエラーコードと対処法を示します。</p>
+
+    <div class="api-table-wrapper">
+      <table class="api-table">
+        <thead>
+          <tr>
+            <th>ステータスコード</th>
+            <th>意味</th>
+            <th>対処法</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-blue">400</span></td>
+            <td>リクエストが不正</td>
+            <td>リクエストパラメータを確認してください</td>
+          </tr>
+          <tr>
+            <td><span class="badge" style="background:#fee2e2;color:#991b1b;">401</span></td>
+            <td>認証エラー</td>
+            <td>APIキーが正しいか確認してください</td>
+          </tr>
+          <tr>
+            <td><span class="badge" style="background:#fee2e2;color:#991b1b;">403</span></td>
+            <td>権限なし</td>
+            <td>APIキーに対してこの操作は許可されていません</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-gray">404</span></td>
+            <td>リソースが存在しない</td>
+            <td>指定したIDやslugが正しいか確認してください</td>
+          </tr>
+          <tr>
+            <td><span class="badge" style="background:#fef3c7;color:#92400e;">429</span></td>
+            <td>レート制限超過</td>
+            <td>しばらく待ってから再試行してください</td>
+          </tr>
+          <tr>
+            <td><span class="badge" style="background:#fee2e2;color:#991b1b;">500</span></td>
+            <td>サーバーエラー</td>
+            <td>しばらく待ってから再試行してください</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-success" style="margin-top:2rem;">
+      <span class="callout-icon">🎉</span>
+      <div class="callout-body">
+        <strong>これで連携の準備が完了です！</strong>
+        詳細なAPIの仕様は <a href="api.html" style="color:inherit; text-decoration:underline;">APIリファレンス</a> を参照してください。
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <p>akinai Docs — EC SaaS フロントエンド連携ガイド</p>
+  <p style="margin-top:.5rem;">
+    <a href="index.html">はじめに</a> ·
+    <a href="guide.html">統合ガイド</a> ·
+    <a href="api.html">APIリファレンス</a>
+  </p>
+</footer>
+
+</body>
+</html>

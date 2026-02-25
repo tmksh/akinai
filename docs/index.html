@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>akinai — フロントエンド連携ガイド</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">akinai <span>Docs</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html" class="active">はじめに</a></li>
+    <li><a href="guide.html">統合ガイド</a></li>
+    <li><a href="api.html">APIリファレンス</a></li>
+  </ul>
+  <span class="nav-badge">v1.0</span>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span>📦</span> EC SaaS フロントエンド連携ドキュメント
+    </div>
+    <h1>
+      <span class="highlight">akinai</span> を<br>あなたのサイトに<br>つなげる方法
+    </h1>
+    <p>
+      初心者の方でも迷わない、ステップバイステップの連携ガイドです。<br>
+      APIキーを取得してから、商品表示・カート・決済まで丁寧に説明します。
+    </p>
+    <div class="hero-buttons">
+      <a href="guide.html" class="btn btn-primary">🚀 統合ガイドを読む</a>
+      <a href="api.html" class="btn btn-outline">📖 APIリファレンス</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── What is akinai ── -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label">akinai とは</span>
+      <h2>EC機能をAPIで提供するSaaSです</h2>
+      <p>自社のWebサイトやアプリから akinai のAPIを呼び出すだけで、本格的なEC機能を追加できます。</p>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon blue">🛍️</div>
+        <h3>商品管理</h3>
+        <p>商品の登録・編集・在庫管理を管理画面から行い、APIで商品情報を取得できます。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon green">🛒</div>
+        <h3>カート・チェックアウト</h3>
+        <p>カートの中身検証からStripe決済まで、購入フロー全体をAPIで処理します。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon purple">📰</div>
+        <h3>コンテンツ管理</h3>
+        <p>ニュース・ブログ・ランディングページなどのコンテンツをAPIで配信します。</p>
+      </div>
+      <div class="card">
+        <div class="card-icon orange">📊</div>
+        <h3>注文・顧客管理</h3>
+        <p>注文状況の追跡、顧客情報の管理、見積もり作成などをAPIで連携できます。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Architecture ── -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label">システム構成</span>
+      <h2>全体のアーキテクチャ</h2>
+      <p>あなたのフロントエンドと akinai がどのようにつながるかを示した図です。</p>
+    </div>
+
+    <div class="diagram-wrapper">
+      <div class="diagram-title">システム全体図</div>
+
+      <!-- Architecture Visual -->
+      <div style="padding: 1rem 0;">
+        <div class="arch-diagram">
+          <!-- Your Frontend -->
+          <div class="arch-box highlight">
+            <div class="arch-icon">🖥️</div>
+            <div class="arch-label">あなたの<br>フロントエンド</div>
+            <div class="arch-sub">React / Vue / Next.js<br>など何でも OK</div>
+          </div>
+
+          <div class="arch-arrow">→</div>
+
+          <!-- akinai API -->
+          <div class="arch-box api">
+            <div class="arch-icon">⚡</div>
+            <div class="arch-label">akinai API</div>
+            <div class="arch-sub">REST API<br>APIキー認証</div>
+          </div>
+
+          <div class="arch-arrow">→</div>
+
+          <!-- Backend -->
+          <div class="arch-box">
+            <div class="arch-icon">🗄️</div>
+            <div class="arch-label">akinai<br>バックエンド</div>
+            <div class="arch-sub">Next.js<br>Supabase DB</div>
+          </div>
+
+          <div class="arch-arrow">↔</div>
+
+          <!-- Stripe -->
+          <div class="arch-box">
+            <div class="arch-icon">💳</div>
+            <div class="arch-label">Stripe</div>
+            <div class="arch-sub">決済処理</div>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div style="display:flex; gap:2rem; justify-content:center; margin-top:1.5rem; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:.5rem; font-size:.85rem; color:var(--gray-600);">
+            <span style="width:16px; height:16px; background:#eff6ff; border:2px solid var(--primary); border-radius:4px; display:inline-block;"></span>
+            あなたが開発する部分
+          </div>
+          <div style="display:flex; align-items:center; gap:.5rem; font-size:.85rem; color:var(--gray-600);">
+            <span style="width:16px; height:16px; background:#f0fdf4; border:2px solid var(--success); border-radius:4px; display:inline-block;"></span>
+            akinai が提供する部分
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection Flow -->
+    <div class="diagram-wrapper">
+      <div class="diagram-title">APIリクエストの流れ</div>
+      <div class="flow-steps">
+        <div class="flow-step active">
+          <div class="flow-num">1</div>
+          <div class="flow-label">APIキー取得</div>
+          <div class="flow-sub">管理画面で<br>発行</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <div class="flow-label">HTTPリクエスト</div>
+          <div class="flow-sub">Authorizationヘッダに<br>セット</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-num">3</div>
+          <div class="flow-label">認証・処理</div>
+          <div class="flow-sub">akinai側で<br>検証</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-num">4</div>
+          <div class="flow-label">JSONレスポンス</div>
+          <div class="flow-sub">データを<br>受け取る</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-num">5</div>
+          <div class="flow-label">UI表示</div>
+          <div class="flow-sub">画面に<br>反映</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Quick Start ── -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label">クイックスタート</span>
+      <h2>3ステップで最初のAPIを呼ぶ</h2>
+      <p>まず商品一覧を取得する最もシンプルなサンプルです。</p>
+    </div>
+
+    <div class="steps">
+      <!-- Step 1 -->
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>APIキーを取得する</h3>
+          <p>akinai 管理画面の <strong>設定 → API</strong> からAPIキーを発行します。<br>
+          キーは <code style="background:var(--gray-100);padding:.1em .4em;border-radius:4px;font-family:monospace;">ak_live_xxxxxxxxxx</code> という形式です。</p>
+
+          <!-- Mock Admin Screen -->
+          <div class="browser-window" style="margin-top:1rem; max-width:600px;">
+            <div class="browser-bar">
+              <div class="browser-dots">
+                <span style="background:#ef4444"></span>
+                <span style="background:#f59e0b"></span>
+                <span style="background:#10b981"></span>
+              </div>
+              <div class="browser-url">https://yourshop.akinai.jp/settings/api</div>
+            </div>
+            <div class="browser-body">
+              <div class="screenshot-mock">
+                <div class="mock-header">
+                  <span class="mock-title">🔑 APIキー管理</span>
+                  <button class="mock-btn">＋ 新しいキーを発行</button>
+                </div>
+                <div class="mock-list-item">
+                  <span class="mock-dot"></span>
+                  <span style="font-family:monospace;font-size:.8rem;">ak_live_xXxXxXxXxXxXxXxX</span>
+                  <span class="badge badge-green" style="margin-left:auto;">有効</span>
+                </div>
+                <p style="font-size:.8rem;color:var(--gray-400);margin-top:.75rem;">⚠️ このキーは他人に見せないでください</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>環境変数に保存する</h3>
+          <p>APIキーをソースコードに直接書かず、<strong>環境変数</strong>として管理します。</p>
+
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="red"></span><span class="yellow"></span><span class="green"></span>
+              </div>
+              <span class="code-lang">.env.local</span>
+            </div>
+            <div class="code-body"><pre><span class="cm"># akinai の本番URLとAPIキー</span>
+<span class="key">AKINAI_BASE_URL</span>=<span class="str">https://yourshop.akinai.jp</span>
+<span class="key">AKINAI_API_KEY</span>=<span class="str">ak_live_xXxXxXxXxXxXxXxX</span></pre></div>
+          </div>
+
+          <div class="callout callout-warning">
+            <span class="callout-icon">⚠️</span>
+            <div class="callout-body">
+              <strong>.gitignore に .env.local を追加してください</strong>
+              APIキーが GitHub に公開されると悪用される恐れがあります。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>商品一覧を取得する</h3>
+          <p>JavaScript (fetch) で商品一覧APIを呼び出すサンプルです。</p>
+
+          <!-- Tabs -->
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(this, 'tab-js')">JavaScript</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-ts')">TypeScript</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-curl')">cURL</button>
+          </div>
+
+          <div id="tab-js" class="tab-pane active">
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+                <span class="code-lang">JavaScript</span>
+              </div>
+              <div class="code-body"><pre><span class="cm">// 商品一覧を取得する関数</span>
+<span class="kw">async function</span> <span class="fn">getProducts</span>() {
+  <span class="kw">const</span> <span class="var">response</span> = <span class="kw">await</span> <span class="fn">fetch</span>(
+    <span class="str">`${process.env.AKINAI_BASE_URL}/api/v1/products`</span>,
+    {
+      <span class="key">headers</span>: {
+        <span class="str">'Authorization'</span>: <span class="str">`Bearer ${process.env.AKINAI_API_KEY}`</span>,
+        <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>,
+      },
+    }
+  );
+
+  <span class="kw">if</span> (!<span class="var">response</span>.<span class="var">ok</span>) {
+    <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">'商品の取得に失敗しました'</span>);
+  }
+
+  <span class="kw">const</span> <span class="var">data</span> = <span class="kw">await</span> <span class="var">response</span>.<span class="fn">json</span>();
+  <span class="kw">return</span> <span class="var">data</span>.<span class="var">products</span>; <span class="cm">// 商品配列</span>
+}
+
+<span class="cm">// 使い方</span>
+<span class="kw">const</span> <span class="var">products</span> = <span class="kw">await</span> <span class="fn">getProducts</span>();
+<span class="var">console</span>.<span class="fn">log</span>(<span class="var">products</span>);</pre></div>
+            </div>
+          </div>
+
+          <div id="tab-ts" class="tab-pane">
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+                <span class="code-lang">TypeScript</span>
+              </div>
+              <div class="code-body"><pre><span class="kw">interface</span> <span class="fn">Product</span> {
+  <span class="key">id</span>: <span class="kw">string</span>;
+  <span class="key">name</span>: <span class="kw">string</span>;
+  <span class="key">price</span>: <span class="kw">number</span>;
+  <span class="key">status</span>: <span class="str">'draft'</span> | <span class="str">'published'</span> | <span class="str">'archived'</span>;
+  <span class="key">images</span>: { <span class="key">url</span>: <span class="kw">string</span> }[];
+}
+
+<span class="kw">async function</span> <span class="fn">getProducts</span>(): <span class="kw">Promise</span>&lt;<span class="fn">Product</span>[]&gt; {
+  <span class="kw">const</span> <span class="var">res</span> = <span class="kw">await</span> <span class="fn">fetch</span>(
+    <span class="str">`${process.env.AKINAI_BASE_URL}/api/v1/products`</span>,
+    {
+      <span class="key">headers</span>: {
+        <span class="str">'Authorization'</span>: <span class="str">`Bearer ${process.env.AKINAI_API_KEY}`</span>,
+      },
+    }
+  );
+
+  <span class="kw">const</span> { <span class="var">products</span> } = <span class="kw">await</span> <span class="var">res</span>.<span class="fn">json</span>();
+  <span class="kw">return</span> <span class="var">products</span>;
+}</pre></div>
+            </div>
+          </div>
+
+          <div id="tab-curl" class="tab-pane">
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+                <span class="code-lang">cURL（ターミナル）</span>
+              </div>
+              <div class="code-body"><pre><span class="cm"># ターミナルで直接テストする場合</span>
+curl -X GET \
+  <span class="str">"https://yourshop.akinai.jp/api/v1/products"</span> \
+  -H <span class="str">"Authorization: Bearer ak_live_xXxXxXxXxXxXxXxX"</span> \
+  -H <span class="str">"Content-Type: application/json"</span></pre></div>
+            </div>
+          </div>
+
+          <!-- Response Preview -->
+          <p style="margin-top:1rem; font-weight:700; font-size:.9rem; color:var(--gray-600);">📩 レスポンス例</p>
+          <div class="response-preview">
+            <pre>{
+  <span class="json-key">"products"</span>: [
+    {
+      <span class="json-key">"id"</span>: <span class="json-str">"prod_abc123"</span>,
+      <span class="json-key">"name"</span>: <span class="json-str">"オーガニックコットンTシャツ"</span>,
+      <span class="json-key">"price"</span>: <span class="json-num">3500</span>,
+      <span class="json-key">"status"</span>: <span class="json-str">"published"</span>,
+      <span class="json-key">"images"</span>: [
+        { <span class="json-key">"url"</span>: <span class="json-str">"https://..."</span> }
+      ]
+    }
+  ],
+  <span class="json-key">"total"</span>: <span class="json-num">42</span>,
+  <span class="json-key">"page"</span>: <span class="json-num">1</span>,
+  <span class="json-key">"per_page"</span>: <span class="json-num">20</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Available APIs ── -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label">API一覧</span>
+      <h2>利用可能なエンドポイント</h2>
+      <p>akinai が提供するすべてのREST APIです。</p>
+    </div>
+
+    <div class="api-table-wrapper">
+      <table class="api-table">
+        <thead>
+          <tr>
+            <th>メソッド</th>
+            <th>エンドポイント</th>
+            <th>説明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method-badge method-get">GET</span></td>
+            <td class="endpoint-path">/api/v1/products</td>
+            <td>商品一覧取得（検索・ページネーション対応）</td>
+          </tr>
+          <tr>
+            <td><span class="method-badge method-get">GET</span></td>
+            <td class="endpoint-path">/api/v1/products/:id</td>
+            <td>商品詳細取得（IDまたはslug）</td>
+          </tr>
+          <tr>
+            <td><span class="method-badge method-get">GET</span></td>
+            <td class="endpoint-path">/api/v1/categories</td>
+            <td>カテゴリ一覧取得</td>
+          </tr>
+          <tr>
+            <td><span class="method-badge method-get">GET</span></td>
+            <td class="endpoint-path">/api/v1/contents</td>
+            <td>コンテンツ一覧（ニュース・ブログなど）</td>
+          </tr>
+          <tr>
+            <td><span class="method-badge method-get">GET</span></td>
+            <td class="endpoint-path">/api/v1/contents/:id</td>
+            <td>コンテンツ詳細取得</td>
+          </tr>
+          <tr>
+            <td><span class="method-badge method-post">POST</span></td>
+            <td class="endpoint-path">/api/v1/cart/validate</td>
+            <td>カート内容の検証・金額計算</td>
+          </tr>
+          <tr>
+            <td><span class="method-badge method-get">GET</span></td>
+            <td class="endpoint-path">/api/v1/shipping-options</td>
+            <td>送料オプション取得</td>
+          </tr>
+          <tr>
+            <td><span class="method-badge method-post">POST</span></td>
+            <td class="endpoint-path">/api/v1/checkout</td>
+            <td>Stripe決済セッション作成</td>
+          </tr>
+          <tr>
+            <td><span class="method-badge method-post">POST</span></td>
+            <td class="endpoint-path">/api/v1/orders</td>
+            <td>注文作成</td>
+          </tr>
+          <tr>
+            <td><span class="method-badge method-get">GET</span></td>
+            <td class="endpoint-path">/api/v1/customers</td>
+            <td>顧客一覧取得・検索</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="text-align:center; margin-top:2rem;">
+      <a href="api.html" class="btn btn-primary">📖 完全なAPIリファレンスを見る</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Next Steps ── -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label">次のステップ</span>
+      <h2>詳細なガイドを読む</h2>
+    </div>
+
+    <div class="cards-grid" style="max-width:800px; margin:0 auto;">
+      <a href="guide.html" class="card" style="text-decoration:none; color:inherit;">
+        <div class="card-icon blue">🚀</div>
+        <h3>統合ガイド</h3>
+        <p>商品表示・カート・チェックアウトまで、フロントエンド連携の全手順をステップバイステップで解説します。</p>
+        <p style="color:var(--primary); font-weight:700; margin-top:.75rem; font-size:.9rem;">読む →</p>
+      </a>
+      <a href="api.html" class="card" style="text-decoration:none; color:inherit;">
+        <div class="card-icon green">📖</div>
+        <h3>APIリファレンス</h3>
+        <p>すべてのAPIエンドポイントのパラメータ、リクエスト・レスポンスの詳細仕様を確認できます。</p>
+        <p style="color:var(--primary); font-weight:700; margin-top:.75rem; font-size:.9rem;">読む →</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer class="footer">
+  <p>akinai Docs — EC SaaS フロントエンド連携ガイド</p>
+  <p style="margin-top:.5rem;">
+    <a href="index.html">はじめに</a> ·
+    <a href="guide.html">統合ガイド</a> ·
+    <a href="api.html">APIリファレンス</a>
+  </p>
+</footer>
+
+<script>
+function switchTab(btn, id) {
+  const parent = btn.closest('.step-content') || btn.closest('.section');
+  const tabs = btn.parentElement.querySelectorAll('.tab-btn');
+  const panes = btn.parentElement.nextElementSibling
+    ? btn.closest('.step-content').querySelectorAll('.tab-pane')
+    : document.querySelectorAll('.tab-pane');
+
+  tabs.forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Find panes within the same parent
+  const stepContent = btn.closest('.step-content');
+  if (stepContent) {
+    stepContent.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    const target = stepContent.querySelector('#' + id);
+    if (target) target.classList.add('active');
+  } else {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
+  }
+}
+</script>
+
+</body>
+</html>

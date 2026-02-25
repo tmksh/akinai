@@ -205,21 +205,12 @@ export function TopNavigation() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">
-                <div className="flex items-center justify-between px-3 py-2 border-b">
+                <div className="px-3 py-2 border-b">
                   <span className="text-sm font-semibold">通知</span>
-                  <Button variant="ghost" size="sm" className="text-xs text-orange-600 h-auto p-1">
-                    既読にする
-                  </Button>
                 </div>
-                <div className="max-h-60 overflow-y-auto">
-                  <DropdownMenuItem className="flex flex-col items-start gap-1 p-3">
-                    <span className="text-sm font-medium">新規注文</span>
-                    <span className="text-xs text-muted-foreground">AK-2024-0003</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex flex-col items-start gap-1 p-3">
-                    <span className="text-sm font-medium">在庫少</span>
-                    <span className="text-xs text-muted-foreground">革財布 残り5点</span>
-                  </DropdownMenuItem>
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <IoNotifications className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">通知はありません</p>
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>

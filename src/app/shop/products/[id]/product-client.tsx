@@ -8,6 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { ShopProduct } from '@/lib/actions/shop';
 import { toast } from 'sonner';
+import { useCart } from '@/hooks/use-cart';
+import { useWishlist } from '@/hooks/use-wishlist';
 
 interface ProductClientProps {
   product: ShopProduct;
@@ -17,13 +19,15 @@ export default function ProductClient({ product }: ProductClientProps) {
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const { addItem: addToCart } = useCart();
+  const { toggle: toggleWishlist, isInWishlist } = useWishlist();
 
   const selectedVariant = product.variants[selectedVariantIndex];
   const hasMultipleVariants = product.variants.length > 1;
   const hasMultipleImages = product.images.length > 1;
   const isOutOfStock = selectedVariant?.stock === 0;
+  const inWishlist = isInWishlist(product.id);
 
-  // 画像のナビゲーション
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
   };
@@ -36,35 +40,18 @@ export default function ProductClient({ product }: ProductClientProps) {
   const handleAddToCart = () => {
     if (!selectedVariant || isOutOfStock) return;
 
-    // localStorageからカートを取得
-    const savedCart = localStorage.getItem('cart');
-    const cart = savedCart ? JSON.parse(savedCart) : [];
+    addToCart({
+      productId: product.id,
+      variantId: selectedVariant.id,
+      name: product.name,
+      price: selectedVariant.price,
+      compareAtPrice: selectedVariant.compareAtPrice ?? undefined,
+      image: product.images[0]?.url || '',
+      quantity,
+      variant: selectedVariant.options || {},
+      sku: selectedVariant.sku,
+    });
 
-    // 既存のアイテムを確認
-    const existingIndex = cart.findIndex(
-      (item: { variantId: string }) => item.variantId === selectedVariant.id
-    );
-
-    if (existingIndex >= 0) {
-      // 数量を更新
-      cart[existingIndex].quantity += quantity;
-    } else {
-      // 新規追加
-      cart.push({
-        id: `${product.id}-${selectedVariant.id}`,
-        productId: product.id,
-        variantId: selectedVariant.id,
-        name: product.name,
-        price: selectedVariant.price,
-        image: product.images[0]?.url || '',
-        quantity,
-        variant: selectedVariant.options || {},
-        sku: selectedVariant.sku,
-      });
-    }
-
-    localStorage.setItem('cart', JSON.stringify(cart));
-    
     toast.success('カートに追加しました', {
       description: `${product.name}${hasMultipleVariants ? ` (${selectedVariant.name})` : ''} × ${quantity}`,
       action: {
@@ -74,9 +61,16 @@ export default function ProductClient({ product }: ProductClientProps) {
     });
   };
 
-  // お気に入りに追加
+  // お気に入りトグル
   const handleAddToWishlist = () => {
-    toast.success('お気に入りに追加しました');
+    const added = toggleWishlist({
+      productId: product.id,
+      name: product.name,
+      image: product.images[0]?.url || '',
+      price: product.minPrice,
+      slug: product.slug,
+    });
+    toast.success(added ? 'お気に入りに追加しました' : 'お気に入りから削除しました');
   };
 
   // シェア
@@ -275,11 +269,11 @@ export default function ProductClient({ product }: ProductClientProps) {
           <div className="flex gap-3">
             <Button
               variant="outline"
-              className="flex-1"
+              className={cn("flex-1", inWishlist && "border-red-300 text-red-500 hover:bg-red-50")}
               onClick={handleAddToWishlist}
             >
-              <Heart className="h-5 w-5 mr-2" />
-              お気に入り
+              <Heart className={cn("h-5 w-5 mr-2", inWishlist && "fill-red-500 text-red-500")} />
+              {inWishlist ? 'お気に入り済み' : 'お気に入り'}
             </Button>
             <Button
               variant="outline"

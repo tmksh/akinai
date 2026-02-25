@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Building2, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -52,6 +53,7 @@ function mapAgentFromDb(row: AgentRow): AgentDisplay {
 
 export default function AgentsPage() {
   const { organization, isLoading: orgLoading } = useOrganization();
+  const router = useRouter();
   
   // データ状態
   const [agents, setAgents] = useState<AgentDisplay[]>([]);
@@ -169,9 +171,8 @@ export default function AgentsPage() {
 
   // アクション
   const handleView = useCallback((agent: AgentDisplay) => {
-    toast.info(`${agent.company}の詳細ページへ遷移します`);
-    // TODO: 詳細ページへ遷移
-  }, []);
+    router.push(`/agents/${agent.id}`);
+  }, [router]);
 
   const handleEdit = useCallback((agent: AgentDisplay) => {
     setEditingAgent(agent);

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   validateApiKey,
   apiError,
+  apiSuccess,
   apiSuccessPaginated,
   handleOptions,
   corsHeaders,
@@ -163,6 +164,91 @@ export async function GET(request: NextRequest) {
     }));
 
     const response = apiSuccessPaginated(publicContents, page, limit, count || 0, auth.rateLimit);
+    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
+    return response;
+  });
+}
+
+// POST /api/v1/contents - コンテンツを作成
+export async function POST(request: NextRequest) {
+  const auth = await validateApiKey(request);
+  if (!auth.success) {
+    return apiError(auth.error!, auth.status, auth.rateLimit);
+  }
+
+  return withApiLogging(request, auth, async () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return apiError('Server configuration error', 500);
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return apiError('Invalid JSON body', 400);
+    }
+
+    const type = body.type as string | undefined;
+    const title = body.title as string | undefined;
+    const slug = body.slug as string | undefined;
+
+    if (!type || !title || !slug) {
+      return apiError('type, title and slug are required', 400);
+    }
+
+    // slug の重複チェック
+    const { data: existingSlug } = await supabase
+      .from('contents')
+      .select('id')
+      .eq('organization_id', auth.organizationId)
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (existingSlug) {
+      return apiError(`Slug "${slug}" already exists`, 409);
+    }
+
+    const status = (['draft', 'published', 'archived'].includes(body.status as string))
+      ? body.status as string
+      : 'draft';
+
+    const { data: content, error: contentError } = await supabase
+      .from('contents')
+      .insert({
+        organization_id: auth.organizationId,
+        type,
+        title,
+        slug,
+        excerpt: (body.excerpt as string) || null,
+        blocks: (body.blocks as unknown[]) || [],
+        status,
+        featured_image: (body.featuredImage as string) || null,
+        tags: (body.tags as string[]) || [],
+        related_product_ids: (body.relatedProductIds as string[]) || [],
+        seo_title: (body.seoTitle as string) || null,
+        seo_description: (body.seoDescription as string) || null,
+        ...(body.customFields !== undefined ? { custom_fields: body.customFields } : {}),
+        published_at: status === 'published' ? new Date().toISOString() : null,
+      })
+      .select()
+      .single();
+
+    if (contentError) {
+      return apiError(`Failed to create content: ${contentError.message}`, 500);
+    }
+
+    const response = apiSuccess({
+      id: content.id,
+      type: content.type,
+      title: content.title,
+      slug: content.slug,
+      status: content.status,
+    }, undefined, auth.rateLimit);
     Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
     return response;
   });

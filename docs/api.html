@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APIリファレンス — akinai Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .api-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 3rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .api-layout { grid-template-columns: 1fr; }
+      .api-sidebar { position: static !important; }
+    }
+    .api-sidebar {
+      position: sticky;
+      top: 80px;
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+    .api-nav-group { margin-bottom: 1.25rem; }
+    .api-nav-group-title {
+      font-weight: 800;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--gray-400);
+      margin-bottom: .5rem;
+    }
+    .api-nav-item {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      text-decoration: none;
+      color: var(--gray-600);
+      font-size: .85rem;
+      padding: .3rem .5rem;
+      border-radius: 5px;
+      transition: background .15s, color .15s;
+    }
+    .api-nav-item:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    .api-content h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin: 3rem 0 .75rem;
+      padding-top: 1.5rem;
+      border-top: 2px solid var(--gray-200);
+      letter-spacing: -.5px;
+      scroll-margin-top: 80px;
+    }
+    .api-content h2:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+    .api-content p {
+      color: var(--gray-700);
+      margin-bottom: 1rem;
+      font-size: .95rem;
+    }
+
+    /* Endpoint Block */
+    .endpoint-block {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 1.5rem 0;
+      box-shadow: var(--shadow);
+    }
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      background: var(--gray-50);
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .endpoint-title {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--gray-800);
+    }
+    .endpoint-body {
+      padding: 1.25rem;
+    }
+    .endpoint-body p {
+      margin-bottom: .75rem;
+    }
+
+    /* Params Table */
+    .params-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .85rem;
+      margin: .75rem 0;
+    }
+    .params-table th {
+      background: var(--gray-50);
+      color: var(--gray-500);
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: .6rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .params-table td {
+      padding: .7rem 1rem;
+      border-bottom: 1px solid var(--gray-100);
+      vertical-align: top;
+    }
+    .params-table tr:last-child td { border-bottom: none; }
+    .param-name { font-family: var(--font-mono); color: var(--primary-dark); font-weight: 600; }
+    .param-type { font-family: var(--font-mono); color: var(--gray-500); font-size: .8rem; }
+    .param-required { color: #ef4444; font-size: .75rem; font-weight: 700; }
+    .param-optional { color: var(--gray-400); font-size: .75rem; }
+
+    .section-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: var(--gray-100);
+      color: var(--gray-600);
+      font-size: .8rem;
+      font-weight: 700;
+      padding: .25rem .7rem;
+      border-radius: 20px;
+      margin-bottom: 1.5rem;
+    }
+
+    code { background: var(--gray-100); padding: .15em .45em; border-radius: 4px; font-family: var(--font-mono); font-size: .88em; color: var(--primary-dark); }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">akinai <span>Docs</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">はじめに</a></li>
+    <li><a href="guide.html">統合ガイド</a></li>
+    <li><a href="api.html" class="active">APIリファレンス</a></li>
+  </ul>
+  <span class="nav-badge">v1.0</span>
+</nav>
+
+<!-- ── Page Header ── -->
+<div style="background:linear-gradient(135deg,#1e293b,#1e3a5f); color:white; padding:60px 2rem;">
+  <div class="container">
+    <div class="section-label" style="background:rgba(255,255,255,.1); color:#93c5fd;">APIリファレンス</div>
+    <h1 style="font-size:clamp(1.8rem,4vw,2.6rem); font-weight:900; margin-top:1rem; letter-spacing:-.5px;">
+      REST API 仕様書
+    </h1>
+    <p style="color:#93c5fd; margin-top:.75rem; max-width:600px;">
+      全エンドポイントのリクエスト・レスポンスの詳細仕様です。<br>
+      ベースURL: <code style="background:rgba(255,255,255,.1); color:white; padding:.2rem .6rem; border-radius:4px;">https://yourshop.akinai.jp</code>
+    </p>
+  </div>
+</div>
+
+<!-- ── Auth Info ── -->
+<div style="background:#fffbeb; border-bottom: 1px solid #fde68a; padding: 1rem 2rem;">
+  <div class="container" style="display:flex; align-items:center; gap:.75rem; font-size:.9rem; color:#92400e;">
+    <span style="font-size:1.2rem;">🔑</span>
+    <span><strong>認証方法：</strong> すべてのAPIに <code style="background:#fef3c7; color:#92400e;">Authorization: Bearer &lt;API_KEY&gt;</code> ヘッダが必要です。</span>
+  </div>
+</div>
+
+<!-- ── Main Layout ── -->
+<div class="api-layout">
+
+  <!-- Sidebar -->
+  <aside class="api-sidebar">
+    <div class="api-nav-group">
+      <div class="api-nav-group-title">商品</div>
+      <a href="#products-list" class="api-nav-item"><span class="method-badge method-get" style="font-size:.65rem;">GET</span> 商品一覧</a>
+      <a href="#products-get" class="api-nav-item"><span class="method-badge method-get" style="font-size:.65rem;">GET</span> 商品詳細</a>
+      <a href="#categories" class="api-nav-item"><span class="method-badge method-get" style="font-size:.65rem;">GET</span> カテゴリ</a>
+    </div>
+    <div class="api-nav-group">
+      <div class="api-nav-group-title">コンテンツ</div>
+      <a href="#contents-list" class="api-nav-item"><span class="method-badge method-get" style="font-size:.65rem;">GET</span> 一覧</a>
+      <a href="#contents-get" class="api-nav-item"><span class="method-badge method-get" style="font-size:.65rem;">GET</span> 詳細</a>
+    </div>
+    <div class="api-nav-group">
+      <div class="api-nav-group-title">購入フロー</div>
+      <a href="#cart-validate" class="api-nav-item"><span class="method-badge method-post" style="font-size:.65rem;">POST</span> カート検証</a>
+      <a href="#shipping" class="api-nav-item"><span class="method-badge method-get" style="font-size:.65rem;">GET</span> 送料</a>
+      <a href="#checkout" class="api-nav-item"><span class="method-badge method-post" style="font-size:.65rem;">POST</span> チェックアウト</a>
+      <a href="#orders" class="api-nav-item"><span class="method-badge method-post" style="font-size:.65rem;">POST</span> 注文作成</a>
+    </div>
+    <div class="api-nav-group">
+      <div class="api-nav-group-title">顧客</div>
+      <a href="#customers" class="api-nav-item"><span class="method-badge method-get" style="font-size:.65rem;">GET</span> 顧客一覧</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="api-content">
+
+    <!-- Products -->
+    <h2 id="products-list">商品一覧の取得</h2>
+    <div class="section-tag">🛍️ 商品</div>
+
+    <div class="endpoint-block">
+      <div class="endpoint-header">
+        <span class="method-badge method-get">GET</span>
+        <span class="endpoint-path">/api/v1/products</span>
+        <span class="endpoint-title">商品一覧を取得する</span>
+      </div>
+      <div class="endpoint-body">
+        <p>公開されている商品（status: published）の一覧を返します。ページネーション・検索・カテゴリフィルタに対応しています。</p>
+
+        <p style="font-weight:700; font-size:.85rem; color:var(--gray-600); margin-bottom:.5rem;">クエリパラメータ</p>
+        <div class="api-table-wrapper">
+          <table class="params-table">
+            <thead>
+              <tr><th>パラメータ</th><th>型</th><th>必須</th><th>説明</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="param-name">page</td>
+                <td class="param-type">number</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>ページ番号（デフォルト: 1）</td>
+              </tr>
+              <tr>
+                <td class="param-name">limit</td>
+                <td class="param-type">number</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>1ページあたりの件数（デフォルト: 20、最大: 100）</td>
+              </tr>
+              <tr>
+                <td class="param-name">search</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>商品名・説明文のキーワード検索</td>
+              </tr>
+              <tr>
+                <td class="param-name">category_id</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>カテゴリIDで絞り込み</td>
+              </tr>
+              <tr>
+                <td class="param-name">sort</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>並び順: <code>price_asc</code> / <code>price_desc</code> / <code>newest</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p style="font-weight:700; font-size:.85rem; color:var(--gray-600); margin:.75rem 0 .5rem;">リクエスト例</p>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+            <span class="code-lang">cURL</span>
+          </div>
+          <div class="code-body"><pre>curl <span class="str">"https://yourshop.akinai.jp/api/v1/products?page=1&limit=12&search=Tシャツ"</span> \
+  -H <span class="str">"Authorization: Bearer ak_live_xxxx"</span></pre></div>
+        </div>
+
+        <p style="font-weight:700; font-size:.85rem; color:var(--gray-600); margin:.75rem 0 .5rem;">レスポンス</p>
+        <div class="response-preview">
+          <pre>{
+  <span class="json-key">"products"</span>: [
+    {
+      <span class="json-key">"id"</span>: <span class="json-str">"prod_abc123"</span>,
+      <span class="json-key">"name"</span>: <span class="json-str">"オーガニックコットンTシャツ"</span>,
+      <span class="json-key">"slug"</span>: <span class="json-str">"organic-cotton-tshirt"</span>,
+      <span class="json-key">"description"</span>: <span class="json-str">"環境に優しい素材..."</span>,
+      <span class="json-key">"price"</span>: <span class="json-num">3500</span>,
+      <span class="json-key">"status"</span>: <span class="json-str">"published"</span>,
+      <span class="json-key">"images"</span>: [
+        { <span class="json-key">"url"</span>: <span class="json-str">"https://..."</span>, <span class="json-key">"alt"</span>: <span class="json-str">"..."</span> }
+      ],
+      <span class="json-key">"variants"</span>: [
+        { <span class="json-key">"id"</span>: <span class="json-str">"var_1"</span>, <span class="json-key">"name"</span>: <span class="json-str">"S"</span>, <span class="json-key">"stock"</span>: <span class="json-num">10</span> }
+      ],
+      <span class="json-key">"created_at"</span>: <span class="json-str">"2025-01-15T00:00:00Z"</span>
+    }
+  ],
+  <span class="json-key">"total"</span>: <span class="json-num">42</span>,
+  <span class="json-key">"page"</span>: <span class="json-num">1</span>,
+  <span class="json-key">"per_page"</span>: <span class="json-num">12</span>,
+  <span class="json-key">"total_pages"</span>: <span class="json-num">4</span>
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Detail -->
+    <h2 id="products-get">商品詳細の取得</h2>
+
+    <div class="endpoint-block">
+      <div class="endpoint-header">
+        <span class="method-badge method-get">GET</span>
+        <span class="endpoint-path">/api/v1/products/:id</span>
+        <span class="endpoint-title">商品詳細を取得する</span>
+      </div>
+      <div class="endpoint-body">
+        <p><code>:id</code> には商品のUUID、またはslug（例: <code>organic-cotton-tshirt</code>）が使えます。</p>
+
+        <div class="callout callout-info" style="margin:.75rem 0;">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <strong>slugとは</strong>
+            URLに使える文字列です（例: <code>organic-cotton-tshirt</code>）。SEOに優しいURLを作るときに使います。
+          </div>
+        </div>
+
+        <p style="font-weight:700; font-size:.85rem; color:var(--gray-600); margin:.75rem 0 .5rem;">レスポンス</p>
+        <div class="response-preview">
+          <pre>{
+  <span class="json-key">"id"</span>: <span class="json-str">"prod_abc123"</span>,
+  <span class="json-key">"name"</span>: <span class="json-str">"オーガニックコットンTシャツ"</span>,
+  <span class="json-key">"slug"</span>: <span class="json-str">"organic-cotton-tshirt"</span>,
+  <span class="json-key">"description"</span>: <span class="json-str">"詳細な説明テキスト..."</span>,
+  <span class="json-key">"price"</span>: <span class="json-num">3500</span>,
+  <span class="json-key">"tax_rate"</span>: <span class="json-num">0.1</span>,
+  <span class="json-key">"status"</span>: <span class="json-str">"published"</span>,
+  <span class="json-key">"images"</span>: [ ... ],
+  <span class="json-key">"variants"</span>: [
+    { <span class="json-key">"id"</span>: <span class="json-str">"var_1"</span>, <span class="json-key">"name"</span>: <span class="json-str">"S"</span>, <span class="json-key">"price"</span>: <span class="json-num">3500</span>, <span class="json-key">"stock"</span>: <span class="json-num">10</span> },
+    { <span class="json-key">"id"</span>: <span class="json-str">"var_2"</span>, <span class="json-key">"name"</span>: <span class="json-str">"M"</span>, <span class="json-key">"price"</span>: <span class="json-num">3500</span>, <span class="json-key">"stock"</span>: <span class="json-num">5</span> }
+  ],
+  <span class="json-key">"category"</span>: { <span class="json-key">"id"</span>: <span class="json-str">"cat_1"</span>, <span class="json-key">"name"</span>: <span class="json-str">"トップス"</span> }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <h2 id="categories">カテゴリ一覧の取得</h2>
+
+    <div class="endpoint-block">
+      <div class="endpoint-header">
+        <span class="method-badge method-get">GET</span>
+        <span class="endpoint-path">/api/v1/categories</span>
+        <span class="endpoint-title">カテゴリ一覧を取得する</span>
+      </div>
+      <div class="endpoint-body">
+        <p>商品カテゴリの一覧を返します。ツリー構造またはフラット形式で取得できます。</p>
+        <div class="api-table-wrapper">
+          <table class="params-table">
+            <thead>
+              <tr><th>パラメータ</th><th>型</th><th>必須</th><th>説明</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="param-name">format</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td><code>tree</code>（階層構造、デフォルト）または <code>flat</code>（配列）</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="response-preview" style="margin-top:.75rem;">
+          <pre>{
+  <span class="json-key">"categories"</span>: [
+    {
+      <span class="json-key">"id"</span>: <span class="json-str">"cat_1"</span>,
+      <span class="json-key">"name"</span>: <span class="json-str">"トップス"</span>,
+      <span class="json-key">"slug"</span>: <span class="json-str">"tops"</span>,
+      <span class="json-key">"children"</span>: [
+        { <span class="json-key">"id"</span>: <span class="json-str">"cat_2"</span>, <span class="json-key">"name"</span>: <span class="json-str">"Tシャツ"</span> }
+      ]
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contents -->
+    <h2 id="contents-list">コンテンツ一覧の取得</h2>
+    <div class="section-tag">📰 コンテンツ</div>
+
+    <div class="endpoint-block">
+      <div class="endpoint-header">
+        <span class="method-badge method-get">GET</span>
+        <span class="endpoint-path">/api/v1/contents</span>
+        <span class="endpoint-title">コンテンツ一覧を取得する</span>
+      </div>
+      <div class="endpoint-body">
+        <p>ニュース・ブログ・ページなどのコンテンツ一覧を返します。</p>
+
+        <div class="api-table-wrapper">
+          <table class="params-table">
+            <thead>
+              <tr><th>パラメータ</th><th>型</th><th>必須</th><th>説明</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="param-name">type</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>コンテンツタイプ（例: <code>news</code>, <code>blog</code>, <code>page</code>）</td>
+              </tr>
+              <tr>
+                <td class="param-name">category</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>カテゴリスラッグで絞り込み</td>
+              </tr>
+              <tr>
+                <td class="param-name">tag</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>タグで絞り込み</td>
+              </tr>
+              <tr>
+                <td class="param-name">page</td>
+                <td class="param-type">number</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>ページ番号</td>
+              </tr>
+              <tr>
+                <td class="param-name">limit</td>
+                <td class="param-type">number</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>1ページあたりの件数</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contents Detail -->
+    <h2 id="contents-get">コンテンツ詳細の取得</h2>
+
+    <div class="endpoint-block">
+      <div class="endpoint-header">
+        <span class="method-badge method-get">GET</span>
+        <span class="endpoint-path">/api/v1/contents/:id</span>
+        <span class="endpoint-title">コンテンツ詳細を取得する</span>
+      </div>
+      <div class="endpoint-body">
+        <p>コンテンツの全文と本文ブロックを返します。<code>:id</code> にはIDまたはslugが使えます。</p>
+        <div class="response-preview" style="margin-top:.75rem;">
+          <pre>{
+  <span class="json-key">"id"</span>: <span class="json-str">"content_123"</span>,
+  <span class="json-key">"title"</span>: <span class="json-str">"夏の新作アイテム入荷のお知らせ"</span>,
+  <span class="json-key">"slug"</span>: <span class="json-str">"summer-new-arrival"</span>,
+  <span class="json-key">"type"</span>: <span class="json-str">"news"</span>,
+  <span class="json-key">"status"</span>: <span class="json-str">"published"</span>,
+  <span class="json-key">"excerpt"</span>: <span class="json-str">"今年の夏新作が入荷しました..."</span>,
+  <span class="json-key">"blocks"</span>: [
+    { <span class="json-key">"type"</span>: <span class="json-str">"heading"</span>, <span class="json-key">"content"</span>: <span class="json-str">"夏の新作"</span> },
+    { <span class="json-key">"type"</span>: <span class="json-str">"paragraph"</span>, <span class="json-key">"content"</span>: <span class="json-str">"..."</span> },
+    { <span class="json-key">"type"</span>: <span class="json-str">"image"</span>, <span class="json-key">"url"</span>: <span class="json-str">"https://..."</span> }
+  ],
+  <span class="json-key">"published_at"</span>: <span class="json-str">"2025-06-01T00:00:00Z"</span>
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cart Validate -->
+    <h2 id="cart-validate">カートの検証</h2>
+    <div class="section-tag">🛒 購入フロー</div>
+
+    <div class="endpoint-block">
+      <div class="endpoint-header">
+        <span class="method-badge method-post">POST</span>
+        <span class="endpoint-path">/api/v1/cart/validate</span>
+        <span class="endpoint-title">カート内容を検証する</span>
+      </div>
+      <div class="endpoint-body">
+        <p>カートのアイテムを送信すると、在庫確認・価格計算を行い、結果を返します。決済前に必ず呼び出してください。</p>
+
+        <p style="font-weight:700; font-size:.85rem; color:var(--gray-600); margin:.75rem 0 .5rem;">リクエストボディ</p>
+        <div class="api-table-wrapper">
+          <table class="params-table">
+            <thead>
+              <tr><th>フィールド</th><th>型</th><th>必須</th><th>説明</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="param-name">items</td>
+                <td class="param-type">array</td>
+                <td><span class="param-required">必須</span></td>
+                <td>カートアイテムの配列</td>
+              </tr>
+              <tr>
+                <td class="param-name">items[].product_id</td>
+                <td class="param-type">string</td>
+                <td><span class="param-required">必須</span></td>
+                <td>商品ID</td>
+              </tr>
+              <tr>
+                <td class="param-name">items[].variant_id</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>バリアントID（サイズ・カラーなど）</td>
+              </tr>
+              <tr>
+                <td class="param-name">items[].quantity</td>
+                <td class="param-type">number</td>
+                <td><span class="param-required">必須</span></td>
+                <td>数量</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-block" style="margin-top:.75rem;">
+          <div class="code-header">
+            <div class="code-dots"><span class="red"></span><span class="yellow"></span><span class="green"></span></div>
+            <span class="code-lang">リクエスト例</span>
+          </div>
+          <div class="code-body"><pre>{
+  <span class="json-key">"items"</span>: [
+    {
+      <span class="json-key">"product_id"</span>: <span class="json-str">"prod_abc123"</span>,
+      <span class="json-key">"variant_id"</span>: <span class="json-str">"var_1"</span>,
+      <span class="json-key">"quantity"</span>: <span class="json-num">2</span>
+    }
+  ]
+}</pre>
+          </div>
+        </div>
+
+        <p style="font-weight:700; font-size:.85rem; color:var(--gray-600); margin:.75rem 0 .5rem;">レスポンス</p>
+        <div class="response-preview">
+          <pre>{
+  <span class="json-key">"valid"</span>: <span class="json-bool">true</span>,
+  <span class="json-key">"items"</span>: [
+    {
+      <span class="json-key">"product_id"</span>: <span class="json-str">"prod_abc123"</span>,
+      <span class="json-key">"variant_id"</span>: <span class="json-str">"var_1"</span>,
+      <span class="json-key">"quantity"</span>: <span class="json-num">2</span>,
+      <span class="json-key">"unit_price"</span>: <span class="json-num">3500</span>,
+      <span class="json-key">"subtotal"</span>: <span class="json-num">7000</span>,
+      <span class="json-key">"in_stock"</span>: <span class="json-bool">true</span>
+    }
+  ],
+  <span class="json-key">"subtotal"</span>: <span class="json-num">7000</span>,
+  <span class="json-key">"messages"</span>: []
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shipping -->
+    <h2 id="shipping">送料オプションの取得</h2>
+
+    <div class="endpoint-block">
+      <div class="endpoint-header">
+        <span class="method-badge method-get">GET</span>
+        <span class="endpoint-path">/api/v1/shipping-options</span>
+        <span class="endpoint-title">送料オプションを取得する</span>
+      </div>
+      <div class="endpoint-body">
+        <p>小計金額と都道府県に基づいて適用可能な送料オプションを返します。</p>
+        <div class="api-table-wrapper">
+          <table class="params-table">
+            <thead>
+              <tr><th>パラメータ</th><th>型</th><th>必須</th><th>説明</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="param-name">subtotal</td>
+                <td class="param-type">number</td>
+                <td><span class="param-required">必須</span></td>
+                <td>カート小計（円）</td>
+              </tr>
+              <tr>
+                <td class="param-name">prefecture</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>都道府県名（例: <code>東京都</code>）</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="response-preview" style="margin-top:.75rem;">
+          <pre>{
+  <span class="json-key">"options"</span>: [
+    {
+      <span class="json-key">"id"</span>: <span class="json-str">"standard"</span>,
+      <span class="json-key">"name"</span>: <span class="json-str">"通常配送"</span>,
+      <span class="json-key">"price"</span>: <span class="json-num">500</span>,
+      <span class="json-key">"estimated_days"</span>: <span class="json-str">"3-5日"</span>
+    },
+    {
+      <span class="json-key">"id"</span>: <span class="json-str">"express"</span>,
+      <span class="json-key">"name"</span>: <span class="json-str">"速達配送"</span>,
+      <span class="json-key">"price"</span>: <span class="json-num">1200</span>,
+      <span class="json-key">"estimated_days"</span>: <span class="json-str">"1-2日"</span>
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checkout -->
+    <h2 id="checkout">チェックアウトセッションの作成</h2>
+
+    <div class="endpoint-block">
+      <div class="endpoint-header">
+        <span class="method-badge method-post">POST</span>
+        <span class="endpoint-path">/api/v1/checkout</span>
+        <span class="endpoint-title">Stripe決済セッションを作成する</span>
+      </div>
+      <div class="endpoint-body">
+        <p>Stripeの決済ページへリダイレクトするためのURLを返します。</p>
+
+        <div class="api-table-wrapper">
+          <table class="params-table">
+            <thead>
+              <tr><th>フィールド</th><th>型</th><th>必須</th><th>説明</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="param-name">items</td>
+                <td class="param-type">array</td>
+                <td><span class="param-required">必須</span></td>
+                <td>カートアイテム（validate済みのもの）</td>
+              </tr>
+              <tr>
+                <td class="param-name">customer_email</td>
+                <td class="param-type">string</td>
+                <td><span class="param-required">必須</span></td>
+                <td>顧客のメールアドレス</td>
+              </tr>
+              <tr>
+                <td class="param-name">shipping_address</td>
+                <td class="param-type">object</td>
+                <td><span class="param-required">必須</span></td>
+                <td>配送先住所（name, postal_code, prefecture, city, line1）</td>
+              </tr>
+              <tr>
+                <td class="param-name">success_url</td>
+                <td class="param-type">string</td>
+                <td><span class="param-required">必須</span></td>
+                <td>決済成功後のリダイレクト先URL</td>
+              </tr>
+              <tr>
+                <td class="param-name">cancel_url</td>
+                <td class="param-type">string</td>
+                <td><span class="param-required">必須</span></td>
+                <td>決済キャンセル時のリダイレクト先URL</td>
+              </tr>
+              <tr>
+                <td class="param-name">shipping_option_id</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>選択した送料オプションのID</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="response-preview" style="margin-top:.75rem;">
+          <pre>{
+  <span class="json-key">"url"</span>: <span class="json-str">"https://checkout.stripe.com/pay/cs_live_xxxx"</span>,
+  <span class="json-key">"session_id"</span>: <span class="json-str">"cs_live_xxxx"</span>
+}</pre>
+        </div>
+
+        <div class="callout callout-info" style="margin-top:1rem;">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <strong>使い方</strong>
+            返ってきた <code>url</code> に <code>window.location.href = url</code> でリダイレクトすると、Stripeの決済ページが開きます。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders -->
+    <h2 id="orders">注文の作成</h2>
+
+    <div class="endpoint-block">
+      <div class="endpoint-header">
+        <span class="method-badge method-post">POST</span>
+        <span class="endpoint-path">/api/v1/orders</span>
+        <span class="endpoint-title">注文を作成する</span>
+      </div>
+      <div class="endpoint-body">
+        <p>Stripe決済が完了した後、Webhookが自動的に注文を作成します。このエンドポイントは管理側の操作や代金引換など、Stripe以外の決済方法で使います。</p>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <strong>Stripe決済の場合</strong>
+            通常はWebhookが自動で注文を作成するため、このAPIを直接呼び出す必要はありません。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customers -->
+    <h2 id="customers">顧客一覧の取得</h2>
+    <div class="section-tag">👤 顧客</div>
+
+    <div class="endpoint-block">
+      <div class="endpoint-header">
+        <span class="method-badge method-get">GET</span>
+        <span class="endpoint-path">/api/v1/customers</span>
+        <span class="endpoint-title">顧客一覧を取得する</span>
+      </div>
+      <div class="endpoint-body">
+        <p>登録済み顧客の一覧を返します。メールアドレス検索・あいまい検索に対応しています。</p>
+
+        <div class="api-table-wrapper">
+          <table class="params-table">
+            <thead>
+              <tr><th>パラメータ</th><th>型</th><th>必須</th><th>説明</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="param-name">email</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>メールアドレスで検索（完全一致）</td>
+              </tr>
+              <tr>
+                <td class="param-name">search</td>
+                <td class="param-type">string</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>名前・メールのあいまい検索</td>
+              </tr>
+              <tr>
+                <td class="param-name">page</td>
+                <td class="param-type">number</td>
+                <td><span class="param-optional">任意</span></td>
+                <td>ページ番号</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Reference -->
+    <h2 id="errors">エラーレスポンス</h2>
+
+    <p>エラーが発生した場合、以下の形式のJSONが返ります。</p>
+
+    <div class="response-preview">
+      <pre>{
+  <span class="json-key">"error"</span>: <span class="json-str">"認証に失敗しました"</span>,
+  <span class="json-key">"code"</span>: <span class="json-str">"UNAUTHORIZED"</span>,
+  <span class="json-key">"status"</span>: <span class="json-num">401</span>
+}</pre>
+    </div>
+
+    <div class="api-table-wrapper" style="margin-top:1.5rem;">
+      <table class="api-table">
+        <thead>
+          <tr>
+            <th>コード</th>
+            <th>HTTPステータス</th>
+            <th>説明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>UNAUTHORIZED</code></td>
+            <td><span class="badge" style="background:#fee2e2;color:#991b1b;">401</span></td>
+            <td>APIキーが無効または未指定</td>
+          </tr>
+          <tr>
+            <td><code>FORBIDDEN</code></td>
+            <td><span class="badge" style="background:#fee2e2;color:#991b1b;">403</span></td>
+            <td>この操作は許可されていない</td>
+          </tr>
+          <tr>
+            <td><code>NOT_FOUND</code></td>
+            <td><span class="badge badge-gray">404</span></td>
+            <td>リソースが見つからない</td>
+          </tr>
+          <tr>
+            <td><code>VALIDATION_ERROR</code></td>
+            <td><span class="badge badge-blue">400</span></td>
+            <td>入力値のバリデーションエラー</td>
+          </tr>
+          <tr>
+            <td><code>RATE_LIMIT_EXCEEDED</code></td>
+            <td><span class="badge" style="background:#fef3c7;color:#92400e;">429</span></td>
+            <td>リクエスト数の制限に達した</td>
+          </tr>
+          <tr>
+            <td><code>INTERNAL_ERROR</code></td>
+            <td><span class="badge" style="background:#fee2e2;color:#991b1b;">500</span></td>
+            <td>サーバー内部エラー</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <p>akinai Docs — EC SaaS フロントエンド連携ガイド</p>
+  <p style="margin-top:.5rem;">
+    <a href="index.html">はじめに</a> ·
+    <a href="guide.html">統合ガイド</a> ·
+    <a href="api.html">APIリファレンス</a>
+  </p>
+</footer>
+
+</body>
+</html>

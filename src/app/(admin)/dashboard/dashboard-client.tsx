@@ -340,6 +340,7 @@ interface DashboardData {
     sku: string;
     stock: number;
     threshold: number;
+    image: string | null;
   }[];
   monthlySales: {
     name: string;
@@ -770,14 +771,36 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
         </div>
         {initialData.lowStockItems.length > 0 ? (
           <div className="space-y-1.5 overflow-y-auto h-[calc(100%-44px)] scrollbar-thin">
-            {initialData.lowStockItems.slice(0, 5).map((item) => (
-              <div key={`${item.productId}-${item.variantId}`} className="flex items-center justify-between p-2 rounded-lg bg-white/80 dark:bg-slate-800/80">
-                <div className="min-w-0">
+            {initialData.lowStockItems.map((item) => (
+              <Link
+                key={`${item.productId}-${item.variantId}`}
+                href={`/products/${item.productId}`}
+                className="flex items-center gap-2.5 p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 transition-colors"
+              >
+                {/* 商品画像 */}
+                <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-700">
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt={item.productName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="h-4 w-4 text-slate-300" />
+                    </div>
+                  )}
+                </div>
+                {/* テキスト */}
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-slate-900 dark:text-white truncate">{item.productName}</p>
                   <p className="text-[10px] text-slate-500 truncate">{item.variantName}</p>
                 </div>
-                <span className="text-xs font-bold text-amber-600 flex-shrink-0">残{item.stock}</span>
-              </div>
+                {/* 在庫数 */}
+                <span className={`text-xs font-bold flex-shrink-0 ${item.stock === 0 ? 'text-red-500' : 'text-amber-600'}`}>
+                  残{item.stock}
+                </span>
+              </Link>
             ))}
           </div>
         ) : (
@@ -826,7 +849,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                 </div>
                 <div className="p-2">
                   <p className="text-xs font-medium text-slate-900 dark:text-white truncate">{product.name}</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{product.sales}件販売</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">{product.sales > 0 ? `${product.sales}個販売` : '販売データなし'}</p>
                 </div>
               </Link>
             ))}

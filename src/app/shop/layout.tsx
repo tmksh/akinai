@@ -7,11 +7,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ShopThemeProvider, useShopTheme } from '@/components/providers/shop-theme-provider';
 import { ShopThemeSettings, DEFAULT_SHOP_THEME } from '@/types';
-
-// カート状態をシンプルに管理
-const useCart = () => {
-  return { itemCount: 0 };
-};
+import { useCart } from '@/hooks/use-cart';
 
 function StoreHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

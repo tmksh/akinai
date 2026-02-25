@@ -79,9 +79,9 @@ const orderStatusConfig: Record<
   { label: string; color: string; bgColor: string; icon: React.ElementType }
 > = {
   pending: { label: '未処理', color: 'text-amber-600', bgColor: 'bg-amber-100', icon: Clock },
-  confirmed: { label: '確認済', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: CheckCircle },
-  processing: { label: '処理中', color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Package },
-  shipped: { label: '発送済', color: 'text-cyan-600', bgColor: 'bg-cyan-100', icon: Truck },
+  confirmed: { label: '確認済', color: 'text-orange-600', bgColor: 'bg-orange-100', icon: CheckCircle },
+  processing: { label: '処理中', color: 'text-amber-600', bgColor: 'bg-amber-100', icon: Package },
+  shipped: { label: '発送済', color: 'text-emerald-600', bgColor: 'bg-emerald-100', icon: Truck },
   delivered: { label: '配達完了', color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle },
   cancelled: { label: 'キャンセル', color: 'text-red-600', bgColor: 'bg-red-100', icon: XCircle },
   refunded: { label: '返金済', color: 'text-gray-600', bgColor: 'bg-gray-100', icon: XCircle },
@@ -384,7 +384,7 @@ export default function OrderDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-blue-500" />
+                <Package className="h-5 w-5 text-orange-500" />
                 注文内容
               </CardTitle>
               <CardDescription>{order.items.length}点の商品</CardDescription>
@@ -534,8 +534,8 @@ export default function OrderDetailPage() {
                   </div>
                   {order.shipped_at && (
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center">
-                        <Truck className="h-4 w-4 text-cyan-600" />
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <Truck className="h-4 w-4 text-emerald-600" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">発送完了</p>
@@ -566,7 +566,7 @@ export default function OrderDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-purple-500" />
+                <User className="h-5 w-5 text-orange-500" />
                 顧客情報
               </CardTitle>
             </CardHeader>

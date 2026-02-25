@@ -406,7 +406,7 @@ export default function NewQuotePage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-blue-500" />
+                  <Building2 className="h-5 w-5 text-orange-500" />
                   顧客情報
                 </CardTitle>
                 <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/30">

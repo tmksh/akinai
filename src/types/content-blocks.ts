@@ -86,6 +86,7 @@ export interface GalleryItemBlock {
   caption: string;
   alt: string;
   order: number;
+  size?: string;
 }
 
 export interface ContentPage {
