@@ -400,6 +400,120 @@ body  {
 .footer a { color: rgba(255,255,255,.5); text-decoration: none; }
 .footer a:hover { color: white; }
 
+/* ── Beginner Tip ── */
+.tip {
+  display: flex; gap: .85rem; padding: 1.1rem 1.25rem;
+  border-radius: var(--radius); margin: 1.25rem 0;
+  background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a5f;
+}
+.tip::before {
+  content: '\1F4A1'; font-size: 1.1rem; flex-shrink: 0; line-height: 1.6;
+}
+.tip strong { display: block; font-weight: 700; margin-bottom: .2rem; font-size: .9rem; }
+.tip p { font-size: .875rem; margin: 0; line-height: 1.65; }
+
+/* ── Term (inline glossary) ── */
+.term {
+  position: relative; cursor: help;
+  border-bottom: 1.5px dashed var(--orange-mid);
+  color: var(--text); font-weight: 500;
+}
+.term:hover { border-color: var(--orange); }
+.term-tip {
+  display: none; position: absolute; bottom: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%); width: 260px;
+  background: #1c1917; color: rgba(255,255,255,.92);
+  font-size: .78rem; font-weight: 400; line-height: 1.6;
+  padding: .65rem .85rem; border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 200;
+  pointer-events: none; text-align: left;
+}
+.term-tip::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent; border-top-color: #1c1917;
+}
+.term:hover .term-tip { display: block; }
+
+/* ── Code Block ── */
+.code-block {
+  position: relative; background: #1c1917; color: #e7e5e4;
+  border-radius: var(--radius); margin: 1rem 0; overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.code-block-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .5rem 1rem; background: rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.code-block-lang {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: rgba(255,255,255,.4);
+}
+.code-block-copy {
+  background: rgba(255,255,255,.1); color: rgba(255,255,255,.6);
+  border: none; padding: .25rem .65rem; border-radius: 5px;
+  font-size: .72rem; font-weight: 600; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.code-block-copy:hover { background: rgba(255,255,255,.2); color: white; }
+.code-block pre {
+  padding: 1rem 1.25rem; margin: 0; overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace; font-size: .82rem;
+  line-height: 1.7; white-space: pre;
+}
+.code-block .comment { color: #6b7280; }
+.code-block .string  { color: #86efac; }
+.code-block .keyword { color: #93c5fd; }
+.code-block .func    { color: #fcd34d; }
+
+/* ── FAQ ── */
+.faq { margin: 1.5rem 0; }
+.faq-item {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: .75rem;
+  box-shadow: var(--shadow-sm); overflow: hidden;
+}
+.faq-q {
+  width: 100%; text-align: left; background: none; border: none;
+  padding: 1rem 1.25rem; font-size: .9rem; font-weight: 700;
+  color: var(--text); cursor: pointer; display: flex;
+  align-items: center; gap: .75rem; font-family: var(--sans);
+  transition: background .12s;
+}
+.faq-q:hover { background: var(--orange-light); }
+.faq-q::before {
+  content: 'Q'; display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--orange); color: white;
+  font-size: .75rem; font-weight: 800; flex-shrink: 0;
+}
+.faq-q::after {
+  content: '\25BC'; margin-left: auto; font-size: .6rem; color: var(--text-muted);
+  transition: transform .2s;
+}
+.faq-item.open .faq-q::after { transform: rotate(180deg); }
+.faq-a {
+  max-height: 0; overflow: hidden; transition: max-height .3s ease;
+}
+.faq-item.open .faq-a { max-height: 500px; }
+.faq-a-inner {
+  padding: 0 1.25rem 1.25rem 3.5rem;
+  font-size: .875rem; color: var(--text-sub); line-height: 1.75;
+}
+
+/* ── Analogy Box ── */
+.analogy {
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+  border: 1px solid var(--orange-mid); border-radius: var(--radius);
+  padding: 1.5rem; margin: 1.5rem 0;
+}
+.analogy-title {
+  font-weight: 800; font-size: .9rem; color: var(--orange-deep);
+  margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem;
+}
+.analogy p { font-size: .875rem; color: #7c2d12; line-height: 1.75; margin: 0; }
+
 /* ── Responsive ── */
 @media (max-width: 800px) {
   .nav { padding: 0 1rem; }
@@ -410,4 +524,5 @@ body  {
   .arch-arrow { transform: rotate(90deg); }
   .step-flow { flex-direction: column; align-items: center; }
   .step-arrow { transform: rotate(90deg); }
+  .term-tip { width: 200px; }
 }

@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Building2, 
-  Camera,
+import { useState, useEffect } from 'react';
+import {
+  User,
+  Mail,
+  Phone,
+  Building2,
   Save,
   Loader2,
+  Calendar,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,30 +18,95 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 
-// モックユーザーデータ
-const mockUser = {
-  id: '1',
-  name: '山田 太郎',
-  email: 'yamada@example.com',
-  phone: '090-1234-5678',
-  avatar: '',
-  role: 'admin',
-  department: '営業部',
-  bio: 'ECサイトの運営担当です。お気軽にご連絡ください。',
-  joinedAt: '2024-01-15',
+interface ProfileData {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  phone: string;
+  department: string;
+  bio: string;
+  role: string;
+  joinedAt: string | null;
+  lastLoginAt: string | null;
+}
+
+const ROLE_LABELS: Record<string, { label: string; color: string }> = {
+  owner:   { label: 'オーナー',       color: 'bg-red-100 text-red-700' },
+  admin:   { label: '管理者',         color: 'bg-orange-100 text-orange-700' },
+  manager: { label: 'マネージャー',   color: 'bg-amber-100 text-amber-700' },
+  editor:  { label: '編集者',         color: 'bg-yellow-100 text-yellow-800' },
+  viewer:  { label: '閲覧者',         color: 'bg-stone-100 text-stone-600' },
 };
 
 export default function ProfilePage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: mockUser.name,
-    email: mockUser.email,
-    phone: mockUser.phone,
-    department: mockUser.department,
-    bio: mockUser.bio,
-  });
+  const supabase = createClient();
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [formData, setFormData] = useState({ name: '', phone: '', department: '', bio: '' });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const meta = user.user_metadata ?? {};
+
+        // users テーブルから name / avatar / current_organization_id を取得
+        const { data: userData } = await supabase
+          .from('users')
+          .select('name, avatar, current_organization_id, last_login_at')
+          .eq('id', user.id)
+          .single();
+
+        // organization_members からロールと参加日を取得
+        let role = 'viewer';
+        let joinedAt: string | null = null;
+        if (userData?.current_organization_id) {
+          const { data: member } = await supabase
+            .from('organization_members')
+            .select('role, joined_at')
+            .eq('user_id', user.id)
+            .eq('organization_id', userData.current_organization_id)
+            .eq('is_active', true)
+            .single();
+          if (member) {
+            role = member.role;
+            joinedAt = member.joined_at;
+          }
+        }
+
+        const p: ProfileData = {
+          id: user.id,
+          name: userData?.name ?? meta.name ?? user.email?.split('@')[0] ?? '',
+          email: user.email ?? '',
+          avatar: userData?.avatar ?? meta.avatar_url ?? null,
+          phone: meta.phone ?? '',
+          department: meta.department ?? '',
+          bio: meta.bio ?? '',
+          role,
+          joinedAt,
+          lastLoginAt: userData?.last_login_at ?? null,
+        };
+
+        setProfile(p);
+        setFormData({ name: p.name, phone: p.phone, department: p.department, bio: p.bio });
+      } catch (e) {
+        console.error(e);
+        toast.error('プロフィールの取得に失敗しました');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -49,38 +115,62 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
-    // 模擬的な保存処理
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast.success('プロフィールを更新しました');
-    setIsLoading(false);
-  };
+    if (!profile) return;
+    setIsSaving(true);
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return { label: '管理者', color: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' };
-      case 'manager':
-        return { label: 'マネージャー', color: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300' };
-      case 'editor':
-        return { label: '編集者', color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' };
-      default:
-        return { label: '閲覧者', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' };
+    try {
+      // user_metadata (phone, department, bio) を更新
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          phone: formData.phone,
+          department: formData.department,
+          bio: formData.bio,
+        },
+      });
+      if (authError) throw authError;
+
+      // users テーブルの name を更新
+      const { error: dbError } = await supabase
+        .from('users')
+        .update({ name: formData.name, updated_at: new Date().toISOString() })
+        .eq('id', profile.id);
+      if (dbError) throw dbError;
+
+      setProfile(prev => prev ? { ...prev, ...formData } : prev);
+      toast.success('プロフィールを更新しました');
+    } catch (err) {
+      console.error(err);
+      toast.error('保存に失敗しました。再度お試しください。');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const roleBadge = getRoleBadge(mockUser.role);
+  if (isLoading) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <div>
+          <Skeleton className="h-8 w-40 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          <Skeleton className="h-80 rounded-xl" />
+          <Skeleton className="h-80 rounded-xl md:col-span-2" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) return null;
+
+  const roleBadge = ROLE_LABELS[profile.role] ?? ROLE_LABELS.viewer;
+  const initials = profile.name.slice(0, 2) || profile.email.slice(0, 2).toUpperCase();
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* ヘッダー */}
       <div>
         <h1 className="text-2xl font-bold">プロフィール</h1>
-        <p className="text-muted-foreground">
-          あなたのアカウント情報を確認・編集できます
-        </p>
+        <p className="text-muted-foreground">あなたのアカウント情報を確認・編集できます</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -88,37 +178,56 @@ export default function ProfilePage() {
         <Card className="md:col-span-1">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center text-center">
-              <div className="relative group">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={mockUser.avatar} />
-                  <AvatarFallback className="bg-gradient-to-br from-orange-400 to-amber-500 text-white text-2xl">
-                    {mockUser.name.slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <button className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="h-6 w-6 text-white" />
-                </button>
-              </div>
-              <h2 className="mt-4 text-lg font-semibold">{mockUser.name}</h2>
-              <p className="text-sm text-muted-foreground">{mockUser.email}</p>
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={profile.avatar ?? ''} />
+                <AvatarFallback className="bg-gradient-to-br from-orange-400 to-amber-500 text-white text-2xl">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+
+              <h2 className="mt-4 text-lg font-semibold">{profile.name}</h2>
+              <p className="text-sm text-muted-foreground">{profile.email}</p>
               <span className={`mt-2 px-3 py-1 rounded-full text-xs font-medium ${roleBadge.color}`}>
                 {roleBadge.label}
               </span>
+
               <Separator className="my-4" />
-              <div className="w-full space-y-2 text-sm">
+
+              <div className="w-full space-y-2 text-sm text-left">
+                {profile.department && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Building2 className="h-4 w-4 flex-shrink-0" />
+                    <span>{profile.department}</span>
+                  </div>
+                )}
+                {profile.phone && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Phone className="h-4 w-4 flex-shrink-0" />
+                    <span>{profile.phone}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Building2 className="h-4 w-4" />
-                  <span>{mockUser.department}</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span>{mockUser.phone}</span>
+                  <Mail className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate text-xs">{profile.email}</span>
                 </div>
               </div>
+
               <Separator className="my-4" />
-              <p className="text-xs text-muted-foreground">
-                参加日: {new Date(mockUser.joinedAt).toLocaleDateString('ja-JP')}
-              </p>
+
+              <div className="w-full space-y-1.5 text-xs text-muted-foreground text-left">
+                {profile.joinedAt && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>参加日: {new Date(profile.joinedAt).toLocaleDateString('ja-JP')}</span>
+                  </div>
+                )}
+                {profile.lastLoginAt && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>最終ログイン: {new Date(profile.lastLoginAt).toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -127,9 +236,7 @@ export default function ProfilePage() {
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>基本情報</CardTitle>
-            <CardDescription>
-              表示名や連絡先情報を編集できます
-            </CardDescription>
+            <CardDescription>表示名や連絡先情報を編集できます</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -144,22 +251,21 @@ export default function ProfilePage() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="山田 太郎"
+                    placeholder="表示名を入力"
+                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">
+                  <Label>
                     <Mail className="inline h-4 w-4 mr-1" />
                     メールアドレス
                   </Label>
                   <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="example@email.com"
+                    value={profile.email}
+                    disabled
+                    className="opacity-60 cursor-not-allowed"
                   />
+                  <p className="text-[11px] text-muted-foreground">メールアドレスは変更できません</p>
                 </div>
               </div>
 
@@ -174,7 +280,7 @@ export default function ProfilePage() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="090-1234-5678"
+                    placeholder="090-0000-0000"
                   />
                 </div>
                 <div className="space-y-2">
@@ -187,7 +293,7 @@ export default function ProfilePage() {
                     name="department"
                     value={formData.department}
                     onChange={handleChange}
-                    placeholder="営業部"
+                    placeholder="例: 営業部"
                   />
                 </div>
               </div>
@@ -205,8 +311,8 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex justify-end">
-                <Button type="submit" disabled={isLoading} className="btn-premium">
-                  {isLoading ? (
+                <Button type="submit" disabled={isSaving} className="btn-premium">
+                  {isSaving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       保存中...
@@ -223,32 +329,6 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* アクティビティ */}
-      <Card>
-        <CardHeader>
-          <CardTitle>最近のアクティビティ</CardTitle>
-          <CardDescription>あなたの操作履歴</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[
-              { action: '商品「革財布 ブラック」を更新しました', time: '2時間前' },
-              { action: '注文 #AK-2024-0015 のステータスを「発送済」に変更しました', time: '5時間前' },
-              { action: '新しい記事「冬のおすすめアイテム」を公開しました', time: '1日前' },
-              { action: 'プロフィール情報を更新しました', time: '3日前' },
-            ].map((activity, index) => (
-              <div key={index} className="flex items-start gap-3 text-sm">
-                <div className="h-2 w-2 mt-2 rounded-full bg-orange-500" />
-                <div className="flex-1">
-                  <p>{activity.action}</p>
-                  <p className="text-xs text-muted-foreground">{activity.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

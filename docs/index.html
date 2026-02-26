@@ -23,19 +23,83 @@
 <!-- Hero -->
 <section class="hero">
   <div class="hero-inner">
-    <span class="hero-tag">EC SaaS フロントエンド連携ドキュメント</span>
+    <span class="hero-tag">はじめての方も安心 / EC SaaS 連携ドキュメント</span>
     <h1>
       <em>akinai</em> を<br>
       あなたのサイトに<br>
-      つなげる方法
+      つなげよう
     </h1>
     <p>
-      APIキーを取得して、商品の表示・カート・決済まで<br>
-      ステップバイステップで連携できます。
+      プログラミング初心者でも大丈夫。<br>
+      この手順どおりに進めれば、あなたのWebサイトに<br>
+      商品表示・カート・決済機能を追加できます。
     </p>
     <div class="hero-btns">
       <a href="guide.html" class="btn btn-primary">連携ガイドを読む</a>
       <a href="api.html"   class="btn btn-ghost">API一覧を見る</a>
+    </div>
+  </div>
+</section>
+
+<!-- このドキュメントの読み方 -->
+<section class="section section-white">
+  <div class="container">
+    <div class="sh">
+      <span class="sh-tag">読み方</span>
+      <h2>このドキュメントの使い方</h2>
+      <p>3つのページで構成されています。上から順に読むのがおすすめです。</p>
+    </div>
+
+    <div class="card-grid" style="max-width:800px;margin:0 auto;">
+      <a href="index.html" class="card" style="text-decoration:none;color:inherit;border-left:3px solid var(--orange);">
+        <p class="card-label">Step 1 / いまここ</p>
+        <h3>はじめに</h3>
+        <p>akinai の全体像と「APIってなに？」を理解します。</p>
+      </a>
+      <a href="guide.html" class="card" style="text-decoration:none;color:inherit;">
+        <p class="card-label">Step 2</p>
+        <h3>連携ガイド</h3>
+        <p>実際のコードを書きながら、手順どおりに連携を進めます。</p>
+      </a>
+      <a href="api.html" class="card" style="text-decoration:none;color:inherit;">
+        <p class="card-label">Step 3 / リファレンス</p>
+        <h3>API一覧</h3>
+        <p>各APIの細かいパラメータを調べたいときに使います。</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- APIってなに？ -->
+<section class="section">
+  <div class="container">
+    <div class="sh">
+      <span class="sh-tag">基礎知識</span>
+      <h2>そもそも「API」ってなに？</h2>
+      <p>連携を始める前に、まずは基本的な仕組みを理解しましょう。</p>
+    </div>
+
+    <div class="analogy">
+      <p class="analogy-title">レストランで例えると...</p>
+      <p>
+        APIは「レストランの注文窓口」のようなものです。<br><br>
+        あなた（お客さん）は、メニューを見て「カレーをください」と注文します。<br>
+        キッチン（akinaiのサーバー）が料理を作って、できた料理（データ）を渡してくれます。<br><br>
+        つまり <strong>API = あなたのサイトが akinai にデータを「注文」するための窓口</strong> です。<br>
+        あなたのサイトが「商品一覧をください」とリクエストすると、akinai が商品データを返してくれます。
+      </p>
+    </div>
+
+    <div class="tip">
+      <div>
+        <strong>専門用語が出てきたら</strong>
+        <p>
+          このドキュメントでは、
+          <span class="term">API<span class="term-tip">Application Programming Interface の略。プログラム同士がデータをやり取りするための「窓口」のこと。</span></span> や
+          <span class="term">エンドポイント<span class="term-tip">APIのURL（住所）のこと。例: /api/v1/products</span></span>
+          などの用語に<span style="border-bottom:1.5px dashed var(--orange-mid);padding:0 2px;">点線</span>がついています。マウスを乗せると意味が表示されます。
+        </p>
+      </div>
     </div>
   </div>
 </section>
@@ -45,30 +109,30 @@
   <div class="container">
     <div class="sh">
       <span class="sh-tag">akinai とは</span>
-      <h2>EC機能をAPIで提供するサービスです</h2>
-      <p style="white-space: nowrap;">自社サイトやアプリから akinai のAPIを呼び出すだけで、本格的なEC機能が使えます。</p>
+      <h2>あなたのサイトにEC機能を追加するサービス</h2>
+      <p>自分でゼロからECサイトを作る必要はありません。<br>akinai の API を呼び出すだけで、以下の機能がすぐ使えます。</p>
     </div>
 
     <div class="card-grid">
       <div class="card">
         <p class="card-label">商品管理</p>
         <h3>商品・在庫・カテゴリ</h3>
-        <p>管理画面から商品を登録・編集し、APIで一覧や詳細データを取得できます。</p>
+        <p>akinai の管理画面で商品を登録すると、あなたのサイトで商品データを取得して表示できます。</p>
       </div>
       <div class="card">
         <p class="card-label">購入フロー</p>
         <h3>カート・チェックアウト</h3>
-        <p>在庫確認・金額計算・Stripe決済まで、購入の流れ全体をAPIで処理します。</p>
+        <p>「カートに入れる → 在庫確認 → クレジットカード決済」の一連の流れをAPIで処理できます。</p>
       </div>
       <div class="card">
         <p class="card-label">コンテンツ</p>
-        <h3>ニュース・ページ配信</h3>
-        <p>ニュースやブログ記事などのコンテンツをAPIで取得して表示できます。</p>
+        <h3>ニュース・ブログ</h3>
+        <p>お知らせやブログ記事をakinaiで書いて、あなたのサイトに表示できます。</p>
       </div>
       <div class="card">
         <p class="card-label">顧客・注文</p>
         <h3>注文管理・顧客情報</h3>
-        <p>注文の状態確認や顧客情報の取得など、運営に必要な機能をAPI経由で利用できます。</p>
+        <p>誰がいつ何を買ったかの情報を取得・管理できます。</p>
       </div>
     </div>
   </div>
@@ -78,9 +142,9 @@
 <section class="section">
   <div class="container">
     <div class="sh">
-      <span class="sh-tag">仕組み</span>
-      <h2>全体の構成</h2>
-      <p>あなたのサイトと akinai がどのようにつながるかを示した図です。</p>
+      <span class="sh-tag">しくみ</span>
+      <h2>全体のつながり</h2>
+      <p>あなたのサイトと akinai がどのようにつながるかの図です。</p>
     </div>
 
     <div class="arch-flow" style="margin-bottom:2rem;">
@@ -89,8 +153,8 @@
         <div class="arch-node-icon highlight">
           <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
         </div>
-        <p class="arch-node-name">あなたの<br>フロントエンド</p>
-        <p class="arch-node-desc">React / Next.js / Vue など<br>どんな技術でも OK</p>
+        <p class="arch-node-name">あなたの<br>Webサイト</p>
+        <p class="arch-node-desc">React / Next.js / Vue など<br>好きな技術でOK</p>
       </div>
 
       <div class="arch-arrow">&#8594;</div>
@@ -101,7 +165,7 @@
           <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
         </div>
         <p class="arch-node-name">akinai API</p>
-        <p class="arch-node-desc">REST API<br>APIキー認証</p>
+        <p class="arch-node-desc">データの注文窓口<br>（APIキーが必要）</p>
       </div>
 
       <div class="arch-arrow">&#8594;</div>
@@ -112,7 +176,7 @@
           <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
         </div>
         <p class="arch-node-name">akinai<br>バックエンド</p>
-        <p class="arch-node-desc">Next.js<br>Supabase</p>
+        <p class="arch-node-desc">商品・注文データを<br>保管する場所</p>
       </div>
 
       <div class="arch-arrow">&#8596;</div>
@@ -123,68 +187,115 @@
           <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
         </div>
         <p class="arch-node-name">Stripe</p>
-        <p class="arch-node-desc">クレジットカード<br>決済処理</p>
+        <p class="arch-node-desc">クレジットカードの<br>決済を処理するサービス</p>
       </div>
     </div>
 
     <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;font-size:.82rem;color:var(--text-sub);">
       <span style="display:flex;align-items:center;gap:.4rem;">
         <span style="width:14px;height:14px;background:var(--orange);border-radius:3px;display:inline-block;"></span>
-        あなたが開発する部分
+        あなたが作る部分
       </span>
       <span style="display:flex;align-items:center;gap:.4rem;">
         <span style="width:14px;height:14px;background:var(--orange-light);border:1.5px solid var(--orange-mid);border-radius:3px;display:inline-block;"></span>
-        akinai が提供する部分
+        akinai が用意してくれる部分
       </span>
     </div>
 
     <!-- リクエストの流れ -->
     <div class="sh" style="margin-top:3rem;margin-bottom:1.5rem;">
       <span class="sh-tag">フロー</span>
-      <h2>APIリクエストの流れ</h2>
+      <h2>データ取得の流れ（5ステップ）</h2>
+      <p>あなたのサイトが商品データを取得するまでの流れです。</p>
     </div>
 
     <div class="step-flow">
       <div class="step-node">
         <div class="step-num">1</div>
         <p class="step-name">APIキー取得</p>
-        <p class="step-desc">管理画面で<br>発行する</p>
+        <p class="step-desc">管理画面で<br>「鍵」を発行する</p>
       </div>
       <div class="step-arrow">&#8594;</div>
       <div class="step-node">
         <div class="step-num">2</div>
         <p class="step-name">リクエスト送信</p>
-        <p class="step-desc">Authorization<br>ヘッダに付ける</p>
+        <p class="step-desc">あなたのコードから<br>akinaiにデータを要求</p>
       </div>
       <div class="step-arrow">&#8594;</div>
       <div class="step-node">
         <div class="step-num">3</div>
         <p class="step-name">認証・処理</p>
-        <p class="step-desc">akinai側で<br>検証する</p>
+        <p class="step-desc">akinaiが鍵を確認し<br>データを準備</p>
       </div>
       <div class="step-arrow">&#8594;</div>
       <div class="step-node">
         <div class="step-num">4</div>
         <p class="step-name">データ受信</p>
-        <p class="step-desc">JSONで<br>返ってくる</p>
+        <p class="step-desc">JSON形式で<br>データが届く</p>
       </div>
       <div class="step-arrow">&#8594;</div>
       <div class="step-node">
         <div class="step-num">5</div>
         <p class="step-name">画面に表示</p>
-        <p class="step-desc">フロントで<br>レンダリング</p>
+        <p class="step-desc">受け取ったデータを<br>サイトに表示する</p>
+      </div>
+    </div>
+
+    <div class="tip" style="margin-top:1.5rem;">
+      <div>
+        <strong>JSON（ジェイソン）とは？</strong>
+        <p>プログラムがデータをやり取りするときに使うフォーマットです。例えば商品データは <code style="background:rgba(255,255,255,.5);color:#1e3a5f;">{ "name": "Tシャツ", "price": 3000 }</code> のように、名前と値のペアで表現されます。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 最初のコード例 -->
+<section class="section section-white">
+  <div class="container">
+    <div class="sh">
+      <span class="sh-tag">まずは体験</span>
+      <h2>こんなに簡単にデータが取れます</h2>
+      <p>たった数行のコードで商品データを取得できます。</p>
+    </div>
+
+    <div style="max-width:700px;margin:0 auto;">
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="code-block-lang">JavaScript</span>
+          <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+        </div>
+        <pre><span class="comment">// akinai から商品一覧を取得する例</span>
+<span class="keyword">const</span> response = <span class="keyword">await</span> <span class="func">fetch</span>(<span class="string">'https://yourshop.akinai.jp/api/v1/products'</span>, {
+  headers: {
+    <span class="string">'Authorization'</span>: <span class="string">`Bearer ${process.env.AKINAI_API_KEY}`</span>
+  }
+});
+
+<span class="keyword">const</span> data = <span class="keyword">await</span> response.<span class="func">json</span>();
+
+<span class="comment">// data.products に商品の配列が入っている</span>
+console.<span class="func">log</span>(data.products);
+<span class="comment">// → [{ name: "Tシャツ", price: 3000, ... }, ...]</span></pre>
+      </div>
+
+      <div class="tip">
+        <div>
+          <strong>yourshop の部分は置き換えてください</strong>
+          <p>URLの <code style="background:rgba(255,255,255,.5);color:#1e3a5f;">yourshop</code> の部分は、あなたの akinai ショップのサブドメインに置き換えてください。</p>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- API List -->
-<section class="section section-white">
+<section class="section">
   <div class="container">
     <div class="sh">
       <span class="sh-tag">API一覧</span>
-      <h2>利用できるAPI</h2>
-      <p>akinai が提供するすべてのAPIです。</p>
+      <h2>使えるAPIの一覧</h2>
+      <p>akinai が提供するすべてのAPIです。詳しい使い方は各リンク先で確認できます。</p>
     </div>
 
     <div class="tbl-wrap">
@@ -193,66 +304,116 @@
           <tr>
             <th>メソッド</th>
             <th>エンドポイント</th>
-            <th>できること</th>
+            <th>何ができるか</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><span class="method method-get">GET</span></td>
             <td class="ep">/api/v1/products</td>
-            <td>商品一覧の取得（検索・絞り込み対応）</td>
+            <td>商品の一覧を取得する（検索・絞り込みもできる）</td>
           </tr>
           <tr>
             <td><span class="method method-get">GET</span></td>
             <td class="ep">/api/v1/products/:id</td>
-            <td>商品詳細の取得</td>
+            <td>ひとつの商品の詳細を取得する</td>
           </tr>
           <tr>
             <td><span class="method method-get">GET</span></td>
             <td class="ep">/api/v1/categories</td>
-            <td>カテゴリ一覧の取得</td>
+            <td>カテゴリの一覧を取得する</td>
           </tr>
           <tr>
             <td><span class="method method-get">GET</span></td>
             <td class="ep">/api/v1/contents</td>
-            <td>ニュース・ブログ等のコンテンツ一覧</td>
+            <td>ニュース・ブログ記事の一覧を取得する</td>
           </tr>
           <tr>
             <td><span class="method method-get">GET</span></td>
             <td class="ep">/api/v1/contents/:id</td>
-            <td>コンテンツ詳細の取得</td>
+            <td>ひとつの記事の全文を取得する</td>
           </tr>
           <tr>
             <td><span class="method method-post">POST</span></td>
             <td class="ep">/api/v1/cart/validate</td>
-            <td>カートの在庫確認・金額計算</td>
+            <td>カートの中身の在庫確認・金額計算をする</td>
           </tr>
           <tr>
             <td><span class="method method-get">GET</span></td>
             <td class="ep">/api/v1/shipping-options</td>
-            <td>送料オプションの取得</td>
+            <td>送料の選択肢を取得する</td>
           </tr>
           <tr>
             <td><span class="method method-post">POST</span></td>
             <td class="ep">/api/v1/checkout</td>
-            <td>Stripe決済セッションの作成</td>
+            <td>クレジットカード決済ページを作成する</td>
           </tr>
           <tr>
             <td><span class="method method-post">POST</span></td>
             <td class="ep">/api/v1/orders</td>
-            <td>注文の作成</td>
+            <td>注文を作成する（Stripe以外の決済用）</td>
           </tr>
           <tr>
             <td><span class="method method-get">GET</span></td>
             <td class="ep">/api/v1/customers</td>
-            <td>顧客一覧・検索</td>
+            <td>顧客の一覧を取得する</td>
           </tr>
         </tbody>
       </table>
     </div>
 
+    <div class="tip" style="margin-top:1.5rem;">
+      <div>
+        <strong>GET と POST の違い</strong>
+        <p>
+          <span class="method method-get" style="font-size:.65rem;">GET</span> = データを「もらう」（取得する）ときに使います。<br>
+          <span class="method method-post" style="font-size:.65rem;">POST</span> = データを「送る」（作成・処理する）ときに使います。
+        </p>
+      </div>
+    </div>
+
     <div style="text-align:center;margin-top:2rem;">
       <a href="api.html" class="btn btn-primary">API詳細を確認する</a>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section section-white">
+  <div class="container">
+    <div class="sh">
+      <span class="sh-tag">FAQ</span>
+      <h2>よくある質問</h2>
+    </div>
+
+    <div class="faq" style="max-width:700px;margin:0 auto;">
+      <div class="faq-item">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">プログラミング初心者でも使えますか？</button>
+        <div class="faq-a"><div class="faq-a-inner">
+          はい、使えます。HTML/CSS/JavaScript の基礎知識があれば十分です。連携ガイドではコピー&ペーストで使えるコード例を載せているので、そのまま使えます。
+        </div></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">React や Vue 以外のフレームワークでも使えますか？</button>
+        <div class="faq-a"><div class="faq-a-inner">
+          はい。akinai は REST API なので、HTTP リクエストを送れる環境ならどんな技術でも連携できます。WordPressやjQuery、PHPからでも利用可能です。
+        </div></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">APIキーが漏れたらどうなりますか？</button>
+        <div class="faq-a"><div class="faq-a-inner">
+          第三者があなたのショップのデータにアクセスできてしまいます。漏洩した場合は、すぐに管理画面から該当のAPIキーを無効にして、新しいキーを発行してください。APIキーは <code>.env.local</code> ファイルで管理し、GitHubにアップしないように注意してください。
+        </div></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">料金はかかりますか？</button>
+        <div class="faq-a"><div class="faq-a-inner">
+          API の利用自体に追加料金はかかりません。akinai のプランに含まれています。ただし、Stripe の決済手数料は別途発生します。
+        </div></div>
+      </div>
     </div>
   </div>
 </section>
@@ -262,21 +423,21 @@
   <div class="container">
     <div class="sh">
       <span class="sh-tag">次のステップ</span>
-      <h2>詳細なガイドを読む</h2>
+      <h2>さっそく始めましょう</h2>
     </div>
 
     <div class="card-grid" style="max-width:700px;margin:0 auto;">
       <a href="guide.html" class="card" style="text-decoration:none;color:inherit;">
-        <p class="card-label">ステップバイステップ</p>
-        <h3>連携ガイド</h3>
+        <p class="card-label">おすすめ</p>
+        <h3>連携ガイドを読む</h3>
         <p>APIキーの取得から商品表示・カート・決済まで、順番に進めるだけで連携できます。</p>
-        <p style="color:var(--orange-dark);font-weight:700;font-size:.875rem;margin-top:.75rem;">読む &rarr;</p>
+        <p style="color:var(--orange-dark);font-weight:700;font-size:.875rem;margin-top:.75rem;">はじめる &rarr;</p>
       </a>
       <a href="api.html" class="card" style="text-decoration:none;color:inherit;">
-        <p class="card-label">仕様書</p>
-        <h3>API一覧</h3>
-        <p>すべてのAPIのパラメータとレスポンスの詳細を確認できます。</p>
-        <p style="color:var(--orange-dark);font-weight:700;font-size:.875rem;margin-top:.75rem;">読む &rarr;</p>
+        <p class="card-label">リファレンス</p>
+        <h3>API一覧を見る</h3>
+        <p>すべてのAPIのパラメータ・レスポンスの詳細と、コード例を確認できます。</p>
+        <p style="color:var(--orange-dark);font-weight:700;font-size:.875rem;margin-top:.75rem;">見る &rarr;</p>
       </a>
     </div>
   </div>

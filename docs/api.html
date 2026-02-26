@@ -24,8 +24,8 @@
 <div class="page-hero">
   <div class="container">
     <span class="tag">API一覧</span>
-    <h1>REST API 仕様</h1>
-    <p>すべてのAPIのエンドポイントとパラメータの一覧です。</p>
+    <h1>REST API リファレンス</h1>
+    <p>すべてのAPIの使い方・パラメータ・レスポンス例をまとめています。</p>
   </div>
 </div>
 
@@ -33,12 +33,12 @@
 <div class="auth-bar">
   <div class="container">
     <p>
-      <strong>認証：</strong>
-      すべてのAPIリクエストに
-      <code>Authorization: Bearer &lt;APIキー&gt;</code>
-      ヘッダを付けてください。APIキーの取得方法は
+      <strong>認証について：</strong>
+      すべてのAPIリクエストには「鍵」が必要です。
+      ヘッダに <code>Authorization: Bearer &lt;APIキー&gt;</code> を付けてください。
+      APIキーの取得方法は
       <a href="guide.html#apikey" style="color:var(--orange-dark);font-weight:600;">連携ガイド</a>
-      を参照してください。
+      で説明しています。
     </p>
   </div>
 </div>
@@ -72,7 +72,14 @@
     <div style="background:white;border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;box-shadow:var(--shadow-sm);">
       <p style="font-size:.8rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;">ベースURL</p>
       <p style="font-family:monospace;font-size:.95rem;color:var(--text);">https://yourshop.akinai.jp</p>
-      <p style="font-size:.82rem;color:var(--text-sub);margin-top:.4rem;">すべてのAPIはこのURLから始まります。<code>yourshop</code> の部分はご自身のショップのサブドメインに置き換えてください。</p>
+      <p style="font-size:.82rem;color:var(--text-sub);margin-top:.4rem;">すべてのAPIのURLはここから始まります。<code>yourshop</code> の部分はあなたのショップのサブドメインに置き換えてください。</p>
+    </div>
+
+    <div class="tip" style="margin-bottom:2rem;">
+      <div>
+        <strong>このページの読み方</strong>
+        <p>各APIには「使えるパラメータ」「返ってくるデータ」「コード例」が書かれています。まずはコード例をコピーして動かしてみるのがおすすめです。</p>
+      </div>
     </div>
 
     <!-- ══ 商品一覧 ══ -->
@@ -85,32 +92,63 @@
         <span class="ep-title">商品一覧の取得</span>
       </div>
       <div class="ep-body">
-        <p>公開中の商品（status: published）の一覧を返します。</p>
-        <p style="font-size:.8rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">クエリパラメータ</p>
+        <p>公開中の商品の一覧を取得します。検索やカテゴリでの絞り込みもできます。</p>
+
+        <p style="font-size:.8rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">使えるパラメータ（すべて任意）</p>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
           <table class="pt">
-            <thead><tr><th>パラメータ</th><th>型</th><th>必須</th><th>説明</th></tr></thead>
+            <thead><tr><th>パラメータ</th><th>型</th><th>説明</th><th>例</th></tr></thead>
             <tbody>
-              <tr><td class="pname">page</td><td class="ptype">number</td><td><span class="opt">任意</span></td><td>ページ番号（デフォルト: 1）</td></tr>
-              <tr><td class="pname">limit</td><td class="ptype">number</td><td><span class="opt">任意</span></td><td>1ページの件数（デフォルト: 20、最大: 100）</td></tr>
-              <tr><td class="pname">search</td><td class="ptype">string</td><td><span class="opt">任意</span></td><td>商品名・説明のキーワード</td></tr>
-              <tr><td class="pname">category_id</td><td class="ptype">string</td><td><span class="opt">任意</span></td><td>カテゴリIDで絞り込み</td></tr>
-              <tr><td class="pname">sort</td><td class="ptype">string</td><td><span class="opt">任意</span></td><td><code>price_asc</code> / <code>price_desc</code> / <code>newest</code></td></tr>
+              <tr><td class="pname">page</td><td class="ptype">number</td><td>何ページ目を取得するか（省略すると1ページ目）</td><td class="ptype">1</td></tr>
+              <tr><td class="pname">limit</td><td class="ptype">number</td><td>1ページに何件表示するか（省略すると20件、最大100件）</td><td class="ptype">12</td></tr>
+              <tr><td class="pname">search</td><td class="ptype">string</td><td>商品名・説明文のキーワード検索</td><td class="ptype">Tシャツ</td></tr>
+              <tr><td class="pname">category_id</td><td class="ptype">string</td><td>特定のカテゴリだけに絞り込む</td><td class="ptype">cat_abc123</td></tr>
+              <tr><td class="pname">sort</td><td class="ptype">string</td><td>並び順（<code>price_asc</code>=安い順 / <code>price_desc</code>=高い順 / <code>newest</code>=新着順）</td><td class="ptype">newest</td></tr>
             </tbody>
           </table>
         </div>
-        <p style="font-size:.8rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin:.85rem 0 .4rem;">返ってくるデータ（主要フィールド）</p>
+
+        <p style="font-size:.8rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin:.85rem 0 .4rem;">返ってくるデータ</p>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
           <table class="pt">
             <thead><tr><th>フィールド</th><th>型</th><th>内容</th></tr></thead>
             <tbody>
-              <tr><td class="pname">products</td><td class="ptype">array</td><td>商品の配列</td></tr>
-              <tr><td class="pname">total</td><td class="ptype">number</td><td>全件数</td></tr>
+              <tr><td class="pname">products</td><td class="ptype">array</td><td>商品の配列（次の表を参照）</td></tr>
+              <tr><td class="pname">total</td><td class="ptype">number</td><td>全商品数</td></tr>
               <tr><td class="pname">page</td><td class="ptype">number</td><td>現在のページ番号</td></tr>
-              <tr><td class="pname">per_page</td><td class="ptype">number</td><td>1ページの件数</td></tr>
-              <tr><td class="pname">total_pages</td><td class="ptype">number</td><td>総ページ数</td></tr>
+              <tr><td class="pname">per_page</td><td class="ptype">number</td><td>1ページあたりの件数</td></tr>
+              <tr><td class="pname">total_pages</td><td class="ptype">number</td><td>全ページ数</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// 商品一覧を取得する</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/products?limit=12&sort=newest'</span>,
+  {
+    headers: {
+      <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span>
+    }
+  }
+);
+<span class="keyword">const</span> data = <span class="keyword">await</span> res.<span class="func">json</span>();
+
+<span class="comment">// 返ってくるデータの例:</span>
+<span class="comment">// {</span>
+<span class="comment">//   "products": [</span>
+<span class="comment">//     { "id": "prod_123", "name": "Tシャツ", "price": 3000, ... },</span>
+<span class="comment">//     { "id": "prod_456", "name": "パーカー", "price": 5500, ... }</span>
+<span class="comment">//   ],</span>
+<span class="comment">//   "total": 24,</span>
+<span class="comment">//   "page": 1,</span>
+<span class="comment">//   "per_page": 12,</span>
+<span class="comment">//   "total_pages": 2</span>
+<span class="comment">// }</span></pre>
         </div>
       </div>
     </div>
@@ -123,19 +161,49 @@
         <span class="ep-title">商品詳細の取得</span>
       </div>
       <div class="ep-body">
-        <p><code>:id</code> には商品のIDまたはslug（URLに使える文字列）が指定できます。</p>
+        <p><code>:id</code> の部分に商品のIDを入れると、その商品の詳細データが返ってきます。</p>
+
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
           <table class="pt">
             <thead><tr><th>返ってくるフィールド</th><th>型</th><th>内容</th></tr></thead>
             <tbody>
               <tr><td class="pname">id</td><td class="ptype">string</td><td>商品ID</td></tr>
               <tr><td class="pname">name</td><td class="ptype">string</td><td>商品名</td></tr>
+              <tr><td class="pname">description</td><td class="ptype">string</td><td>商品の説明文</td></tr>
               <tr><td class="pname">price</td><td class="ptype">number</td><td>価格（円）</td></tr>
-              <tr><td class="pname">images</td><td class="ptype">array</td><td>画像URLの配列</td></tr>
-              <tr><td class="pname">variants</td><td class="ptype">array</td><td>バリアント（サイズ・カラーなど）の配列</td></tr>
-              <tr><td class="pname">category</td><td class="ptype">object</td><td>所属カテゴリの情報</td></tr>
+              <tr><td class="pname">images</td><td class="ptype">array</td><td>商品画像のURLリスト</td></tr>
+              <tr><td class="pname">variants</td><td class="ptype">array</td><td>サイズ・カラーなどのバリエーション</td></tr>
+              <tr><td class="pname">category</td><td class="ptype">object</td><td>所属するカテゴリの情報</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// 1つの商品の詳細を取得する</span>
+<span class="keyword">const</span> productId = <span class="string">'prod_123'</span>;
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">`https://yourshop.akinai.jp/api/v1/products/${productId}`</span>,
+  {
+    headers: { <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span> }
+  }
+);
+<span class="keyword">const</span> product = <span class="keyword">await</span> res.<span class="func">json</span>();
+
+<span class="comment">// 返ってくるデータの例:</span>
+<span class="comment">// {</span>
+<span class="comment">//   "id": "prod_123",</span>
+<span class="comment">//   "name": "Tシャツ",</span>
+<span class="comment">//   "price": 3000,</span>
+<span class="comment">//   "images": ["https://...jpg"],</span>
+<span class="comment">//   "variants": [</span>
+<span class="comment">//     { "id": "var_1", "name": "S", "stock": 10 },</span>
+<span class="comment">//     { "id": "var_2", "name": "M", "stock": 5 }</span>
+<span class="comment">//   ]</span>
+<span class="comment">// }</span></pre>
         </div>
       </div>
     </div>
@@ -148,14 +216,35 @@
         <span class="ep-title">カテゴリ一覧の取得</span>
       </div>
       <div class="ep-body">
-        <p>商品カテゴリの一覧を返します。</p>
+        <p>商品カテゴリの一覧を取得します。商品の絞り込みメニューを作るときに便利です。</p>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
           <table class="pt">
             <thead><tr><th>パラメータ</th><th>型</th><th>説明</th></tr></thead>
             <tbody>
-              <tr><td class="pname">format</td><td class="ptype">string</td><td><code>tree</code>（階層ツリー）または <code>flat</code>（フラット配列）。デフォルトは <code>tree</code></td></tr>
+              <tr><td class="pname">format</td><td class="ptype">string</td><td><code>tree</code>（親子関係を含むツリー構造）または <code>flat</code>（シンプルな一覧）。省略すると <code>tree</code></td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// カテゴリ一覧を取得する（シンプルな一覧で）</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/categories?format=flat'</span>,
+  {
+    headers: { <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span> }
+  }
+);
+<span class="keyword">const</span> categories = <span class="keyword">await</span> res.<span class="func">json</span>();
+
+<span class="comment">// 返ってくるデータの例:</span>
+<span class="comment">// [</span>
+<span class="comment">//   { "id": "cat_1", "name": "トップス" },</span>
+<span class="comment">//   { "id": "cat_2", "name": "ボトムス" }</span>
+<span class="comment">// ]</span></pre>
         </div>
       </div>
     </div>
@@ -170,17 +259,40 @@
         <span class="ep-title">コンテンツ一覧の取得</span>
       </div>
       <div class="ep-body">
-        <p>ニュース・ブログ・ページなどのコンテンツ一覧を返します。</p>
+        <p>ニュース・ブログ記事・固定ページなどのコンテンツ一覧を取得します。</p>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
           <table class="pt">
-            <thead><tr><th>パラメータ</th><th>説明</th></tr></thead>
+            <thead><tr><th>パラメータ</th><th>説明</th><th>例</th></tr></thead>
             <tbody>
-              <tr><td class="pname">type</td><td>コンテンツの種類（例: <code>news</code>、<code>blog</code>、<code>page</code>）</td></tr>
-              <tr><td class="pname">category</td><td>カテゴリのslugで絞り込み</td></tr>
-              <tr><td class="pname">tag</td><td>タグで絞り込み</td></tr>
-              <tr><td class="pname">page / limit</td><td>ページネーション</td></tr>
+              <tr><td class="pname">type</td><td>コンテンツの種類で絞り込む</td><td class="ptype">news, blog, page</td></tr>
+              <tr><td class="pname">category</td><td>カテゴリのスラッグで絞り込む</td><td class="ptype">お知らせ</td></tr>
+              <tr><td class="pname">tag</td><td>タグで絞り込む</td><td class="ptype">セール</td></tr>
+              <tr><td class="pname">page / limit</td><td>ページ番号と1ページの件数</td><td class="ptype">1 / 10</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// ニュース記事の一覧を取得する</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/contents?type=news&limit=5'</span>,
+  {
+    headers: { <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span> }
+  }
+);
+<span class="keyword">const</span> data = <span class="keyword">await</span> res.<span class="func">json</span>();
+
+<span class="comment">// 返ってくるデータの例:</span>
+<span class="comment">// {</span>
+<span class="comment">//   "contents": [</span>
+<span class="comment">//     { "id": "cnt_1", "title": "夏セール開催", "published_at": "2025-07-01" }</span>
+<span class="comment">//   ],</span>
+<span class="comment">//   "total": 12</span>
+<span class="comment">// }</span></pre>
         </div>
       </div>
     </div>
@@ -192,12 +304,35 @@
         <span class="ep-title">コンテンツ詳細の取得</span>
       </div>
       <div class="ep-body">
-        <p>コンテンツの全文（本文ブロック含む）を返します。<code>:id</code> にIDまたはslugが使えます。</p>
+        <p>ひとつの記事の全文（本文ブロック含む）を取得します。<code>:id</code> には記事のIDを入れてください。</p>
+
+        <div class="code-block" style="margin-top:.5rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// 記事の全文を取得する</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/contents/cnt_1'</span>,
+  {
+    headers: { <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span> }
+  }
+);
+<span class="keyword">const</span> article = <span class="keyword">await</span> res.<span class="func">json</span>();
+<span class="comment">// article.title, article.body, article.published_at など</span></pre>
+        </div>
       </div>
     </div>
 
     <!-- ══ 購入 ══ -->
     <h2 id="cart-validate" style="font-size:1.2rem;font-weight:800;margin:2rem 0 1rem;padding-top:1.5rem;border-top:1px solid var(--border);scroll-margin-top:72px;">購入フロー</h2>
+
+    <div class="tip" style="margin-bottom:1.5rem;">
+      <div>
+        <strong>購入の流れ</strong>
+        <p>カート検証 → 送料取得 → チェックアウト の順番で呼び出します。</p>
+      </div>
+    </div>
 
     <div class="ep-block">
       <div class="ep-head">
@@ -206,23 +341,57 @@
         <span class="ep-title">カートの検証</span>
       </div>
       <div class="ep-body">
-        <p>カートのアイテムを送ると、在庫確認・価格計算を行い結果を返します。決済の前に必ず呼び出してください。</p>
+        <p>カートに入っている商品の在庫があるか、価格が変わっていないかを確認します。<strong>決済の前に必ず呼び出してください。</strong></p>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
           <table class="pt">
             <thead><tr><th>送るデータ</th><th>型</th><th>必須</th><th>説明</th></tr></thead>
             <tbody>
-              <tr><td class="pname">items</td><td class="ptype">array</td><td><span class="req">必須</span></td><td>カートのアイテム配列</td></tr>
-              <tr><td class="pname">items[].product_id</td><td class="ptype">string</td><td><span class="req">必須</span></td><td>商品ID</td></tr>
-              <tr><td class="pname">items[].variant_id</td><td class="ptype">string</td><td><span class="opt">任意</span></td><td>バリアントID（サイズなど）</td></tr>
-              <tr><td class="pname">items[].quantity</td><td class="ptype">number</td><td><span class="req">必須</span></td><td>数量</td></tr>
+              <tr><td class="pname">items</td><td class="ptype">array</td><td><span class="req">必須</span></td><td>カートに入っている商品の配列</td></tr>
+              <tr><td class="pname">items[].product_id</td><td class="ptype">string</td><td><span class="req">必須</span></td><td>商品のID</td></tr>
+              <tr><td class="pname">items[].variant_id</td><td class="ptype">string</td><td><span class="opt">任意</span></td><td>サイズやカラーなどのバリエーションID</td></tr>
+              <tr><td class="pname">items[].quantity</td><td class="ptype">number</td><td><span class="req">必須</span></td><td>買いたい数量</td></tr>
             </tbody>
           </table>
         </div>
-        <div class="callout callout-ok" style="margin-top:1rem;">
-          <div>
-            <strong>返ってくる主なデータ</strong>
-            <p><code>valid</code>（全体のOK/NG）、<code>items</code>（各アイテムの在庫状況・金額）、<code>subtotal</code>（合計金額）、<code>messages</code>（警告メッセージ）</p>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
           </div>
+          <pre><span class="comment">// カートの中身を検証する</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/cart/validate'</span>,
+  {
+    method: <span class="string">'POST'</span>,
+    headers: {
+      <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span>,
+      <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>
+    },
+    body: JSON.<span class="func">stringify</span>({
+      items: [
+        { product_id: <span class="string">'prod_123'</span>, variant_id: <span class="string">'var_1'</span>, quantity: 2 },
+        { product_id: <span class="string">'prod_456'</span>, quantity: 1 }
+      ]
+    })
+  }
+);
+<span class="keyword">const</span> result = <span class="keyword">await</span> res.<span class="func">json</span>();
+
+<span class="comment">// 返ってくるデータの例:</span>
+<span class="comment">// {</span>
+<span class="comment">//   "valid": true,          ← 全部OKなら true</span>
+<span class="comment">//   "items": [...],         ← 各商品の在庫・価格情報</span>
+<span class="comment">//   "subtotal": 11500,      ← 合計金額（円）</span>
+<span class="comment">//   "messages": []          ← 警告がある場合ここに表示</span>
+<span class="comment">// }</span>
+
+<span class="keyword">if</span> (result.valid) {
+  <span class="comment">// OKなので次の決済ステップへ進む</span>
+} <span class="keyword">else</span> {
+  <span class="comment">// 在庫切れや価格変更がある場合の処理</span>
+  console.<span class="func">log</span>(result.messages);
+}</pre>
         </div>
       </div>
     </div>
@@ -234,15 +403,36 @@
         <span class="ep-title">送料オプションの取得</span>
       </div>
       <div class="ep-body">
-        <p>購入金額と配送先都道府県に基づいた送料オプションの一覧を返します。</p>
+        <p>購入金額や配送先に応じた送料の選択肢を返します。</p>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
           <table class="pt">
-            <thead><tr><th>パラメータ</th><th>必須</th><th>説明</th></tr></thead>
+            <thead><tr><th>パラメータ</th><th>必須</th><th>説明</th><th>例</th></tr></thead>
             <tbody>
-              <tr><td class="pname">subtotal</td><td><span class="req">必須</span></td><td>カートの合計金額（円）</td></tr>
-              <tr><td class="pname">prefecture</td><td><span class="opt">任意</span></td><td>都道府県名（例: <code>東京都</code>）</td></tr>
+              <tr><td class="pname">subtotal</td><td><span class="req">必須</span></td><td>カートの合計金額（円）</td><td class="ptype">11500</td></tr>
+              <tr><td class="pname">prefecture</td><td><span class="opt">任意</span></td><td>配送先の都道府県名</td><td class="ptype">東京都</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// 送料の選択肢を取得する</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/shipping-options?subtotal=11500&prefecture=東京都'</span>,
+  {
+    headers: { <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span> }
+  }
+);
+<span class="keyword">const</span> options = <span class="keyword">await</span> res.<span class="func">json</span>();
+
+<span class="comment">// 返ってくるデータの例:</span>
+<span class="comment">// [</span>
+<span class="comment">//   { "id": "ship_1", "name": "通常配送", "price": 500 },</span>
+<span class="comment">//   { "id": "ship_2", "name": "速達", "price": 1000 }</span>
+<span class="comment">// ]</span></pre>
         </div>
       </div>
     </div>
@@ -251,22 +441,66 @@
       <div class="ep-head">
         <span class="method method-post">POST</span>
         <span class="ep">/api/v1/checkout</span>
-        <span class="ep-title">Stripe決済セッションの作成</span>
+        <span class="ep-title">決済セッションの作成</span>
       </div>
       <div class="ep-body">
-        <p>Stripe の決済ページへのURLを返します。返ってきた <code>url</code> にユーザーをリダイレクトしてください。</p>
+        <p>Stripe のクレジットカード決済ページを作成します。返ってきた <code>url</code> にユーザーを移動させてください。</p>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
           <table class="pt">
             <thead><tr><th>送るデータ</th><th>必須</th><th>説明</th></tr></thead>
             <tbody>
-              <tr><td class="pname">items</td><td><span class="req">必須</span></td><td>カートのアイテム配列</td></tr>
+              <tr><td class="pname">items</td><td><span class="req">必須</span></td><td>カートの商品配列（cart/validate と同じ形式）</td></tr>
               <tr><td class="pname">customer_email</td><td><span class="req">必須</span></td><td>購入者のメールアドレス</td></tr>
               <tr><td class="pname">shipping_address</td><td><span class="req">必須</span></td><td>配送先住所（name, postal_code, prefecture, city, line1）</td></tr>
-              <tr><td class="pname">success_url</td><td><span class="req">必須</span></td><td>決済成功後のリダイレクト先URL</td></tr>
-              <tr><td class="pname">cancel_url</td><td><span class="req">必須</span></td><td>キャンセル時のリダイレクト先URL</td></tr>
+              <tr><td class="pname">success_url</td><td><span class="req">必須</span></td><td>決済が成功したときに戻るページのURL</td></tr>
+              <tr><td class="pname">cancel_url</td><td><span class="req">必須</span></td><td>ユーザーがキャンセルしたときに戻るページのURL</td></tr>
               <tr><td class="pname">shipping_option_id</td><td><span class="opt">任意</span></td><td>選択した送料オプションのID</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// 決済ページを作成してユーザーを移動させる</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/checkout'</span>,
+  {
+    method: <span class="string">'POST'</span>,
+    headers: {
+      <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span>,
+      <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>
+    },
+    body: JSON.<span class="func">stringify</span>({
+      items: [
+        { product_id: <span class="string">'prod_123'</span>, quantity: 2 }
+      ],
+      customer_email: <span class="string">'customer@example.com'</span>,
+      shipping_address: {
+        name: <span class="string">'山田太郎'</span>,
+        postal_code: <span class="string">'100-0001'</span>,
+        prefecture: <span class="string">'東京都'</span>,
+        city: <span class="string">'千代田区'</span>,
+        line1: <span class="string">'丸の内1-1-1'</span>
+      },
+      success_url: <span class="string">'https://yoursite.com/thanks'</span>,
+      cancel_url: <span class="string">'https://yoursite.com/cart'</span>
+    })
+  }
+);
+<span class="keyword">const</span> { url } = <span class="keyword">await</span> res.<span class="func">json</span>();
+
+<span class="comment">// Stripe の決済ページにユーザーを移動させる</span>
+window.location.href = url;</pre>
+        </div>
+
+        <div class="callout callout-info" style="margin-top:1rem;">
+          <div>
+            <strong>Stripe の決済ページとは？</strong>
+            <p>Stripe が提供するクレジットカード入力画面が別ページで開きます。支払いが完了すると <code>success_url</code> に指定したページに自動で戻ります。カード情報はあなたのサーバーを通らないので安全です。</p>
+          </div>
         </div>
       </div>
     </div>
@@ -278,11 +512,11 @@
         <span class="ep-title">注文の作成</span>
       </div>
       <div class="ep-body">
-        <p>Stripe決済が完了すると、Webhookが自動で注文を作成します。このAPIは代金引換など Stripe 以外の決済方法で使います。</p>
+        <p>Stripe 以外の決済方法（代金引換など）で注文を作成するためのAPIです。</p>
         <div class="callout callout-warn" style="margin-top:.75rem;">
           <div>
-            <strong>Stripe決済の場合はこのAPIは不要です</strong>
-            <p>Stripe のWebhookが自動で処理するため、通常はこのAPIを直接呼び出す必要はありません。</p>
+            <strong>Stripe決済の場合、このAPIは使いません</strong>
+            <p>上の checkout API を使って Stripe で決済した場合、注文は自動で作成されます。このAPIを直接呼ぶ必要はありません。</p>
           </div>
         </div>
       </div>
@@ -298,62 +532,90 @@
         <span class="ep-title">顧客一覧の取得</span>
       </div>
       <div class="ep-body">
-        <p>登録済み顧客の一覧を返します。</p>
+        <p>登録されている顧客の一覧を取得します。メールアドレスや名前で検索もできます。</p>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
           <table class="pt">
-            <thead><tr><th>パラメータ</th><th>説明</th></tr></thead>
+            <thead><tr><th>パラメータ</th><th>説明</th><th>例</th></tr></thead>
             <tbody>
-              <tr><td class="pname">email</td><td>メールアドレスで検索（完全一致）</td></tr>
-              <tr><td class="pname">search</td><td>名前・メールのあいまい検索</td></tr>
-              <tr><td class="pname">page / limit</td><td>ページネーション</td></tr>
+              <tr><td class="pname">email</td><td>メールアドレスで検索（完全一致）</td><td class="ptype">test@example.com</td></tr>
+              <tr><td class="pname">search</td><td>名前やメールであいまい検索</td><td class="ptype">山田</td></tr>
+              <tr><td class="pname">page / limit</td><td>ページ番号と1ページの件数</td><td class="ptype">1 / 20</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// 顧客を名前で検索する</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/customers?search=山田'</span>,
+  {
+    headers: { <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span> }
+  }
+);
+<span class="keyword">const</span> data = <span class="keyword">await</span> res.<span class="func">json</span>();</pre>
         </div>
       </div>
     </div>
 
     <!-- ══ エラー ══ -->
     <h2 id="errors" style="font-size:1.2rem;font-weight:800;margin:2rem 0 1rem;padding-top:1.5rem;border-top:1px solid var(--border);scroll-margin-top:72px;">エラー一覧</h2>
-    <p style="font-size:.9rem;color:var(--text-sub);margin-bottom:1rem;">エラー時は以下のHTTPステータスコードと、<code>{ "error": "...", "code": "..." }</code> 形式のJSONが返ります。</p>
+    <p style="font-size:.9rem;color:var(--text-sub);margin-bottom:1rem;">APIがエラーを返した場合、HTTPステータスコードとエラーメッセージで原因がわかります。<br>レスポンスは <code>{ "error": "...", "code": "..." }</code> の形式です。</p>
 
     <div class="tbl-wrap">
       <table class="tbl">
         <thead>
-          <tr><th>ステータス</th><th>コード</th><th>意味と対処方法</th></tr>
+          <tr><th>ステータス</th><th>コード</th><th>意味</th><th>どうすればいいか</th></tr>
         </thead>
         <tbody>
           <tr>
             <td><span class="badge badge-gray">400</span></td>
             <td class="ep">VALIDATION_ERROR</td>
-            <td>送ったデータのフォーマットが不正。パラメータを確認してください</td>
+            <td>送ったデータの形式が間違っている</td>
+            <td>パラメータの名前・型を確認してください</td>
           </tr>
           <tr>
             <td><span class="badge" style="background:#fee2e2;color:#dc2626;">401</span></td>
             <td class="ep">UNAUTHORIZED</td>
-            <td>APIキーが無効または未指定。環境変数を確認してください</td>
+            <td>APIキーが間違っているか、指定されていない</td>
+            <td><code>.env.local</code> のAPIキーが正しいか確認してください</td>
           </tr>
           <tr>
             <td><span class="badge" style="background:#fee2e2;color:#dc2626;">403</span></td>
             <td class="ep">FORBIDDEN</td>
-            <td>そのAPIキーではこの操作は許可されていません</td>
+            <td>そのAPIキーではこの操作が許可されていない</td>
+            <td>管理画面でAPIキーの権限を確認してください</td>
           </tr>
           <tr>
             <td><span class="badge badge-gray">404</span></td>
             <td class="ep">NOT_FOUND</td>
-            <td>指定したIDのデータが存在しません</td>
+            <td>指定したIDのデータが見つからない</td>
+            <td>商品IDやコンテンツIDが正しいか確認してください</td>
           </tr>
           <tr>
             <td><span class="badge" style="background:#fef3c7;color:#92400e;">429</span></td>
             <td class="ep">RATE_LIMIT_EXCEEDED</td>
-            <td>リクエストが多すぎます。少し待ってから再試行してください</td>
+            <td>短時間にリクエストを送りすぎた</td>
+            <td>数秒待ってからもう一度試してください</td>
           </tr>
           <tr>
             <td><span class="badge" style="background:#fee2e2;color:#dc2626;">500</span></td>
             <td class="ep">INTERNAL_ERROR</td>
-            <td>サーバー内部のエラー。しばらく待ってから再試行してください</td>
+            <td>akinai 側のサーバーエラー</td>
+            <td>しばらく待ってから再度試してください。繰り返す場合はサポートへ</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="tip" style="margin-top:1.5rem;">
+      <div>
+        <strong>エラーが出たら</strong>
+        <p>まず <strong>401 エラー</strong>（APIキーが無効）が最もよくあるミスです。<code>.env.local</code> ファイルにAPIキーが正しく設定されているか、スペルミスがないか確認してください。</p>
+      </div>
     </div>
 
   </main>
