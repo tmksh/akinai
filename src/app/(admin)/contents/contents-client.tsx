@@ -339,26 +339,26 @@ export default function ContentsClient({ initialContents, stats, organizationId,
         <TabsContent value="all" className="space-y-4">
           {/* 統計バー */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
-              <FileText className="h-3.5 w-3.5 text-slate-500" />
-              <span className="text-xs text-muted-foreground">全件</span>
-              <span className="text-sm font-semibold">{stats.total}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-orange-100" style={{ background: '#fdf8f3' }}>
+              <FileText className="h-3.5 w-3.5 text-orange-400" />
+              <span className="text-xs text-orange-700">全件</span>
+              <span className="text-sm font-semibold text-orange-900">{stats.total}</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
-              <Eye className="h-3.5 w-3.5 text-emerald-500" />
-              <span className="text-xs text-emerald-700 dark:text-emerald-300">公開中</span>
-              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{stats.published}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-100">
+              <Eye className="h-3.5 w-3.5 text-orange-500" />
+              <span className="text-xs text-orange-700">公開中</span>
+              <span className="text-sm font-semibold text-orange-800">{stats.published}</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-amber-100" style={{ background: '#fefce8' }}>
               <Edit className="h-3.5 w-3.5 text-amber-500" />
-              <span className="text-xs text-amber-700 dark:text-amber-300">下書き</span>
-              <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{stats.draft}</span>
+              <span className="text-xs text-amber-700">下書き</span>
+              <span className="text-sm font-semibold text-amber-800">{stats.draft}</span>
             </div>
             {stats.scheduled > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30">
-                <Calendar className="h-3.5 w-3.5 text-blue-500" />
-                <span className="text-xs text-blue-700 dark:text-blue-300">予約</span>
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">{stats.scheduled}</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-100 border border-orange-200">
+                <Calendar className="h-3.5 w-3.5 text-orange-600" />
+                <span className="text-xs text-orange-700">予約</span>
+                <span className="text-sm font-semibold text-orange-800">{stats.scheduled}</span>
               </div>
             )}
           </div>

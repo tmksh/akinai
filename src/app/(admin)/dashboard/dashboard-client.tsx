@@ -474,7 +474,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // 注文数カード
     orders: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20 cursor-grab active:cursor-grabbing">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-lg shadow-amber-400/20 cursor-grab active:cursor-grabbing">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
         <div className="relative h-full flex flex-col">
@@ -511,7 +511,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // 商品数カード
     products: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 cursor-grab active:cursor-grabbing">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-orange-800 to-red-900 text-white shadow-lg shadow-orange-800/20 cursor-grab active:cursor-grabbing">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
         <div className="relative h-full flex flex-col">
@@ -534,7 +534,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // 顧客数カード
     customers: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/20 cursor-grab active:cursor-grabbing">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-orange-300 to-amber-400 text-white shadow-lg shadow-orange-300/20 cursor-grab active:cursor-grabbing">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
         <div className="relative h-full flex flex-col">

@@ -177,7 +177,7 @@ function LoginForm() {
       {/* ══════════════════════════════
           右パネル：ミニマルフォーム
       ══════════════════════════════ */}
-      <div className="flex w-full flex-col justify-center bg-white px-8 py-12 lg:w-1/2 lg:px-16 xl:px-24">
+      <div className="flex w-full flex-col justify-center px-8 py-12 lg:w-1/2 lg:px-16 xl:px-24" style={{ background: '#f5f3ef' }}>
 
         {/* モバイル用ロゴ */}
         <div className="mb-10 flex items-center gap-2 lg:hidden">
@@ -225,7 +225,7 @@ function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
-                className="w-full border-0 border-b-2 border-gray-200 bg-transparent pb-2 pt-1 text-[15px] text-gray-900 placeholder:text-gray-300 outline-none transition-colors focus:border-orange-400"
+                className="w-full border-0 border-b-2 border-orange-200 bg-transparent pb-2 pt-1 text-[15px] text-gray-900 placeholder:text-gray-300 outline-none transition-colors focus:border-orange-500"
               />
             </div>
 
@@ -243,7 +243,7 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="w-full border-0 border-b-2 border-gray-200 bg-transparent pb-2 pt-1 pr-8 text-[15px] text-gray-900 placeholder:text-gray-300 outline-none transition-colors focus:border-orange-400"
+                  className="w-full border-0 border-b-2 border-orange-200 bg-transparent pb-2 pt-1 pr-8 text-[15px] text-gray-900 placeholder:text-gray-300 outline-none transition-colors focus:border-orange-500"
                 />
                 <button
                   type="button"
@@ -301,7 +301,8 @@ function LoginForm() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={isGoogleLoading}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white py-3 text-[14px] font-semibold text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-[.98] disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-orange-200 py-3 text-[14px] font-semibold text-gray-700 shadow-sm transition-all hover:shadow-md active:scale-[.98] disabled:opacity-60"
+            style={{ background: '#fdf6ee' }}
           >
             {isGoogleLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -334,7 +335,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="min-h-screen flex items-center justify-center" style={{ background: '#f5f3ef' }}>
           <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
         </div>
       }

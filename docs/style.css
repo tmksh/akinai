@@ -8,13 +8,13 @@
   --orange-deep:  #c2410c;
   --orange-light: #fff7ed;
   --orange-mid:   #fed7aa;
-  --bg:           #fafaf9;
-  --white:        #ffffff;
+  --bg:           #f5f3ef;
+  --white:        #fdf8f3;
   --text:         #1c1917;
   --text-sub:     #57534e;
   --text-muted:   #a8a29e;
-  --border:       #e7e5e4;
-  --border-dark:  #d6d3d1;
+  --border:       #e8e0d8;
+  --border-dark:  #d9cfc4;
   --success:      #16a34a;
   --sans: 'Noto Sans JP', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --radius: 10px;

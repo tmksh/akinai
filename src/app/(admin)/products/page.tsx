@@ -187,7 +187,7 @@ export default function ProductsPage() {
       <PageTabs tabs={productTabs} />
 
       {/* ── サマリーバー ── */}
-      <div className="flex items-center rounded-xl border bg-white dark:bg-slate-900 overflow-hidden divide-x divide-slate-100 dark:divide-slate-800">
+      <div className="flex items-center rounded-xl border border-orange-100 overflow-hidden divide-x divide-orange-100 dark:divide-slate-800" style={{ background: '#fdf8f3' }}>
         {[
           { label: '全商品',   value: stats.total,      filter: 'all',       alert: false },
           { label: '公開中',   value: stats.published,  filter: 'published', alert: false },
@@ -197,7 +197,7 @@ export default function ProductsPage() {
           <button
             key={label}
             onClick={() => setStatusFilter(filter)}
-            className={`flex-1 flex flex-col items-center py-3 px-2 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${statusFilter === filter && label !== '在庫切れ' ? 'bg-slate-50 dark:bg-slate-800' : ''}`}
+            className={`flex-1 flex flex-col items-center py-3 px-2 transition-colors hover:bg-orange-50 ${statusFilter === filter && label !== '在庫切れ' ? 'bg-orange-50' : ''}`}
           >
             <span className={`text-lg font-bold ${alert ? 'text-red-500' : 'text-foreground'}`}>{value}</span>
             <span className="text-[11px] text-muted-foreground">{label}</span>
@@ -237,7 +237,7 @@ export default function ProductsPage() {
 
         {/* フィルターパネル（展開式） */}
         {showFilters && (
-          <div className="flex flex-wrap gap-3 p-3 rounded-xl border bg-white dark:bg-slate-900">
+          <div className="flex flex-wrap gap-3 p-3 rounded-xl border border-orange-100" style={{ background: '#fdf8f3' }}>
             {/* ステータス */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">ステータス</p>
@@ -253,9 +253,10 @@ export default function ProductsPage() {
                     onClick={() => setStatusFilter(opt.value)}
                     className={`px-3 py-1 rounded-full text-xs border transition-all ${
                       statusFilter === opt.value
-                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white font-medium'
-                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400'
+                        ? 'bg-orange-500 text-white border-orange-500 font-medium'
+                        : 'border-orange-200 text-orange-800 hover:border-orange-400 hover:bg-orange-50'
                     }`}
+                    style={statusFilter !== opt.value ? { background: '#fdf8f3' } : {}}
                   >
                     {opt.label}
                   </button>
@@ -271,9 +272,10 @@ export default function ProductsPage() {
                     onClick={() => setCategoryFilter('all')}
                     className={`px-3 py-1 rounded-full text-xs border transition-all ${
                       categoryFilter === 'all'
-                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white font-medium'
-                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400'
+                        ? 'bg-orange-500 text-white border-orange-500 font-medium'
+                        : 'border-orange-200 text-orange-800 hover:border-orange-400 hover:bg-orange-50'
                     }`}
+                    style={categoryFilter !== 'all' ? { background: '#fdf8f3' } : {}}
                   >
                     すべて
                   </button>
@@ -283,9 +285,10 @@ export default function ProductsPage() {
                       onClick={() => setCategoryFilter(cat.id)}
                       className={`px-3 py-1 rounded-full text-xs border transition-all ${
                         categoryFilter === cat.id
-                          ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white font-medium'
-                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400'
+                          ? 'bg-orange-500 text-white border-orange-500 font-medium'
+                          : 'border-orange-200 text-orange-800 hover:border-orange-400 hover:bg-orange-50'
                       }`}
+                      style={categoryFilter !== cat.id ? { background: '#fdf8f3' } : {}}
                     >
                       {cat.name}
                     </button>
@@ -316,7 +319,7 @@ export default function ProductsPage() {
 
       {/* ── 商品グリッド ── */}
       {filteredProducts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-dashed bg-white dark:bg-slate-900">
+        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-dashed border-orange-200" style={{ background: '#fdf8f3' }}>
           <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center mb-4">
             <Package className="h-8 w-8 text-orange-400" />
           </div>
@@ -352,11 +355,12 @@ export default function ProductsPage() {
             return (
               <div
                 key={product.id}
-                className="group relative rounded-xl border bg-white dark:bg-slate-900 overflow-hidden hover:shadow-md hover:border-orange-200 transition-all duration-200"
+                className="group relative rounded-xl border border-orange-100 overflow-hidden hover:shadow-md hover:border-orange-300 transition-all duration-200"
+                style={{ background: '#fdf8f3' }}
               >
                 {/* 画像エリア */}
                 <Link href={`/products/${product.id}`} className="block">
-                  <div className="relative aspect-square bg-slate-50 dark:bg-slate-800 overflow-hidden">
+                  <div className="relative aspect-square overflow-hidden" style={{ background: '#f5f0e8' }}>
                     {product.images[0] ? (
                       <Image
                         src={product.images[0].url}

@@ -57,24 +57,24 @@
   --brand-light: oklch(0.95 0.05 50);
   --brand-dark: oklch(0.55 0.2 45);
   
-  /* ライトテーマ - クリーンで業務的 */
-  --background: oklch(0.99 0 0);
+  /* ライトテーマ - ウォームクリーム */
+  --background: oklch(0.965 0.008 75);   /* #f5f3ef クリームベージュ */
   --foreground: oklch(0.15 0.01 250);
-  --card: oklch(1 0 0);
+  --card: oklch(0.985 0.004 75);         /* 背景より少し白いカード */
   --card-foreground: oklch(0.15 0.01 250);
-  --popover: oklch(1 0 0);
+  --popover: oklch(0.985 0.004 75);
   --popover-foreground: oklch(0.15 0.01 250);
   --primary: oklch(0.7 0.18 50);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.96 0.01 250);
+  --secondary: oklch(0.955 0.008 75);    /* クリームよりやや濃い */
   --secondary-foreground: oklch(0.2 0.01 250);
-  --muted: oklch(0.96 0.005 250);
+  --muted: oklch(0.955 0.006 75);
   --muted-foreground: oklch(0.5 0.01 250);
   --accent: oklch(0.95 0.03 50);
   --accent-foreground: oklch(0.55 0.2 45);
   --destructive: oklch(0.6 0.22 25);
-  --border: oklch(0.92 0.005 250);
-  --input: oklch(0.92 0.005 250);
+  --border: oklch(0.91 0.008 75);        /* クリーム系のボーダー */
+  --input: oklch(0.975 0.005 75);
   --ring: oklch(0.7 0.18 50);
   
   /* チャートカラー - オレンジ/アンバー系モノクロマティック */
@@ -84,14 +84,14 @@
   --chart-4: oklch(0.85 0.10 60);
   --chart-5: oklch(0.55 0.15 40);
   
-  /* サイドバー - ライト系 + オレンジアクセント */
-  --sidebar: oklch(0.99 0 0);
+  /* サイドバー - クリーム系 + オレンジアクセント */
+  --sidebar: oklch(0.975 0.006 75);
   --sidebar-foreground: oklch(0.35 0.02 250);
   --sidebar-primary: oklch(0.7 0.18 45);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.96 0.01 50);
+  --sidebar-accent: oklch(0.95 0.015 65);
   --sidebar-accent-foreground: oklch(0.35 0.02 250);
-  --sidebar-border: oklch(0.92 0 0);
+  --sidebar-border: oklch(0.91 0.008 75);
   --sidebar-ring: oklch(0.7 0.18 45);
 }
 
@@ -168,13 +168,13 @@
   border-radius: 0.2em;
 }
 
-/* メインコンテンツの背景グラデーション - 薄いウォームグレー */
+  /* メインコンテンツの背景グラデーション - クリームウォーム */
 @layer components {
   .main-gradient-bg {
     background: linear-gradient(135deg, 
-      oklch(0.97 0.005 80) 0%, 
-      oklch(0.96 0.008 60) 50%,
-      oklch(0.95 0.01 50) 100%);
+      oklch(0.97 0.007 80) 0%, 
+      oklch(0.965 0.009 70) 50%,
+      oklch(0.96 0.01 60) 100%);
   }
   
   .dark .main-gradient-bg {
@@ -184,10 +184,10 @@
       oklch(0.13 0.01 270) 100%);
   }
   
-  /* カードのホバーエフェクト - クリーンな白カード */
+  /* カードのホバーエフェクト - ウォームホワイトカード */
   .card-hover {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: oklch(1 0 0) !important;
+    background: oklch(0.985 0.004 75) !important;
     box-shadow: 0 2px 12px oklch(0.5 0.02 250 / 0.08);
     border: none !important;
     cursor: pointer;
@@ -362,9 +362,9 @@
     animation: shimmer 2s infinite;
   }
   
-  /* ヘッダー - クリーンな白/透明 */
+  /* ヘッダー - クリーム/透明 */
   .header-gradient {
-    background: oklch(1 0 0 / 0.85);
+    background: oklch(0.975 0.006 75 / 0.88);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid oklch(0.9 0 0);
   }
@@ -405,12 +405,12 @@
     background: linear-gradient(180deg, oklch(1 0 0 / 0.3), oklch(1 0 0 / 0.1), transparent);
   }
   
-  /* サイドバー - 白背景 + 左端オレンジアクセント */
+  /* サイドバー - クリーム + オレンジアクセント */
   .sidebar-gradient {
     background: linear-gradient(180deg, 
-      oklch(0.98 0.03 50) 0%, 
-      oklch(0.96 0.04 45) 50%,
-      oklch(0.98 0.02 55) 100%
+      oklch(0.975 0.012 65) 0%, 
+      oklch(0.965 0.014 60) 50%,
+      oklch(0.975 0.010 70) 100%
     ) !important;
     position: relative;
     box-shadow: 6px 0 32px -6px rgba(0, 0, 0, 0.15), 
@@ -534,31 +534,7 @@
   user-select: none;
 }
 .react-resizable-handle {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-}
-.react-resizable-handle::after {
-  content: "";
-  position: absolute;
-  right: 3px;
-  bottom: 3px;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid rgba(0, 0, 0, 0.3);
-  border-bottom: 2px solid rgba(0, 0, 0, 0.3);
-  border-radius: 2px;
-}
-.react-grid-item > .react-resizable-handle::after {
-  border-color: rgba(0, 0, 0, 0.2);
-}
-.react-resizable-handle-se {
-  bottom: 0;
-  right: 0;
-  cursor: se-resize;
-}
-.react-grid-item:hover > .react-resizable-handle::after {
-  border-color: oklch(0.7 0.15 50);
+  display: none;
 }
 
 /* ドラッグハンドル */
