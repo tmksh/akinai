@@ -42,7 +42,8 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute =
     pathname === '/' ||
     pathname.startsWith('/auth') ||
-    pathname.startsWith('/shop');
+    pathname.startsWith('/shop') ||
+    pathname.startsWith('/api/');
   const isOnboardingRoute = pathname.startsWith('/onboarding');
 
   if (!user && !isAuthRoute && !isPublicRoute && !isOnboardingRoute) {
