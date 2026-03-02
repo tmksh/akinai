@@ -123,16 +123,29 @@ export default function EditContentPage() {
         setSeoTitle(data.seoTitle || '');
         setSeoDescription(data.seoDescription || '');
 
-        // カスタムフィールドを復元
+        // カスタムフィールドを復元（スキーマとマージ）
         const rawCf = ((data as unknown as Record<string, unknown>).custom_fields as { key: string; label?: string; value: string; type: string; options?: string[] }[]) || [];
-        setCustomFields(rawCf.map((f, i) => ({
+        const contentFields: CustomField[] = rawCf.map((f, i) => ({
           id: `cf-${i}-${Date.now()}`,
           key: f.key,
           label: f.label || f.key,
           value: f.value,
           type: f.type as CustomField['type'],
           ...(f.options && { options: f.options }),
-        })));
+        }));
+        const contentSchema = organization?.contentFieldSchema ?? [];
+        const existingKeys = new Set(contentFields.map(f => f.key));
+        const schemaOnlyFields: CustomField[] = contentSchema
+          .filter(s => !existingKeys.has(s.key))
+          .map(s => {
+            let defaultValue = '';
+            if (s.type === 'boolean') defaultValue = 'false';
+            if (s.type === 'rating') defaultValue = '0';
+            if (s.type === 'list') defaultValue = '[]';
+            if (s.type === 'json') defaultValue = '{}';
+            return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
+          });
+        setCustomFields([...schemaOnlyFields, ...contentFields]);
         
         // ブロックをタイプに応じて復元
         if (data.blocks && Array.isArray(data.blocks)) {
@@ -446,6 +459,7 @@ export default function EditContentPage() {
             fields={customFields}
             onChange={setCustomFields}
             disabled={isPending}
+            allowAdd={false}
           />
 
           {!showPreview && (

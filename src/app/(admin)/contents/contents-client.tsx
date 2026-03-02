@@ -17,6 +17,7 @@ import {
   Calendar,
   Loader2,
   Settings,
+  Sparkles,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -304,6 +305,12 @@ export default function ContentsClient({ initialContents, stats, organizationId,
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/settings/contents-schema">
+              <Sparkles className="mr-2 h-4 w-4 text-orange-500" />
+              カスタムフィールド
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/settings/contents">
               <Settings className="mr-2 h-4 w-4" />

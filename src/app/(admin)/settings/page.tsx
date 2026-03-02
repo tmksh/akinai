@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook, FileText } from 'lucide-react';
+import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook, FileText, Package, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

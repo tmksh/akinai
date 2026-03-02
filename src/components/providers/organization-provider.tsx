@@ -2,6 +2,25 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { CustomFieldType } from '@/components/products/custom-fields';
+
+// 商品スキーマフィールドの定義（値なし・全商品共通テンプレート）
+export interface ProductFieldSchemaItem {
+  id: string;
+  key: string;
+  label: string;
+  type: CustomFieldType;
+  options?: string[];
+}
+
+// コンテンツスキーマフィールドの定義（値なし・全コンテンツ共通テンプレート）
+export interface ContentFieldSchemaItem {
+  id: string;
+  key: string;
+  label: string;
+  type: CustomFieldType;
+  options?: string[];
+}
 
 // 組織の型定義
 export interface Organization {
@@ -17,6 +36,8 @@ export interface Organization {
   frontendApiKey: string | null;
   plan: 'starter' | 'pro' | 'enterprise';
   settings: Record<string, unknown>;
+  productFieldSchema: ProductFieldSchemaItem[];
+  contentFieldSchema: ContentFieldSchemaItem[];
   ownerId: string | null;
   isActive: boolean;
   createdAt: string;
@@ -56,6 +77,7 @@ const OrganizationContext = createContext<OrganizationContextType>(defaultContex
 
 // DBからの型をフロントエンド用に変換
 function transformOrganization(row: Record<string, unknown>): Organization {
+  const settings = (row.settings as Record<string, unknown>) || {};
   return {
     id: row.id as string,
     name: row.name as string,
@@ -68,7 +90,9 @@ function transformOrganization(row: Record<string, unknown>): Organization {
     frontendUrl: row.frontend_url as string | null,
     frontendApiKey: row.frontend_api_key as string | null,
     plan: row.plan as 'starter' | 'pro' | 'enterprise',
-    settings: (row.settings as Record<string, unknown>) || {},
+    settings,
+    productFieldSchema: (settings.product_field_schema as ProductFieldSchemaItem[]) || [],
+    contentFieldSchema: (settings.content_field_schema as ContentFieldSchemaItem[]) || [],
     ownerId: row.owner_id as string | null,
     isActive: row.is_active as boolean,
     createdAt: row.created_at as string,
@@ -134,7 +158,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         .from('organizations')
         .select('id, name, slug, logo, email, phone, website, address, frontend_url, frontend_api_key, plan, settings, owner_id, is_active, created_at, updated_at')
         .eq('id', membershipRes.data.organization_id)
-        .single();
+        .single(); // settings 列に product_field_schema が含まれる
 
       if (orgError) throw orgError;
 

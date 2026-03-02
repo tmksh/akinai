@@ -131,9 +131,10 @@ interface CustomFieldsProps {
   fields: CustomField[];
   onChange: (fields: CustomField[]) => void;
   disabled?: boolean;
+  allowAdd?: boolean;
 }
 
-export function CustomFields({ fields, onChange, disabled = false }: CustomFieldsProps) {
+export function CustomFields({ fields, onChange, disabled = false, allowAdd = true }: CustomFieldsProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState('');
   const [newFieldKey, setNewFieldKey] = useState('');
@@ -411,7 +412,7 @@ export function CustomFields({ fields, onChange, disabled = false }: CustomField
               商品スキーマを自由に拡張できます
             </CardDescription>
           </div>
-          {!isAdding && (
+          {allowAdd && !isAdding && (
             <Button
               variant="outline"
               size="sm"
@@ -560,15 +561,17 @@ export function CustomFields({ fields, onChange, disabled = false }: CustomField
                     <Badge variant="outline" className="text-[10px] px-1.5 h-5">
                       {config.label}
                     </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-                      onClick={() => removeField(field.id)}
-                      disabled={disabled}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {allowAdd && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                        onClick={() => removeField(field.id)}
+                        disabled={disabled}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                   <div className="px-4 pb-3 pt-1">
                     {renderValueInput(field)}
@@ -578,7 +581,7 @@ export function CustomFields({ fields, onChange, disabled = false }: CustomField
             })}
           </div>
         ) : (
-          !isAdding && (
+          !isAdding && allowAdd && (
             <button
               type="button"
               onClick={() => setIsAdding(true)}

@@ -64,6 +64,78 @@ export async function updateOrganization(
   return { data: updated, error: null };
 }
 
+// 商品フィールドスキーマを更新
+export async function updateProductFieldSchema(
+  organizationId: string,
+  schema: { id: string; key: string; label: string; type: string; options?: string[] }[]
+) {
+  const supabase = await createClient();
+
+  const { data: org, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) {
+    return { data: null, error: fetchError.message };
+  }
+
+  const currentSettings = (org?.settings as Record<string, unknown>) || {};
+  const newSettings = { ...currentSettings, product_field_schema: schema };
+
+  const { data, error } = await supabase
+    .from('organizations')
+    .update({ settings: newSettings, updated_at: new Date().toISOString() })
+    .eq('id', organizationId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating product field schema:', error);
+    return { data: null, error: error.message };
+  }
+
+  revalidatePath('/settings/products');
+  return { data, error: null };
+}
+
+// コンテンツフィールドスキーマを更新
+export async function updateContentFieldSchema(
+  organizationId: string,
+  schema: { id: string; key: string; label: string; type: string; options?: string[] }[]
+) {
+  const supabase = await createClient();
+
+  const { data: org, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) {
+    return { data: null, error: fetchError.message };
+  }
+
+  const currentSettings = (org?.settings as Record<string, unknown>) || {};
+  const newSettings = { ...currentSettings, content_field_schema: schema };
+
+  const { data, error } = await supabase
+    .from('organizations')
+    .update({ settings: newSettings, updated_at: new Date().toISOString() })
+    .eq('id', organizationId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating content field schema:', error);
+    return { data: null, error: error.message };
+  }
+
+  revalidatePath('/settings/contents-schema');
+  return { data, error: null };
+}
+
 // APIキーを生成・更新
 export async function generateNewApiKey(
   organizationId: string,

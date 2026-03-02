@@ -96,6 +96,20 @@ export default function NewContentPage() {
         setContentType(enabled[0] as ContentType);
       }
     });
+
+    // 組織スキーマからカスタムフィールドを初期化
+    const schema = organization.contentFieldSchema ?? [];
+    if (schema.length > 0) {
+      setCustomFields(schema.map(s => {
+        let defaultValue = '';
+        if (s.type === 'boolean') defaultValue = 'false';
+        if (s.type === 'rating') defaultValue = '0';
+        if (s.type === 'list') defaultValue = '[]';
+        if (s.type === 'json') defaultValue = '{}';
+        return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
+      }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization?.id]);
 
   // プレビュー用データ・URL
@@ -329,7 +343,7 @@ export default function NewContentPage() {
             </CardContent>
           </Card>
 
-          <CustomFields fields={customFields} onChange={setCustomFields} disabled={isPending} />
+          <CustomFields fields={customFields} onChange={setCustomFields} disabled={isPending} allowAdd={false} />
 
           {!showPreview && (
             <Card>

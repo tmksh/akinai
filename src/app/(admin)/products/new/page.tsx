@@ -90,7 +90,18 @@ export default function NewProductPage() {
   const [variants, setVariants] = useState<ProductVariant[]>([
     { id: '1', name: 'デフォルト', sku: '', price: 0, stock: 0 },
   ]);
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>(() => {
+    // 組織スキーマから初期フィールドを生成（値は空）
+    const schema = organization?.productFieldSchema ?? [];
+    return schema.map(s => {
+      let defaultValue = '';
+      if (s.type === 'boolean') defaultValue = 'false';
+      if (s.type === 'rating') defaultValue = '0';
+      if (s.type === 'list') defaultValue = '[]';
+      if (s.type === 'json') defaultValue = '{}';
+      return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
+    });
+  });
   const [showPreview, setShowPreview] = useState(true);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('mobile');
   const [previewQuantity, setPreviewQuantity] = useState(1);
@@ -105,6 +116,28 @@ export default function NewProductPage() {
   
   // フロントエンドが接続されているかどうか
   const isFrontendConnected = !!frontendUrl;
+
+  // 組織スキーマが読み込まれたらカスタムフィールドを初期化
+  useEffect(() => {
+    if (!organization?.productFieldSchema?.length) return;
+    setCustomFields(prev => {
+      // すでにフィールドがある場合はスキーマにないフィールドを先頭に追加するだけ
+      const schema = organization.productFieldSchema;
+      const existingKeys = new Set(prev.map(f => f.key));
+      const fromSchema = schema
+        .filter(s => !existingKeys.has(s.key))
+        .map(s => {
+          let defaultValue = '';
+          if (s.type === 'boolean') defaultValue = 'false';
+          if (s.type === 'rating') defaultValue = '0';
+          if (s.type === 'list') defaultValue = '[]';
+          if (s.type === 'json') defaultValue = '{}';
+          return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
+        });
+      return [...fromSchema, ...prev];
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organization?.id]);
 
   // カテゴリ一覧を取得
   useEffect(() => {
@@ -522,6 +555,7 @@ export default function NewProductPage() {
             fields={customFields}
             onChange={setCustomFields}
             disabled={isPending}
+            allowAdd={false}
           />
 
           {/* SEO */}

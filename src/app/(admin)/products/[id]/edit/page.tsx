@@ -141,18 +141,30 @@ export default function ProductEditPage() {
         
         setSelectedCategories(p.categories.map(c => c.id));
         setTags(p.tags || []);
-        // カスタムフィールドを復元
+        // カスタムフィールドを復元（スキーマとマージ）
         const rawCustomFields = (p.custom_fields as unknown as { key: string; label?: string; value: string; type: string; options?: string[] }[]) || [];
-        setCustomFields(
-          rawCustomFields.map((f, i) => ({
-            id: `cf-${i}-${Date.now()}`,
-            key: f.key,
-            label: f.label || f.key,
-            value: f.value,
-            type: f.type as CustomField['type'],
-            ...(f.options && { options: f.options }),
-          }))
-        );
+        const productFields: CustomField[] = rawCustomFields.map((f, i) => ({
+          id: `cf-${i}-${Date.now()}`,
+          key: f.key,
+          label: f.label || f.key,
+          value: f.value,
+          type: f.type as CustomField['type'],
+          ...(f.options && { options: f.options }),
+        }));
+        // 組織スキーマにあるがこの商品にないフィールドを先頭に追加
+        const schema = organization?.productFieldSchema ?? [];
+        const productFieldKeys = new Set(productFields.map(f => f.key));
+        const schemaOnlyFields: CustomField[] = schema
+          .filter(s => !productFieldKeys.has(s.key))
+          .map(s => {
+            let defaultValue = '';
+            if (s.type === 'boolean') defaultValue = 'false';
+            if (s.type === 'rating') defaultValue = '0';
+            if (s.type === 'list') defaultValue = '[]';
+            if (s.type === 'json') defaultValue = '{}';
+            return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
+          });
+        setCustomFields([...schemaOnlyFields, ...productFields]);
         setVariants(p.variants.map(v => ({
           id: v.id,
           name: v.name,
@@ -564,6 +576,7 @@ export default function ProductEditPage() {
             fields={customFields}
             onChange={setCustomFields}
             disabled={isPending}
+            allowAdd={false}
           />
 
           {/* SEO設定 */}

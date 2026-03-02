@@ -20,6 +20,7 @@ import {
   Upload,
   SlidersHorizontal,
   X,
+  Sparkles,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -170,6 +171,12 @@ export default function ProductsPage() {
           <p className="text-sm text-muted-foreground mt-0.5">商品の登録・編集・在庫管理</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/settings/products">
+              <Sparkles className="h-4 w-4 mr-1.5 text-orange-500" />
+              カスタムフィールド
+            </Link>
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
             <Upload className="h-4 w-4 mr-1.5" />
             CSVインポート
