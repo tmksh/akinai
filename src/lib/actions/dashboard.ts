@@ -152,41 +152,25 @@ export async function getDashboardData(organizationId: string) {
   const chartRangeStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
   const chartRangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  // --- 全クエリを並列実行（1クライアント、最小限のクエリ数） ---
+  // --- 全クエリを並列実行（重複排除済み） ---
   const [
-    // 全注文データ（売上計算用：全期間 + ステータスフィルタ）
+    // 全注文データ（売上計算用：全期間 + ステータスフィルタ）→ チャート・パフォーマンスにも再利用
     allOrdersRes,
-    // 前月注文（比較用）
-    prevMonthOrdersRes,
-    // 前年注文（比較用）
-    prevYearOrdersRes,
-    // 注文カウント系（month/year/total）
-    ordersCountMonthRes,
-    ordersCountYearRes,
+    // 全注文カウント（全ステータス、期間フィルタなし）
     ordersCountTotalRes,
-    prevMonthOrdersCountRes,
-    prevYearOrdersCountRes,
-    // 顧客カウント系
-    customersCountMonthRes,
-    customersCountYearRes,
+    // 顧客カウント系（全期間）
     customersCountTotalRes,
-    prevMonthCustomersCountRes,
-    prevYearCustomersCountRes,
+    // 全顧客の作成日（JS側で期間別に集計）
+    allCustomerDatesRes,
     // 商品カウント系
     productsCountTotalRes,
     productsCountNewRes,
     // 最近の注文
     recentOrdersRes,
-    // 今月の注文（人気商品集計用）
-    topProductOrdersRes,
     // 低在庫
     lowStockRes,
-    // チャート用注文データ
-    chartOrdersRes,
-    // パフォーマンス用: 今月注文/今月顧客/前月注文
-    perfCurrentOrdersRes,
-    perfCurrentCustomersRes,
-    perfPrevOrdersRes,
+    // 全注文のカウント＋日付（全ステータス、期間別集計用）
+    allOrderDatesRes,
   ] = await Promise.all([
     // 全期間の売上（ステータスフィルタ済み）
     supabase
@@ -194,88 +178,21 @@ export async function getDashboardData(organizationId: string) {
       .select('total, created_at')
       .eq('organization_id', organizationId)
       .in('status', ['confirmed', 'processing', 'shipped', 'delivered']),
-    // 前月の売上
-    supabase
-      .from('orders')
-      .select('total')
-      .eq('organization_id', organizationId)
-      .in('status', ['confirmed', 'processing', 'shipped', 'delivered'])
-      .gte('created_at', prevMonthStart.toISOString())
-      .lte('created_at', prevMonthEnd.toISOString()),
-    // 前年の売上
-    supabase
-      .from('orders')
-      .select('total')
-      .eq('organization_id', organizationId)
-      .in('status', ['confirmed', 'processing', 'shipped', 'delivered'])
-      .gte('created_at', prevYearStart.toISOString())
-      .lte('created_at', prevYearEnd.toISOString()),
-    // 注文数: 月
-    supabase
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', monthStart.toISOString())
-      .lte('created_at', todayEnd.toISOString()),
-    // 注文数: 年
-    supabase
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', yearStart.toISOString())
-      .lte('created_at', todayEnd.toISOString()),
     // 注文数: 全期間
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('organization_id', organizationId),
-    // 前月注文数
-    supabase
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', prevMonthStart.toISOString())
-      .lte('created_at', prevMonthEnd.toISOString()),
-    // 前年注文数
-    supabase
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', prevYearStart.toISOString())
-      .lte('created_at', prevYearEnd.toISOString()),
-    // 顧客数: 月
-    supabase
-      .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', monthStart.toISOString())
-      .lte('created_at', todayEnd.toISOString()),
-    // 顧客数: 年
-    supabase
-      .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', yearStart.toISOString())
-      .lte('created_at', todayEnd.toISOString()),
     // 顧客数: 全期間
     supabase
       .from('customers')
       .select('id', { count: 'exact', head: true })
       .eq('organization_id', organizationId),
-    // 前月顧客数
+    // 全顧客の作成日（期間別カウント用）
     supabase
       .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', prevMonthStart.toISOString())
-      .lte('created_at', prevMonthEnd.toISOString()),
-    // 前年顧客数
-    supabase
-      .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', prevYearStart.toISOString())
-      .lte('created_at', prevYearEnd.toISOString()),
+      .select('created_at')
+      .eq('organization_id', organizationId),
     // 商品数: 全体
     supabase
       .from('products')
@@ -294,12 +211,6 @@ export async function getDashboardData(organizationId: string) {
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
       .limit(5),
-    // 人気商品集計用: 全期間の注文ID（確定以上のステータス）
-    supabase
-      .from('orders')
-      .select('id')
-      .eq('organization_id', organizationId)
-      .in('status', ['confirmed', 'processing', 'shipped', 'delivered']),
     // 低在庫
     supabase
       .from('product_variants')
@@ -319,37 +230,11 @@ export async function getDashboardData(organizationId: string) {
       .eq('product.organization_id', organizationId)
       .order('stock', { ascending: true })
       .limit(10),
-    // チャート用注文
+    // 全注文の日付（全ステータス、期間別カウント用）
     supabase
       .from('orders')
-      .select('total, created_at')
-      .eq('organization_id', organizationId)
-      .in('status', ['confirmed', 'processing', 'shipped', 'delivered'])
-      .gte('created_at', chartRangeStart.toISOString())
-      .lte('created_at', chartRangeEnd.toISOString()),
-    // パフォーマンス: 今月注文
-    supabase
-      .from('orders')
-      .select('total')
-      .eq('organization_id', organizationId)
-      .in('status', ['confirmed', 'processing', 'shipped', 'delivered'])
-      .gte('created_at', monthStart.toISOString())
-      .lte('created_at', todayEnd.toISOString()),
-    // パフォーマンス: 今月顧客
-    supabase
-      .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', monthStart.toISOString())
-      .lte('created_at', todayEnd.toISOString()),
-    // パフォーマンス: 前月注文
-    supabase
-      .from('orders')
-      .select('total')
-      .eq('organization_id', organizationId)
-      .in('status', ['confirmed', 'processing', 'shipped', 'delivered'])
-      .gte('created_at', prevMonthStart.toISOString())
-      .lte('created_at', prevMonthEnd.toISOString()),
+      .select('created_at')
+      .eq('organization_id', organizationId),
   ]);
 
   // --- 売上集計（全期間データからJS側で期間ごとに集計） ---
@@ -363,61 +248,74 @@ export async function getDashboardData(organizationId: string) {
     .reduce((sum, o) => sum + o.total, 0);
   const revenueTotal = allOrders.reduce((sum, o) => sum + o.total, 0);
 
-  const prevMonthRevenue = (prevMonthOrdersRes.data || []).reduce((sum, o) => sum + o.total, 0);
-  const prevYearRevenue = (prevYearOrdersRes.data || []).reduce((sum, o) => sum + o.total, 0);
+  // 前月・前年の売上もJS側で集計（重複クエリ排除）
+  const prevMonthRevenue = allOrders
+    .filter(o => new Date(o.created_at) >= prevMonthStart && new Date(o.created_at) <= prevMonthEnd)
+    .reduce((sum, o) => sum + o.total, 0);
+  const prevYearRevenue = allOrders
+    .filter(o => new Date(o.created_at) >= prevYearStart && new Date(o.created_at) <= prevYearEnd)
+    .reduce((sum, o) => sum + o.total, 0);
 
   const calcChange = (current: number, prev: number) =>
     prev > 0 ? Math.round(((current - prev) / prev) * 100 * 10) / 10 : 0;
 
-  const calcCountChange = (current: number | null, prev: number | null) => {
-    const c = current || 0;
-    const p = prev || 0;
-    return p > 0 ? Math.round(((c - p) / p) * 100 * 10) / 10 : 0;
-  };
+  const calcCountChange = (current: number, prev: number) =>
+    prev > 0 ? Math.round(((current - prev) / prev) * 100 * 10) / 10 : 0;
 
-  // --- 人気商品 ---
-  const topProductOrders = topProductOrdersRes.data || [];
+  // --- 注文カウント（全ステータス、JS側で期間別に集計） ---
+  const allOrderDates = (allOrderDatesRes.data || []).map(o => new Date(o.created_at));
+  const ordersCountMonth = allOrderDates.filter(d => d >= monthStart && d <= todayEnd).length;
+  const ordersCountYear = allOrderDates.filter(d => d >= yearStart && d <= todayEnd).length;
+  const prevMonthOrdersCount = allOrderDates.filter(d => d >= prevMonthStart && d <= prevMonthEnd).length;
+  const prevYearOrdersCount = allOrderDates.filter(d => d >= prevYearStart && d <= prevYearEnd).length;
+
+  // --- 顧客カウント（JS側で期間別に集計） ---
+  const allCustomerDates = (allCustomerDatesRes.data || []).map(c => new Date(c.created_at));
+  const customersCountMonth = allCustomerDates.filter(d => d >= monthStart && d <= todayEnd).length;
+  const customersCountYear = allCustomerDates.filter(d => d >= yearStart && d <= todayEnd).length;
+  const prevMonthCustomersCount = allCustomerDates.filter(d => d >= prevMonthStart && d <= prevMonthEnd).length;
+  const prevYearCustomersCount = allCustomerDates.filter(d => d >= prevYearStart && d <= prevYearEnd).length;
+
+  // --- 人気商品（allOrdersからIDを取得、追加クエリ不要） ---
   let topProducts: { id: string; name: string; image: string | null; sales: number }[] = [];
 
-  if (topProductOrders.length > 0) {
-    const orderIds = topProductOrders.map(o => o.id);
-    const { data: orderItems } = await supabase
-      .from('order_items')
-      .select('product_id, product_name, quantity')
-      .in('order_id', orderIds)
-      .not('product_id', 'is', null);
+  // 人気商品集計用: order_itemsから直接集計（JOINで1クエリ）
+  const { data: allOrderItems } = await supabase
+    .from('order_items')
+    .select('product_id, product_name, quantity, orders!inner(status, organization_id)')
+    .eq('orders.organization_id', organizationId)
+    .in('orders.status', ['confirmed', 'processing', 'shipped', 'delivered'])
+    .not('product_id', 'is', null);
 
-    if (orderItems && orderItems.length > 0) {
-      const salesByProduct: Record<string, { id: string; name: string; sales: number }> = {};
-      for (const item of orderItems) {
-        if (!item.product_id) continue;
-        if (!salesByProduct[item.product_id]) {
-          salesByProduct[item.product_id] = { id: item.product_id, name: item.product_name, sales: 0 };
-        }
-        // 注文数量（何個売れたか）で集計
-        salesByProduct[item.product_id].sales += (item.quantity ?? 1);
+  if (allOrderItems && allOrderItems.length > 0) {
+    const salesByProduct: Record<string, { id: string; name: string; sales: number }> = {};
+    for (const item of allOrderItems) {
+      if (!item.product_id) continue;
+      if (!salesByProduct[item.product_id]) {
+        salesByProduct[item.product_id] = { id: item.product_id, name: item.product_name, sales: 0 };
       }
-
-      const sortedProducts = Object.values(salesByProduct)
-        .sort((a, b) => b.sales - a.sales)
-        .slice(0, 7);
-
-      const productIds = sortedProducts.map(p => p.id);
-      const { data: images } = await supabase
-        .from('product_images')
-        .select('product_id, url')
-        .in('product_id', productIds)
-        .order('sort_order', { ascending: true });
-
-      const imageMap: Record<string, string> = {};
-      for (const img of images || []) {
-        if (!imageMap[img.product_id]) {
-          imageMap[img.product_id] = img.url;
-        }
-      }
-
-      topProducts = sortedProducts.map(p => ({ ...p, image: imageMap[p.id] || null }));
+      salesByProduct[item.product_id].sales += (item.quantity ?? 1);
     }
+
+    const sortedProducts = Object.values(salesByProduct)
+      .sort((a, b) => b.sales - a.sales)
+      .slice(0, 7);
+
+    const productIds = sortedProducts.map(p => p.id);
+    const { data: images } = await supabase
+      .from('product_images')
+      .select('product_id, url')
+      .in('product_id', productIds)
+      .order('sort_order', { ascending: true });
+
+    const imageMap: Record<string, string> = {};
+    for (const img of images || []) {
+      if (!imageMap[img.product_id]) {
+        imageMap[img.product_id] = img.url;
+      }
+    }
+
+    topProducts = sortedProducts.map(p => ({ ...p, image: imageMap[p.id] || null }));
   } else {
     // 注文がない場合は商品一覧から返す
     const { data: products } = await supabase
@@ -455,7 +353,7 @@ export async function getDashboardData(organizationId: string) {
       };
     });
 
-  // --- チャートデータ集計 ---
+  // --- チャートデータ集計（allOrdersから直接集計、追加クエリ不要） ---
   const months = 7;
   const buckets: Record<string, { sales: number; orders: number }> = {};
   for (let i = months - 1; i >= 0; i--) {
@@ -463,7 +361,7 @@ export async function getDashboardData(organizationId: string) {
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     buckets[key] = { sales: 0, orders: 0 };
   }
-  for (const o of chartOrdersRes.data ?? []) {
+  for (const o of allOrders) {
     const d = new Date(o.created_at);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     if (buckets[key]) {
@@ -482,26 +380,26 @@ export async function getDashboardData(organizationId: string) {
     });
   }
 
-  // --- パフォーマンスデータ ---
-  const perfCurrentOrders = perfCurrentOrdersRes.data;
-  const perfCurrentCustomers = perfCurrentCustomersRes.count;
-  const perfPrevOrders = perfPrevOrdersRes.data;
-
-  const perfCurrentSales = perfCurrentOrders?.reduce((sum, o) => sum + o.total, 0) || 0;
-  const perfCurrentOrderCount = perfCurrentOrders?.length || 0;
-  const perfPrevSales = perfPrevOrders?.reduce((sum, o) => sum + o.total, 0) || 0;
+  // --- パフォーマンスデータ（allOrdersから再利用） ---
+  const perfCurrentSales = revenueMonth;
+  const perfCurrentOrderCount = allOrders
+    .filter(o => new Date(o.created_at) >= monthStart && new Date(o.created_at) <= todayEnd).length;
+  const perfCurrentCustomers = customersCountMonth;
+  const perfPrevSales = prevMonthRevenue;
+  const perfPrevOrderCount = allOrders
+    .filter(o => new Date(o.created_at) >= prevMonthStart && new Date(o.created_at) <= prevMonthEnd).length;
 
   const perfGrowthRate = perfPrevSales > 0
     ? ((perfCurrentSales - perfPrevSales) / perfPrevSales) * 100
     : 0;
 
   const perfSalesTarget = perfPrevSales > 0 ? Math.round(perfPrevSales * 1.2) : 1000000;
-  const perfOrdersTarget = (perfPrevOrders?.length || 0) > 0 ? Math.round((perfPrevOrders?.length || 0) * 1.2) : 50;
+  const perfOrdersTarget = perfPrevOrderCount > 0 ? Math.round(perfPrevOrderCount * 1.2) : 50;
   const perfCustomersTarget = 30;
 
   const perfSalesAchievement = perfSalesTarget > 0 ? Math.round((perfCurrentSales / perfSalesTarget) * 100) : 0;
   const perfOrdersAchievement = perfOrdersTarget > 0 ? Math.round((perfCurrentOrderCount / perfOrdersTarget) * 100) : 0;
-  const perfCustomersAchievement = perfCustomersTarget > 0 ? Math.round(((perfCurrentCustomers || 0) / perfCustomersTarget) * 100) : 0;
+  const perfCustomersAchievement = perfCustomersTarget > 0 ? Math.round((perfCurrentCustomers / perfCustomersTarget) * 100) : 0;
   const perfAvgAchievement = Math.round((perfSalesAchievement + perfOrdersAchievement + perfCustomersAchievement) / 3);
 
   let perfGrade = 'C';
@@ -522,23 +420,23 @@ export async function getDashboardData(organizationId: string) {
     },
     orders: {
       month: {
-        total: ordersCountMonthRes.count || 0,
-        change: calcCountChange(ordersCountMonthRes.count, prevMonthOrdersCountRes.count),
+        total: ordersCountMonth,
+        change: calcCountChange(ordersCountMonth, prevMonthOrdersCount),
       },
       year: {
-        total: ordersCountYearRes.count || 0,
-        change: calcCountChange(ordersCountYearRes.count, prevYearOrdersCountRes.count),
+        total: ordersCountYear,
+        change: calcCountChange(ordersCountYear, prevYearOrdersCount),
       },
       total: { total: ordersCountTotalRes.count || 0, change: 0 },
     },
     customers: {
       month: {
-        total: customersCountMonthRes.count || 0,
-        change: calcCountChange(customersCountMonthRes.count, prevMonthCustomersCountRes.count),
+        total: customersCountMonth,
+        change: calcCountChange(customersCountMonth, prevMonthCustomersCount),
       },
       year: {
-        total: customersCountYearRes.count || 0,
-        change: calcCountChange(customersCountYearRes.count, prevYearCustomersCountRes.count),
+        total: customersCountYear,
+        change: calcCountChange(customersCountYear, prevYearCustomersCount),
       },
       total: { total: customersCountTotalRes.count || 0, change: 0 },
     },
@@ -558,7 +456,7 @@ export async function getDashboardData(organizationId: string) {
       ordersActual: perfCurrentOrderCount,
       ordersAchievement: perfOrdersAchievement,
       customersTarget: perfCustomersTarget,
-      customersActual: perfCurrentCustomers || 0,
+      customersActual: perfCurrentCustomers,
       customersAchievement: perfCustomersAchievement,
       growthRate: Math.round(perfGrowthRate * 10) / 10,
       avgAchievement: perfAvgAchievement,

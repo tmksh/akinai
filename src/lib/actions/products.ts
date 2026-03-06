@@ -295,41 +295,37 @@ export async function getProduct(productId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    const { data: product, error: productError } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', productId)
-      .single();
+    // 商品・バリエーション・画像・カテゴリ関連を並列取得
+    const [productRes, variantsRes, imagesRes, pcRes] = await Promise.all([
+      supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single(),
+      supabase
+        .from('product_variants')
+        .select('*')
+        .eq('product_id', productId),
+      supabase
+        .from('product_images')
+        .select('*')
+        .eq('product_id', productId)
+        .order('sort_order', { ascending: true }),
+      supabase
+        .from('product_categories')
+        .select('product_id, category_id')
+        .eq('product_id', productId),
+    ]);
 
-    if (productError) throw productError;
+    if (productRes.error) throw productRes.error;
+    if (variantsRes.error) throw variantsRes.error;
+    if (imagesRes.error) throw imagesRes.error;
+    if (pcRes.error) throw pcRes.error;
 
-    // バリエーションを取得
-    const { data: variants, error: variantsError } = await supabase
-      .from('product_variants')
-      .select('*')
-      .eq('product_id', productId);
-
-    if (variantsError) throw variantsError;
-
-    // 画像を取得
-    const { data: images, error: imagesError } = await supabase
-      .from('product_images')
-      .select('*')
-      .eq('product_id', productId)
-      .order('sort_order', { ascending: true });
-
-    if (imagesError) throw imagesError;
-
-    // カテゴリ関連を取得
-    const { data: productCategories, error: pcError } = await supabase
-      .from('product_categories')
-      .select('product_id, category_id')
-      .eq('product_id', productId);
-
-    if (pcError) throw pcError;
+    const product = productRes.data;
 
     // カテゴリ詳細を取得
-    const categoryIds = productCategories?.map(pc => pc.category_id) || [];
+    const categoryIds = pcRes.data?.map(pc => pc.category_id) || [];
     let categories: Category[] = [];
     if (categoryIds.length > 0) {
       const { data: catData, error: catError } = await supabase
@@ -343,8 +339,8 @@ export async function getProduct(productId: string): Promise<{
     return {
       data: {
         ...product,
-        variants: variants || [],
-        images: images || [],
+        variants: variantsRes.data || [],
+        images: imagesRes.data || [],
         categories,
       },
       error: null,

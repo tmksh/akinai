@@ -21,10 +21,10 @@ export async function getCustomers(organizationId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    // 顧客を取得
+    // 顧客と住所をJOINで1クエリ取得
     const { data: customers, error: customersError } = await supabase
       .from('customers')
-      .select('*')
+      .select('*, customer_addresses(*)')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
@@ -33,21 +33,14 @@ export async function getCustomers(organizationId: string): Promise<{
       return { data: [], error: null };
     }
 
-    const customerIds = customers.map(c => c.id);
-
-    // 住所を取得
-    const { data: addresses, error: addressesError } = await supabase
-      .from('customer_addresses')
-      .select('*')
-      .in('customer_id', customerIds);
-
-    if (addressesError) throw addressesError;
-
-    // データを結合
-    const customersWithAddresses: CustomerWithAddresses[] = customers.map(customer => ({
-      ...customer,
-      addresses: addresses?.filter(addr => addr.customer_id === customer.id) || [],
-    }));
+    // データを整形
+    const customersWithAddresses: CustomerWithAddresses[] = customers.map(customer => {
+      const { customer_addresses, ...rest } = customer;
+      return {
+        ...rest,
+        addresses: (customer_addresses as CustomerAddress[]) || [],
+      };
+    });
 
     return { data: customersWithAddresses, error: null };
   } catch (err) {
@@ -67,27 +60,20 @@ export async function getCustomer(customerId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    // 顧客を取得
+    // 顧客と住所をJOINで1クエリ取得
     const { data: customer, error: customerError } = await supabase
       .from('customers')
-      .select('*')
+      .select('*, customer_addresses(*)')
       .eq('id', customerId)
       .single();
 
     if (customerError) throw customerError;
 
-    // 住所を取得
-    const { data: addresses, error: addressesError } = await supabase
-      .from('customer_addresses')
-      .select('*')
-      .eq('customer_id', customerId);
-
-    if (addressesError) throw addressesError;
-
+    const { customer_addresses, ...rest } = customer;
     return {
       data: {
-        ...customer,
-        addresses: addresses || [],
+        ...rest,
+        addresses: (customer_addresses as CustomerAddress[]) || [],
       },
       error: null,
     };
@@ -411,50 +397,48 @@ export async function getCustomerStats(organizationId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    // 総顧客数を取得
-    const { count: totalCustomers } = await supabase
-      .from('customers')
-      .select('*', { count: 'exact', head: true })
-      .eq('organization_id', organizationId);
-
-    // 今月の新規顧客数を取得
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const { count: newCustomersThisMonth } = await supabase
-      .from('customers')
-      .select('*', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', startOfMonth.toISOString());
+    // 全クエリを並列実行（4→2クエリに統合）
+    const [customersRes, topCustomersRes] = await Promise.all([
+      // 全顧客のtotal_orders, total_spent, created_atを1クエリで取得
+      supabase
+        .from('customers')
+        .select('total_orders, total_spent, created_at')
+        .eq('organization_id', organizationId),
+      // トップ顧客（購入額上位5名）
+      supabase
+        .from('customers')
+        .select('id, name, email, total_spent, total_orders')
+        .eq('organization_id', organizationId)
+        .order('total_spent', { ascending: false })
+        .limit(5),
+    ]);
+
+    const customers = customersRes.data || [];
+    const totalCustomers = customers.length;
+
+    // 今月の新規顧客数（JS側でフィルタ）
+    const newCustomersThisMonth = customers.filter(
+      c => new Date(c.created_at) >= startOfMonth
+    ).length;
 
     // リピート率を計算（2回以上注文した顧客の割合）
-    const { data: customers } = await supabase
-      .from('customers')
-      .select('total_orders, total_spent')
-      .eq('organization_id', organizationId);
-
-    const repeatCustomers = customers?.filter(c => c.total_orders >= 2).length || 0;
-    const repeatRate = totalCustomers && totalCustomers > 0 
+    const repeatCustomers = customers.filter(c => c.total_orders >= 2).length;
+    const repeatRate = totalCustomers > 0
       ? Math.round((repeatCustomers / totalCustomers) * 100)
       : 0;
 
     // 平均購入額を計算
-    const totalRevenue = customers?.reduce((sum, c) => sum + (c.total_spent || 0), 0) || 0;
-    const totalOrders = customers?.reduce((sum, c) => sum + (c.total_orders || 0), 0) || 0;
-    const averageOrderValue = totalOrders > 0 
+    const totalRevenue = customers.reduce((sum, c) => sum + (c.total_spent || 0), 0);
+    const totalOrders = customers.reduce((sum, c) => sum + (c.total_orders || 0), 0);
+    const averageOrderValue = totalOrders > 0
       ? Math.round(totalRevenue / totalOrders)
       : 0;
 
-    // トップ顧客を取得（購入額上位5名）
-    const { data: topCustomersData } = await supabase
-      .from('customers')
-      .select('id, name, email, total_spent, total_orders')
-      .eq('organization_id', organizationId)
-      .order('total_spent', { ascending: false })
-      .limit(5);
-
-    const topCustomers = (topCustomersData || []).map(c => ({
+    const topCustomers = (topCustomersRes.data || []).map(c => ({
       id: c.id,
       name: c.name,
       email: c.email,
@@ -501,10 +485,10 @@ export async function getCustomerOrders(customerId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    // 注文を取得
+    // 注文と明細をJOINで1クエリ取得
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
-      .select('*')
+      .select('*, order_items(product_name, quantity, unit_price)')
       .eq('customer_id', customerId)
       .order('created_at', { ascending: false });
 
@@ -514,24 +498,14 @@ export async function getCustomerOrders(customerId: string): Promise<{
       return { data: [], error: null };
     }
 
-    // 注文明細を取得
-    const orderIds = orders.map(o => o.id);
-    const { data: orderItems, error: itemsError } = await supabase
-      .from('order_items')
-      .select('*')
-      .in('order_id', orderIds);
-
-    if (itemsError) throw itemsError;
-
-    // データを結合
+    // データを整形
     const result = orders.map(order => ({
       id: order.id,
       orderNumber: order.order_number,
       total: order.total,
       status: order.status,
       createdAt: order.created_at,
-      items: (orderItems || [])
-        .filter(item => item.order_id === order.id)
+      items: ((order.order_items as { product_name: string; quantity: number; unit_price: number }[]) || [])
         .map(item => ({
           productName: item.product_name,
           quantity: item.quantity,

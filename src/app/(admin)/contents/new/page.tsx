@@ -45,7 +45,12 @@ import { getContentCategories, setContentCategories, type ContentCategory } from
 import { Checkbox } from '@/components/ui/checkbox';
 import { QAEditor } from '../_components/qa-editor';
 import { GalleryEditor } from '../_components/gallery-editor';
-import { RichTextEditor, htmlToBlocks } from '@/components/editor/rich-text-editor';
+import dynamic from 'next/dynamic';
+import { htmlToBlocks } from '@/components/editor/rich-text-editor';
+const RichTextEditor = dynamic(
+  () => import('@/components/editor/rich-text-editor').then(m => m.RichTextEditor),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded-md" /> }
+);
 
 const contentTabs = [
   { label: '一覧', href: '/contents', exact: true },

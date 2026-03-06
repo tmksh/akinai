@@ -381,7 +381,13 @@ export async function updateContent(
     if (input.slug !== undefined) updateData.slug = input.slug;
     if (input.excerpt !== undefined) updateData.excerpt = input.excerpt;
     if (input.blocks !== undefined) updateData.blocks = input.blocks;
-    if (input.status !== undefined) updateData.status = input.status;
+    if (input.status !== undefined) {
+      updateData.status = input.status;
+      // 公開に変更した際に published_at が未設定なら自動でセット
+      if (input.status === 'published' && input.publishedAt === undefined) {
+        updateData.published_at = new Date().toISOString();
+      }
+    }
     if (input.featuredImage !== undefined) updateData.featured_image = input.featuredImage;
     if (input.tags !== undefined) updateData.tags = input.tags;
     if (input.relatedProductIds !== undefined) updateData.related_product_ids = input.relatedProductIds;

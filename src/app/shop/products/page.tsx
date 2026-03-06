@@ -208,16 +208,17 @@ export default async function ProductsPage({
   const categorySlug = params.category || 'all';
   const sortBy = params.sort || 'popular';
 
-  // カテゴリ名を取得
-  const { data: categories } = await getShopCategories();
+  // カテゴリと商品を並列取得
+  const [categoriesRes, productsRes] = await Promise.all([
+    getShopCategories(),
+    getShopProducts({
+      categorySlug: categorySlug !== 'all' ? categorySlug : undefined,
+    }),
+  ]);
+  const categories = categoriesRes.data;
   const currentCategory = categories?.find(c => c.slug === categorySlug);
   const categoryName = categorySlug === 'all' ? 'すべての製品' : currentCategory?.name || 'すべての製品';
-
-  // 商品数を取得
-  const { data: products } = await getShopProducts({
-    categorySlug: categorySlug !== 'all' ? categorySlug : undefined,
-  });
-  const productCount = products?.length || 0;
+  const productCount = productsRes.data?.length || 0;
 
   return (
     <div className="min-h-screen bg-white">

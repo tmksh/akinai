@@ -16,15 +16,17 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-} from 'recharts';
-import { Responsive as ResponsiveOrig } from 'react-grid-layout';
+import dynamic from 'next/dynamic';
+import type { ResponsiveProps } from 'react-grid-layout';
+
+const DashboardChart = dynamic(
+  () => import('./dashboard-chart').then(m => m.DashboardChart),
+  { ssr: false, loading: () => <div className="h-full w-full animate-pulse bg-slate-50 rounded" /> }
+);
+const ResponsiveOrig = dynamic(
+  () => import('react-grid-layout').then(m => m.Responsive),
+  { ssr: false }
+) as React.ComponentType<ResponsiveProps>;
 
 // デバウンス付きコンテナ幅フック（ResizeObserver の過剰発火を防ぐ）
 function useStableContainerWidth() {
@@ -589,25 +591,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           </div>
         </div>
         <div className="h-[calc(100%-60px)]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={initialData.monthlySales}>
-              <defs>
-                <linearGradient id="fillSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f97316" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="fillOrders" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <Area type="monotone" dataKey="orders" stroke="#fbbf24" strokeWidth={2} fill="url(#fillOrders)" />
-              <Area type="monotone" dataKey="sales" stroke="#f97316" strokeWidth={2.5} fill="url(#fillSales)" />
-            </AreaChart>
-          </ResponsiveContainer>
+          <DashboardChart data={initialData.monthlySales} />
         </div>
       </WidgetWrapper>
     ),

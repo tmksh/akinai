@@ -70,27 +70,37 @@ export async function createOrder(input: CreateOrderInput): Promise<{
   const reserveStock = input.reserveStock !== false; // デフォルトtrue
 
   try {
-    // 1. 在庫確認
+    // 1. 在庫確認（全アイテムを並列チェック）
     if (reserveStock) {
-      for (const item of input.items) {
-        const { data: variant, error: variantError } = await supabase
-          .from('product_variants')
-          .select('stock, name')
-          .eq('id', item.variantId)
-          .single();
+      const variantIds = input.items.map(item => item.variantId);
 
-        if (variantError || !variant) {
+      // バリアント情報と予約在庫を並列取得
+      const [variantsRes, reservedRes] = await Promise.all([
+        supabase
+          .from('product_variants')
+          .select('id, stock, name')
+          .in('id', variantIds),
+        supabase
+          .from('order_items')
+          .select('variant_id, quantity, orders!inner(status)')
+          .in('variant_id', variantIds)
+          .in('orders.status', ['pending', 'confirmed', 'processing']),
+      ]);
+
+      const variantMap = new Map((variantsRes.data || []).map(v => [v.id, v]));
+      const reservedMap = new Map<string, number>();
+      for (const r of reservedRes.data || []) {
+        if (!r.variant_id) continue;
+        reservedMap.set(r.variant_id, (reservedMap.get(r.variant_id) || 0) + r.quantity);
+      }
+
+      for (const item of input.items) {
+        const variant = variantMap.get(item.variantId);
+        if (!variant) {
           return { data: null, error: `商品バリアント ${item.variantName} が見つかりません` };
         }
 
-        // 予約済み在庫を考慮した利用可能在庫を計算
-        const { data: reservedData } = await supabase
-          .from('order_items')
-          .select('quantity, orders!inner(status)')
-          .eq('variant_id', item.variantId)
-          .in('orders.status', ['pending', 'confirmed', 'processing']);
-
-        const reservedStock = reservedData?.reduce((sum, r) => sum + r.quantity, 0) || 0;
+        const reservedStock = reservedMap.get(item.variantId) || 0;
         const availableStock = variant.stock - reservedStock;
 
         if (availableStock < item.quantity) {
@@ -217,10 +227,10 @@ export async function getOrders(organizationId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    // 注文を取得
+    // 注文と明細をJOINで1クエリ取得
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
-      .select('*')
+      .select('*, order_items(*)')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
@@ -229,21 +239,14 @@ export async function getOrders(organizationId: string): Promise<{
       return { data: [], error: null };
     }
 
-    const orderIds = orders.map(o => o.id);
-
-    // 注文明細を取得
-    const { data: items, error: itemsError } = await supabase
-      .from('order_items')
-      .select('*')
-      .in('order_id', orderIds);
-
-    if (itemsError) throw itemsError;
-
-    // データを結合
-    const ordersWithItems: OrderWithItems[] = orders.map(order => ({
-      ...order,
-      items: items?.filter(item => item.order_id === order.id) || [],
-    }));
+    // データを整形
+    const ordersWithItems: OrderWithItems[] = orders.map(order => {
+      const { order_items, ...rest } = order;
+      return {
+        ...rest,
+        items: (order_items as OrderItem[]) || [],
+      };
+    });
 
     return { data: ordersWithItems, error: null };
   } catch (err) {
@@ -263,27 +266,20 @@ export async function getOrder(orderId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    // 注文を取得
+    // 注文と明細をJOINで1クエリ取得
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('*')
+      .select('*, order_items(*)')
       .eq('id', orderId)
       .single();
 
     if (orderError) throw orderError;
 
-    // 注文明細を取得
-    const { data: items, error: itemsError } = await supabase
-      .from('order_items')
-      .select('*')
-      .eq('order_id', orderId);
-
-    if (itemsError) throw itemsError;
-
+    const { order_items, ...rest } = order;
     return {
       data: {
-        ...order,
-        items: items || [],
+        ...rest,
+        items: (order_items as OrderItem[]) || [],
       },
       error: null,
     };

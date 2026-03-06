@@ -128,15 +128,13 @@ function FeaturedProductsSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getShopProducts({ featured: true, limit: 4 }).then(({ data }) => {
-      if (data && data.length > 0) {
-        setProducts(data);
-      } else {
-        // featured商品がなければ新着順で4件
-        getShopProducts({ sortBy: 'new', limit: 4 }).then(({ data: d }) => {
-          setProducts(d || []);
-        });
-      }
+    // featured と新着を並列取得してウォーターフォールを回避
+    Promise.all([
+      getShopProducts({ featured: true, limit: 4 }),
+      getShopProducts({ sortBy: 'new', limit: 4 }),
+    ]).then(([featuredRes, newRes]) => {
+      const featured = featuredRes.data;
+      setProducts(featured && featured.length > 0 ? featured : newRes.data || []);
       setLoading(false);
     });
   }, []);
