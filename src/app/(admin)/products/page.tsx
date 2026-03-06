@@ -1,15 +1,9 @@
 import { redirect } from 'next/navigation';
-import { unstable_cache } from 'next/cache';
 import { getProducts, getCategories } from '@/lib/actions/products';
 import { getAuthOrganization } from '@/lib/auth-helpers';
 import ProductsClient from './products-client';
 
-const getCachedProducts = (orgId: string) =>
-  unstable_cache(
-    () => Promise.all([getProducts(orgId, { limit: 50 }), getCategories(orgId)]),
-    ['products', orgId],
-    { revalidate: 15 }
-  )();
+export const dynamic = 'force-dynamic';
 
 export default async function ProductsPage() {
   const { user, organizationId } = await getAuthOrganization();
@@ -29,7 +23,10 @@ export default async function ProductsPage() {
     );
   }
 
-  const [productsRes, categoriesRes] = await getCachedProducts(organizationId);
+  const [productsRes, categoriesRes] = await Promise.all([
+    getProducts(organizationId, { limit: 50 }),
+    getCategories(organizationId),
+  ]);
 
   return (
     <ProductsClient

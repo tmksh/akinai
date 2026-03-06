@@ -1,20 +1,10 @@
 import { redirect } from 'next/navigation';
-import { unstable_cache } from 'next/cache';
 import { getContents, getContentStats } from '@/lib/actions/contents';
 import { getEnabledContentTypes } from '@/lib/actions/settings';
 import { getAuthOrganization } from '@/lib/auth-helpers';
 import ContentsClient from './contents-client';
 
-const getCachedContents = (orgId: string) =>
-  unstable_cache(
-    () => Promise.all([
-      getContents(orgId, { limit: 50 }),
-      getContentStats(orgId),
-      getEnabledContentTypes(orgId),
-    ]),
-    ['contents', orgId],
-    { revalidate: 15 }
-  )();
+export const dynamic = 'force-dynamic';
 
 export default async function ContentsPage() {
   const { user, organizationId } = await getAuthOrganization();
@@ -34,7 +24,11 @@ export default async function ContentsPage() {
     );
   }
   
-  const [contentsRes, stats, enabledTypesRes] = await getCachedContents(organizationId);
+  const [contentsRes, stats, enabledTypesRes] = await Promise.all([
+    getContents(organizationId, { limit: 50 }),
+    getContentStats(organizationId),
+    getEnabledContentTypes(organizationId),
+  ]);
 
   return (
     <ContentsClient 

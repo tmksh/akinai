@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { unstable_cache } from 'next/cache';
 import { getDashboardData } from '@/lib/actions/dashboard';
 import { getAuthOrganization } from '@/lib/auth-helpers';
 import { createDefaultOrganizationForUser } from '@/lib/create-default-organization';
@@ -40,17 +39,10 @@ function DashboardSkeleton() {
   );
 }
 
-const getCachedDashboardData = (orgId: string) =>
-  unstable_cache(
-    () => getDashboardData(orgId),
-    ['dashboard', orgId],
-    { revalidate: 30 }
-  )();
-
 async function DashboardContent({ organizationId }: { organizationId: string }) {
   let dashboardData;
   try {
-    dashboardData = await getCachedDashboardData(organizationId);
+    dashboardData = await getDashboardData(organizationId);
   } catch (err) {
     console.error('[Dashboard] getDashboardData failed:', err);
     dashboardData = fallbackData;
