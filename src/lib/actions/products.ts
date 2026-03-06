@@ -18,23 +18,38 @@ export interface ProductWithRelations extends Product {
 }
 
 // 商品一覧を取得
-export async function getProducts(organizationId: string): Promise<{
+export async function getProducts(
+  organizationId: string,
+  options?: { limit?: number; offset?: number; status?: string; search?: string }
+): Promise<{
   data: ProductWithRelations[] | null;
   error: string | null;
+  total: number;
 }> {
   const supabase = await createClient();
+  const limit = options?.limit ?? 50;
+  const offset = options?.offset ?? 0;
 
   try {
-    // 商品を取得
-    const { data: products, error: productsError } = await supabase
+    let query = supabase
       .from('products')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (options?.status && options.status !== 'all') {
+      query = query.eq('status', options.status);
+    }
+    if (options?.search) {
+      query = query.ilike('name', `%${options.search}%`);
+    }
+
+    const { data: products, error: productsError, count } = await query;
 
     if (productsError) throw productsError;
     if (!products || products.length === 0) {
-      return { data: [], error: null };
+      return { data: [], error: null, total: 0 };
     }
 
     const productIds = products.map(p => p.id);
@@ -87,10 +102,10 @@ export async function getProducts(organizationId: string): Promise<{
         .filter((c): c is Category => c !== undefined) || [],
     }));
 
-    return { data: productsWithRelations, error: null };
+    return { data: productsWithRelations, error: null, total: count ?? productsWithRelations.length };
   } catch (error) {
     console.error('Error fetching products:', error);
-    return { data: null, error: 'Failed to fetch products' };
+    return { data: null, error: 'Failed to fetch products', total: 0 };
   }
 }
 

@@ -36,7 +36,7 @@ export default async function ContentsPage() {
   
   // 互いに依存しない3つのクエリを並列取得
   const [contentsRes, stats, enabledTypesRes] = await Promise.all([
-    getContents(organizationId),
+    getContents(organizationId, { limit: 50 }),
     getContentStats(organizationId),
     getEnabledContentTypes(organizationId),
   ]);
