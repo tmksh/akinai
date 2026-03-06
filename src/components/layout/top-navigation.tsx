@@ -42,7 +42,7 @@ const navigationItems: {
 }[] = [
   { title: 'ホーム', icon: IoHome, href: '/dashboard' },
   { title: '商品管理', icon: IoCube, href: '/products' },
-  { title: 'お知らせ', icon: IoDocument, href: '/contents' },
+  { title: 'コンテンツ管理', icon: IoDocument, href: '/contents' },
   { title: '注文管理', icon: IoCart, href: '/orders' },
   { title: '代理店', icon: IoBusiness, href: '/agents' },
   { title: '設定', icon: IoSettings, href: '/settings' },
@@ -147,9 +147,10 @@ export function TopNavigation() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
-        {/* メインヘッダー */}
-        <div className="flex items-center justify-between h-16 md:h-20 px-3 md:px-4 lg:px-6">
+      <header className="sticky top-0 z-50 w-full px-3 md:px-4 pt-3">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-md rounded-2xl">
+          {/* メインヘッダー */}
+          <div className="flex items-center justify-between h-14 md:h-16 px-3 md:px-4 lg:px-5">
           {/* ロゴ */}
           <Link href="/dashboard" className="flex items-center shrink-0">
             <img
@@ -286,7 +287,7 @@ export function TopNavigation() {
 
         {/* モバイルナビゲーション */}
         {mobileMenuOpen && (
-          <nav className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-3 max-h-[70vh] overflow-y-auto">
+          <nav className="md:hidden border-t border-slate-200 dark:border-slate-800 px-3 py-3 max-h-[70vh] overflow-y-auto rounded-b-2xl">
             <div className="grid grid-cols-4 gap-2">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
@@ -333,6 +334,7 @@ export function TopNavigation() {
             </div>
           </nav>
         )}
+        </div>
       </header>
     </>
   );

@@ -39,30 +39,30 @@ export async function getProducts(organizationId: string): Promise<{
 
     const productIds = products.map(p => p.id);
 
-    // バリエーションを取得
-    const { data: variants, error: variantsError } = await supabase
-      .from('product_variants')
-      .select('*')
-      .in('product_id', productIds);
+    // バリエーション・画像・カテゴリ関連を並列取得
+    const [variantsRes, imagesRes, pcRes] = await Promise.all([
+      supabase
+        .from('product_variants')
+        .select('*')
+        .in('product_id', productIds),
+      supabase
+        .from('product_images')
+        .select('*')
+        .in('product_id', productIds)
+        .order('sort_order', { ascending: true }),
+      supabase
+        .from('product_categories')
+        .select('product_id, category_id')
+        .in('product_id', productIds),
+    ]);
 
-    if (variantsError) throw variantsError;
+    if (variantsRes.error) throw variantsRes.error;
+    if (imagesRes.error) throw imagesRes.error;
+    if (pcRes.error) throw pcRes.error;
 
-    // 画像を取得
-    const { data: images, error: imagesError } = await supabase
-      .from('product_images')
-      .select('*')
-      .in('product_id', productIds)
-      .order('sort_order', { ascending: true });
-
-    if (imagesError) throw imagesError;
-
-    // カテゴリ関連を取得
-    const { data: productCategories, error: pcError } = await supabase
-      .from('product_categories')
-      .select('product_id, category_id')
-      .in('product_id', productIds);
-
-    if (pcError) throw pcError;
+    const variants = variantsRes.data;
+    const images = imagesRes.data;
+    const productCategories = pcRes.data;
 
     // カテゴリ詳細を取得
     const categoryIds = [...new Set(productCategories?.map(pc => pc.category_id) || [])];
@@ -124,29 +124,31 @@ export async function getCategoriesWithProductCount(organizationId: string): Pro
   const supabase = await createClient();
 
   try {
-    // カテゴリ一覧を取得
-    const { data: categories, error: catError } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .order('sort_order', { ascending: true });
+    // カテゴリ一覧と全product_categoriesを並列取得
+    const [catRes, pcRes] = await Promise.all([
+      supabase
+        .from('categories')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .order('sort_order', { ascending: true }),
+      supabase
+        .from('product_categories')
+        .select('category_id'),
+    ]);
 
-    if (catError) throw catError;
+    if (catRes.error) throw catRes.error;
 
-    // 各カテゴリの商品数を取得
-    const categoriesWithCount = await Promise.all(
-      (categories || []).map(async (category) => {
-        const { count } = await supabase
-          .from('product_categories')
-          .select('*', { count: 'exact', head: true })
-          .eq('category_id', category.id);
-        
-        return {
-          ...category,
-          productCount: count || 0,
-        };
-      })
-    );
+    // JSで集計（N+1クエリ不要）
+    const pcData = pcRes.data || [];
+    const countMap = pcData.reduce<Record<string, number>>((acc, row) => {
+      acc[row.category_id] = (acc[row.category_id] || 0) + 1;
+      return acc;
+    }, {});
+
+    const categoriesWithCount = (catRes.data || []).map(category => ({
+      ...category,
+      productCount: countMap[category.id] || 0,
+    }));
 
     return { data: categoriesWithCount, error: null };
   } catch (error) {

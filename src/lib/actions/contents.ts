@@ -156,22 +156,35 @@ export async function getContentStats(
 } | null> {
   try {
     const supabase = await createClient();
-    
-    const { data, error } = await supabase
-      .from('contents')
-      .select('status, scheduled_at')
-      .eq('organization_id', organizationId);
 
-    if (error) {
-      console.error('Error fetching content stats:', error);
-      return null;
-    }
+    // ステータスごとにCOUNTクエリを並列発行（全件転送なし）
+    const [totalRes, publishedRes, draftRes, scheduledRes] = await Promise.all([
+      supabase
+        .from('contents')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId),
+      supabase
+        .from('contents')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .eq('status', 'published'),
+      supabase
+        .from('contents')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .eq('status', 'draft'),
+      supabase
+        .from('contents')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .not('scheduled_at', 'is', null),
+    ]);
 
     return {
-      total: data.length,
-      published: data.filter(c => c.status === 'published').length,
-      draft: data.filter(c => c.status === 'draft').length,
-      scheduled: data.filter(c => c.scheduled_at !== null).length,
+      total: totalRes.count ?? 0,
+      published: publishedRes.count ?? 0,
+      draft: draftRes.count ?? 0,
+      scheduled: scheduledRes.count ?? 0,
     };
   } catch (err) {
     console.error('Error:', err);

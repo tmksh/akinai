@@ -11,7 +11,7 @@ export default function AdminLayout({
     <OrganizationProvider>
       <div className="min-h-screen dark:bg-slate-950 overflow-x-hidden" style={{ background: '#f5f3ef' }}>
         <TopNavigation />
-        <main className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto w-full min-w-0">
+        <main className="p-3 sm:p-4 md:p-6 pt-4 md:pt-5 max-w-7xl mx-auto w-full min-w-0">
           {children}
         </main>
         <Toaster />

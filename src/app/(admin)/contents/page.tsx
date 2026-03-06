@@ -34,21 +34,19 @@ export default async function ContentsPage() {
     );
   }
   
-  const { data: contents } = await getContents(organizationId);
-  const stats = await getContentStats(organizationId) || {
-    total: 0,
-    published: 0,
-    draft: 0,
-    scheduled: 0,
-  };
-  const { data: enabledContentTypes } = await getEnabledContentTypes(organizationId);
+  // 互いに依存しない3つのクエリを並列取得
+  const [contentsRes, stats, enabledTypesRes] = await Promise.all([
+    getContents(organizationId),
+    getContentStats(organizationId),
+    getEnabledContentTypes(organizationId),
+  ]);
 
   return (
     <ContentsClient 
-      initialContents={contents || []} 
-      stats={stats}
+      initialContents={contentsRes.data || []} 
+      stats={stats || { total: 0, published: 0, draft: 0, scheduled: 0 }}
       organizationId={organizationId}
-      enabledContentTypes={enabledContentTypes || []}
+      enabledContentTypes={enabledTypesRes.data || []}
     />
   );
 }
