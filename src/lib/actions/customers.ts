@@ -14,19 +14,23 @@ export interface CustomerWithAddresses extends Customer {
 }
 
 // 顧客一覧を取得
-export async function getCustomers(organizationId: string): Promise<{
+export async function getCustomers(
+  organizationId: string,
+  options?: { limit?: number }
+): Promise<{
   data: CustomerWithAddresses[] | null;
   error: string | null;
 }> {
   const supabase = await createClient();
+  const limit = options?.limit ?? 50;
 
   try {
-    // 顧客と住所をJOINで1クエリ取得
     const { data: customers, error: customersError } = await supabase
       .from('customers')
       .select('*, customer_addresses(*)')
       .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
     if (customersError) throw customersError;
     if (!customers || customers.length === 0) {

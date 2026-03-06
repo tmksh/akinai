@@ -15,19 +15,23 @@ export interface QuoteWithItems extends Quote {
 }
 
 // 見積一覧を取得
-export async function getQuotes(organizationId: string): Promise<{
+export async function getQuotes(
+  organizationId: string,
+  options?: { limit?: number }
+): Promise<{
   data: QuoteWithItems[] | null;
   error: string | null;
 }> {
   const supabase = await createClient();
+  const limit = options?.limit ?? 50;
 
   try {
-    // 見積を取得
     const { data: quotes, error: quotesError } = await supabase
       .from('quotes')
       .select('*')
       .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
     if (quotesError) throw quotesError;
     if (!quotes || quotes.length === 0) {

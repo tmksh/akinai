@@ -152,10 +152,14 @@ export async function getDashboardData(organizationId: string) {
   const chartRangeStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
   const chartRangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  // --- 全クエリを並列実行 ---
+  // --- 全クエリを並列実行（期間制限+重複排除済み） ---
   const [
     allOrdersRes,
     ordersCountTotalRes,
+    ordersCountMonthRes,
+    ordersCountYearRes,
+    ordersCountPrevMonthRes,
+    ordersCountPrevYearRes,
     customersCountTotalRes,
     customersCountMonthRes,
     customersCountYearRes,
@@ -165,79 +169,49 @@ export async function getDashboardData(organizationId: string) {
     productsCountNewRes,
     recentOrdersRes,
     lowStockRes,
-    allOrderDatesRes,
     allOrderItemsRes,
   ] = await Promise.all([
+    // 売上集計用: 前年〜今（チャート・パフォーマンス計算に十分）
     supabase
       .from('orders')
       .select('total, created_at')
       .eq('organization_id', organizationId)
-      .in('status', ['confirmed', 'processing', 'shipped', 'delivered']),
-    supabase
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId),
-    supabase
-      .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId),
-    supabase
-      .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', monthStart.toISOString())
-      .lte('created_at', todayEnd.toISOString()),
-    supabase
-      .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', yearStart.toISOString())
-      .lte('created_at', todayEnd.toISOString()),
-    supabase
-      .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', prevMonthStart.toISOString())
-      .lte('created_at', prevMonthEnd.toISOString()),
-    supabase
-      .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', prevYearStart.toISOString())
-      .lte('created_at', prevYearEnd.toISOString()),
-    supabase
-      .from('products')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId),
-    supabase
-      .from('products')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
+      .in('status', ['confirmed', 'processing', 'shipped', 'delivered'])
+      .gte('created_at', prevYearStart.toISOString()),
+    // 注文COUNT（全ステータス）
+    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId),
+    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId)
+      .gte('created_at', monthStart.toISOString()).lte('created_at', todayEnd.toISOString()),
+    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId)
+      .gte('created_at', yearStart.toISOString()).lte('created_at', todayEnd.toISOString()),
+    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId)
+      .gte('created_at', prevMonthStart.toISOString()).lte('created_at', prevMonthEnd.toISOString()),
+    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId)
+      .gte('created_at', prevYearStart.toISOString()).lte('created_at', prevYearEnd.toISOString()),
+    // 顧客COUNT
+    supabase.from('customers').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId),
+    supabase.from('customers').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId)
+      .gte('created_at', monthStart.toISOString()).lte('created_at', todayEnd.toISOString()),
+    supabase.from('customers').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId)
+      .gte('created_at', yearStart.toISOString()).lte('created_at', todayEnd.toISOString()),
+    supabase.from('customers').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId)
+      .gte('created_at', prevMonthStart.toISOString()).lte('created_at', prevMonthEnd.toISOString()),
+    supabase.from('customers').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId)
+      .gte('created_at', prevYearStart.toISOString()).lte('created_at', prevYearEnd.toISOString()),
+    // 商品COUNT
+    supabase.from('products').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId),
+    supabase.from('products').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId)
       .gte('created_at', monthStart.toISOString()),
-    supabase
-      .from('orders')
-      .select('id, order_number, customer_name, total, status, created_at')
-      .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase
-      .from('product_variants')
-      .select(`
+    // 最近の注文
+    supabase.from('orders').select('id, order_number, customer_name, total, status, created_at')
+      .eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(5),
+    // 低在庫
+    supabase.from('product_variants').select(`
         id, name, sku, stock, low_stock_threshold,
-        product:products!inner (
-          id, name, organization_id,
-          product_images (url, sort_order)
-        )
-      `)
-      .eq('product.organization_id', organizationId)
-      .order('stock', { ascending: true })
-      .limit(10),
-    supabase
-      .from('orders')
-      .select('created_at')
-      .eq('organization_id', organizationId),
-    supabase
-      .from('order_items')
+        product:products!inner ( id, name, organization_id, product_images (url, sort_order) )
+      `).eq('product.organization_id', organizationId).order('stock', { ascending: true }).limit(10),
+    // 人気商品用
+    supabase.from('order_items')
       .select('product_id, product_name, quantity, orders!inner(status, organization_id)')
       .eq('orders.organization_id', organizationId)
       .in('orders.status', ['confirmed', 'processing', 'shipped', 'delivered'])
@@ -269,12 +243,11 @@ export async function getDashboardData(organizationId: string) {
   const calcCountChange = (current: number, prev: number) =>
     prev > 0 ? Math.round(((current - prev) / prev) * 100 * 10) / 10 : 0;
 
-  // --- 注文カウント（全ステータス、JS側で期間別に集計） ---
-  const allOrderDates = (allOrderDatesRes.data || []).map(o => new Date(o.created_at));
-  const ordersCountMonth = allOrderDates.filter(d => d >= monthStart && d <= todayEnd).length;
-  const ordersCountYear = allOrderDates.filter(d => d >= yearStart && d <= todayEnd).length;
-  const prevMonthOrdersCount = allOrderDates.filter(d => d >= prevMonthStart && d <= prevMonthEnd).length;
-  const prevYearOrdersCount = allOrderDates.filter(d => d >= prevYearStart && d <= prevYearEnd).length;
+  // --- 注文カウント（SQL COUNTの結果を利用） ---
+  const ordersCountMonth = ordersCountMonthRes.count ?? 0;
+  const ordersCountYear = ordersCountYearRes.count ?? 0;
+  const prevMonthOrdersCount = ordersCountPrevMonthRes.count ?? 0;
+  const prevYearOrdersCount = ordersCountPrevYearRes.count ?? 0;
 
   // --- 顧客カウント（SQL COUNTの結果を利用） ---
   const customersCountMonth = customersCountMonthRes.count ?? 0;
@@ -379,14 +352,12 @@ export async function getDashboardData(organizationId: string) {
     });
   }
 
-  // --- パフォーマンスデータ（allOrdersから再利用） ---
+  // --- パフォーマンスデータ（SQL COUNTの結果を再利用） ---
   const perfCurrentSales = revenueMonth;
-  const perfCurrentOrderCount = allOrders
-    .filter(o => new Date(o.created_at) >= monthStart && new Date(o.created_at) <= todayEnd).length;
+  const perfCurrentOrderCount = ordersCountMonth;
   const perfCurrentCustomers = customersCountMonth;
   const perfPrevSales = prevMonthRevenue;
-  const perfPrevOrderCount = allOrders
-    .filter(o => new Date(o.created_at) >= prevMonthStart && new Date(o.created_at) <= prevMonthEnd).length;
+  const perfPrevOrderCount = prevMonthOrdersCount;
 
   const perfGrowthRate = perfPrevSales > 0
     ? ((perfCurrentSales - perfPrevSales) / perfPrevSales) * 100

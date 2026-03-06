@@ -1,8 +1,9 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import { getDashboardData } from '@/lib/actions/dashboard';
+import { getAuthOrganization } from '@/lib/auth-helpers';
 import { createDefaultOrganizationForUser } from '@/lib/create-default-organization';
+import { createClient } from '@/lib/supabase/server';
 import DashboardClient from './dashboard-client';
 import { Loader2 } from 'lucide-react';
 
@@ -51,24 +52,16 @@ async function DashboardContent({ organizationId }: { organizationId: string }) 
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, organizationId: cachedOrgId } = await getAuthOrganization();
 
   if (!user) {
     redirect('/login');
   }
 
-  const { data: userData } = await supabase
-    .from('users')
-    .select('current_organization_id')
-    .eq('id', user.id)
-    .single();
-
-  let organizationId = userData?.current_organization_id;
+  let organizationId = cachedOrgId;
 
   if (!organizationId) {
-    // 組織が未所属の場合: 既存メンバーシップを確認 → なければデフォルト組織を作成
+    const supabase = await createClient();
     const { data: memberships } = await supabase
       .from('organization_members')
       .select('organization_id')

@@ -220,19 +220,23 @@ export async function createOrder(input: CreateOrderInput): Promise<{
 }
 
 // 注文一覧を取得
-export async function getOrders(organizationId: string): Promise<{
+export async function getOrders(
+  organizationId: string,
+  options?: { limit?: number }
+): Promise<{
   data: OrderWithItems[] | null;
   error: string | null;
 }> {
   const supabase = await createClient();
+  const limit = options?.limit ?? 50;
 
   try {
-    // 注文と明細をJOINで1クエリ取得
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('*, order_items(*)')
       .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
     if (ordersError) throw ordersError;
     if (!orders || orders.length === 0) {

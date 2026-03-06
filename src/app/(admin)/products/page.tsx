@@ -1,23 +1,14 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import { getProducts, getCategories } from '@/lib/actions/products';
+import { getAuthOrganization } from '@/lib/auth-helpers';
 import ProductsClient from './products-client';
 
 export default async function ProductsPage() {
-  const supabase = await createClient();
+  const { user, organizationId } = await getAuthOrganization();
 
-  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     redirect('/login');
   }
-
-  const { data: userData } = await supabase
-    .from('users')
-    .select('current_organization_id')
-    .eq('id', user.id)
-    .single();
-
-  const organizationId = userData?.current_organization_id;
 
   if (!organizationId) {
     return (
