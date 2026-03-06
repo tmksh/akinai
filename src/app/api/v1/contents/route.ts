@@ -155,6 +155,7 @@ export async function GET(request: NextRequest) {
       title: c.title,
       slug: c.slug,
       excerpt: c.excerpt,
+      blocks: c.blocks || [],
       featuredImage: c.featured_image,
       categories: contentCategoryMap[c.id] || [],
       author: c.author_id ? authorMap[c.author_id] || null : null,
