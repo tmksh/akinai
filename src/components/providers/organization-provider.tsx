@@ -100,11 +100,21 @@ function transformOrganization(row: Record<string, unknown>): Organization {
   };
 }
 
-// プロバイダーコンポーネント
-export function OrganizationProvider({ children }: { children: ReactNode }) {
-  const [organization, setOrganization] = useState<Organization | null>(null);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+// プロバイダーコンポーネント（SSRで初期データを受け取り可能）
+interface OrganizationProviderProps {
+  children: ReactNode;
+  initialOrganization?: Organization | null;
+  initialUser?: CurrentUser | null;
+}
+
+export function OrganizationProvider({
+  children,
+  initialOrganization,
+  initialUser,
+}: OrganizationProviderProps) {
+  const [organization, setOrganization] = useState<Organization | null>(initialOrganization ?? null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(initialUser ?? null);
+  const [isLoading, setIsLoading] = useState(!initialOrganization);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchOrganization = useCallback(async () => {
@@ -122,7 +132,6 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // プロフィールとメンバーシップを並列取得
       const [profileRes, membershipRes] = await Promise.all([
         supabase
           .from('users')
@@ -158,7 +167,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         .from('organizations')
         .select('id, name, slug, logo, email, phone, website, address, frontend_url, frontend_api_key, plan, settings, owner_id, is_active, created_at, updated_at')
         .eq('id', membershipRes.data.organization_id)
-        .single(); // settings 列に product_field_schema が含まれる
+        .single();
 
       if (orgError) throw orgError;
 
@@ -171,9 +180,12 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // 初期データがある場合はクライアントフェッチをスキップ
   useEffect(() => {
-    fetchOrganization();
-  }, [fetchOrganization]);
+    if (!initialOrganization) {
+      fetchOrganization();
+    }
+  }, [fetchOrganization, initialOrganization]);
 
   const value = useMemo(
     () => ({
