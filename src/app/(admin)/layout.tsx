@@ -4,6 +4,7 @@ import { NavigationProgress } from '@/components/layout/navigation-progress';
 import { OrganizationProvider } from '@/components/providers/organization-provider';
 import type { Organization, CurrentUser } from '@/components/providers/organization-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { getAuthOrganization } from '@/lib/auth-helpers';
 import { createClient } from '@/lib/supabase/server';
 
 async function getInitialData(): Promise<{
@@ -11,20 +12,21 @@ async function getInitialData(): Promise<{
   currentUser: CurrentUser | null;
 }> {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { user, organizationId } = await getAuthOrganization();
 
     if (!user) return { organization: null, currentUser: null };
 
-    const [profileRes, membershipRes] = await Promise.all([
+    const supabase = await createClient();
+
+    const [profileRes, orgRes] = await Promise.all([
       supabase.from('users').select('name, avatar').eq('id', user.id).single(),
-      supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .limit(1)
-        .single(),
+      organizationId
+        ? supabase
+            .from('organizations')
+            .select('id, name, slug, logo, email, phone, website, address, frontend_url, frontend_api_key, plan, settings, owner_id, is_active, created_at, updated_at')
+            .eq('id', organizationId)
+            .single()
+        : Promise.resolve({ data: null }),
     ]);
 
     const currentUser: CurrentUser = {
@@ -34,16 +36,7 @@ async function getInitialData(): Promise<{
       avatar: (profileRes.data?.avatar as string) ?? user.user_metadata?.avatar_url ?? null,
     };
 
-    if (membershipRes.error || !membershipRes.data) {
-      return { organization: null, currentUser };
-    }
-
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('id, name, slug, logo, email, phone, website, address, frontend_url, frontend_api_key, plan, settings, owner_id, is_active, created_at, updated_at')
-      .eq('id', membershipRes.data.organization_id)
-      .single();
-
+    const org = orgRes.data;
     if (!org) return { organization: null, currentUser };
 
     const settings = (org.settings as Record<string, unknown>) || {};
