@@ -224,12 +224,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
             )}
             {/* グラデーションオーバーレイ */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            {/* バッジ */}
-            <div className="absolute top-2 left-2">
-              <Badge variant={statusInfo.variant} className="text-[10px] px-1.5 py-0 shadow-sm backdrop-blur-sm bg-white/80">
-                {statusInfo.label}
-              </Badge>
-            </div>
+            {/* タイプバッジのみ */}
             <div className="absolute top-2 right-2">
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5 shadow-sm backdrop-blur-sm bg-white/80">
                 <TypeIcon className="h-3 w-3" />
