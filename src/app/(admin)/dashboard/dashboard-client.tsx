@@ -588,7 +588,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={cn(
                 "text-xs font-semibold",
-                initialData.revenue.month.change >= 0 ? "text-emerald-500" : "text-destructive"
+                initialData.revenue.month.change >= 0 ? "text-sky-500" : "text-destructive"
               )}>
                 {initialData.revenue.month.change >= 0 ? '▲' : '▼'} {Math.abs(initialData.revenue.month.change)}%
               </span>
@@ -597,11 +597,11 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           </div>
           <div className="flex items-center gap-3 text-xs mt-1">
             <div className="flex items-center gap-1.5">
-              <div className="h-2 w-5 rounded-full bg-gradient-to-r from-sky-500 to-sky-400" />
+              <div className="h-2 w-5 rounded-full bg-gradient-to-r from-sky-500 to-blue-500" />
               <span className="text-muted-foreground">売上(千円)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="h-2 w-5 rounded-full bg-gradient-to-r from-sky-400 to-blue-400" />
+              <div className="h-2 w-5 rounded-full bg-gradient-to-r from-violet-400 to-purple-500" />
               <span className="text-muted-foreground">注文数</span>
             </div>
           </div>

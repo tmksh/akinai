@@ -33,7 +33,7 @@ function CustomTooltip({ active, payload, label }: {
         <p className="text-sky-500">¥{(sales.value * 1000).toLocaleString()}</p>
       )}
       {orders && (
-        <p className="text-sky-500">{orders.value}件</p>
+        <p className="text-violet-500">{orders.value}件</p>
       )}
     </div>
   );
@@ -45,12 +45,12 @@ export function DashboardChart({ data }: { data: { name: string; sales: number; 
       <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -16 }}>
         <defs>
           <linearGradient id="fillSales" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#f97316" stopOpacity={0.25} />
-            <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
+            <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.25} />
+            <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
           </linearGradient>
           <linearGradient id="fillOrders" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.2} />
-            <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+            <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.2} />
+            <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid
@@ -75,20 +75,20 @@ export function DashboardChart({ data }: { data: { name: string; sales: number; 
         <Area
           type="natural"
           dataKey="orders"
-          stroke="#38bdf8"
+          stroke="#8b5cf6"
           strokeWidth={2}
           fill="url(#fillOrders)"
           dot={false}
-          activeDot={{ r: 4, fill: '#38bdf8', strokeWidth: 0 }}
+          activeDot={{ r: 4, fill: '#8b5cf6', strokeWidth: 0 }}
         />
         <Area
           type="natural"
           dataKey="sales"
-          stroke="#f97316"
+          stroke="#0ea5e9"
           strokeWidth={2.5}
           fill="url(#fillSales)"
           dot={false}
-          activeDot={{ r: 4, fill: '#f97316', strokeWidth: 0 }}
+          activeDot={{ r: 4, fill: '#0ea5e9', strokeWidth: 0 }}
         />
       </AreaChart>
     </ResponsiveContainer>

@@ -153,7 +153,7 @@ export function TopNavigation() {
               className="font-black tracking-tight select-none"
               style={{
                 fontSize: '1.25rem',
-                background: 'linear-gradient(135deg, #f97316 0%, #fb923c 40%, #fbbf24 100%)',
+                background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 40%, #67e8f9 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
