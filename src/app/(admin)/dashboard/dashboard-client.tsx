@@ -596,97 +596,127 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
       </WidgetWrapper>
     ),
 
-    // パフォーマンス（モダンUI）
+    // パフォーマンス（ビッグドーナツデザイン）
     performance: (
       <div className="h-full w-full relative overflow-hidden rounded-2xl bg-white/55 dark:bg-[rgba(22,22,35,0.5)] backdrop-blur-xl border border-white/40 dark:border-white/[0.06] shadow-[0_2px_16px_rgba(0,0,0,0.04)] p-5 cursor-grab active:cursor-grabbing">
-        <div className="relative h-full flex flex-col gap-5">
-          {/* ヘッダー: タイトル + 月セレクタ（ピル） */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground tracking-tight">パフォーマンス</h3>
-              <div className="flex items-center rounded-full bg-muted/80 p-0.5">
-                <button
-                  onClick={() => handlePerformanceMonthChange(Math.max(performanceMonth - 1, 0))}
-                  disabled={performanceMonth <= 0 || isLoadingPerformance}
-                  className="rounded-full p-1.5 text-muted-foreground hover:bg-background hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </button>
-                <span className="min-w-[4.5rem] text-center text-xs font-medium text-foreground px-1">
-                  {getMonthLabel(performanceMonth)}
+        <div className="relative h-full flex flex-col gap-4">
+          {/* ヘッダー */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground tracking-tight">パフォーマンス</h3>
+            <div className="flex items-center rounded-full bg-muted/80 p-0.5">
+              <button
+                onClick={() => handlePerformanceMonthChange(Math.max(performanceMonth - 1, 0))}
+                disabled={performanceMonth <= 0 || isLoadingPerformance}
+                className="rounded-full p-1.5 text-muted-foreground hover:bg-background hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <span className="min-w-[4.5rem] text-center text-xs font-medium text-foreground px-1">
+                {getMonthLabel(performanceMonth)}
+              </span>
+              <button
+                onClick={() => handlePerformanceMonthChange(Math.min(performanceMonth + 1, 5))}
+                disabled={performanceMonth >= 5 || isLoadingPerformance}
+                className="rounded-full p-1.5 text-muted-foreground hover:bg-background hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* 大きなドーナツチャート + 中央テキスト */}
+          <div className={cn("flex flex-col items-center gap-4 flex-1 min-h-0", isLoadingPerformance && "opacity-50 pointer-events-none")}>
+            <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
+              {/* 重ね合わせドーナツ: 売上・注文・顧客の3層 */}
+              <svg className="absolute inset-0 -rotate-90" width={160} height={160}>
+                <defs>
+                  <linearGradient id="perfGradOrange" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#f97316" />
+                    <stop offset="100%" stopColor="#fb923c" />
+                  </linearGradient>
+                  <linearGradient id="perfGradPurple" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#a78bfa" />
+                  </linearGradient>
+                  <linearGradient id="perfGradTeal" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#14b8a6" />
+                    <stop offset="100%" stopColor="#2dd4bf" />
+                  </linearGradient>
+                </defs>
+                {/* 外周: 売上 */}
+                {(() => {
+                  const r = 70, sw = 14, circ = r * 2 * Math.PI;
+                  const p = Math.min(performanceData.salesAchievement / 100, 1);
+                  return <>
+                    <circle cx={80} cy={80} r={r} fill="none" stroke="rgba(249,115,22,0.12)" strokeWidth={sw} />
+                    <circle cx={80} cy={80} r={r} fill="none" stroke="url(#perfGradOrange)" strokeWidth={sw}
+                      strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ - p * circ}
+                      className="transition-all duration-1000 ease-out" />
+                  </>;
+                })()}
+                {/* 中周: 注文 */}
+                {(() => {
+                  const r = 52, sw = 14, circ = r * 2 * Math.PI;
+                  const p = Math.min(performanceData.ordersAchievement / 100, 1);
+                  return <>
+                    <circle cx={80} cy={80} r={r} fill="none" stroke="rgba(139,92,246,0.12)" strokeWidth={sw} />
+                    <circle cx={80} cy={80} r={r} fill="none" stroke="url(#perfGradPurple)" strokeWidth={sw}
+                      strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ - p * circ}
+                      className="transition-all duration-1000 ease-out" />
+                  </>;
+                })()}
+                {/* 内周: 顧客 */}
+                {(() => {
+                  const r = 34, sw = 14, circ = r * 2 * Math.PI;
+                  const p = Math.min(performanceData.customersAchievement / 100, 1);
+                  return <>
+                    <circle cx={80} cy={80} r={r} fill="none" stroke="rgba(20,184,166,0.12)" strokeWidth={sw} />
+                    <circle cx={80} cy={80} r={r} fill="none" stroke="url(#perfGradTeal)" strokeWidth={sw}
+                      strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ - p * circ}
+                      className="transition-all duration-1000 ease-out" />
+                  </>;
+                })()}
+              </svg>
+              {/* 中央: 平均達成率 */}
+              <div className="flex flex-col items-center justify-center z-10">
+                <span className="text-2xl font-extrabold text-foreground tabular-nums leading-none">
+                  {performanceData.avgAchievement}%
                 </span>
-                <button
-                  onClick={() => handlePerformanceMonthChange(Math.min(performanceMonth + 1, 5))}
-                  disabled={performanceMonth >= 5 || isLoadingPerformance}
-                  className="rounded-full p-1.5 text-muted-foreground hover:bg-background hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
+                <span className="text-[10px] text-muted-foreground mt-0.5 font-medium">平均達成</span>
+                <span className="text-sm font-bold text-primary mt-0.5">{performanceData.grade}</span>
               </div>
             </div>
-            <div className="flex gap-1">
-              {[0, 1, 2, 3, 4, 5].map((month) => (
-                <button
-                  key={month}
-                  onClick={() => handlePerformanceMonthChange(month)}
-                  disabled={isLoadingPerformance}
-                  className={cn(
-                    "h-1 rounded-full transition-all duration-200",
-                    performanceMonth === month
-                      ? "w-4 bg-primary"
-                      : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                  )}
-                />
+
+            {/* 凡例 + 各指標 */}
+            <div className="w-full space-y-2">
+              {[
+                { label: '売上', color: '#f97316', value: performanceData.salesAchievement, sub: `¥${Math.round(performanceData.salesActual / 10000)}万 / ¥${Math.round(performanceData.salesTarget / 10000)}万` },
+                { label: '注文', color: '#8b5cf6', value: performanceData.ordersAchievement, sub: `${performanceData.ordersActual}件 / ${performanceData.ordersTarget}件` },
+                { label: '顧客', color: '#14b8a6', value: performanceData.customersAchievement, sub: `${performanceData.customersActual}人 / ${performanceData.customersTarget}人` },
+              ].map(({ label, color, value, sub }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                  <span className="text-xs text-muted-foreground w-8 flex-shrink-0">{label}</span>
+                  <div className="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${Math.min(value, 100)}%`, background: color }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold tabular-nums text-foreground w-8 text-right">{value}%</span>
+                </div>
               ))}
             </div>
-          </div>
 
-          {/* KPI サークル（コンパクト） */}
-          <div className={cn("grid grid-cols-3 gap-2 sm:gap-3 flex-1 min-h-0", isLoadingPerformance && "opacity-50 pointer-events-none")}>
-            <CircleProgress
-              value={Math.min(performanceData.salesAchievement, 150)}
-              size={64}
-              strokeWidth={5}
-              colorVariant="orange"
-              label="売上"
-              sublabel={`¥${Math.round(performanceData.salesTarget / 10000)}万 / ¥${Math.round(performanceData.salesActual / 10000)}万`}
-            />
-            <CircleProgress
-              value={Math.min(performanceData.ordersAchievement, 150)}
-              size={64}
-              strokeWidth={5}
-              colorVariant="amber"
-              label="注文"
-              sublabel={`${performanceData.ordersTarget}件 / ${performanceData.ordersActual}件`}
-            />
-            <CircleProgress
-              value={Math.min(performanceData.customersAchievement, 150)}
-              size={64}
-              strokeWidth={5}
-              colorVariant="warm"
-              label="顧客"
-              sublabel={`${performanceData.customersTarget}人 / ${performanceData.customersActual}人`}
-            />
-          </div>
-
-          {/* サマリー行（モダン・フラット） */}
-          <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
-            <div className="flex items-center gap-4 min-w-0">
+            {/* 前月比 */}
+            <div className="w-full flex items-center justify-between pt-2 border-t border-border/50">
               <span className="text-xs text-muted-foreground">前月比</span>
               <span className={cn(
-                "text-sm font-semibold tabular-nums",
-                performanceData.growthRate >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+                "text-sm font-bold tabular-nums",
+                performanceData.growthRate >= 0 ? "text-emerald-500" : "text-destructive"
               )}>
                 {performanceData.growthRate >= 0 ? '+' : ''}{performanceData.growthRate}%
               </span>
-            </div>
-            <div className="flex items-center gap-4 min-w-0">
-              <span className="text-xs text-muted-foreground">平均達成</span>
-              <span className="text-sm font-semibold text-foreground tabular-nums">{performanceData.avgAchievement}%</span>
-            </div>
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs text-muted-foreground">評価</span>
-              <span className="text-sm font-semibold text-primary">{performanceData.grade}</span>
             </div>
           </div>
         </div>
