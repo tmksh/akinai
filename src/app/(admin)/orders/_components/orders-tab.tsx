@@ -450,17 +450,22 @@ export function OrdersTab() {
       </div>
 
       {/* テーブル */}
-      <div className="rounded-lg border overflow-x-auto">
+      <div className="rounded-2xl overflow-x-auto"
+        style={{
+          border: '1px solid rgba(255,255,255,0.7)',
+          boxShadow: '0 1px 8px rgba(100,120,160,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
+        }}>
         <Table className="min-w-[700px]">
           <TableHeader>
-            <TableRow>
-              <TableHead>注文番号</TableHead>
-              <TableHead>お客様</TableHead>
-              <TableHead>商品数</TableHead>
-              <TableHead className="text-right">金額</TableHead>
-              <TableHead>注文の状態</TableHead>
-              <TableHead>入金の状態</TableHead>
-              <TableHead>注文日</TableHead>
+            <TableRow className="border-b border-white/60 hover:bg-transparent"
+              style={{ background: 'rgba(248,249,252,0.7)' }}>
+              <TableHead className="font-semibold text-foreground/70 text-xs uppercase tracking-wide">注文番号</TableHead>
+              <TableHead className="font-semibold text-foreground/70 text-xs uppercase tracking-wide">お客様</TableHead>
+              <TableHead className="font-semibold text-foreground/70 text-xs uppercase tracking-wide">商品数</TableHead>
+              <TableHead className="font-semibold text-foreground/70 text-xs uppercase tracking-wide text-right">金額</TableHead>
+              <TableHead className="font-semibold text-foreground/70 text-xs uppercase tracking-wide">注文の状態</TableHead>
+              <TableHead className="font-semibold text-foreground/70 text-xs uppercase tracking-wide">入金の状態</TableHead>
+              <TableHead className="font-semibold text-foreground/70 text-xs uppercase tracking-wide">注文日</TableHead>
               <TableHead className="w-[40px]"></TableHead>
             </TableRow>
           </TableHeader>
