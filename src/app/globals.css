@@ -55,24 +55,24 @@
   --brand-light: oklch(0.95 0.05 50);
   --brand-dark: oklch(0.55 0.2 45);
 
-  /* ライトテーマ - ソフトクリーム + ガラス */
-  --background: oklch(0.965 0.008 75);
+  /* ライトテーマ - シルバー + ガラス */
+  --background: oklch(0.945 0.003 250);
   --foreground: oklch(0.15 0.01 250);
-  --card: oklch(0.99 0.003 75 / 0.65);
+  --card: oklch(0.98 0.002 250 / 0.6);
   --card-foreground: oklch(0.15 0.01 250);
-  --popover: oklch(0.99 0.003 75 / 0.88);
+  --popover: oklch(0.98 0.002 250 / 0.88);
   --popover-foreground: oklch(0.15 0.01 250);
   --primary: oklch(0.7 0.18 50);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.955 0.008 75);
+  --secondary: oklch(0.94 0.003 250);
   --secondary-foreground: oklch(0.2 0.01 250);
-  --muted: oklch(0.955 0.006 75);
+  --muted: oklch(0.935 0.004 250);
   --muted-foreground: oklch(0.5 0.01 250);
   --accent: oklch(0.95 0.03 50);
   --accent-foreground: oklch(0.55 0.2 45);
   --destructive: oklch(0.6 0.22 25);
-  --border: oklch(0.92 0.006 75 / 0.5);
-  --input: oklch(0.975 0.005 75);
+  --border: oklch(0.90 0.004 250 / 0.45);
+  --input: oklch(0.96 0.003 250);
   --ring: oklch(0.7 0.18 50);
 
   /* チャートカラー */
@@ -83,13 +83,13 @@
   --chart-5: oklch(0.55 0.15 40);
 
   /* サイドバー */
-  --sidebar: oklch(0.98 0.004 75 / 0.6);
+  --sidebar: oklch(0.96 0.002 250 / 0.55);
   --sidebar-foreground: oklch(0.35 0.02 250);
   --sidebar-primary: oklch(0.7 0.18 45);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.95 0.015 65);
+  --sidebar-accent: oklch(0.93 0.004 250);
   --sidebar-accent-foreground: oklch(0.35 0.02 250);
-  --sidebar-border: oklch(0.92 0.006 75 / 0.4);
+  --sidebar-border: oklch(0.90 0.003 250 / 0.35);
   --sidebar-ring: oklch(0.7 0.18 45);
 }
 
@@ -208,15 +208,16 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  /* Main background gradient */
+  /* Main background gradient - シルバー系 */
   .main-gradient-bg {
-    background: linear-gradient(135deg,
-      oklch(0.97 0.007 80) 0%,
-      oklch(0.965 0.009 70) 50%,
-      oklch(0.96 0.01 60) 100%);
+    background: linear-gradient(145deg,
+      oklch(0.95 0.004 260) 0%,
+      oklch(0.94 0.005 240) 40%,
+      oklch(0.935 0.006 220) 70%,
+      oklch(0.945 0.004 250) 100%);
   }
   .dark .main-gradient-bg {
-    background: linear-gradient(135deg,
+    background: linear-gradient(145deg,
       oklch(0.16 0.01 250) 0%,
       oklch(0.14 0.01 260) 50%,
       oklch(0.13 0.01 270) 100%);
@@ -371,9 +372,9 @@
   /* Sidebar glass */
   .sidebar-gradient {
     background: linear-gradient(180deg,
-      rgba(255, 255, 255, 0.6) 0%,
-      rgba(252, 248, 240, 0.5) 50%,
-      rgba(255, 255, 255, 0.55) 100%) !important;
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(245, 245, 250, 0.45) 50%,
+      rgba(255, 255, 255, 0.5) 100%) !important;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.04);

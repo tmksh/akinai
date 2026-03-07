@@ -149,11 +149,19 @@ export function TopNavigation() {
           <div className="flex items-center justify-between h-14 md:h-16 px-3 md:px-4 lg:px-5">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center shrink-0">
-            <img
-              src="/logo-shou.png?v=2"
-              alt="AKINAI"
-              className="h-10 w-10 md:h-12 md:w-12 object-contain drop-shadow-md"
-            />
+            <span
+              className="font-black tracking-tight select-none"
+              style={{
+                fontSize: '1.25rem',
+                background: 'linear-gradient(135deg, #f97316 0%, #fb923c 40%, #fbbf24 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                letterSpacing: '-0.03em',
+              }}
+            >
+              AKINAI
+            </span>
           </Link>
 
           {/* Desktop nav - xl */}

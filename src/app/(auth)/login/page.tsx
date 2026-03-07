@@ -88,7 +88,7 @@ function LoginForm() {
       ══════════════════════════════ */}
       <div
         className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col items-center justify-between py-12"
-        style={{ background: '#f5f3ef' }}
+        style={{ background: '#ecedf2' }}
       >
         {/* ── 装飾サークル ── */}
 
@@ -177,7 +177,7 @@ function LoginForm() {
       {/* ══════════════════════════════
           右パネル：ミニマルフォーム
       ══════════════════════════════ */}
-      <div className="flex w-full flex-col justify-center px-8 py-12 lg:w-1/2 lg:px-16 xl:px-24" style={{ background: '#f5f3ef' }}>
+      <div className="flex w-full flex-col justify-center px-8 py-12 lg:w-1/2 lg:px-16 xl:px-24" style={{ background: '#ecedf2' }}>
 
         {/* モバイル用ロゴ */}
         <div className="mb-10 flex items-center gap-2 lg:hidden">
@@ -335,7 +335,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center" style={{ background: '#f5f3ef' }}>
+        <div className="min-h-screen flex items-center justify-center" style={{ background: '#ecedf2' }}>
           <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
         </div>
       }
