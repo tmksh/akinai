@@ -633,8 +633,8 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           <div className={cn("flex flex-col items-center gap-5 flex-1 min-h-0", isLoadingPerformance && "opacity-50 pointer-events-none")}>
 
             {/* クリーンな1リング + 中央テキスト */}
-            <div className="relative flex items-center justify-center" style={{ width: 140, height: 140 }}>
-              <svg className="absolute inset-0 -rotate-90" width={140} height={140}>
+            <div className="relative flex items-center justify-center flex-shrink-0">
+              <svg className="-rotate-90" width={140} height={140} style={{ display: 'block' }}>
                 <defs>
                   <linearGradient id="perfMainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#f97316" />
@@ -643,30 +643,29 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                   </linearGradient>
                 </defs>
                 {/* トラック */}
-                <circle cx={70} cy={70} r={58} fill="none"
-                  stroke="rgba(249,115,22,0.08)" strokeWidth={12} />
+                <circle cx={70} cy={70} r={56} fill="none"
+                  stroke="rgba(0,0,0,0.06)" strokeWidth={10} />
                 {/* プログレス */}
-                <circle cx={70} cy={70} r={58} fill="none"
-                  stroke="url(#perfMainGrad)" strokeWidth={12}
+                <circle cx={70} cy={70} r={56} fill="none"
+                  stroke="url(#perfMainGrad)" strokeWidth={10}
                   strokeLinecap="round"
-                  strokeDasharray={58 * 2 * Math.PI}
-                  strokeDashoffset={58 * 2 * Math.PI * (1 - Math.min(performanceData.avgAchievement / 100, 1))}
+                  strokeDasharray={56 * 2 * Math.PI}
+                  strokeDashoffset={56 * 2 * Math.PI * (1 - Math.min(performanceData.avgAchievement / 100, 1))}
                   className="transition-all duration-1000 ease-out" />
               </svg>
-              {/* 中央 */}
-              <div className="flex flex-col items-center z-10">
-                <span className="text-3xl font-black text-foreground tabular-nums leading-none tracking-tight">
-                  {performanceData.avgAchievement}
-                  <span className="text-lg">%</span>
+              {/* 中央テキスト - SVGに重ねる */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-black text-foreground tabular-nums leading-none tracking-tight">
+                  {performanceData.avgAchievement}<span className="text-base font-bold">%</span>
                 </span>
-                <span className="text-[10px] text-muted-foreground mt-1 font-medium">平均達成率</span>
+                <span className="text-[10px] text-muted-foreground mt-1">平均達成率</span>
                 <span className={cn(
-                  "text-xs font-bold mt-0.5 px-2 py-0.5 rounded-full",
+                  "text-[11px] font-bold mt-1 px-2 py-0.5 rounded-full",
                   performanceData.avgAchievement >= 90
-                    ? "text-emerald-700 bg-emerald-50"
+                    ? "text-emerald-600 bg-emerald-50"
                     : performanceData.avgAchievement >= 70
                       ? "text-orange-600 bg-orange-50"
-                      : "text-slate-500 bg-slate-50"
+                      : "text-slate-500 bg-slate-100"
                 )}>
                   {performanceData.grade}
                 </span>
