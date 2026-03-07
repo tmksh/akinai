@@ -352,12 +352,19 @@ export default function ProductsClient({
             return (
               <div
                 key={product.id}
-                className="group relative rounded-2xl overflow-hidden hover:border-orange-200/60 transition-all duration-300 border border-white/40 hover:shadow-[0_8px_30px_rgba(0,0,0,0.07)]"
-                style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(16px)' }}
+                className="group relative rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(100,120,160,0.15)]"
+                style={{
+                  background: 'rgba(255,255,255,0.62)',
+                  backdropFilter: 'blur(24px)',
+                  WebkitBackdropFilter: 'blur(24px)',
+                  border: '1px solid rgba(255,255,255,0.8)',
+                  boxShadow: '0 2px 20px rgba(100,120,160,0.07), inset 0 1px 0 rgba(255,255,255,0.95)',
+                }}
               >
                 {/* 画像エリア */}
                 <Link href={`/products/${product.id}`} className="block">
-                  <div className="relative aspect-square overflow-hidden" style={{ background: 'rgba(245,240,230,0.5)' }}>
+                  <div className="relative aspect-square overflow-hidden rounded-t-2xl"
+                    style={{ background: 'linear-gradient(135deg, rgba(250,250,252,0.9) 0%, rgba(245,246,250,0.9) 100%)' }}>
                     {product.images[0] ? (
                       <Image
                         src={product.images[0].url}
@@ -365,18 +372,19 @@ export default function ProductsClient({
                         fill
                         sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
                         loading="lazy"
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
-                        <Package className="h-10 w-10 text-slate-300" />
+                        <Package className="h-10 w-10 opacity-15" />
                       </div>
                     )}
-
+                    {/* ホバー時グラデーション */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     {/* 在庫切れオーバーレイ */}
                     {isOutOfStock && (
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <span className="bg-white/90 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] flex items-center justify-center">
+                        <span className="bg-red-500/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm tracking-wide">
                           在庫切れ
                         </span>
                       </div>
@@ -385,25 +393,31 @@ export default function ProductsClient({
                 </Link>
 
                 {/* 情報エリア */}
-                <div className="p-2.5">
-                  {/* ステータスバッジ */}
-                  <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
+                <div className="p-3">
+                  {/* ステータスドット */}
+                  <div className="flex items-center gap-1 mb-1.5">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.dot}`} />
-                    {status.label}
-                  </span>
+                    <span className="text-[10px] text-muted-foreground">{status.label}</span>
+                  </div>
 
                   {/* 商品名 */}
                   <Link href={`/products/${product.id}`} className="block">
-                    <p className="text-xs font-medium leading-tight line-clamp-2 hover:underline mb-1.5">
+                    <p className="text-xs font-semibold leading-tight line-clamp-2 text-foreground hover:text-orange-600 transition-colors mb-2">
                       {product.name}
                     </p>
                   </Link>
 
                   {/* 価格・在庫 */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-foreground">{priceText}</span>
-                    <span className={`text-[10px] ${isOutOfStock ? 'text-red-500 font-medium' : totalStock <= 5 ? 'text-amber-500' : 'text-muted-foreground'}`}>
-                      在庫{totalStock}
+                    <span className="text-xs font-bold text-foreground">{priceText}</span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                      isOutOfStock
+                        ? 'text-red-600 bg-red-50'
+                        : totalStock <= 5
+                          ? 'text-amber-600 bg-amber-50'
+                          : 'text-slate-500 bg-slate-50'
+                    }`}>
+                      在庫 {totalStock}
                     </span>
                   </div>
                 </div>
@@ -415,7 +429,7 @@ export default function ProductsClient({
                       <Button
                         variant="secondary"
                         size="icon"
-                        className="h-7 w-7 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm shadow-sm border border-slate-200 dark:border-slate-700"
+                        className="h-7 w-7 bg-white/90 backdrop-blur-sm shadow-sm border border-white/80"
                         disabled={isPending}
                       >
                         <MoreHorizontal className="h-3.5 w-3.5" />
