@@ -60,52 +60,43 @@ function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme('light')}>
-          ライト
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')}>
-          ダーク
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>
-          システム
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme('light')}>ライト</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme('dark')}>ダーク</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme('system')}>システム</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
-// ナビゲーションアイテムコンポーネント
-function NavItem({ 
-  item, 
-  isActive, 
-  size = 'default' 
-}: { 
-  item: typeof navigationItems[0]; 
+function NavItem({
+  item,
+  isActive,
+  size = 'default'
+}: {
+  item: typeof navigationItems[0];
   isActive: boolean;
   size?: 'default' | 'compact';
 }) {
   const Icon = item.icon;
   const isCompact = size === 'compact';
-  
+
   return (
     <Link
       href={item.href}
       className={cn(
         'flex flex-col items-center rounded-xl transition-all duration-200 relative group shrink-0 active:scale-[0.97]',
-        isCompact
-          ? 'gap-1 px-2 py-2'
-          : 'gap-1.5 px-3 py-2.5',
+        isCompact ? 'gap-1 px-2 py-2' : 'gap-1.5 px-3 py-2.5',
         isActive
-          ? 'bg-orange-50 dark:bg-orange-950/30'
-          : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+          ? 'bg-orange-50/80 dark:bg-orange-950/30'
+          : 'hover:bg-white/40 dark:hover:bg-white/5'
       )}
     >
       <div className="relative">
         <Icon className={cn(
           'transition-all',
           isCompact ? 'h-5 w-5' : 'h-6 w-6',
-          isActive 
-            ? 'text-orange-500 scale-110' 
+          isActive
+            ? 'text-orange-500 scale-110'
             : 'text-slate-500 dark:text-slate-400 group-hover:text-orange-500'
         )} />
         {item.badge && (
@@ -120,8 +111,8 @@ function NavItem({
       <span className={cn(
         'font-medium text-center leading-tight transition-colors',
         isCompact ? 'text-xs' : 'text-sm',
-        isActive 
-          ? 'text-orange-600 dark:text-orange-400' 
+        isActive
+          ? 'text-orange-600 dark:text-orange-400'
           : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
       )}>
         {item.title}
@@ -139,7 +130,6 @@ export function TopNavigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser } = useOrganization();
 
-  // 全ナビゲーションリンクを事前にプリフェッチ
   useEffect(() => {
     navigationItems.forEach(item => {
       router.prefetch(item.href);
@@ -147,19 +137,17 @@ export function TopNavigation() {
   }, [router]);
 
   const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return pathname === '/dashboard';
-    }
+    if (href === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(href);
   };
 
   return (
     <>
       <header className="sticky top-0 z-50 w-full px-3 md:px-4 pt-3">
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 shadow-md rounded-2xl">
-          {/* メインヘッダー */}
+        <div className="bg-white/60 dark:bg-[rgba(22,22,35,0.65)] backdrop-blur-2xl border border-white/40 dark:border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.06)] rounded-2xl">
+          {/* Main header */}
           <div className="flex items-center justify-between h-14 md:h-16 px-3 md:px-4 lg:px-5">
-          {/* ロゴ */}
+          {/* Logo */}
           <Link href="/dashboard" className="flex items-center shrink-0">
             <img
               src="/logo-shou.png?v=2"
@@ -168,45 +156,29 @@ export function TopNavigation() {
             />
           </Link>
 
-          {/* デスクトップナビゲーション - xl (1280px以上) */}
+          {/* Desktop nav - xl */}
           <nav className="hidden xl:flex items-center gap-0.5 flex-1 justify-center mx-4">
             {navigationItems.map((item) => (
-              <NavItem 
-                key={item.href} 
-                item={item} 
-                isActive={isActive(item.href)} 
-                size="default"
-              />
+              <NavItem key={item.href} item={item} isActive={isActive(item.href)} size="default" />
             ))}
           </nav>
 
-          {/* タブレット/中画面ナビゲーション - lg (1024px〜1279px) */}
+          {/* Tablet nav - lg */}
           <nav className="hidden lg:flex xl:hidden items-center gap-0.5 flex-1 justify-center mx-4">
             {navigationItems.map((item) => (
-              <NavItem 
-                key={item.href} 
-                item={item} 
-                isActive={isActive(item.href)} 
-                size="compact"
-              />
+              <NavItem key={item.href} item={item} isActive={isActive(item.href)} size="compact" />
             ))}
           </nav>
 
-          {/* 小タブレットナビゲーション - md (768px〜1023px) */}
+          {/* Small tablet nav - md */}
           <nav className="hidden md:flex lg:hidden items-center gap-0.5 flex-1 justify-center mx-2 overflow-x-auto scrollbar-none">
             {navigationItems.map((item) => (
-              <NavItem 
-                key={item.href} 
-                item={item} 
-                isActive={isActive(item.href)} 
-                size="compact"
-              />
+              <NavItem key={item.href} item={item} isActive={isActive(item.href)} size="compact" />
             ))}
           </nav>
 
-          {/* 右側のアクション */}
+          {/* Right actions */}
           <div className="flex items-center gap-1 md:gap-2 shrink-0">
-            {/* 通知 */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative h-8 w-8 md:h-9 md:w-9">
@@ -224,12 +196,10 @@ export function TopNavigation() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* テーマ切り替え - md以上で表示 */}
             <div className="hidden md:block">
               <ThemeToggle />
             </div>
 
-            {/* ユーザーメニュー */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-1 md:gap-2 h-8 md:h-9 px-1.5 md:px-2">
@@ -259,7 +229,6 @@ export function TopNavigation() {
                     アカウント設定
                   </Link>
                 </DropdownMenuItem>
-                {/* モバイルでのみテーマ切り替えを表示 */}
                 <DropdownMenuSeparator className="md:hidden" />
                 <DropdownMenuItem className="md:hidden" onClick={() => {}}>
                   <IoSunny className="mr-2 h-4 w-4" />
@@ -277,25 +246,20 @@ export function TopNavigation() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* モバイルメニューボタン */}
             <Button
               variant="ghost"
               size="icon"
               className="md:hidden h-8 w-8"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? (
-                <IoClose className="h-5 w-5" />
-              ) : (
-                <IoMenu className="h-5 w-5" />
-              )}
+              {mobileMenuOpen ? <IoClose className="h-5 w-5" /> : <IoMenu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
 
-        {/* モバイルナビゲーション */}
+        {/* Mobile nav */}
         {mobileMenuOpen && (
-          <nav className="md:hidden border-t border-slate-200 dark:border-slate-800 px-3 py-3 max-h-[70vh] overflow-y-auto rounded-b-2xl">
+          <nav className="md:hidden border-t border-white/20 dark:border-white/[0.06] px-3 py-3 max-h-[70vh] overflow-y-auto rounded-b-2xl">
             <div className="grid grid-cols-4 gap-2">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
@@ -308,16 +272,14 @@ export function TopNavigation() {
                     className={cn(
                       'flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-200 relative',
                       active
-                        ? 'bg-orange-50 dark:bg-orange-950/30'
-                        : 'hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                        ? 'bg-orange-50/80 dark:bg-orange-950/30'
+                        : 'hover:bg-white/40 dark:hover:bg-white/5'
                     )}
                   >
                     <div className="relative">
                       <Icon className={cn(
                         "h-5 w-5 transition-all",
-                        active 
-                          ? 'text-orange-500 scale-110' 
-                          : 'text-slate-500 dark:text-slate-400'
+                        active ? 'text-orange-500 scale-110' : 'text-slate-500 dark:text-slate-400'
                       )} />
                       {item.badge && (
                         <Badge
@@ -330,9 +292,7 @@ export function TopNavigation() {
                     </div>
                     <span className={cn(
                       "text-[10px] font-medium text-center leading-tight",
-                      active 
-                        ? 'text-orange-600 dark:text-orange-400' 
-                        : 'text-slate-600 dark:text-slate-400'
+                      active ? 'text-orange-600 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'
                     )}>
                       {item.title}
                     </span>

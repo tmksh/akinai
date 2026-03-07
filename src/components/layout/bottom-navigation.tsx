@@ -22,48 +22,16 @@ import {
 } from '@/components/ui/sheet';
 
 const navItems = [
-  {
-    title: 'ホーム',
-    icon: LayoutDashboard,
-    href: '/dashboard',
-  },
-  {
-    title: '商品',
-    icon: Package,
-    href: '/products',
-  },
-  {
-    title: '注文',
-    icon: ShoppingCart,
-    href: '/orders',
-  },
-  {
-    title: 'その他',
-    icon: MoreHorizontal,
-    href: '#more',
-    isMore: true,
-  },
+  { title: 'ホーム', icon: LayoutDashboard, href: '/dashboard' },
+  { title: '商品', icon: Package, href: '/products' },
+  { title: '注文', icon: ShoppingCart, href: '/orders' },
+  { title: 'その他', icon: MoreHorizontal, href: '#more', isMore: true },
 ];
 
 const moreMenuItems = [
-  {
-    title: 'お知らせ',
-    icon: FileText,
-    href: '/contents',
-    color: 'text-orange-500',
-  },
-  {
-    title: '代理店管理',
-    icon: Building2,
-    href: '/agents',
-    color: 'text-orange-500',
-  },
-  {
-    title: '設定',
-    icon: Settings,
-    href: '/settings',
-    color: 'text-slate-500',
-  },
+  { title: 'お知らせ', icon: FileText, href: '/contents', color: 'text-orange-500' },
+  { title: '代理店管理', icon: Building2, href: '/agents', color: 'text-orange-500' },
+  { title: '設定', icon: Settings, href: '/settings', color: 'text-slate-500' },
 ];
 
 export function BottomNavigation() {
@@ -71,24 +39,20 @@ export function BottomNavigation() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return pathname === '/dashboard';
-    }
+    if (href === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(href);
   };
 
-  // その他メニュー内のアイテムがアクティブかチェック
   const isMoreActive = moreMenuItems.some((item) => isActive(item.href));
 
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-        {/* フローティングボトムナビ */}
-        <div className="mx-3 mb-3 rounded-2xl bg-background/95 backdrop-blur-lg border shadow-lg">
+        <div className="mx-3 mb-3 rounded-2xl bg-white/60 dark:bg-[rgba(22,22,35,0.65)] backdrop-blur-2xl border border-white/40 dark:border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
           <div className="flex items-center justify-around py-2">
             {navItems.map((item) => {
               const active = item.isMore ? isMoreActive : isActive(item.href);
-              
+
               if (item.isMore) {
                 return (
                   <button
@@ -98,7 +62,7 @@ export function BottomNavigation() {
                       'flex flex-col items-center justify-center min-w-[4rem] py-1 px-2 rounded-xl transition-all active:scale-[0.97]',
                       active
                         ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/40'
                     )}
                   >
                     <item.icon className={cn('h-5 w-5', active && 'text-white')} />
@@ -108,7 +72,7 @@ export function BottomNavigation() {
                   </button>
                 );
               }
-              
+
               return (
                 <Link
                   key={item.href}
@@ -117,7 +81,7 @@ export function BottomNavigation() {
                     'flex flex-col items-center justify-center min-w-[4rem] py-1 px-2 rounded-xl transition-all active:scale-[0.97]',
                     active
                       ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-white/40'
                   )}
                 >
                   <item.icon className={cn('h-5 w-5', active && 'text-white')} />
@@ -129,12 +93,9 @@ export function BottomNavigation() {
             })}
           </div>
         </div>
-        
-        {/* Safe area padding for iOS */}
         <div className="h-safe-area-inset-bottom bg-transparent" />
       </nav>
 
-      {/* その他メニューシート */}
       <Sheet open={isMoreOpen} onOpenChange={setIsMoreOpen}>
         <SheetContent side="bottom" className="rounded-t-3xl px-0 pb-safe">
           <SheetHeader className="px-6 pb-4 border-b">
@@ -148,7 +109,7 @@ export function BottomNavigation() {
               </button>
             </div>
           </SheetHeader>
-          
+
           <div className="grid grid-cols-3 gap-2 p-4">
             {moreMenuItems.map((item) => {
               const active = isActive(item.href);
@@ -177,6 +138,3 @@ export function BottomNavigation() {
     </>
   );
 }
-
-
-

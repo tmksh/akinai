@@ -82,7 +82,7 @@ export function AgentCard({
 
   return (
     <div 
-      className="group relative bg-card border rounded-xl p-4 hover:shadow-lg transition-all duration-300 hover:border-orange-200 dark:hover:border-orange-800 cursor-pointer"
+      className="group relative bg-white/55 dark:bg-[rgba(22,22,35,0.5)] backdrop-blur-xl border border-white/40 dark:border-white/[0.06] shadow-[0_2px_16px_rgba(0,0,0,0.04)] rounded-2xl p-4 hover:shadow-lg transition-all duration-300 cursor-pointer"
       onClick={() => onView(agent)}
     >
       {/* ステータスバッジ */}

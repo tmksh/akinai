@@ -79,7 +79,7 @@ export default async function AdminLayout({
       <Suspense fallback={null}>
         <NavigationProgress />
       </Suspense>
-      <div className="min-h-screen dark:bg-slate-950 overflow-x-hidden" style={{ background: '#f5f3ef' }}>
+      <div className="min-h-screen overflow-x-hidden main-gradient-bg">
         <TopNavigation />
         <main className="p-3 sm:p-4 md:p-6 pt-4 md:pt-5 max-w-7xl mx-auto w-full min-w-0">
           {children}

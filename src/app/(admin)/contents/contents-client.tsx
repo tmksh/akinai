@@ -346,7 +346,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
         <TabsContent value="all" className="space-y-4">
           {/* 統計バー */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-orange-100" style={{ background: '#fdf8f3' }}>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/40" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(12px)' }}>
               <FileText className="h-3.5 w-3.5 text-orange-400" />
               <span className="text-xs text-orange-700">全件</span>
               <span className="text-sm font-semibold text-orange-900">{stats.total}</span>

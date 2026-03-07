@@ -293,7 +293,7 @@ function WidgetWrapper({
 }) {
   return (
     <div className={cn(
-      "h-full w-full overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-100 dark:border-slate-700/50 shadow-sm relative cursor-grab active:cursor-grabbing",
+      "h-full w-full overflow-hidden rounded-2xl bg-white/55 dark:bg-[rgba(22,22,35,0.5)] backdrop-blur-xl border border-white/40 dark:border-white/[0.06] shadow-[0_2px_16px_rgba(0,0,0,0.04)] relative cursor-grab active:cursor-grabbing",
       !noPadding && "p-4",
       className
     )}>
@@ -598,7 +598,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // パフォーマンス（モダンUI）
     performance: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl bg-card border border-border shadow-sm p-5 cursor-grab active:cursor-grabbing">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl bg-white/55 dark:bg-[rgba(22,22,35,0.5)] backdrop-blur-xl border border-white/40 dark:border-white/[0.06] shadow-[0_2px_16px_rgba(0,0,0,0.04)] p-5 cursor-grab active:cursor-grabbing">
         <div className="relative h-full flex flex-col gap-5">
           {/* ヘッダー: タイトル + 月セレクタ（ピル） */}
           <div className="flex flex-col gap-3">

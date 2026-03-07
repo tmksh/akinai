@@ -79,10 +79,14 @@ export async function getContents(
   try {
     const supabase = await createClient();
     
+    // 一覧ではblocksを除外（大量のJSON転送を回避）
     let query = supabase
       .from('contents')
       .select(`
-        *,
+        id, type, title, slug, excerpt, status, author_id,
+        featured_image, tags, related_product_ids,
+        seo_title, seo_description, published_at, scheduled_at,
+        organization_id, created_at, updated_at,
         author:users!author_id (
           name,
           avatar
@@ -122,7 +126,7 @@ export async function getContents(
       title: item.title as string,
       slug: item.slug as string,
       excerpt: item.excerpt as string | null,
-      blocks: (item.blocks as unknown[]) || [],
+      blocks: [], // 一覧では転送しない（詳細取得時にのみ読み込み）
       status: item.status as ContentStatus,
       authorId: item.author_id as string | null,
       authorName: (item.author as Record<string, unknown> | null)?.name as string | null,
@@ -145,7 +149,7 @@ export async function getContents(
   }
 }
 
-// コンテンツ統計取得
+// コンテンツ統計取得（1クエリで全統計を集計）
 export async function getContentStats(
   organizationId: string
 ): Promise<{
@@ -157,34 +161,20 @@ export async function getContentStats(
   try {
     const supabase = await createClient();
 
-    // ステータスごとにCOUNTクエリを並列発行（全件転送なし）
-    const [totalRes, publishedRes, draftRes, scheduledRes] = await Promise.all([
-      supabase
-        .from('contents')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId),
-      supabase
-        .from('contents')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId)
-        .eq('status', 'published'),
-      supabase
-        .from('contents')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId)
-        .eq('status', 'draft'),
-      supabase
-        .from('contents')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', organizationId)
-        .not('scheduled_at', 'is', null),
-    ]);
+    // status と scheduled_at だけ取得して JS で集計
+    const { data, error } = await supabase
+      .from('contents')
+      .select('status, scheduled_at')
+      .eq('organization_id', organizationId);
 
+    if (error) throw error;
+
+    const items = data || [];
     return {
-      total: totalRes.count ?? 0,
-      published: publishedRes.count ?? 0,
-      draft: draftRes.count ?? 0,
-      scheduled: scheduledRes.count ?? 0,
+      total: items.length,
+      published: items.filter(i => i.status === 'published').length,
+      draft: items.filter(i => i.status === 'draft').length,
+      scheduled: items.filter(i => i.scheduled_at !== null).length,
     };
   } catch (err) {
     console.error('Error:', err);
@@ -636,30 +626,28 @@ export async function getContentCategories(
 ): Promise<{ data: ContentCategory[]; error: string | null }> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('content_categories')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .order('sort_order', { ascending: true });
 
-    if (error) return { data: [], error: error.message };
-
-    // 各カテゴリのコンテンツ件数
-    const ids = (data || []).map((c) => c.id);
-    let countMap: Record<string, number> = {};
-    if (ids.length > 0) {
-      const { data: rels } = await supabase
+    // カテゴリとリレーションを並列取得
+    const [catRes, relRes] = await Promise.all([
+      supabase
+        .from('content_categories')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .order('sort_order', { ascending: true }),
+      supabase
         .from('content_category_relations')
-        .select('category_id')
-        .in('category_id', ids);
-      if (rels) {
-        for (const r of rels) {
-          countMap[r.category_id] = (countMap[r.category_id] || 0) + 1;
-        }
-      }
+        .select('category_id'),
+    ]);
+
+    if (catRes.error) return { data: [], error: catRes.error.message };
+
+    const data = catRes.data || [];
+    const countMap: Record<string, number> = {};
+    for (const r of relRes.data || []) {
+      countMap[r.category_id] = (countMap[r.category_id] || 0) + 1;
     }
 
-    const categories: ContentCategory[] = (data || []).map((c) => ({
+    const categories: ContentCategory[] = data.map((c) => ({
       id: c.id,
       name: c.name,
       slug: c.slug,

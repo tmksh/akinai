@@ -184,7 +184,7 @@ export default function ProductsClient({
       <PageTabs tabs={productTabs} />
 
       {/* ── サマリーバー ── */}
-      <div className="flex items-center rounded-xl border border-orange-100 overflow-hidden divide-x divide-orange-100 dark:divide-slate-800" style={{ background: '#fdf8f3' }}>
+      <div className="flex items-center rounded-2xl border border-white/40 overflow-hidden divide-x divide-white/30 dark:divide-slate-800" style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(16px)' }}>
         {[
           { label: '全商品',   value: stats.total,      filter: 'all',       alert: false },
           { label: '公開中',   value: stats.published,  filter: 'published', alert: false },
@@ -234,7 +234,7 @@ export default function ProductsClient({
 
         {/* フィルターパネル（展開式） */}
         {showFilters && (
-          <div className="flex flex-wrap gap-3 p-3 rounded-xl border border-orange-100" style={{ background: '#fdf8f3' }}>
+          <div className="flex flex-wrap gap-3 p-3 rounded-2xl border border-white/40" style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(16px)' }}>
             {/* ステータス */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">ステータス</p>
@@ -253,7 +253,7 @@ export default function ProductsClient({
                         ? 'bg-orange-500 text-white border-orange-500 font-medium'
                         : 'border-orange-200 text-orange-800 hover:border-orange-400 hover:bg-orange-50'
                     }`}
-                    style={statusFilter !== opt.value ? { background: '#fdf8f3' } : {}}
+                    style={statusFilter !== opt.value ? { background: 'rgba(255,255,255,0.35)' } : {}}
                   >
                     {opt.label}
                   </button>
@@ -272,7 +272,7 @@ export default function ProductsClient({
                         ? 'bg-orange-500 text-white border-orange-500 font-medium'
                         : 'border-orange-200 text-orange-800 hover:border-orange-400 hover:bg-orange-50'
                     }`}
-                    style={categoryFilter !== 'all' ? { background: '#fdf8f3' } : {}}
+                    style={categoryFilter !== 'all' ? { background: 'rgba(255,255,255,0.35)' } : {}}
                   >
                     すべて
                   </button>
@@ -285,7 +285,7 @@ export default function ProductsClient({
                           ? 'bg-orange-500 text-white border-orange-500 font-medium'
                           : 'border-orange-200 text-orange-800 hover:border-orange-400 hover:bg-orange-50'
                       }`}
-                      style={categoryFilter !== cat.id ? { background: '#fdf8f3' } : {}}
+                      style={categoryFilter !== cat.id ? { background: 'rgba(255,255,255,0.35)' } : {}}
                     >
                       {cat.name}
                     </button>
@@ -316,7 +316,7 @@ export default function ProductsClient({
 
       {/* ── 商品グリッド ── */}
       {filteredProducts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-dashed border-orange-200" style={{ background: '#fdf8f3' }}>
+        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-dashed border-orange-200/40" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(16px)' }}>
           <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center mb-4">
             <Package className="h-8 w-8 text-orange-400" />
           </div>
@@ -352,12 +352,12 @@ export default function ProductsClient({
             return (
               <div
                 key={product.id}
-                className="group relative rounded-xl border border-orange-100 overflow-hidden hover:shadow-md hover:border-orange-300 transition-all duration-200"
-                style={{ background: '#fdf8f3' }}
+                className="group relative rounded-2xl overflow-hidden hover:border-orange-200/60 transition-all duration-300 border border-white/40 hover:shadow-[0_8px_30px_rgba(0,0,0,0.07)]"
+                style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(16px)' }}
               >
                 {/* 画像エリア */}
                 <Link href={`/products/${product.id}`} className="block">
-                  <div className="relative aspect-square overflow-hidden" style={{ background: '#f5f0e8' }}>
+                  <div className="relative aspect-square overflow-hidden" style={{ background: 'rgba(245,240,230,0.5)' }}>
                     {product.images[0] ? (
                       <Image
                         src={product.images[0].url}

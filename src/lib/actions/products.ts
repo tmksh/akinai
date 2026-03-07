@@ -31,9 +31,18 @@ export async function getProducts(
   const offset = options?.offset ?? 0;
 
   try {
+    // 1クエリで商品＋バリエーション＋画像＋カテゴリをJOIN取得
     let query = supabase
       .from('products')
-      .select('*', { count: 'exact' })
+      .select(`
+        *,
+        product_variants (*),
+        product_images (*),
+        product_categories (
+          category_id,
+          categories (*)
+        )
+      `, { count: 'exact' })
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -52,55 +61,23 @@ export async function getProducts(
       return { data: [], error: null, total: 0 };
     }
 
-    const productIds = products.map(p => p.id);
+    // データを整形
+    const productsWithRelations: ProductWithRelations[] = products.map(product => {
+      const { product_variants, product_images, product_categories, ...rest } = product as Record<string, unknown>;
+      const variants = (product_variants as ProductVariant[]) || [];
+      const images = ((product_images as ProductImage[]) || [])
+        .sort((a, b) => a.sort_order - b.sort_order);
+      const categories = ((product_categories as { category_id: string; categories: Category }[]) || [])
+        .map(pc => pc.categories)
+        .filter((c): c is Category => c !== null && c !== undefined);
 
-    // バリエーション・画像・カテゴリ関連を並列取得
-    const [variantsRes, imagesRes, pcRes] = await Promise.all([
-      supabase
-        .from('product_variants')
-        .select('*')
-        .in('product_id', productIds),
-      supabase
-        .from('product_images')
-        .select('*')
-        .in('product_id', productIds)
-        .order('sort_order', { ascending: true }),
-      supabase
-        .from('product_categories')
-        .select('product_id, category_id')
-        .in('product_id', productIds),
-    ]);
-
-    if (variantsRes.error) throw variantsRes.error;
-    if (imagesRes.error) throw imagesRes.error;
-    if (pcRes.error) throw pcRes.error;
-
-    const variants = variantsRes.data;
-    const images = imagesRes.data;
-    const productCategories = pcRes.data;
-
-    // カテゴリ詳細を取得
-    const categoryIds = [...new Set(productCategories?.map(pc => pc.category_id) || [])];
-    let categories: Category[] = [];
-    if (categoryIds.length > 0) {
-      const { data: catData, error: catError } = await supabase
-        .from('categories')
-        .select('*')
-        .in('id', categoryIds);
-      if (catError) throw catError;
-      categories = catData || [];
-    }
-
-    // データを結合
-    const productsWithRelations: ProductWithRelations[] = products.map(product => ({
-      ...product,
-      variants: variants?.filter(v => v.product_id === product.id) || [],
-      images: images?.filter(i => i.product_id === product.id) || [],
-      categories: productCategories
-        ?.filter(pc => pc.product_id === product.id)
-        .map(pc => categories.find(c => c.id === pc.category_id))
-        .filter((c): c is Category => c !== undefined) || [],
-    }));
+      return {
+        ...(rest as Product),
+        variants,
+        images,
+        categories,
+      };
+    });
 
     return { data: productsWithRelations, error: null, total: count ?? productsWithRelations.length };
   } catch (error) {
@@ -139,7 +116,7 @@ export async function getCategoriesWithProductCount(organizationId: string): Pro
   const supabase = await createClient();
 
   try {
-    // カテゴリ一覧と全product_categoriesを並列取得
+    // カテゴリ一覧をproduct_categoriesカウント付きで1クエリで取得
     const [catRes, pcRes] = await Promise.all([
       supabase
         .from('categories')
@@ -148,7 +125,8 @@ export async function getCategoriesWithProductCount(organizationId: string): Pro
         .order('sort_order', { ascending: true }),
       supabase
         .from('product_categories')
-        .select('category_id'),
+        .select('category_id, categories!inner(organization_id)')
+        .eq('categories.organization_id', organizationId),
     ]);
 
     if (catRes.error) throw catRes.error;
@@ -310,54 +288,34 @@ export async function getProduct(productId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    // 商品・バリエーション・画像・カテゴリ関連を並列取得
-    const [productRes, variantsRes, imagesRes, pcRes] = await Promise.all([
-      supabase
-        .from('products')
-        .select('*')
-        .eq('id', productId)
-        .single(),
-      supabase
-        .from('product_variants')
-        .select('*')
-        .eq('product_id', productId),
-      supabase
-        .from('product_images')
-        .select('*')
-        .eq('product_id', productId)
-        .order('sort_order', { ascending: true }),
-      supabase
-        .from('product_categories')
-        .select('product_id, category_id')
-        .eq('product_id', productId),
-    ]);
+    // 1クエリでJOIN取得
+    const { data: product, error } = await supabase
+      .from('products')
+      .select(`
+        *,
+        product_variants (*),
+        product_images (*),
+        product_categories (
+          category_id,
+          categories (*)
+        )
+      `)
+      .eq('id', productId)
+      .single();
 
-    if (productRes.error) throw productRes.error;
-    if (variantsRes.error) throw variantsRes.error;
-    if (imagesRes.error) throw imagesRes.error;
-    if (pcRes.error) throw pcRes.error;
+    if (error) throw error;
+    if (!product) return { data: null, error: 'Product not found' };
 
-    const product = productRes.data;
-
-    // カテゴリ詳細を取得
-    const categoryIds = pcRes.data?.map(pc => pc.category_id) || [];
-    let categories: Category[] = [];
-    if (categoryIds.length > 0) {
-      const { data: catData, error: catError } = await supabase
-        .from('categories')
-        .select('*')
-        .in('id', categoryIds);
-      if (catError) throw catError;
-      categories = catData || [];
-    }
+    const { product_variants, product_images, product_categories, ...rest } = product as Record<string, unknown>;
+    const variants = (product_variants as ProductVariant[]) || [];
+    const images = ((product_images as ProductImage[]) || [])
+      .sort((a, b) => a.sort_order - b.sort_order);
+    const categories = ((product_categories as { category_id: string; categories: Category }[]) || [])
+      .map(pc => pc.categories)
+      .filter((c): c is Category => c !== null && c !== undefined);
 
     return {
-      data: {
-        ...product,
-        variants: variantsRes.data || [],
-        images: imagesRes.data || [],
-        categories,
-      },
+      data: { ...(rest as Product), variants, images, categories },
       error: null,
     };
   } catch (error) {
@@ -863,38 +821,48 @@ export async function duplicateProduct(productId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    // 元の商品を取得
-    const { data: originalProduct, error: productError } = await supabase
+    // 元の商品を全リレーション含めて1クエリで取得
+    const { data: orig, error: productError } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        *,
+        product_variants (*),
+        product_images (*),
+        product_categories (category_id)
+      `)
       .eq('id', productId)
       .single();
 
     if (productError) throw productError;
-    if (!originalProduct) {
+    if (!orig) {
       return { data: null, error: '商品が見つかりません' };
     }
 
+    const origAny = orig as Record<string, unknown>;
+    const origVariants = (origAny.product_variants as ProductVariant[]) || [];
+    const origImages = (origAny.product_images as ProductImage[]) || [];
+    const origCats = (origAny.product_categories as { category_id: string }[]) || [];
+
     // ユニークなスラッグを生成
     const newSlug = await generateUniqueSlug(
-      originalProduct.organization_id,
-      `${originalProduct.name} (コピー)`
+      orig.organization_id,
+      `${orig.name} (コピー)`
     );
 
     // 商品を複製（下書きとして作成）
     const { data: newProduct, error: newProductError } = await supabase
       .from('products')
       .insert({
-        organization_id: originalProduct.organization_id,
-        name: `${originalProduct.name} (コピー)`,
+        organization_id: orig.organization_id,
+        name: `${orig.name} (コピー)`,
         slug: newSlug,
-        description: originalProduct.description,
-        short_description: originalProduct.short_description,
-        status: 'draft', // 必ず下書きとして作成
-        tags: originalProduct.tags,
-        seo_title: originalProduct.seo_title,
-        seo_description: originalProduct.seo_description,
-        featured: false, // 注目商品はオフ
+        description: orig.description,
+        short_description: orig.short_description,
+        status: 'draft',
+        tags: orig.tags,
+        seo_title: orig.seo_title,
+        seo_description: orig.seo_description,
+        featured: false,
         published_at: null,
       })
       .select()
@@ -902,60 +870,46 @@ export async function duplicateProduct(productId: string): Promise<{
 
     if (newProductError) throw newProductError;
 
-    // バリエーションを複製
-    const { data: originalVariants } = await supabase
-      .from('product_variants')
-      .select('*')
-      .eq('product_id', productId);
+    // バリエーション・画像・カテゴリを並列で複製
+    const inserts: PromiseLike<unknown>[] = [];
 
-    if (originalVariants && originalVariants.length > 0) {
+    if (origVariants.length > 0) {
       const timestamp = Date.now();
-      const newVariants = originalVariants.map((v, index) => ({
-        product_id: newProduct.id,
-        name: v.name,
-        sku: `${v.sku}-COPY-${timestamp}-${index}`, // SKUをユニークにする
-        price: v.price,
-        compare_at_price: v.compare_at_price,
-        stock: 0, // 在庫は0で開始
-        low_stock_threshold: v.low_stock_threshold,
-        options: v.options,
-      }));
-
-      await supabase.from('product_variants').insert(newVariants);
+      inserts.push(supabase.from('product_variants').insert(
+        origVariants.map((v, index) => ({
+          product_id: newProduct.id,
+          name: v.name,
+          sku: `${v.sku}-COPY-${timestamp}-${index}`,
+          price: v.price,
+          compare_at_price: v.compare_at_price,
+          stock: 0,
+          low_stock_threshold: v.low_stock_threshold,
+          options: v.options,
+        }))
+      ));
     }
 
-    // 画像を複製
-    const { data: originalImages } = await supabase
-      .from('product_images')
-      .select('*')
-      .eq('product_id', productId)
-      .order('sort_order', { ascending: true });
-
-    if (originalImages && originalImages.length > 0) {
-      const newImages = originalImages.map((img) => ({
-        product_id: newProduct.id,
-        url: img.url,
-        alt: img.alt,
-        sort_order: img.sort_order,
-      }));
-
-      await supabase.from('product_images').insert(newImages);
+    if (origImages.length > 0) {
+      inserts.push(supabase.from('product_images').insert(
+        origImages.map((img) => ({
+          product_id: newProduct.id,
+          url: img.url,
+          alt: img.alt,
+          sort_order: img.sort_order,
+        }))
+      ));
     }
 
-    // カテゴリ関連を複製
-    const { data: originalCategories } = await supabase
-      .from('product_categories')
-      .select('category_id')
-      .eq('product_id', productId);
-
-    if (originalCategories && originalCategories.length > 0) {
-      const newCategories = originalCategories.map((cat) => ({
-        product_id: newProduct.id,
-        category_id: cat.category_id,
-      }));
-
-      await supabase.from('product_categories').insert(newCategories);
+    if (origCats.length > 0) {
+      inserts.push(supabase.from('product_categories').insert(
+        origCats.map((cat) => ({
+          product_id: newProduct.id,
+          category_id: cat.category_id,
+        }))
+      ));
     }
+
+    await Promise.all(inserts);
 
     revalidatePath('/products');
     return { data: newProduct, error: null };
