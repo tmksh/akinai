@@ -579,23 +579,34 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
     // 売上サマリーチャート
     chart: (
       <WidgetWrapper>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="font-semibold text-slate-900 dark:text-white">売上サマリー</h3>
-            <p className="text-xs text-slate-500">月別のトレンド</p>
+            <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">売上サマリー</p>
+            <p className="text-2xl font-black text-foreground mt-0.5 tracking-tight tabular-nums">
+              ¥{(initialData.revenue.month.total / 10000).toFixed(1)}<span className="text-sm font-medium text-muted-foreground ml-1">万</span>
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className={cn(
+                "text-xs font-semibold",
+                initialData.revenue.month.change >= 0 ? "text-emerald-500" : "text-destructive"
+              )}>
+                {initialData.revenue.month.change >= 0 ? '▲' : '▼'} {Math.abs(initialData.revenue.month.change)}%
+              </span>
+              <span className="text-[10px] text-muted-foreground">前月比</span>
+            </div>
           </div>
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-3 text-xs mt-1">
             <div className="flex items-center gap-1.5">
-              <div className="h-2.5 w-2.5 rounded-full bg-orange-500" />
-              <span className="text-slate-500">売上(千円)</span>
+              <div className="h-2 w-5 rounded-full bg-gradient-to-r from-orange-500 to-amber-400" />
+              <span className="text-muted-foreground">売上(千円)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-              <span className="text-slate-500">注文数</span>
+              <div className="h-2 w-5 rounded-full bg-gradient-to-r from-sky-400 to-blue-400" />
+              <span className="text-muted-foreground">注文数</span>
             </div>
           </div>
         </div>
-        <div className="h-[calc(100%-60px)]">
+        <div className="h-[calc(100%-80px)]">
           <DashboardChart data={initialData.monthlySales} />
         </div>
       </WidgetWrapper>
