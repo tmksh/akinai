@@ -242,7 +242,7 @@ export default function ProductClient({ product }: ProductClientProps) {
             </button>
           </div>
           {selectedVariant && selectedVariant.stock <= 5 && selectedVariant.stock > 0 && (
-            <p className="text-sm text-orange-600 mt-2">
+            <p className="text-sm text-sky-600 mt-2">
               残り{selectedVariant.stock}点です
             </p>
           )}

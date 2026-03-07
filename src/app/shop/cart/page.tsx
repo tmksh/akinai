@@ -46,7 +46,7 @@ function CartItemRow({
           <div>
             <Link
               href={`/shop/products/${item.productId}`}
-              className="font-medium text-slate-900 hover:text-orange-500 transition-colors line-clamp-2"
+              className="font-medium text-slate-900 hover:text-sky-500 transition-colors line-clamp-2"
             >
               {item.name}
             </Link>
@@ -108,7 +108,7 @@ function EmptyCart() {
       <h2 className="text-xl font-bold text-slate-900 mb-2">カートは空です</h2>
       <p className="text-slate-500 mb-6">商品を追加してお買い物を始めましょう</p>
       <Link href="/shop/products">
-        <Button className="bg-orange-500 hover:bg-orange-600">
+        <Button className="bg-sky-500 hover:bg-sky-600">
           商品を見る <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </Link>
@@ -189,16 +189,16 @@ export default function CartPage() {
 
             {/* 送料無料バー */}
             {freeShippingRemaining > 0 && (
-              <div className="mt-4 bg-orange-50 rounded-xl p-4">
+              <div className="mt-4 bg-sky-50 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Truck className="h-5 w-5 text-orange-500" />
-                  <span className="text-sm font-medium text-orange-700">
+                  <Truck className="h-5 w-5 text-sky-500" />
+                  <span className="text-sm font-medium text-sky-700">
                     あと ¥{freeShippingRemaining.toLocaleString()} で送料無料！
                   </span>
                 </div>
-                <div className="h-2 bg-orange-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-sky-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(100, (subtotal / 5000) * 100)}%` }}
                   />
                 </div>
@@ -283,7 +283,7 @@ export default function CartPage() {
 
               <Button
                 size="lg"
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white h-14 text-lg mb-4"
+                className="w-full bg-sky-500 hover:bg-sky-600 text-white h-14 text-lg mb-4"
                 asChild
               >
                 <Link href="/shop/checkout">
@@ -323,7 +323,7 @@ export default function CartPage() {
                         />
                       )}
                     </div>
-                    <h3 className="text-sm font-medium text-slate-900 group-hover:text-orange-500 transition-colors line-clamp-1">
+                    <h3 className="text-sm font-medium text-slate-900 group-hover:text-sky-500 transition-colors line-clamp-1">
                       {product.name}
                     </h3>
                     <p className="text-sm font-bold text-slate-900 mt-1">

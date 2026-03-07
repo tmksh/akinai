@@ -29,8 +29,8 @@ const navItems = [
 ];
 
 const moreMenuItems = [
-  { title: 'お知らせ', icon: FileText, href: '/contents', color: 'text-orange-500' },
-  { title: '代理店管理', icon: Building2, href: '/agents', color: 'text-orange-500' },
+  { title: 'お知らせ', icon: FileText, href: '/contents', color: 'text-sky-500' },
+  { title: '代理店管理', icon: Building2, href: '/agents', color: 'text-sky-500' },
   { title: '設定', icon: Settings, href: '/settings', color: 'text-slate-500' },
 ];
 
@@ -61,7 +61,7 @@ export function BottomNavigation() {
                     className={cn(
                       'flex flex-col items-center justify-center min-w-[4rem] py-1 px-2 rounded-xl transition-all active:scale-[0.97]',
                       active
-                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
+                        ? 'bg-gradient-to-r from-sky-500 to-sky-600 text-white shadow-md'
                         : 'text-muted-foreground hover:text-foreground hover:bg-white/40'
                     )}
                   >
@@ -80,7 +80,7 @@ export function BottomNavigation() {
                   className={cn(
                     'flex flex-col items-center justify-center min-w-[4rem] py-1 px-2 rounded-xl transition-all active:scale-[0.97]',
                     active
-                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
+                      ? 'bg-gradient-to-r from-sky-500 to-sky-600 text-white shadow-md'
                       : 'text-muted-foreground hover:text-foreground hover:bg-white/40'
                   )}
                 >
@@ -121,7 +121,7 @@ export function BottomNavigation() {
                   className={cn(
                     'flex flex-col items-center justify-center p-4 rounded-2xl transition-all',
                     active
-                      ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-md'
+                      ? 'bg-gradient-to-br from-sky-500 to-sky-600 text-white shadow-md'
                       : 'bg-muted/50 hover:bg-muted'
                   )}
                 >

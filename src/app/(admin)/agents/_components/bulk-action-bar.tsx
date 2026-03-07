@@ -41,7 +41,7 @@ export function BulkActionBar({
           variant="ghost"
           size="sm"
           onClick={onDeactivate}
-          className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+          className="text-sky-600 hover:text-sky-700 hover:bg-sky-50"
         >
           <XCircle className="h-4 w-4 mr-1.5" />
           停止

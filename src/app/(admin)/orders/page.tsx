@@ -66,11 +66,11 @@ const TabButton = memo(function TabButton({
       className={cn(
         'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200',
         isActive
-          ? 'bg-white/80 dark:bg-white/[0.12] text-orange-600 dark:text-orange-400 shadow-[0_1px_6px_rgba(100,120,160,0.12),inset_0_1px_0_rgba(255,255,255,0.9)] border border-white/80 dark:border-white/[0.1]'
+          ? 'bg-white/80 dark:bg-white/[0.12] text-sky-600 dark:text-sky-400 shadow-[0_1px_6px_rgba(100,120,160,0.12),inset_0_1px_0_rgba(255,255,255,0.9)] border border-white/80 dark:border-white/[0.1]'
           : 'text-muted-foreground hover:text-foreground hover:bg-white/40 dark:hover:bg-white/[0.05]'
       )}
     >
-      <Icon className={cn('h-4 w-4', isActive ? 'text-orange-500' : '')} />
+      <Icon className={cn('h-4 w-4', isActive ? 'text-sky-500' : '')} />
       <span>{tab.label}</span>
     </button>
   );

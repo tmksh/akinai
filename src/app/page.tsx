@@ -77,7 +77,7 @@ function Navbar() {
           <a href="#pricing" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">料金</a>
           <Link
             href="/login"
-            className="text-sm text-gray-700 font-medium hover:text-orange-600 transition-colors"
+            className="text-sm text-gray-700 font-medium hover:text-sky-600 transition-colors"
           >
             ログイン
           </Link>
@@ -133,9 +133,9 @@ function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* テキスト */}
           <div className={`space-y-8 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="inline-flex items-center gap-2 bg-orange-50 border border-orange-200/60 rounded-full px-4 py-1.5">
-              <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-              <span className="text-xs font-medium text-orange-700">B2B EC CMS - オープンベータ公開中</span>
+            <div className="inline-flex items-center gap-2 bg-sky-50 border border-sky-200/60 rounded-full px-4 py-1.5">
+              <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
+              <span className="text-xs font-medium text-sky-700">B2B EC CMS - オープンベータ公開中</span>
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-gray-900 leading-[1.15]">
@@ -173,9 +173,9 @@ function HeroSection() {
             </div>
 
             <div className="flex items-center gap-6 text-sm text-gray-400 pt-2">
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-orange-400" />クレカ不要</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-orange-400" />即日利用可</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-orange-400" />日本語対応</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-sky-400" />クレカ不要</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-sky-400" />即日利用可</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-sky-400" />日本語対応</span>
             </div>
           </div>
 
@@ -195,14 +195,14 @@ function DashboardMockup() {
     <div className="relative">
       {/* グロー */}
       <div className="absolute -inset-4 rounded-3xl opacity-30"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(249,115,22,0.3), transparent 70%)' }} />
+        style={{ background: 'radial-gradient(ellipse at center, rgba(14,165,233,0.3), transparent 70%)' }} />
 
       <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200/60" style={{ aspectRatio: '4/3' }}>
         {/* タイトルバー */}
         <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-red-400" />
-            <div className="w-3 h-3 rounded-full bg-yellow-400" />
+            <div className="w-3 h-3 rounded-full bg-sky-400" />
             <div className="w-3 h-3 rounded-full bg-green-400" />
           </div>
           <div className="flex-1 flex justify-center">
@@ -213,9 +213,9 @@ function DashboardMockup() {
         <div className="flex h-[calc(100%-40px)]">
           {/* サイドバー */}
           <div className="w-[52px] bg-gradient-to-b from-gray-50 to-gray-100/50 border-r border-gray-100 py-3 flex flex-col items-center gap-3">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-orange-400 to-orange-500 mb-2" />
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-sky-400 to-sky-500 mb-2" />
             {[...Array(6)].map((_, i) => (
-              <div key={i} className={`w-5 h-5 rounded-md ${i === 0 ? 'bg-orange-100' : 'bg-gray-100'}`} />
+              <div key={i} className={`w-5 h-5 rounded-md ${i === 0 ? 'bg-sky-100' : 'bg-gray-100'}`} />
             ))}
           </div>
 
@@ -224,7 +224,7 @@ function DashboardMockup() {
             {/* KPIカード */}
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: '売上', value: '¥2.4M', color: 'from-orange-400 to-amber-400', change: '+12%' },
+                { label: '売上', value: '¥2.4M', color: 'from-sky-400 to-sky-400', change: '+12%' },
                 { label: '受注', value: '148', color: 'from-blue-400 to-cyan-400', change: '+8%' },
                 { label: '顧客', value: '1,247', color: 'from-emerald-400 to-green-400', change: '+5%' },
                 { label: '商品', value: '386', color: 'from-purple-400 to-pink-400', change: '+3%' },
@@ -290,7 +290,7 @@ function DashboardMockup() {
                     <span className="text-gray-800 font-medium">{order.amount}</span>
                     <span className={`px-1.5 py-0.5 rounded-full text-[7px] font-medium ${
                       order.status === '完了' ? 'bg-emerald-50 text-emerald-600' :
-                      order.status === '処理中' ? 'bg-orange-50 text-orange-600' :
+                      order.status === '処理中' ? 'bg-sky-50 text-sky-600' :
                       'bg-blue-50 text-blue-600'
                     }`}>{order.status}</span>
                   </div>
@@ -327,7 +327,7 @@ function FeaturesSection() {
     <section id="features" className="py-24 md:py-32 bg-white">
       <div ref={ref} className="max-w-7xl mx-auto px-6">
         <div className={`text-center mb-16 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <p className="text-xs tracking-[0.3em] uppercase text-orange-500 font-semibold mb-3">Features</p>
+          <p className="text-xs tracking-[0.3em] uppercase text-sky-500 font-semibold mb-3">Features</p>
           <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
             B2B ECに必要な機能を、すべて搭載
           </h2>
@@ -342,13 +342,13 @@ function FeaturesSection() {
             return (
               <div
                 key={i}
-                className={`group p-6 rounded-2xl border border-gray-100 hover:border-orange-200 bg-white hover:bg-orange-50/30 transition-all duration-500 ${
+                className={`group p-6 rounded-2xl border border-gray-100 hover:border-sky-200 bg-white hover:bg-sky-50/30 transition-all duration-500 ${
                   visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
                 }`}
                 style={{ transitionDelay: `${i * 50}ms` }}
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-100 to-amber-50 flex items-center justify-center mb-4 group-hover:from-orange-200 group-hover:to-amber-100 transition-colors">
-                  <Icon className="h-5 w-5 text-orange-500" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-100 to-sky-50 flex items-center justify-center mb-4 group-hover:from-sky-200 group-hover:to-sky-100 transition-colors">
+                  <Icon className="h-5 w-5 text-sky-500" />
                 </div>
                 <h3 className="text-sm font-bold text-gray-900 mb-2">{f.title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
@@ -377,7 +377,7 @@ function ScreenshotsSection() {
     <section id="screenshots" className="py-24 md:py-32" style={{ background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)' }}>
       <div ref={ref} className="max-w-7xl mx-auto px-6">
         <div className={`text-center mb-12 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <p className="text-xs tracking-[0.3em] uppercase text-orange-500 font-semibold mb-3">Screenshots</p>
+          <p className="text-xs tracking-[0.3em] uppercase text-sky-500 font-semibold mb-3">Screenshots</p>
           <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
             洗練された管理画面
           </h2>
@@ -394,7 +394,7 @@ function ScreenshotsSection() {
               onClick={() => setActiveTab(i)}
               className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
                 activeTab === i
-                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-200'
+                  ? 'bg-gradient-to-r from-sky-500 to-sky-500 text-white shadow-lg shadow-sky-200'
                   : 'text-gray-500 hover:text-gray-800 hover:bg-white'
               }`}
             >
@@ -407,13 +407,13 @@ function ScreenshotsSection() {
         <div className={`transition-all duration-700 delay-300 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className="relative">
             <div className="absolute -inset-6 rounded-3xl opacity-20"
-              style={{ background: 'radial-gradient(ellipse at center, rgba(249,115,22,0.4), transparent 70%)' }} />
+              style={{ background: 'radial-gradient(ellipse at center, rgba(14,165,233,0.4), transparent 70%)' }} />
             <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200/60">
               {/* ブラウザバー */}
               <div className="flex items-center gap-2 px-5 py-3 bg-gray-50 border-b border-gray-100">
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <div className="w-3 h-3 rounded-full bg-sky-400" />
                   <div className="w-3 h-3 rounded-full bg-green-400" />
                 </div>
                 <div className="flex-1 flex justify-center">
@@ -502,7 +502,7 @@ function DashboardScreenMock() {
                 </div>
               </div>
             </div>
-            <div className="text-center text-[10px] text-orange-500 font-semibold mt-1">グレード: A</div>
+            <div className="text-center text-[10px] text-sky-500 font-semibold mt-1">グレード: A</div>
           </div>
         </div>
       </div>
@@ -523,7 +523,7 @@ function ProductsScreenMock() {
           </div>
           <div className="flex gap-2">
             <div className="bg-gray-100 rounded-lg px-3 py-1.5 text-xs text-gray-500">検索...</div>
-            <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg px-4 py-1.5 text-xs text-white font-semibold">+ 新規追加</div>
+            <div className="bg-gradient-to-r from-sky-500 to-sky-500 rounded-lg px-4 py-1.5 text-xs text-white font-semibold">+ 新規追加</div>
           </div>
         </div>
 
@@ -548,7 +548,7 @@ function ProductsScreenMock() {
                 { name: 'リネンストール', cat: 'アクセサリー', price: '¥12,000', stock: 0, status: '在庫切' },
                 { name: 'レザーカードケース', cat: '小物', price: '¥15,000', stock: 67, status: '公開中' },
               ].map((p, i) => (
-                <tr key={i} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors">
+                <tr key={i} className="border-b border-gray-50 hover:bg-sky-50/30 transition-colors">
                   <td className="px-4 py-3 text-xs font-medium text-gray-800 flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 shrink-0" />
                     {p.name}
@@ -556,12 +556,12 @@ function ProductsScreenMock() {
                   <td className="px-4 py-3 text-xs text-gray-500">{p.cat}</td>
                   <td className="px-4 py-3 text-xs text-gray-800 font-medium text-right">{p.price}</td>
                   <td className="px-4 py-3 text-xs text-right">
-                    <span className={p.stock === 0 ? 'text-red-500' : p.stock < 5 ? 'text-amber-500' : 'text-gray-600'}>{p.stock}</span>
+                    <span className={p.stock === 0 ? 'text-red-500' : p.stock < 5 ? 'text-sky-500' : 'text-gray-600'}>{p.stock}</span>
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
                       p.status === '公開中' ? 'bg-emerald-50 text-emerald-600' :
-                      p.status === '残少' ? 'bg-amber-50 text-amber-600' :
+                      p.status === '残少' ? 'bg-sky-50 text-sky-600' :
                       'bg-red-50 text-red-500'
                     }`}>{p.status}</span>
                   </td>
@@ -592,7 +592,7 @@ function ShopScreenMock() {
       </div>
 
       {/* ヒーロー */}
-      <div className="relative h-36 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
+      <div className="relative h-36 bg-gradient-to-br from-sky-50 via-sky-50 to-sky-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-[10px] tracking-[0.4em] uppercase text-gray-400 mb-1">New Collection</p>
           <h2 className="text-2xl font-light text-gray-800" style={{ fontFamily: 'serif' }}>日々と共にあるすべてのものに</h2>
@@ -610,7 +610,7 @@ function ShopScreenMock() {
         </div>
         <div className="grid grid-cols-4 gap-4">
           {[
-            { name: 'レザートートバッグ', price: '¥45,000', color: 'from-amber-100 to-amber-200' },
+            { name: 'レザートートバッグ', price: '¥45,000', color: 'from-sky-100 to-sky-200' },
             { name: 'コットンシャツ', price: '¥12,800', color: 'from-blue-50 to-blue-100' },
             { name: 'リネンパンツ', price: '¥18,500', color: 'from-stone-100 to-stone-200' },
             { name: 'ウールストール', price: '¥22,000', color: 'from-rose-50 to-rose-100' },
@@ -652,7 +652,7 @@ function OrdersScreenMock() {
           <div className="flex gap-2">
             {['すべて', '新規', '処理中', '発送済', '完了'].map((f, i) => (
               <div key={i} className={`px-3 py-1 rounded-full text-[10px] font-medium ${
-                i === 0 ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-500'
+                i === 0 ? 'bg-sky-500 text-white' : 'bg-gray-100 text-gray-500'
               }`}>{f}</div>
             ))}
           </div>
@@ -681,8 +681,8 @@ function OrdersScreenMock() {
                 { id: '#ORD-1242', name: '京都クラフト合同会社', date: '2026/03/04', amount: '¥312,000', status: '処理中', payment: '請求書' },
                 { id: '#ORD-1241', name: '仙台ロジスティクス', date: '2026/03/03', amount: '¥95,600', status: '完了', payment: '銀行振込' },
               ].map((o, i) => (
-                <tr key={i} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors">
-                  <td className="px-4 py-2.5 text-xs font-mono text-orange-600">{o.id}</td>
+                <tr key={i} className="border-b border-gray-50 hover:bg-sky-50/30 transition-colors">
+                  <td className="px-4 py-2.5 text-xs font-mono text-sky-600">{o.id}</td>
                   <td className="px-4 py-2.5 text-xs text-gray-800">{o.name}</td>
                   <td className="px-4 py-2.5 text-xs text-gray-400">{o.date}</td>
                   <td className="px-4 py-2.5 text-xs font-semibold text-gray-800 text-right">{o.amount}</td>
@@ -690,7 +690,7 @@ function OrdersScreenMock() {
                     <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
                       o.status === '完了' ? 'bg-emerald-50 text-emerald-600' :
                       o.status === '発送済' ? 'bg-blue-50 text-blue-600' :
-                      o.status === '処理中' ? 'bg-orange-50 text-orange-600' :
+                      o.status === '処理中' ? 'bg-sky-50 text-sky-600' :
                       'bg-purple-50 text-purple-600'
                     }`}>{o.status}</span>
                   </td>
@@ -721,7 +721,7 @@ function MockSidebar({ active }: { active: number }) {
   return (
     <div className="w-48 bg-gradient-to-b from-gray-50/80 to-white border-r border-gray-100 py-4 px-3 shrink-0">
       <div className="flex items-center gap-2 px-2 mb-6">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-400 to-orange-500" />
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-400 to-sky-500" />
         <span className="text-sm font-bold" style={{
           background: 'linear-gradient(135deg, #f97316, #fbbf24)',
           WebkitBackgroundClip: 'text',
@@ -731,7 +731,7 @@ function MockSidebar({ active }: { active: number }) {
       <div className="space-y-0.5">
         {items.map((item, i) => (
           <div key={i} className={`flex items-center gap-2 px-2 py-2 rounded-lg text-xs transition-colors ${
-            active === i ? 'bg-orange-50 text-orange-700 font-semibold' : 'text-gray-500 hover:bg-gray-50'
+            active === i ? 'bg-sky-50 text-sky-700 font-semibold' : 'text-gray-500 hover:bg-gray-50'
           }`}>
             <span className="text-sm">{item.icon}</span>
             <span>{item.label}</span>
@@ -758,11 +758,11 @@ function B2BSection() {
       <div ref={ref} className="max-w-7xl mx-auto px-6">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div className={`transition-all duration-700 ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
-            <p className="text-xs tracking-[0.3em] uppercase text-orange-400 font-semibold mb-3">For B2B</p>
+            <p className="text-xs tracking-[0.3em] uppercase text-sky-400 font-semibold mb-3">For B2B</p>
             <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-6">
               BtoB ECに
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-sky-400">
                 本気で向き合う
               </span>
             </h2>
@@ -789,7 +789,7 @@ function B2BSection() {
           {/* 見積モックアップ */}
           <div className={`transition-all duration-700 delay-200 ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}>
             <div className="bg-white rounded-2xl shadow-2xl p-6 text-gray-900 relative">
-              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">
+              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-sky-500 to-sky-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">
                 PDF出力対応
               </div>
               <div className="flex items-center justify-between mb-6">
@@ -812,7 +812,7 @@ function B2BSection() {
                 <div className="bg-gray-50 rounded-xl p-3">
                   <div className="text-[10px] text-gray-400 mb-1">有効期限</div>
                   <div className="font-semibold">2026年4月6日</div>
-                  <div className="text-orange-500 font-medium">残り30日</div>
+                  <div className="text-sky-500 font-medium">残り30日</div>
                 </div>
               </div>
 
@@ -845,12 +845,12 @@ function B2BSection() {
                 <div className="text-right space-y-1">
                   <div className="text-xs text-gray-400">小計: ¥1,970,000</div>
                   <div className="text-xs text-gray-400">消費税(10%): ¥197,000</div>
-                  <div className="text-lg font-black text-orange-600">合計: ¥2,167,000</div>
+                  <div className="text-lg font-black text-sky-600">合計: ¥2,167,000</div>
                 </div>
               </div>
 
               <div className="mt-4 flex gap-2">
-                <div className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-center py-2 rounded-lg text-xs font-bold">
+                <div className="flex-1 bg-gradient-to-r from-sky-500 to-sky-500 text-white text-center py-2 rounded-lg text-xs font-bold">
                   受注に変換
                 </div>
                 <div className="px-4 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600">
@@ -903,7 +903,7 @@ function PricingSection() {
     <section id="pricing" className="py-24 md:py-32 bg-white">
       <div ref={ref} className="max-w-5xl mx-auto px-6">
         <div className={`text-center mb-16 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <p className="text-xs tracking-[0.3em] uppercase text-orange-500 font-semibold mb-3">Pricing</p>
+          <p className="text-xs tracking-[0.3em] uppercase text-sky-500 font-semibold mb-3">Pricing</p>
           <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
             シンプルな料金体系
           </h2>
@@ -918,29 +918,29 @@ function PricingSection() {
                 visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
               } ${
                 plan.highlight
-                  ? 'bg-gradient-to-b from-orange-500 to-orange-600 text-white shadow-2xl shadow-orange-200 scale-[1.03]'
+                  ? 'bg-gradient-to-b from-sky-500 to-sky-600 text-white shadow-2xl shadow-sky-200 scale-[1.03]'
                   : 'bg-gray-50 border border-gray-100'
               }`}
               style={{ transitionDelay: `${i * 100}ms` }}
             >
               {plan.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-gray-900 text-[10px] font-bold px-3 py-1 rounded-full">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-400 text-gray-900 text-[10px] font-bold px-3 py-1 rounded-full">
                   人気
                 </div>
               )}
               <div className="mb-6">
-                <div className={`text-sm font-bold mb-2 ${plan.highlight ? 'text-orange-100' : 'text-gray-500'}`}>{plan.name}</div>
+                <div className={`text-sm font-bold mb-2 ${plan.highlight ? 'text-sky-100' : 'text-gray-500'}`}>{plan.name}</div>
                 <div className="flex items-end gap-1">
                   <span className="text-3xl font-black">{plan.price}</span>
-                  <span className={`text-sm mb-1 ${plan.highlight ? 'text-orange-200' : 'text-gray-400'}`}>{plan.period}</span>
+                  <span className={`text-sm mb-1 ${plan.highlight ? 'text-sky-200' : 'text-gray-400'}`}>{plan.period}</span>
                 </div>
-                <div className={`text-xs mt-2 ${plan.highlight ? 'text-orange-100' : 'text-gray-400'}`}>{plan.desc}</div>
+                <div className={`text-xs mt-2 ${plan.highlight ? 'text-sky-100' : 'text-gray-400'}`}>{plan.desc}</div>
               </div>
 
               <ul className="space-y-3 mb-8">
                 {plan.features.map((f, j) => (
                   <li key={j} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className={`h-4 w-4 shrink-0 ${plan.highlight ? 'text-amber-300' : 'text-orange-400'}`} />
+                    <CheckCircle2 className={`h-4 w-4 shrink-0 ${plan.highlight ? 'text-sky-300' : 'text-sky-400'}`} />
                     <span className={plan.highlight ? 'text-white/90' : 'text-gray-600'}>{f}</span>
                   </li>
                 ))}
@@ -950,7 +950,7 @@ function PricingSection() {
                 href="/signup"
                 className={`block w-full text-center py-3 rounded-xl text-sm font-bold transition-all ${
                   plan.highlight
-                    ? 'bg-white text-orange-600 hover:bg-orange-50 shadow-lg'
+                    ? 'bg-white text-sky-600 hover:bg-sky-50 shadow-lg'
                     : 'bg-gray-900 text-white hover:bg-gray-800'
                 }`}
               >

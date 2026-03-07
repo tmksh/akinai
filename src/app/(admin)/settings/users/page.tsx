@@ -198,7 +198,7 @@ export default function UsersSettingsPage() {
   const getPermissionIcon = (status: 'full' | 'partial' | 'none') => {
     switch (status) {
       case 'full': return <Check className="h-4 w-4 text-emerald-500" />;
-      case 'partial': return <Minus className="h-4 w-4 text-amber-500" />;
+      case 'partial': return <Minus className="h-4 w-4 text-sky-500" />;
       case 'none': return <X className="h-4 w-4 text-slate-300" />;
     }
   };
@@ -241,7 +241,7 @@ export default function UsersSettingsPage() {
               className={cn(
                 "flex items-center gap-2 px-4 py-2.5 border-b-2 transition-colors",
                 activeSubTab === tab.key
-                  ? "border-orange-500 text-orange-600"
+                  ? "border-sky-500 text-sky-600"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
@@ -379,8 +379,8 @@ export default function UsersSettingsPage() {
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "w-10 h-10 rounded-lg flex items-center justify-center",
-                      role.id === 'admin' ? "bg-orange-100 text-orange-600" :
-                      role.id === 'editor' ? "bg-orange-100 text-orange-600" :
+                      role.id === 'admin' ? "bg-sky-100 text-sky-600" :
+                      role.id === 'editor' ? "bg-sky-100 text-sky-600" :
                       "bg-slate-100 text-slate-600"
                     )}>
                       <Shield className="h-5 w-5" />
@@ -468,7 +468,7 @@ export default function UsersSettingsPage() {
                 <span>フルアクセス</span>
               </div>
               <div className="flex items-center gap-2">
-                <Minus className="h-4 w-4 text-amber-500" />
+                <Minus className="h-4 w-4 text-sky-500" />
                 <span>一部制限</span>
               </div>
               <div className="flex items-center gap-2">

@@ -88,66 +88,66 @@ function LoginForm() {
       ══════════════════════════════ */}
       <div
         className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col items-center justify-between py-12"
-        style={{ background: '#ecedf2' }}
+        style={{ background: '#e8f0f8' }}
       >
         {/* ── 装飾サークル ── */}
 
-        {/* 右上：大きいクリーム */}
+        {/* 右上：スカイブルー大 */}
         <div
           className="pointer-events-none absolute -top-24 right-[-60px]"
           style={{
             width: 280,
             height: 280,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #fde68a, #fbbf24)',
+            background: 'linear-gradient(135deg, #bae6fd, #38bdf8)',
             opacity: 0.85,
           }}
         />
-        {/* 右上：その後ろ・オレンジ */}
+        {/* 右上：その後ろ・ブルー */}
         <div
           className="pointer-events-none absolute -top-10 right-[80px]"
           style={{
             width: 200,
             height: 200,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #fb923c, #ea580c)',
-            opacity: 0.75,
+            background: 'linear-gradient(135deg, #60a5fa, #2563eb)',
+            opacity: 0.65,
           }}
         />
 
-        {/* 左中：大きいディープオレンジ */}
+        {/* 左中：ディープブルー */}
         <div
           className="pointer-events-none absolute top-[30%] -left-20"
           style={{
             width: 260,
             height: 260,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #c2410c, #9a3412)',
-            opacity: 0.7,
+            background: 'linear-gradient(135deg, #1d4ed8, #1e3a8a)',
+            opacity: 0.6,
           }}
         />
 
-        {/* 右下：アンバー */}
+        {/* 右下：ライトシアン */}
         <div
           className="pointer-events-none absolute -bottom-16 right-[-40px]"
           style={{
             width: 220,
             height: 220,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #fed7aa, #fb923c)',
-            opacity: 0.8,
+            background: 'linear-gradient(135deg, #a5f3fc, #22d3ee)',
+            opacity: 0.75,
           }}
         />
 
-        {/* 左下：小さいキャメル */}
+        {/* 左下：スモールブルー */}
         <div
           className="pointer-events-none absolute bottom-10 left-12"
           style={{
             width: 90,
             height: 90,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #fbbf24, #d97706)',
-            opacity: 0.65,
+            background: 'linear-gradient(135deg, #38bdf8, #0284c7)',
+            opacity: 0.6,
           }}
         />
 
@@ -157,7 +157,7 @@ function LoginForm() {
             <p
               className="text-5xl font-black tracking-tight mb-1"
               style={{
-                background: 'linear-gradient(135deg, #f97316 0%, #fb923c 40%, #fbbf24 100%)',
+                background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 40%, #67e8f9 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -166,31 +166,31 @@ function LoginForm() {
             >
               AKINAI
             </p>
-            <p className="text-sm font-medium text-gray-400 tracking-wider uppercase">
+            <p className="text-sm font-medium text-blue-300 tracking-wider uppercase">
               EC Commerce
             </p>
           </div>
         </div>
 
         {/* ── フッターリンク ── */}
-        <div className="relative z-10 flex gap-6 text-[12px] text-gray-400">
-          <a href="#" className="hover:text-gray-600 transition-colors">利用規約</a>
-          <a href="#" className="hover:text-gray-600 transition-colors">プライバシー</a>
-          <a href="#" className="hover:text-gray-600 transition-colors">お問い合わせ</a>
+        <div className="relative z-10 flex gap-6 text-[12px] text-blue-300">
+          <a href="#" className="hover:text-blue-500 transition-colors">利用規約</a>
+          <a href="#" className="hover:text-blue-500 transition-colors">プライバシー</a>
+          <a href="#" className="hover:text-blue-500 transition-colors">お問い合わせ</a>
         </div>
       </div>
 
       {/* ══════════════════════════════
           右パネル：ミニマルフォーム
       ══════════════════════════════ */}
-      <div className="flex w-full flex-col justify-center px-8 py-12 lg:w-1/2 lg:px-16 xl:px-24" style={{ background: '#ecedf2' }}>
+      <div className="flex w-full flex-col justify-center px-8 py-12 lg:w-1/2 lg:px-16 xl:px-24" style={{ background: '#f0f6fe' }}>
 
         {/* モバイル用ロゴ */}
         <div className="mb-10 flex items-center gap-2 lg:hidden">
           <span
             className="text-xl font-black"
             style={{
-              background: 'linear-gradient(135deg, #f97316 0%, #fb923c 40%, #fbbf24 100%)',
+              background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 40%, #67e8f9 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -241,7 +241,7 @@ function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
-                className="w-full border-0 border-b-2 border-orange-200 bg-transparent pb-2 pt-1 text-[15px] text-gray-900 placeholder:text-gray-300 outline-none transition-colors focus:border-orange-500"
+                className="w-full border-0 border-b-2 border-sky-200 bg-transparent pb-2 pt-1 text-[15px] text-gray-900 placeholder:text-gray-300 outline-none transition-colors focus:border-sky-500"
               />
             </div>
 
@@ -259,7 +259,7 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="w-full border-0 border-b-2 border-orange-200 bg-transparent pb-2 pt-1 pr-8 text-[15px] text-gray-900 placeholder:text-gray-300 outline-none transition-colors focus:border-orange-500"
+                  className="w-full border-0 border-b-2 border-sky-200 bg-transparent pb-2 pt-1 pr-8 text-[15px] text-gray-900 placeholder:text-gray-300 outline-none transition-colors focus:border-sky-500"
                 />
                 <button
                   type="button"
@@ -282,9 +282,9 @@ function LoginForm() {
               className="mt-2 w-full rounded-full py-3 text-[15px] font-bold text-white transition-all active:scale-[.98] disabled:opacity-60"
               style={{
                 background: isLoading
-                  ? '#fdba74'
-                  : 'linear-gradient(90deg, #fb923c 0%, #f97316 100%)',
-                boxShadow: '0 4px 20px rgba(249,115,22,.35)',
+                  ? '#7dd3fc'
+                  : 'linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%)',
+                boxShadow: '0 4px 20px rgba(14,165,233,.4)',
               }}
             >
               {isLoading ? (
@@ -299,7 +299,7 @@ function LoginForm() {
           <div className="mt-4 text-center">
             <button
               type="button"
-              className="text-[13px] text-gray-400 hover:text-orange-500 transition-colors"
+              className="text-[13px] text-gray-400 hover:text-sky-500 transition-colors"
             >
               パスワードを忘れた場合
             </button>
@@ -317,8 +317,8 @@ function LoginForm() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={isGoogleLoading}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-orange-200 py-3 text-[14px] font-semibold text-gray-700 shadow-sm transition-all hover:shadow-md active:scale-[.98] disabled:opacity-60"
-            style={{ background: '#fdf6ee' }}
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-sky-200 py-3 text-[14px] font-semibold text-gray-700 shadow-sm transition-all hover:shadow-md active:scale-[.98] disabled:opacity-60"
+            style={{ background: '#f0f8ff' }}
           >
             {isGoogleLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -336,7 +336,7 @@ function LoginForm() {
           {/* 新規登録 */}
           <p className="mt-8 text-center text-[13px] text-gray-400">
             アカウントをお持ちでない方は{' '}
-            <Link href="/signup" className="font-bold text-orange-500 hover:text-orange-600 hover:underline">
+            <Link href="/signup" className="font-bold text-sky-500 hover:text-sky-600 hover:underline">
               新規登録
             </Link>
           </p>
@@ -351,8 +351,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center" style={{ background: '#ecedf2' }}>
-          <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
+        <div className="min-h-screen flex items-center justify-center" style={{ background: '#e8f0f8' }}>
+          <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
         </div>
       }
     >

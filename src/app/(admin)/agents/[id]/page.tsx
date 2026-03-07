@@ -160,8 +160,8 @@ export default function AgentDetailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-950/30">
-                <DollarSign className="h-4 w-4 text-orange-600" />
+              <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-950/30">
+                <DollarSign className="h-4 w-4 text-sky-600" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">総売上</p>
@@ -231,7 +231,7 @@ export default function AgentDetailPage() {
               <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
               <div>
                 <p className="text-xs text-muted-foreground">メールアドレス</p>
-                <a href={`mailto:${agent.email}`} className="font-medium text-orange-500 hover:underline">
+                <a href={`mailto:${agent.email}`} className="font-medium text-sky-500 hover:underline">
                   {agent.email}
                 </a>
               </div>

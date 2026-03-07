@@ -53,7 +53,7 @@ export default function NewsPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* ヘッダー */}
-      <section className="bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 py-12 md:py-20">
+      <section className="bg-gradient-to-br from-sky-50 via-sky-50 to-sky-100 py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4">
           <h1 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4">
             ニュース & コラム
@@ -84,12 +84,12 @@ export default function NewsPage() {
                       className="object-cover group-hover:scale-105 transition-transform duration-700"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100" />
+                    <div className="w-full h-full bg-gradient-to-br from-sky-100 to-sky-100" />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <Badge className="mb-3 bg-orange-500">{article.type}</Badge>
-                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2 group-hover:text-orange-200 transition-colors">
+                    <Badge className="mb-3 bg-sky-500">{article.type}</Badge>
+                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2 group-hover:text-sky-200 transition-colors">
                       {article.title}
                     </h3>
                     <div className="flex items-center gap-4 text-sm text-white/70">
@@ -119,7 +119,7 @@ export default function NewsPage() {
                   className={cn(
                     "px-4 py-2 rounded-full text-sm font-medium transition-all",
                     selectedCategory === category
-                      ? "bg-orange-500 text-white"
+                      ? "bg-sky-500 text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   )}
                 >
@@ -162,7 +162,7 @@ export default function NewsPage() {
                 <Link
                   key={article.id}
                   href={`/shop/news/${article.slug || article.id}`}
-                  className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-orange-200 hover:shadow-lg transition-all duration-300"
+                  className="group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-sky-200 hover:shadow-lg transition-all duration-300"
                 >
                   <div className="relative aspect-[16/10] overflow-hidden bg-slate-50">
                     {article.featuredImage ? (
@@ -173,7 +173,7 @@ export default function NewsPage() {
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-br from-sky-50 to-sky-50 flex items-center justify-center">
                         <span className="text-4xl opacity-20">📄</span>
                       </div>
                     )}
@@ -182,7 +182,7 @@ export default function NewsPage() {
                     </Badge>
                   </div>
                   <div className="p-5">
-                    <h3 className="font-bold text-lg text-slate-900 group-hover:text-orange-500 transition-colors line-clamp-2 mb-2">
+                    <h3 className="font-bold text-lg text-slate-900 group-hover:text-sky-500 transition-colors line-clamp-2 mb-2">
                       {article.title}
                     </h3>
                     {article.excerpt && (
@@ -195,7 +195,7 @@ export default function NewsPage() {
                         <Calendar className="h-3.5 w-3.5" />
                         {formatDate(article.publishedAt || article.createdAt)}
                       </span>
-                      <span className="flex items-center gap-1 text-orange-500">
+                      <span className="flex items-center gap-1 text-sky-500">
                         続きを読む <ArrowRight className="h-3 w-3" />
                       </span>
                     </div>

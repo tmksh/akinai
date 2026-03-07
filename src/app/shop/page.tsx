@@ -448,7 +448,7 @@ function ArticlesSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
           {/* メイン記事 */}
           <Link href={`/shop/news/${mainArticle.slug || mainArticle.id}`} className="lg:col-span-5 lg:row-span-2 group">
-            <div className="relative h-full min-h-[500px] md:min-h-[600px] rounded-3xl overflow-hidden bg-gradient-to-br from-amber-100 to-orange-50">
+            <div className="relative h-full min-h-[500px] md:min-h-[600px] rounded-3xl overflow-hidden bg-gradient-to-br from-sky-100 to-sky-50">
               {mainArticle.featuredImage && (
                 <Image
                   src={mainArticle.featuredImage}

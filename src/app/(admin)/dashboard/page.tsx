@@ -33,7 +33,7 @@ function DashboardSkeleton() {
         <p className="text-sm text-slate-500">ショップの概要を読み込み中...</p>
       </div>
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
       </div>
     </div>
   );

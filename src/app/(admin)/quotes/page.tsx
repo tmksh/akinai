@@ -60,12 +60,12 @@ import { getQuotes, deleteQuote, updateQuoteStatus, sendQuote, convertQuoteToOrd
 // ステータス設定
 const statusConfig: Record<QuoteStatus, { label: string; color: string; icon: React.ElementType; bgColor: string }> = {
   draft: { label: '下書き', color: 'text-slate-600', icon: FileText, bgColor: 'bg-slate-100' },
-  sent: { label: '送付済', color: 'text-orange-600', icon: Send, bgColor: 'bg-orange-100' },
-  negotiating: { label: '交渉中', color: 'text-amber-600', icon: MessageSquare, bgColor: 'bg-amber-100' },
+  sent: { label: '送付済', color: 'text-sky-600', icon: Send, bgColor: 'bg-sky-100' },
+  negotiating: { label: '交渉中', color: 'text-sky-600', icon: MessageSquare, bgColor: 'bg-sky-100' },
   accepted: { label: '承認済', color: 'text-emerald-600', icon: CheckCircle, bgColor: 'bg-emerald-100' },
   rejected: { label: '却下', color: 'text-red-600', icon: XCircle, bgColor: 'bg-red-100' },
   expired: { label: '期限切れ', color: 'text-gray-600', icon: AlertCircle, bgColor: 'bg-gray-100' },
-  ordered: { label: '発注済', color: 'text-amber-600', icon: ShoppingCart, bgColor: 'bg-amber-100' },
+  ordered: { label: '発注済', color: 'text-sky-600', icon: ShoppingCart, bgColor: 'bg-sky-100' },
 };
 
 const formatCurrency = (value: number) => 
@@ -173,40 +173,40 @@ export default function QuotesPage() {
       {/* 統計カード - オレンジグラデーション */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {/* 総見積数 - 薄いオレンジ */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-sky-50 via-sky-100/50 to-sky-50 dark:from-sky-950/40 dark:via-sky-900/30 dark:to-sky-950/40 border border-sky-100 dark:border-sky-800/30 shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <FileText className="h-4 w-4 text-orange-500" />
+              <FileText className="h-4 w-4 text-sky-500" />
             </div>
-            <span className="text-[10px] sm:text-xs font-medium text-orange-700 dark:text-orange-300">総見積数</span>
+            <span className="text-[10px] sm:text-xs font-medium text-sky-700 dark:text-sky-300">総見積数</span>
           </div>
-          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.total}<span className="text-sm font-normal ml-1">件</span></p>
+          <p className="text-lg sm:text-2xl font-bold text-sky-900 dark:text-sky-100">{stats.total}<span className="text-sm font-normal ml-1">件</span></p>
         </div>
         
         {/* 対応中 - やや濃いオレンジ */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-sky-100 via-sky-200/60 to-sky-100 dark:from-sky-900/50 dark:via-sky-800/40 dark:to-sky-900/50 border border-sky-200 dark:border-sky-700/40 shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <Clock className="h-4 w-4 text-orange-600" />
+              <Clock className="h-4 w-4 text-sky-600" />
             </div>
-            <span className="text-[10px] sm:text-xs font-medium text-orange-800 dark:text-orange-200">対応中</span>
+            <span className="text-[10px] sm:text-xs font-medium text-sky-800 dark:text-sky-200">対応中</span>
           </div>
-          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.pending}<span className="text-sm font-normal ml-1">件</span></p>
+          <p className="text-lg sm:text-2xl font-bold text-sky-900 dark:text-sky-100">{stats.pending}<span className="text-sm font-normal ml-1">件</span></p>
         </div>
         
         {/* 承認済み - 濃いオレンジ */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-sky-200 via-sky-300/70 to-sky-200 dark:from-sky-800/60 dark:via-sky-700/50 dark:to-sky-800/60 border border-sky-300 dark:border-sky-600/50 shadow-sm hover:shadow-md transition-all duration-300">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
-              <CheckCircle className="h-4 w-4 text-orange-600" />
+              <CheckCircle className="h-4 w-4 text-sky-600" />
             </div>
-            <span className="text-[10px] sm:text-xs font-medium text-orange-800 dark:text-orange-200">承認済み</span>
+            <span className="text-[10px] sm:text-xs font-medium text-sky-800 dark:text-sky-200">承認済み</span>
           </div>
-          <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.accepted}<span className="text-sm font-normal ml-1">件</span></p>
+          <p className="text-lg sm:text-2xl font-bold text-sky-900 dark:text-sky-100">{stats.accepted}<span className="text-sm font-normal ml-1">件</span></p>
         </div>
         
         {/* 見積総額 - 最も濃いオレンジ */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-sky-400 via-sky-500 to-sky-500 dark:from-sky-600 dark:via-sky-500 dark:to-sky-600 border border-sky-400 dark:border-sky-500 shadow-md hover:shadow-lg transition-all duration-300">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
               <DollarSign className="h-4 w-4 text-white" />
@@ -237,20 +237,20 @@ export default function QuotesPage() {
                     "flex-1 relative py-4 px-3 text-center",
                     index < 4 && "after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:border-t-[20px] after:border-b-[20px] after:border-l-[12px] after:border-t-transparent after:border-b-transparent after:border-l-border after:z-10",
                     index === 0 && "bg-slate-100 dark:bg-slate-800/50",
-                    index === 1 && "bg-orange-50 dark:bg-orange-950/30",
-                    index === 2 && "bg-amber-50 dark:bg-amber-950/30",
+                    index === 1 && "bg-sky-50 dark:bg-sky-950/30",
+                    index === 2 && "bg-sky-50 dark:bg-sky-950/30",
                     index === 3 && "bg-green-50 dark:bg-green-950/30",
-                    index === 4 && "bg-amber-50 dark:bg-amber-950/30",
+                    index === 4 && "bg-sky-50 dark:bg-sky-950/30",
                   )}
                 >
                   <div className="flex flex-col items-center gap-1">
                     <div className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center mb-1",
                       index === 0 && "bg-slate-200 dark:bg-slate-700",
-                      index === 1 && "bg-orange-100 dark:bg-orange-900/50",
-                      index === 2 && "bg-amber-100 dark:bg-amber-900/50",
+                      index === 1 && "bg-sky-100 dark:bg-sky-900/50",
+                      index === 2 && "bg-sky-100 dark:bg-sky-900/50",
                       index === 3 && "bg-green-100 dark:bg-green-900/50",
-                      index === 4 && "bg-amber-100 dark:bg-amber-900/50",
+                      index === 4 && "bg-sky-100 dark:bg-sky-900/50",
                     )}>
                       <Icon className={cn("h-5 w-5", statusConfig[step.status as QuoteStatus].color)} />
                     </div>
@@ -262,10 +262,10 @@ export default function QuotesPage() {
                         <span className={cn(
                           "text-xs px-1.5 py-0.5 rounded-full font-medium",
                           index === 0 && "bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-200",
-                          index === 1 && "bg-orange-200 text-orange-700 dark:bg-orange-800 dark:text-orange-200",
-                          index === 2 && "bg-amber-200 text-amber-700 dark:bg-amber-800 dark:text-amber-200",
+                          index === 1 && "bg-sky-200 text-sky-700 dark:bg-sky-800 dark:text-sky-200",
+                          index === 2 && "bg-sky-200 text-sky-700 dark:bg-sky-800 dark:text-sky-200",
                           index === 3 && "bg-green-200 text-green-700 dark:bg-green-800 dark:text-green-200",
-                          index === 4 && "bg-amber-200 text-amber-700 dark:bg-amber-800 dark:text-amber-200",
+                          index === 4 && "bg-sky-200 text-sky-700 dark:bg-sky-800 dark:text-sky-200",
                         )}>
                           {count}
                         </span>
@@ -364,7 +364,7 @@ export default function QuotesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-sky-500">
                               <Building2 className="h-4 w-4 text-white" />
                             </div>
                             <div>

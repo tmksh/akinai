@@ -163,7 +163,7 @@ export default function ProductsClient({
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" size="sm">
             <Link href="/settings/products">
-              <Sparkles className="h-4 w-4 mr-1.5 text-orange-500" />
+              <Sparkles className="h-4 w-4 mr-1.5 text-sky-500" />
               カスタムフィールド
             </Link>
           </Button>
@@ -171,7 +171,7 @@ export default function ProductsClient({
             <Upload className="h-4 w-4 mr-1.5" />
             CSVインポート
           </Button>
-          <Button asChild size="sm" className="bg-orange-500 hover:bg-orange-600 text-white shadow-sm">
+          <Button asChild size="sm" className="bg-sky-500 hover:bg-sky-600 text-white shadow-sm">
             <Link href="/products/new">
               <Plus className="h-4 w-4 mr-1.5" />
               商品を追加
@@ -194,7 +194,7 @@ export default function ProductsClient({
           <button
             key={label}
             onClick={() => setStatusFilter(filter)}
-            className={`flex-1 flex flex-col items-center py-3 px-2 transition-colors hover:bg-orange-50 ${statusFilter === filter && label !== '在庫切れ' ? 'bg-orange-50' : ''}`}
+            className={`flex-1 flex flex-col items-center py-3 px-2 transition-colors hover:bg-sky-50 ${statusFilter === filter && label !== '在庫切れ' ? 'bg-sky-50' : ''}`}
           >
             <span className={`text-lg font-bold ${alert ? 'text-red-500' : 'text-foreground'}`}>{value}</span>
             <span className="text-[11px] text-muted-foreground">{label}</span>
@@ -226,7 +226,7 @@ export default function ProductsClient({
             variant={showFilters || hasActiveFilter ? 'default' : 'outline'}
             size="icon"
             onClick={() => setShowFilters(v => !v)}
-            className={hasActiveFilter ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-500' : ''}
+            className={hasActiveFilter ? 'bg-sky-500 hover:bg-sky-600 text-white border-sky-500' : ''}
           >
             <SlidersHorizontal className="h-4 w-4" />
           </Button>
@@ -250,8 +250,8 @@ export default function ProductsClient({
                     onClick={() => setStatusFilter(opt.value)}
                     className={`px-3 py-1 rounded-full text-xs border transition-all ${
                       statusFilter === opt.value
-                        ? 'bg-orange-500 text-white border-orange-500 font-medium'
-                        : 'border-orange-200 text-orange-800 hover:border-orange-400 hover:bg-orange-50'
+                        ? 'bg-sky-500 text-white border-sky-500 font-medium'
+                        : 'border-sky-200 text-sky-800 hover:border-sky-400 hover:bg-sky-50'
                     }`}
                     style={statusFilter !== opt.value ? { background: 'rgba(255,255,255,0.35)' } : {}}
                   >
@@ -269,8 +269,8 @@ export default function ProductsClient({
                     onClick={() => setCategoryFilter('all')}
                     className={`px-3 py-1 rounded-full text-xs border transition-all ${
                       categoryFilter === 'all'
-                        ? 'bg-orange-500 text-white border-orange-500 font-medium'
-                        : 'border-orange-200 text-orange-800 hover:border-orange-400 hover:bg-orange-50'
+                        ? 'bg-sky-500 text-white border-sky-500 font-medium'
+                        : 'border-sky-200 text-sky-800 hover:border-sky-400 hover:bg-sky-50'
                     }`}
                     style={categoryFilter !== 'all' ? { background: 'rgba(255,255,255,0.35)' } : {}}
                   >
@@ -282,8 +282,8 @@ export default function ProductsClient({
                       onClick={() => setCategoryFilter(cat.id)}
                       className={`px-3 py-1 rounded-full text-xs border transition-all ${
                         categoryFilter === cat.id
-                          ? 'bg-orange-500 text-white border-orange-500 font-medium'
-                          : 'border-orange-200 text-orange-800 hover:border-orange-400 hover:bg-orange-50'
+                          ? 'bg-sky-500 text-white border-sky-500 font-medium'
+                          : 'border-sky-200 text-sky-800 hover:border-sky-400 hover:bg-sky-50'
                       }`}
                       style={categoryFilter !== cat.id ? { background: 'rgba(255,255,255,0.35)' } : {}}
                     >
@@ -316,15 +316,15 @@ export default function ProductsClient({
 
       {/* ── 商品グリッド ── */}
       {filteredProducts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-dashed border-orange-200/40" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(16px)' }}>
-          <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center mb-4">
-            <Package className="h-8 w-8 text-orange-400" />
+        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-dashed border-sky-200/40" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(16px)' }}>
+          <div className="w-16 h-16 rounded-full bg-sky-50 flex items-center justify-center mb-4">
+            <Package className="h-8 w-8 text-sky-400" />
           </div>
           {products.length === 0 ? (
             <>
               <p className="font-medium mb-1">まだ商品がありません</p>
               <p className="text-sm text-muted-foreground mb-4">最初の商品を追加してみましょう</p>
-              <Button asChild size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button asChild size="sm" className="bg-sky-500 hover:bg-sky-600 text-white">
                 <Link href="/products/new">
                   <Plus className="h-4 w-4 mr-1.5" />
                   商品を追加
@@ -402,7 +402,7 @@ export default function ProductsClient({
 
                   {/* 商品名 */}
                   <Link href={`/products/${product.id}`} className="block">
-                    <p className="text-xs font-semibold leading-tight line-clamp-2 text-foreground hover:text-orange-600 transition-colors mb-2">
+                    <p className="text-xs font-semibold leading-tight line-clamp-2 text-foreground hover:text-sky-600 transition-colors mb-2">
                       {product.name}
                     </p>
                   </Link>
@@ -414,7 +414,7 @@ export default function ProductsClient({
                       isOutOfStock
                         ? 'text-red-600 bg-red-50'
                         : totalStock <= 5
-                          ? 'text-amber-600 bg-amber-50'
+                          ? 'text-sky-600 bg-sky-50'
                           : 'text-slate-500 bg-slate-50'
                     }`}>
                       在庫 {totalStock}

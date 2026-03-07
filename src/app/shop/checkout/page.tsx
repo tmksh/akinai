@@ -264,8 +264,8 @@ export default function CheckoutPage() {
             {/* お届け先情報 */}
             <div className="bg-white rounded-2xl p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <MapPin className="h-5 w-5 text-orange-600" />
+                <div className="p-2 bg-sky-100 rounded-lg">
+                  <MapPin className="h-5 w-5 text-sky-600" />
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">お届け先情報</h2>
               </div>
@@ -404,8 +404,8 @@ export default function CheckoutPage() {
             {/* お支払い方法 */}
             <div className="bg-white rounded-2xl p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <CreditCard className="h-5 w-5 text-orange-600" />
+                <div className="p-2 bg-sky-100 rounded-lg">
+                  <CreditCard className="h-5 w-5 text-sky-600" />
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">お支払い方法</h2>
               </div>
@@ -420,14 +420,14 @@ export default function CheckoutPage() {
                         className={cn(
                           'flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all',
                           paymentMethod === method.id
-                            ? 'border-orange-500 bg-orange-50'
+                            ? 'border-sky-500 bg-sky-50'
                             : 'border-slate-200 hover:border-slate-300'
                         )}
                       >
                         <RadioGroupItem value={method.id} className="mt-1" />
                         <Icon className={cn(
                           'h-5 w-5 mt-0.5',
-                          paymentMethod === method.id ? 'text-orange-600' : 'text-slate-400'
+                          paymentMethod === method.id ? 'text-sky-600' : 'text-slate-400'
                         )} />
                         <div className="flex-1">
                           <p className="font-medium text-slate-900">{method.name}</p>
@@ -529,7 +529,7 @@ export default function CheckoutPage() {
 
               <Button
                 size="lg"
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white h-14 text-lg"
+                className="w-full bg-sky-500 hover:bg-sky-600 text-white h-14 text-lg"
                 onClick={handleProceed}
                 disabled={isSubmitting}
               >

@@ -42,13 +42,13 @@ const fieldTypeConfig: Record<CustomFieldType, { label: string; icon: React.Elem
   number:    { label: '数値',         icon: Hash,        color: 'text-emerald-500', category: 'basic' },
   boolean:   { label: '真偽値',       icon: ToggleLeft,  color: 'text-violet-500',  category: 'basic' },
   select:    { label: '選択肢',       icon: ListFilter,  color: 'text-indigo-500',  category: 'basic' },
-  date:      { label: '日付',         icon: Calendar,    color: 'text-amber-500',   category: 'basic' },
+  date:      { label: '日付',         icon: Calendar,    color: 'text-sky-500',   category: 'basic' },
   url:       { label: 'URL',          icon: Link2,       color: 'text-cyan-500',    category: 'media' },
   email:     { label: 'メール',       icon: Mail,        color: 'text-sky-500',     category: 'media' },
   phone:     { label: '電話番号',     icon: Phone,       color: 'text-teal-500',    category: 'media' },
-  image_url: { label: '画像URL',      icon: ImageIcon,   color: 'text-orange-500',  category: 'media' },
+  image_url: { label: '画像URL',      icon: ImageIcon,   color: 'text-sky-500',  category: 'media' },
   color:     { label: 'カラー',       icon: Palette,     color: 'text-pink-500',    category: 'media' },
-  rating:    { label: '評価',         icon: Star,        color: 'text-yellow-500',  category: 'advanced' },
+  rating:    { label: '評価',         icon: Star,        color: 'text-sky-500',  category: 'advanced' },
   list:      { label: 'リスト',       icon: ListOrdered, color: 'text-rose-500',    category: 'advanced' },
   json:      { label: 'JSON',         icon: Braces,      color: 'text-slate-500',   category: 'advanced' },
 };
@@ -202,7 +202,7 @@ export default function ContentSchemaSettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-orange-500" />
+                <Sparkles className="h-5 w-5 text-sky-500" />
                 フィールド定義
               </CardTitle>
               <CardDescription>記事に追加するフィールドを定義してください</CardDescription>
@@ -218,8 +218,8 @@ export default function ContentSchemaSettingsPage() {
         <CardContent className="space-y-4">
           {/* 新規追加フォーム */}
           {isAdding && (
-            <div className="rounded-xl border-2 border-dashed border-orange-200 dark:border-orange-900/50 bg-orange-50/50 dark:bg-orange-950/10 p-5 space-y-4">
-              <p className="text-sm font-medium text-orange-700 dark:text-orange-400">
+            <div className="rounded-xl border-2 border-dashed border-sky-200 dark:border-sky-900/50 bg-sky-50/50 dark:bg-sky-950/10 p-5 space-y-4">
+              <p className="text-sm font-medium text-sky-700 dark:text-sky-400">
                 新しいフィールドを定義
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -268,8 +268,8 @@ export default function ContentSchemaSettingsPage() {
                               onClick={() => setNewType(type as CustomFieldType)}
                               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs transition-all ${
                                 isSelected
-                                  ? 'border-orange-400 bg-orange-100 text-orange-800 dark:border-orange-600 dark:bg-orange-950/40 dark:text-orange-300 shadow-sm'
-                                  : 'border-border bg-background text-muted-foreground hover:border-orange-300 hover:text-foreground'
+                                  ? 'border-sky-400 bg-sky-100 text-sky-800 dark:border-sky-600 dark:bg-sky-950/40 dark:text-sky-300 shadow-sm'
+                                  : 'border-border bg-background text-muted-foreground hover:border-sky-300 hover:text-foreground'
                               }`}
                             >
                               <Icon className={`h-3 w-3 ${isSelected ? config.color : ''}`} />
@@ -358,9 +358,9 @@ export default function ContentSchemaSettingsPage() {
               <button
                 type="button"
                 onClick={() => setIsAdding(true)}
-                className="w-full rounded-xl border-2 border-dashed border-muted-foreground/15 hover:border-orange-300 dark:hover:border-orange-800 py-8 text-center transition-colors group cursor-pointer"
+                className="w-full rounded-xl border-2 border-dashed border-muted-foreground/15 hover:border-sky-300 dark:hover:border-sky-800 py-8 text-center transition-colors group cursor-pointer"
               >
-                <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground/20 group-hover:text-orange-400 transition-colors" />
+                <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground/20 group-hover:text-sky-400 transition-colors" />
                 <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
                   フィールドを追加
                 </p>

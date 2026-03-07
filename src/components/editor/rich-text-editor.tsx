@@ -66,7 +66,7 @@ function ToolbarButton({
             'h-8 w-8 rounded-md flex items-center justify-center transition-colors',
             'hover:bg-slate-100 dark:hover:bg-slate-700',
             'disabled:opacity-40 disabled:cursor-not-allowed',
-            isActive && 'bg-slate-200 dark:bg-slate-600 text-orange-600 dark:text-orange-400',
+            isActive && 'bg-slate-200 dark:bg-slate-600 text-sky-600 dark:text-sky-400',
           )}
         >
           {children}
@@ -302,7 +302,7 @@ export function RichTextEditor({
       TiptapImage.configure({ inline: false, allowBase64: true }),
       TiptapLink.configure({
         openOnClick: false,
-        HTMLAttributes: { class: 'text-orange-600 underline cursor-pointer' },
+        HTMLAttributes: { class: 'text-sky-600 underline cursor-pointer' },
       }),
       Highlight.configure({ multicolor: false }),
     ],
@@ -317,9 +317,9 @@ export function RichTextEditor({
           'prose dark:prose-invert max-w-none outline-none px-4 py-3',
           'prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg',
           'prose-p:leading-relaxed prose-p:my-2',
-          'prose-blockquote:border-l-4 prose-blockquote:border-orange-300 prose-blockquote:pl-4 prose-blockquote:italic',
+          'prose-blockquote:border-l-4 prose-blockquote:border-sky-300 prose-blockquote:pl-4 prose-blockquote:italic',
           'prose-img:rounded-lg prose-img:shadow-md prose-img:my-4',
-          'prose-a:text-orange-600 prose-a:underline',
+          'prose-a:text-sky-600 prose-a:underline',
           'prose-code:bg-slate-100 prose-code:dark:bg-slate-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm',
           'prose-hr:border-slate-200 prose-hr:dark:border-slate-700',
         ),

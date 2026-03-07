@@ -186,7 +186,7 @@ export default function CheckoutConfirmPage() {
               </div>
               <Link 
                 href="/shop/checkout" 
-                className="text-sm text-orange-600 hover:text-orange-700"
+                className="text-sm text-sky-600 hover:text-sky-700"
               >
                 変更する
               </Link>
@@ -217,7 +217,7 @@ export default function CheckoutConfirmPage() {
               </div>
               <Link 
                 href="/shop/checkout" 
-                className="text-sm text-orange-600 hover:text-orange-700"
+                className="text-sm text-sky-600 hover:text-sky-700"
               >
                 変更する
               </Link>
@@ -248,8 +248,8 @@ export default function CheckoutConfirmPage() {
           {/* 注文商品 */}
           <div className="bg-white rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <ShoppingBag className="h-5 w-5 text-orange-600" />
+              <div className="p-2 bg-sky-100 rounded-lg">
+                <ShoppingBag className="h-5 w-5 text-sky-600" />
               </div>
               <h2 className="text-lg font-bold text-slate-900">
                 ご注文商品（{checkoutData.items.length}点）
@@ -314,7 +314,7 @@ export default function CheckoutConfirmPage() {
 
             <div className="flex justify-between items-baseline">
               <span className="text-lg font-bold text-slate-900">合計（税込）</span>
-              <span className="text-2xl font-bold text-orange-600">
+              <span className="text-2xl font-bold text-sky-600">
                 ¥{checkoutData.total.toLocaleString()}
               </span>
             </div>
@@ -329,11 +329,11 @@ export default function CheckoutConfirmPage() {
                 className="mt-0.5"
               />
               <span className="text-sm text-slate-700">
-                <Link href="/shop/terms" className="text-orange-600 hover:underline" target="_blank">
+                <Link href="/shop/terms" className="text-sky-600 hover:underline" target="_blank">
                   利用規約
                 </Link>
                 および
-                <Link href="/shop/privacy" className="text-orange-600 hover:underline" target="_blank">
+                <Link href="/shop/privacy" className="text-sky-600 hover:underline" target="_blank">
                   プライバシーポリシー
                 </Link>
                 に同意します
@@ -345,7 +345,7 @@ export default function CheckoutConfirmPage() {
           <div className="bg-white rounded-2xl p-6">
             <Button
               size="lg"
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white h-16 text-lg"
+              className="w-full bg-sky-500 hover:bg-sky-600 text-white h-16 text-lg"
               onClick={handlePlaceOrder}
               disabled={isSubmitting || !agreedToTerms}
             >

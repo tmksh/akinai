@@ -25,7 +25,7 @@ export default function Error({
           申し訳ございません。一時的なエラーが発生しました。お手数ですが再度お試しください。
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={reset} variant="default" className="bg-orange-500 hover:bg-orange-600">
+          <Button onClick={reset} variant="default" className="bg-sky-500 hover:bg-sky-600">
             もう一度試す
           </Button>
           <Button asChild variant="outline">

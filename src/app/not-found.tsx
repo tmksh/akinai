@@ -12,7 +12,7 @@ export default function NotFound() {
         <p className="text-slate-600 dark:text-slate-400">
           お探しのページは存在しないか、移動した可能性があります。
         </p>
-        <Button asChild className="bg-orange-500 hover:bg-orange-600">
+        <Button asChild className="bg-sky-500 hover:bg-sky-600">
           <Link href="/dashboard">ダッシュボードへ戻る</Link>
         </Button>
       </div>

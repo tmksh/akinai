@@ -48,35 +48,35 @@ const navigationItems = [
     title: 'ダッシュボード',
     icon: LayoutDashboard,
     href: '/dashboard',
-    color: 'text-orange-500',
+    color: 'text-sky-500',
     hoverClass: 'sidebar-hover-orange',
   },
   {
     title: '商品管理',
     icon: Package,
     href: '/products',
-    color: 'text-orange-500',
+    color: 'text-sky-500',
     hoverClass: 'sidebar-hover-orange',
   },
   {
     title: 'お知らせ',
     icon: FileText,
     href: '/contents',
-    color: 'text-orange-500',
+    color: 'text-sky-500',
     hoverClass: 'sidebar-hover-orange',
   },
   {
     title: '注文管理',
     icon: ShoppingCart,
     href: '/orders',
-    color: 'text-orange-500',
+    color: 'text-sky-500',
     hoverClass: 'sidebar-hover-orange',
   },
   {
     title: '代理店管理',
     icon: Building2,
     href: '/agents',
-    color: 'text-orange-500',
+    color: 'text-sky-500',
     hoverClass: 'sidebar-hover-orange',
   },
 ];
@@ -136,7 +136,7 @@ export function AppSidebar() {
             <Star className="h-5 w-5 text-white" />
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="text-lg font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+            <span className="text-lg font-bold bg-gradient-to-r from-sky-500 to-sky-600 bg-clip-text text-transparent">
               アキナイ
             </span>
             <span className="text-xs text-muted-foreground">

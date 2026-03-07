@@ -30,7 +30,7 @@ function CustomTooltip({ active, payload, label }: {
     >
       <p className="font-semibold text-foreground mb-1">{label}</p>
       {sales && (
-        <p className="text-orange-500">¥{(sales.value * 1000).toLocaleString()}</p>
+        <p className="text-sky-500">¥{(sales.value * 1000).toLocaleString()}</p>
       )}
       {orders && (
         <p className="text-sky-500">{orders.value}件</p>

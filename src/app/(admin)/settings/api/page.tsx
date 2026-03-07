@@ -210,8 +210,8 @@ export default function ApiSettingsPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <div className="p-2 bg-sky-100 dark:bg-sky-900/30 rounded-full">
+                    <AlertTriangle className="h-4 w-4 text-sky-600" />
                   </div>
                   <div>
                     <p className="font-medium">APIキーが設定されていません</p>

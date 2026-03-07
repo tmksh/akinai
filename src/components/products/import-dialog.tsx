@@ -291,14 +291,14 @@ export function ProductImportDialog({
 
             {/* パースエラー */}
             {parseErrors.length > 0 && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3">
+              <div className="rounded-lg border border-sky-200 bg-sky-50 dark:bg-sky-950/30 dark:border-sky-800 p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  <AlertCircle className="h-4 w-4 text-sky-600" />
+                  <span className="text-sm font-medium text-sky-800 dark:text-sky-200">
                     {parseErrors.length}件の警告
                   </span>
                 </div>
-                <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                <ul className="text-xs text-sky-700 dark:text-sky-300 space-y-1">
                   {parseErrors.map((err, i) => (
                     <li key={i}>• {err}</li>
                   ))}
@@ -323,11 +323,11 @@ export function ProductImportDialog({
 
         {step === 'result' && importResult && (
           <div className="space-y-4">
-            <div className={`rounded-lg p-6 text-center ${importResult.failed === 0 ? 'bg-emerald-50 dark:bg-emerald-950/30' : 'bg-amber-50 dark:bg-amber-950/30'}`}>
+            <div className={`rounded-lg p-6 text-center ${importResult.failed === 0 ? 'bg-emerald-50 dark:bg-emerald-950/30' : 'bg-sky-50 dark:bg-sky-950/30'}`}>
               {importResult.failed === 0 ? (
                 <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-emerald-500" />
               ) : (
-                <AlertCircle className="h-10 w-10 mx-auto mb-3 text-amber-500" />
+                <AlertCircle className="h-10 w-10 mx-auto mb-3 text-sky-500" />
               )}
               <p className="text-lg font-bold">
                 {importResult.success}件の商品をインポートしました

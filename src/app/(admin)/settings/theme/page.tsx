@@ -89,8 +89,8 @@ export default function ThemeSettingsPage() {
                     : 'border-muted hover:border-muted-foreground/50'
                 )}
               >
-                <div className="p-3 rounded-full bg-amber-100">
-                  <Sun className="h-6 w-6 text-amber-600" />
+                <div className="p-3 rounded-full bg-sky-100">
+                  <Sun className="h-6 w-6 text-sky-600" />
                 </div>
                 <span className="font-medium">ライト</span>
                 {theme === 'light' && (
@@ -125,7 +125,7 @@ export default function ThemeSettingsPage() {
                     : 'border-muted hover:border-muted-foreground/50'
                 )}
               >
-                <div className="p-3 rounded-full bg-gradient-to-br from-amber-100 to-slate-800">
+                <div className="p-3 rounded-full bg-gradient-to-br from-sky-100 to-slate-800">
                   <Monitor className="h-6 w-6 text-slate-600" />
                 </div>
                 <span className="font-medium">システム</span>

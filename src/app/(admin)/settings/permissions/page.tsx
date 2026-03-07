@@ -51,10 +51,10 @@ const settingsTabs = [
 
 // ロール定義
 const roles = [
-  { id: 'owner', name: 'オーナー', icon: Crown, color: 'from-amber-500 to-orange-500' },
-  { id: 'admin', name: '管理者', icon: Shield, color: 'from-orange-500 to-orange-600' },
-  { id: 'manager', name: 'マネージャー', icon: UserCog, color: 'from-amber-500 to-amber-600' },
-  { id: 'staff', name: 'スタッフ', icon: User, color: 'from-orange-400 to-amber-500' },
+  { id: 'owner', name: 'オーナー', icon: Crown, color: 'from-sky-500 to-sky-500' },
+  { id: 'admin', name: '管理者', icon: Shield, color: 'from-sky-500 to-sky-600' },
+  { id: 'manager', name: 'マネージャー', icon: UserCog, color: 'from-sky-500 to-sky-600' },
+  { id: 'staff', name: 'スタッフ', icon: User, color: 'from-sky-400 to-sky-500' },
   { id: 'viewer', name: '閲覧者', icon: Eye, color: 'from-slate-400 to-slate-500' },
 ];
 
@@ -216,7 +216,7 @@ function PermissionCell({ status, onClick }: { status: 'full' | 'partial' | 'non
       className={cn(
         "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
         status === 'full' && "bg-emerald-100 text-emerald-600 hover:bg-emerald-200",
-        status === 'partial' && "bg-amber-100 text-amber-600 hover:bg-amber-200",
+        status === 'partial' && "bg-sky-100 text-sky-600 hover:bg-sky-200",
         status === 'none' && "bg-slate-100 text-slate-400 hover:bg-slate-200",
       )}
     >
@@ -307,8 +307,8 @@ export default function PermissionsSettingsPage() {
               <span>フルアクセス</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-amber-100 flex items-center justify-center">
-                <Minus className="h-3 w-3 text-amber-600" />
+              <div className="w-6 h-6 rounded bg-sky-100 flex items-center justify-center">
+                <Minus className="h-3 w-3 text-sky-600" />
               </div>
               <span>制限付き</span>
             </div>
@@ -444,7 +444,7 @@ export default function PermissionsSettingsPage() {
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground mt-2">
                   <span className="text-emerald-600">{fullCount} フル</span>
-                  <span className="text-amber-600">{partialCount} 制限</span>
+                  <span className="text-sky-600">{partialCount} 制限</span>
                   <span>{totalPerms - fullCount - partialCount} 不可</span>
                 </div>
               </CardContent>

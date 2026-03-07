@@ -44,10 +44,10 @@ const statusConfig = {
   },
   pending: {
     label: '審査中',
-    color: 'text-amber-700 dark:text-amber-300',
-    bgColor: 'bg-amber-100 dark:bg-amber-900/50',
+    color: 'text-sky-700 dark:text-sky-300',
+    bgColor: 'bg-sky-100 dark:bg-sky-900/50',
     icon: Clock,
-    dotColor: 'bg-amber-500',
+    dotColor: 'bg-sky-500',
   },
 };
 
@@ -96,7 +96,7 @@ export function AgentCard({
       {/* ヘッダー: 会社名・担当者 */}
       <div className="flex items-start gap-3 mb-4 pr-20">
         <Avatar className="h-12 w-12 flex-shrink-0">
-          <AvatarFallback className="bg-gradient-to-br from-orange-400 to-amber-500 text-white font-bold text-sm">
+          <AvatarFallback className="bg-gradient-to-br from-sky-400 to-sky-500 text-white font-bold text-sm">
             {agent.company.slice(0, 2)}
           </AvatarFallback>
         </Avatar>

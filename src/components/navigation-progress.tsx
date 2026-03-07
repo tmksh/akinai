@@ -87,7 +87,7 @@ export function NavigationProgress() {
       aria-hidden
     >
       <div
-        className="h-full bg-gradient-to-r from-orange-500 to-amber-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]"
+        className="h-full bg-gradient-to-r from-sky-500 to-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.6)]"
         style={{
           width: `${progress}%`,
           transition: progress === 100 ? 'width 0.2s ease-out' : 'width 0.12s ease-out',

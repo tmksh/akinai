@@ -139,11 +139,11 @@ const OrderRow = memo(function OrderRow({
 
   return (
     <TableRow
-      className="cursor-pointer hover:bg-orange-50/50 dark:hover:bg-orange-950/20 transition-colors"
+      className="cursor-pointer hover:bg-sky-50/50 dark:hover:bg-sky-950/20 transition-colors"
       onClick={onClick}
     >
       <TableCell>
-        <span className="font-medium text-orange-600 dark:text-orange-400">
+        <span className="font-medium text-sky-600 dark:text-sky-400">
           {order.orderNumber}
         </span>
       </TableCell>
@@ -348,7 +348,7 @@ export function OrdersTab() {
                 variant="outline"
                 className={cn(
                   'sm:w-[200px] justify-between',
-                  datePreset !== 'all' && 'border-orange-300 bg-orange-50 text-orange-700'
+                  datePreset !== 'all' && 'border-sky-300 bg-sky-50 text-sky-700'
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -378,7 +378,7 @@ export function OrdersTab() {
                       className={cn(
                         'w-full text-left px-3 py-2 text-sm rounded-md transition-colors',
                         datePreset === option.value
-                          ? 'bg-orange-100 text-orange-700 font-medium'
+                          ? 'bg-sky-100 text-sky-700 font-medium'
                           : 'hover:bg-muted'
                       )}
                     >

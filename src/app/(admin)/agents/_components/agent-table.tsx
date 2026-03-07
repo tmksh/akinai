@@ -67,10 +67,10 @@ const statusConfig = {
   },
   pending: {
     label: '審査中',
-    color: 'text-amber-700 dark:text-amber-300',
-    bgColor: 'bg-amber-100 dark:bg-amber-900/50',
+    color: 'text-sky-700 dark:text-sky-300',
+    bgColor: 'bg-sky-100 dark:bg-sky-900/50',
     icon: Clock,
-    dotColor: 'bg-amber-500',
+    dotColor: 'bg-sky-500',
   },
 };
 
@@ -228,7 +228,7 @@ export function AgentTable({
                 key={agent.id}
                 className={cn(
                   'group',
-                  isSelected && 'bg-orange-50/50 dark:bg-orange-950/20'
+                  isSelected && 'bg-sky-50/50 dark:bg-sky-950/20'
                 )}
               >
                 <TableCell>
@@ -240,7 +240,7 @@ export function AgentTable({
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
-                      <AvatarFallback className="bg-gradient-to-br from-orange-400 to-amber-500 text-white font-bold text-xs">
+                      <AvatarFallback className="bg-gradient-to-br from-sky-400 to-sky-500 text-white font-bold text-xs">
                         {agent.company.slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
@@ -332,7 +332,7 @@ export function AgentTable({
                       {agent.status === 'active' ? (
                         <DropdownMenuItem
                           onClick={() => onStatusChange(agent, 'inactive')}
-                          className="text-amber-600"
+                          className="text-sky-600"
                         >
                           <XCircle className="mr-2 h-4 w-4" />
                           停止する
@@ -356,7 +356,7 @@ export function AgentTable({
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => onStatusChange(agent, 'inactive')}
-                            className="text-amber-600"
+                            className="text-sky-600"
                           >
                             <XCircle className="mr-2 h-4 w-4" />
                             却下する

@@ -38,7 +38,7 @@ async function RelatedProducts({ currentProductId }: { currentProductId: string 
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
-              <h3 className="text-sm text-slate-800 group-hover:text-amber-700 transition-colors line-clamp-1">
+              <h3 className="text-sm text-slate-800 group-hover:text-sky-700 transition-colors line-clamp-1">
                 {product.name}
               </h3>
               <p className="text-sm text-slate-600 mt-1">

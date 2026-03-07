@@ -406,7 +406,7 @@ export default function NewQuotePage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-orange-500" />
+                  <Building2 className="h-5 w-5 text-sky-500" />
                   顧客情報
                 </CardTitle>
                 <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/30">
@@ -775,7 +775,7 @@ export default function NewQuotePage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-amber-500" />
+                <Calendar className="h-5 w-5 text-sky-500" />
                 有効期限
               </CardTitle>
             </CardHeader>

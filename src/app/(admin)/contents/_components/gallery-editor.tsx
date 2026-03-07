@@ -125,7 +125,7 @@ export function GalleryEditor({ items, onChange, organizationId, disabled }: Gal
       <div
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
-        className="border-2 border-dashed rounded-lg p-6 text-center hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 transition-colors cursor-pointer"
+        className="border-2 border-dashed rounded-lg p-6 text-center hover:border-sky-300 hover:bg-sky-50/50 dark:hover:bg-sky-950/20 transition-colors cursor-pointer"
         onClick={() => !disabled && !uploading && fileInputRef.current?.click()}
       >
         {uploading ? (

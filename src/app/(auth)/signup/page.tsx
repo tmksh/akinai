@@ -97,7 +97,7 @@ function SignupForm() {
 
   if (showConfirmMessage) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-orange-50 via-amber-50 to-orange-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-50 via-sky-50 to-sky-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
         <Card className="w-full max-w-md shadow-xl border-0 bg-white dark:bg-slate-900">
           <CardContent className="pt-10 pb-8 px-8 text-center">
             <p className="text-slate-600 dark:text-slate-400 mb-6">
@@ -113,7 +113,7 @@ function SignupForm() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-orange-50 via-amber-50 to-orange-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-50 via-sky-50 to-sky-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
       <Card className="w-full max-w-md shadow-xl border-0 bg-white dark:bg-slate-900">
         <CardContent className="pt-10 pb-8 px-8">
           <div className="flex flex-col items-center mb-8">
@@ -122,7 +122,7 @@ function SignupForm() {
               alt="AKINAI"
               className="h-24 w-24 object-contain drop-shadow-lg mb-2"
             />
-            <h1 className="text-3xl font-bold text-orange-500 tracking-wide">
+            <h1 className="text-3xl font-bold text-sky-500 tracking-wide">
               アキナイ
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -224,7 +224,7 @@ function SignupForm() {
 
             <Button
               type="submit"
-              className="w-full h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-medium text-base"
+              className="w-full h-12 bg-gradient-to-r from-sky-500 to-sky-500 hover:from-sky-600 hover:to-sky-600 text-white font-medium text-base"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -240,7 +240,7 @@ function SignupForm() {
 
           <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
             すでにアカウントをお持ちの方は{' '}
-            <Link href="/login" className="text-orange-500 hover:underline">
+            <Link href="/login" className="text-sky-500 hover:underline">
               ログイン
             </Link>
           </p>
@@ -254,10 +254,10 @@ export default function SignupPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-orange-50 via-amber-50 to-orange-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-50 via-sky-50 to-sky-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
           <Card className="w-full max-w-md shadow-xl border-0 bg-white dark:bg-slate-900">
             <CardContent className="pt-10 pb-8 px-8 flex flex-col items-center justify-center min-h-[320px]">
-              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+              <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
               <p className="mt-4 text-sm text-slate-500">読み込み中...</p>
             </CardContent>
           </Card>

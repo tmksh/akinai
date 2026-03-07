@@ -491,13 +491,13 @@ export default function ProductEditPage() {
                           />
                           <div className={cn(
                             "h-10 w-10 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors",
-                            "hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20",
+                            "hover:border-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/20",
                             variant.imageUrl ? "border-transparent" : "border-slate-200 dark:border-slate-700"
                           )}>
                             {variant.imageUrl ? (
                               <img src={variant.imageUrl} alt={variant.name} className="h-full w-full object-cover rounded-lg" />
                             ) : (
-                              <Upload className="h-4 w-4 text-muted-foreground group-hover:text-orange-500" />
+                              <Upload className="h-4 w-4 text-muted-foreground group-hover:text-sky-500" />
                             )}
                           </div>
                         </label>
@@ -669,7 +669,7 @@ export default function ProductEditPage() {
               <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 flex items-center gap-2 border-b">
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <div className="w-3 h-3 rounded-full bg-sky-400" />
                   <div className="w-3 h-3 rounded-full bg-green-400" />
                 </div>
                 <div className="flex-1 mx-4">
@@ -726,7 +726,7 @@ export default function ProductEditPage() {
                       <div className="flex items-center gap-2">
                         <div className="flex">
                           {[1, 2, 3, 4, 5].map((i) => (
-                            <Star key={i} className={cn("h-4 w-4", i <= 4 ? "fill-amber-400 text-amber-400" : "text-slate-300")} />
+                            <Star key={i} className={cn("h-4 w-4", i <= 4 ? "fill-sky-400 text-sky-400" : "text-slate-300")} />
                           ))}
                         </div>
                         <span className="text-sm text-muted-foreground">(24件)</span>
@@ -735,7 +735,7 @@ export default function ProductEditPage() {
                       {/* 価格 */}
                       <div className="py-3 border-y">
                         <div className="flex items-baseline gap-2">
-                          <span className={cn("font-bold text-orange-600", previewMode === 'mobile' ? "text-2xl" : "text-3xl")}>
+                          <span className={cn("font-bold text-sky-600", previewMode === 'mobile' ? "text-2xl" : "text-3xl")}>
                             ¥{(variants[0]?.price || 0).toLocaleString()}
                           </span>
                           <span className="text-sm text-muted-foreground">税込</span>
@@ -769,7 +769,7 @@ export default function ProductEditPage() {
 
                       {/* アクションボタン */}
                       <div className="space-y-2 pt-2">
-                        <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white gap-2">
+                        <Button className="w-full bg-sky-500 hover:bg-sky-600 text-white gap-2">
                           <ShoppingCart className="h-4 w-4" />
                           カートに追加
                         </Button>

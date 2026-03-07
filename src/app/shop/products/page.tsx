@@ -43,7 +43,7 @@ function ProductCard({ product }: { product: ShopProduct }) {
         )}
       </div>
       <div className="space-y-1">
-        <h3 className="text-sm text-slate-800 group-hover:text-amber-700 transition-colors">
+        <h3 className="text-sm text-slate-800 group-hover:text-sky-700 transition-colors">
           {product.name}
         </h3>
         {variantInfo && (

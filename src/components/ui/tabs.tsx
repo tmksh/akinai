@@ -49,7 +49,7 @@ function TabsTrigger({
         "inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all",
         "text-muted-foreground hover:text-foreground",
         "data-[state=active]:bg-white/80 dark:data-[state=active]:bg-white/[0.12]",
-        "data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400",
+        "data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400",
         "data-[state=active]:shadow-[0_1px_6px_rgba(100,120,160,0.12),inset_0_1px_0_rgba(255,255,255,0.9)]",
         "dark:data-[state=active]:shadow-[0_1px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)]",
         "data-[state=active]:border data-[state=active]:border-white/80 dark:data-[state=active]:border-white/[0.1]",

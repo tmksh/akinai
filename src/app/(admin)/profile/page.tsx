@@ -37,9 +37,9 @@ interface ProfileData {
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   owner:   { label: 'オーナー',       color: 'bg-red-100 text-red-700' },
-  admin:   { label: '管理者',         color: 'bg-orange-100 text-orange-700' },
-  manager: { label: 'マネージャー',   color: 'bg-amber-100 text-amber-700' },
-  editor:  { label: '編集者',         color: 'bg-yellow-100 text-yellow-800' },
+  admin:   { label: '管理者',         color: 'bg-sky-100 text-sky-700' },
+  manager: { label: 'マネージャー',   color: 'bg-sky-100 text-sky-700' },
+  editor:  { label: '編集者',         color: 'bg-sky-100 text-sky-800' },
   viewer:  { label: '閲覧者',         color: 'bg-stone-100 text-stone-600' },
 };
 
@@ -180,7 +180,7 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center text-center">
               <Avatar className="h-24 w-24">
                 <AvatarImage src={profile.avatar ?? ''} />
-                <AvatarFallback className="bg-gradient-to-br from-orange-400 to-amber-500 text-white text-2xl">
+                <AvatarFallback className="bg-gradient-to-br from-sky-400 to-sky-500 text-white text-2xl">
                   {initials}
                 </AvatarFallback>
               </Avatar>

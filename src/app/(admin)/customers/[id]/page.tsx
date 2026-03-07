@@ -115,7 +115,7 @@ export default function CustomerDetailPage() {
           </Button>
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarFallback className="bg-orange-100 text-orange-600 text-xl">
+              <AvatarFallback className="bg-sky-100 text-sky-600 text-xl">
                 {customer.name.slice(0, 2)}
               </AvatarFallback>
             </Avatar>
@@ -125,7 +125,7 @@ export default function CustomerDetailPage() {
                 <Badge 
                   variant="outline" 
                   className={isVip 
-                    ? 'bg-orange-50 text-orange-600 border-orange-200' 
+                    ? 'bg-sky-50 text-sky-600 border-sky-200' 
                     : 'bg-slate-50 text-slate-600 border-slate-200'
                   }
                 >
@@ -150,37 +150,37 @@ export default function CustomerDetailPage() {
 
       {/* 統計カード */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30">
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-sky-50 via-sky-100/50 to-sky-50 dark:from-sky-950/40 dark:via-sky-900/30 dark:to-sky-950/40 border border-sky-100 dark:border-sky-800/30">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <ShoppingBag className="h-4 w-4 text-orange-500" />
+              <ShoppingBag className="h-4 w-4 text-sky-500" />
             </div>
-            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">総注文数</span>
+            <span className="text-xs font-medium text-sky-700 dark:text-sky-300">総注文数</span>
           </div>
-          <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{customer.total_orders}<span className="text-sm font-normal ml-1">件</span></p>
+          <p className="text-2xl font-bold text-sky-900 dark:text-sky-100">{customer.total_orders}<span className="text-sm font-normal ml-1">件</span></p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40">
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-sky-100 via-sky-200/60 to-sky-100 dark:from-sky-900/50 dark:via-sky-800/40 dark:to-sky-900/50 border border-sky-200 dark:border-sky-700/40">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-              <DollarSign className="h-4 w-4 text-orange-600" />
+              <DollarSign className="h-4 w-4 text-sky-600" />
             </div>
-            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">総購入額</span>
+            <span className="text-xs font-medium text-sky-800 dark:text-sky-200">総購入額</span>
           </div>
-          <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{formatCurrency(customer.total_spent)}</p>
+          <p className="text-2xl font-bold text-sky-900 dark:text-sky-100">{formatCurrency(customer.total_spent)}</p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50">
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-sky-200 via-sky-300/70 to-sky-200 dark:from-sky-800/60 dark:via-sky-700/50 dark:to-sky-800/60 border border-sky-300 dark:border-sky-600/50">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
-              <TrendingUp className="h-4 w-4 text-orange-600" />
+              <TrendingUp className="h-4 w-4 text-sky-600" />
             </div>
-            <span className="text-xs font-medium text-orange-800 dark:text-orange-200">平均注文額</span>
+            <span className="text-xs font-medium text-sky-800 dark:text-sky-200">平均注文額</span>
           </div>
-          <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{formatCurrency(averageOrderValue)}</p>
+          <p className="text-2xl font-bold text-sky-900 dark:text-sky-100">{formatCurrency(averageOrderValue)}</p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500">
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-sky-400 via-sky-500 to-sky-500 dark:from-sky-600 dark:via-sky-500 dark:to-sky-600 border border-sky-400 dark:border-sky-500">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
               <Star className="h-4 w-4 text-white" />
@@ -199,8 +199,8 @@ export default function CustomerDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/30">
-                <Mail className="h-4 w-4 text-orange-500" />
+              <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/30">
+                <Mail className="h-4 w-4 text-sky-500" />
               </div>
               <div>
                 <p className="text-xs text-slate-500">メールアドレス</p>
@@ -210,8 +210,8 @@ export default function CustomerDetailPage() {
 
             {customer.phone && (
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/30">
-                  <Phone className="h-4 w-4 text-orange-500" />
+                <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/30">
+                  <Phone className="h-4 w-4 text-sky-500" />
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">電話番号</p>
@@ -222,8 +222,8 @@ export default function CustomerDetailPage() {
 
             {customer.addresses && customer.addresses[0] && (
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/30">
-                  <MapPin className="h-4 w-4 text-orange-500" />
+                <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/30">
+                  <MapPin className="h-4 w-4 text-sky-500" />
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">住所</p>
@@ -237,8 +237,8 @@ export default function CustomerDetailPage() {
             )}
 
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/30">
-                <Calendar className="h-4 w-4 text-orange-500" />
+              <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/30">
+                <Calendar className="h-4 w-4 text-sky-500" />
               </div>
               <div>
                 <p className="text-xs text-slate-500">登録日</p>
@@ -280,8 +280,8 @@ export default function CustomerDetailPage() {
                     className="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950/30">
-                        <Package className="h-4 w-4 text-orange-500" />
+                      <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/30">
+                        <Package className="h-4 w-4 text-sky-500" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">{order.orderNumber}</p>
@@ -296,8 +296,8 @@ export default function CustomerDetailPage() {
                           order.status === 'delivered' 
                             ? 'bg-green-50 text-green-600 border-green-200' 
                             : order.status === 'shipped'
-                            ? 'bg-orange-50 text-orange-600 border-orange-200'
-                            : 'bg-orange-50 text-orange-600 border-orange-200'
+                            ? 'bg-sky-50 text-sky-600 border-sky-200'
+                            : 'bg-sky-50 text-sky-600 border-sky-200'
                         }
                       >
                         {order.status === 'delivered' ? '完了' : order.status === 'shipped' ? '発送済' : '処理中'}

@@ -101,7 +101,7 @@ export default function AccountSettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-orange-500" />
+                <Shield className="h-5 w-5 text-sky-500" />
                 セキュリティ状況
               </CardTitle>
               <CardDescription>アカウントのセキュリティ設定の概要</CardDescription>
@@ -124,8 +124,8 @@ export default function AccountSettingsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-950">
-                <Smartphone className="h-4 w-4 text-amber-600" />
+              <div className="p-2 rounded-full bg-sky-100 dark:bg-sky-950">
+                <Smartphone className="h-4 w-4 text-sky-600" />
               </div>
               <div>
                 <p className="text-sm font-medium">2段階認証</p>
@@ -149,7 +149,7 @@ export default function AccountSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5 text-orange-500" />
+            <Key className="h-5 w-5 text-sky-500" />
             パスワード変更
           </CardTitle>
           <CardDescription>
@@ -243,7 +243,7 @@ export default function AccountSettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Smartphone className="h-5 w-5 text-orange-500" />
+                <Smartphone className="h-5 w-5 text-sky-500" />
                 2段階認証
               </CardTitle>
               <CardDescription>
@@ -254,9 +254,9 @@ export default function AccountSettingsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              <AlertTriangle className="h-5 w-5 text-sky-600" />
               <div>
                 <p className="text-sm font-medium">2段階認証が未設定です</p>
                 <p className="text-xs text-muted-foreground">セキュリティ向上のため、設定をお勧めします</p>
@@ -273,7 +273,7 @@ export default function AccountSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-orange-500" />
+            <Bell className="h-5 w-5 text-sky-500" />
             通知設定
           </CardTitle>
           <CardDescription>

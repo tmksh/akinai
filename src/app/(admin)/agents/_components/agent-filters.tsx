@@ -38,7 +38,7 @@ const statusOptions = [
   { value: 'all', label: 'すべて', count: null },
   { value: 'active', label: 'アクティブ', color: 'bg-emerald-500' },
   { value: 'inactive', label: '停止中', color: 'bg-gray-400' },
-  { value: 'pending', label: '審査中', color: 'bg-amber-500' },
+  { value: 'pending', label: '審査中', color: 'bg-sky-500' },
 ];
 
 export function AgentFilters({
@@ -150,7 +150,7 @@ export function AgentFilters({
             className={cn(
               'px-3 py-1.5 rounded-full text-sm font-medium transition-all',
               status === option.value
-                ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200'
+                ? 'bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-200'
                 : 'bg-muted hover:bg-muted/80 text-muted-foreground'
             )}
           >

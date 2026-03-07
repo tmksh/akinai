@@ -150,7 +150,7 @@ export function AgentFormDialog({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-orange-500" />
+            <Building2 className="h-5 w-5 text-sky-500" />
             {isEditing ? '代理店情報を編集' : '新規代理店登録'}
           </DialogTitle>
           <DialogDescription>

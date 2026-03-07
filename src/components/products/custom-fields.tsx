@@ -83,13 +83,13 @@ const fieldTypeConfig: Record<CustomFieldType, FieldTypeInfo> = {
   number:    { label: '数値',         icon: Hash,        placeholder: '0',              color: 'text-emerald-500', description: '整数・小数',           category: 'basic' },
   boolean:   { label: '真偽値',       icon: ToggleLeft,  placeholder: '',               color: 'text-violet-500',  description: 'はい/いいえ',         category: 'basic' },
   select:    { label: '選択肢',       icon: ListFilter,  placeholder: '',               color: 'text-indigo-500',  description: 'ドロップダウン',       category: 'basic' },
-  date:      { label: '日付',         icon: Calendar,    placeholder: '',               color: 'text-amber-500',   description: '日付選択',             category: 'basic' },
+  date:      { label: '日付',         icon: Calendar,    placeholder: '',               color: 'text-sky-500',   description: '日付選択',             category: 'basic' },
   url:       { label: 'URL',          icon: Link2,       placeholder: 'https://',       color: 'text-cyan-500',    description: 'リンクURL',           category: 'media' },
   email:     { label: 'メール',       icon: Mail,        placeholder: 'example@mail.com', color: 'text-sky-500', description: 'メールアドレス',       category: 'media' },
   phone:     { label: '電話番号',     icon: Phone,       placeholder: '03-1234-5678',   color: 'text-teal-500',    description: '電話番号',             category: 'media' },
-  image_url: { label: '画像URL',      icon: ImageIcon,   placeholder: 'https://...',    color: 'text-orange-500',  description: '画像プレビュー付き',   category: 'media' },
+  image_url: { label: '画像URL',      icon: ImageIcon,   placeholder: 'https://...',    color: 'text-sky-500',  description: '画像プレビュー付き',   category: 'media' },
   color:     { label: 'カラー',       icon: Palette,     placeholder: '#000000',        color: 'text-pink-500',    description: 'カラーピッカー',       category: 'media' },
-  rating:    { label: '評価',         icon: Star,        placeholder: '',               color: 'text-yellow-500',  description: '1〜5の星評価',        category: 'advanced' },
+  rating:    { label: '評価',         icon: Star,        placeholder: '',               color: 'text-sky-500',  description: '1〜5の星評価',        category: 'advanced' },
   list:      { label: 'リスト',       icon: ListOrdered, placeholder: '項目を追加',      color: 'text-rose-500',    description: 'タグ形式のリスト',     category: 'advanced' },
   json:      { label: 'JSON',         icon: Braces,      placeholder: '{}',             color: 'text-slate-500',   description: '構造化データ',         category: 'advanced' },
 };
@@ -285,7 +285,7 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
                 <Star
                   className={`h-6 w-6 transition-colors ${
                     star <= parseInt(field.value || '0')
-                      ? 'fill-amber-400 text-amber-400'
+                      ? 'fill-sky-400 text-sky-400'
                       : 'text-slate-200 dark:text-slate-700'
                   }`}
                 />
@@ -405,7 +405,7 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-orange-500" />
+              <Sparkles className="h-5 w-5 text-sky-500" />
               カスタムフィールド
             </CardTitle>
             <CardDescription>
@@ -428,8 +428,8 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
       <CardContent className="space-y-4">
         {/* 新規フィールド追加フォーム */}
         {isAdding && (
-          <div className="rounded-xl border-2 border-dashed border-orange-200 dark:border-orange-900/50 bg-orange-50/50 dark:bg-orange-950/10 p-5 space-y-4">
-            <p className="text-sm font-medium text-orange-700 dark:text-orange-400">
+          <div className="rounded-xl border-2 border-dashed border-sky-200 dark:border-sky-900/50 bg-sky-50/50 dark:bg-sky-950/10 p-5 space-y-4">
+            <p className="text-sm font-medium text-sky-700 dark:text-sky-400">
               新しいフィールドを定義
             </p>
             <div className="space-y-3">
@@ -486,8 +486,8 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
                               className={`
                                 flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs transition-all
                                 ${isSelected
-                                  ? 'border-orange-400 bg-orange-100 text-orange-800 dark:border-orange-600 dark:bg-orange-950/40 dark:text-orange-300 shadow-sm'
-                                  : 'border-border bg-background text-muted-foreground hover:border-orange-300 hover:text-foreground'
+                                  ? 'border-sky-400 bg-sky-100 text-sky-800 dark:border-sky-600 dark:bg-sky-950/40 dark:text-sky-300 shadow-sm'
+                                  : 'border-border bg-background text-muted-foreground hover:border-sky-300 hover:text-foreground'
                                 }
                               `}
                             >
@@ -586,9 +586,9 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
               type="button"
               onClick={() => setIsAdding(true)}
               disabled={disabled}
-              className="w-full rounded-xl border-2 border-dashed border-muted-foreground/15 hover:border-orange-300 dark:hover:border-orange-800 py-8 text-center transition-colors group cursor-pointer"
+              className="w-full rounded-xl border-2 border-dashed border-muted-foreground/15 hover:border-sky-300 dark:hover:border-sky-800 py-8 text-center transition-colors group cursor-pointer"
             >
-              <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground/20 group-hover:text-orange-400 transition-colors" />
+              <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground/20 group-hover:text-sky-400 transition-colors" />
               <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
                 カスタムフィールドを追加
               </p>

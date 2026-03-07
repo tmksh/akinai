@@ -91,40 +91,40 @@ export default function CustomersPage() {
             {/* 統計カード - オレンジグラデーション */}
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               {/* 総顧客数 - 薄いオレンジ */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100/50 to-amber-50 dark:from-orange-950/40 dark:via-orange-900/30 dark:to-amber-950/40 border border-orange-100 dark:border-orange-800/30 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-sky-50 via-sky-100/50 to-sky-50 dark:from-sky-950/40 dark:via-sky-900/30 dark:to-sky-950/40 border border-sky-100 dark:border-sky-800/30 shadow-sm hover:shadow-md transition-all duration-300">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-                    <Users className="h-4 w-4 text-orange-500" />
+                    <Users className="h-4 w-4 text-sky-500" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-medium text-orange-700 dark:text-orange-300">総顧客数</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-sky-700 dark:text-sky-300">総顧客数</span>
                 </div>
-                <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats?.totalCustomers || customers.length}<span className="text-sm font-normal ml-1">人</span></p>
+                <p className="text-lg sm:text-2xl font-bold text-sky-900 dark:text-sky-100">{stats?.totalCustomers || customers.length}<span className="text-sm font-normal ml-1">人</span></p>
               </div>
               
               {/* 新規顧客 - やや濃いオレンジ */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-100 via-orange-200/60 to-amber-100 dark:from-orange-900/50 dark:via-orange-800/40 dark:to-amber-900/50 border border-orange-200 dark:border-orange-700/40 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-sky-100 via-sky-200/60 to-sky-100 dark:from-sky-900/50 dark:via-sky-800/40 dark:to-sky-900/50 border border-sky-200 dark:border-sky-700/40 shadow-sm hover:shadow-md transition-all duration-300">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="p-2 rounded-lg bg-white/60 dark:bg-slate-800/60">
-                    <UserPlus className="h-4 w-4 text-orange-600" />
+                    <UserPlus className="h-4 w-4 text-sky-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-medium text-orange-800 dark:text-orange-200">新規顧客</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-sky-800 dark:text-sky-200">新規顧客</span>
                 </div>
-                <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats?.newCustomersThisMonth || 0}<span className="text-sm font-normal ml-1">今月</span></p>
+                <p className="text-lg sm:text-2xl font-bold text-sky-900 dark:text-sky-100">{stats?.newCustomersThisMonth || 0}<span className="text-sm font-normal ml-1">今月</span></p>
               </div>
               
               {/* リピート率 - 濃いオレンジ */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-200 via-orange-300/70 to-amber-200 dark:from-orange-800/60 dark:via-orange-700/50 dark:to-amber-800/60 border border-orange-300 dark:border-orange-600/50 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-sky-200 via-sky-300/70 to-sky-200 dark:from-sky-800/60 dark:via-sky-700/50 dark:to-sky-800/60 border border-sky-300 dark:border-sky-600/50 shadow-sm hover:shadow-md transition-all duration-300">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-800/70">
-                    <Repeat className="h-4 w-4 text-orange-600" />
+                    <Repeat className="h-4 w-4 text-sky-600" />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-medium text-orange-800 dark:text-orange-200">リピート率</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-sky-800 dark:text-sky-200">リピート率</span>
                 </div>
-                <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats?.repeatRate || 0}%</p>
+                <p className="text-lg sm:text-2xl font-bold text-sky-900 dark:text-sky-100">{stats?.repeatRate || 0}%</p>
               </div>
               
               {/* 平均購入額 - 最も濃いオレンジ */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 dark:from-orange-600 dark:via-orange-500 dark:to-amber-600 border border-orange-400 dark:border-orange-500 shadow-md hover:shadow-lg transition-all duration-300">
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-sky-400 via-sky-500 to-sky-500 dark:from-sky-600 dark:via-sky-500 dark:to-sky-600 border border-sky-400 dark:border-sky-500 shadow-md hover:shadow-lg transition-all duration-300">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="p-2 rounded-lg bg-white/30 dark:bg-slate-900/30">
                     <DollarSign className="h-4 w-4 text-white" />
@@ -187,7 +187,7 @@ export default function CustomersPage() {
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-orange-100 text-orange-600 text-sm">
+                    <AvatarFallback className="bg-sky-100 text-sky-600 text-sm">
                       {customer.name.slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
@@ -211,7 +211,7 @@ export default function CustomersPage() {
                   <Badge 
                     variant="outline" 
                     className={customer.total_orders >= 5 
-                      ? 'bg-orange-50 text-orange-600 border-orange-200' 
+                      ? 'bg-sky-50 text-sky-600 border-sky-200' 
                       : 'bg-slate-50 text-slate-600 border-slate-200'
                     }
                   >
@@ -231,7 +231,7 @@ export default function CustomersPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-orange-100 text-orange-600 text-lg">
+                <AvatarFallback className="bg-sky-100 text-sky-600 text-lg">
                   {selectedCustomer?.name.slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
@@ -240,7 +240,7 @@ export default function CustomersPage() {
                 <Badge 
                   variant="outline" 
                   className={(selectedCustomer?.total_orders ?? 0) >= 5 
-                    ? 'bg-orange-50 text-orange-600 border-orange-200' 
+                    ? 'bg-sky-50 text-sky-600 border-sky-200' 
                     : 'bg-slate-50 text-slate-600 border-slate-200'
                   }
                 >
@@ -281,22 +281,22 @@ export default function CustomersPage() {
 
               {/* 購入統計 */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
-                  <ShoppingBag className="h-5 w-5 text-orange-500 mx-auto mb-1" />
-                  <div className="text-lg font-bold text-orange-900 dark:text-orange-100">{selectedCustomer.total_orders}</div>
-                  <div className="text-xs text-orange-600">注文数</div>
+                <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-center">
+                  <ShoppingBag className="h-5 w-5 text-sky-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-sky-900 dark:text-sky-100">{selectedCustomer.total_orders}</div>
+                  <div className="text-xs text-sky-600">注文数</div>
                 </div>
-                <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
-                  <DollarSign className="h-5 w-5 text-orange-500 mx-auto mb-1" />
-                  <div className="text-lg font-bold text-orange-900 dark:text-orange-100">{formatCurrency(selectedCustomer.total_spent)}</div>
-                  <div className="text-xs text-orange-600">総購入額</div>
+                <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-center">
+                  <DollarSign className="h-5 w-5 text-sky-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-sky-900 dark:text-sky-100">{formatCurrency(selectedCustomer.total_spent)}</div>
+                  <div className="text-xs text-sky-600">総購入額</div>
                 </div>
-                <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
-                  <Calendar className="h-5 w-5 text-orange-500 mx-auto mb-1" />
-                  <div className="text-lg font-bold text-orange-900 dark:text-orange-100">
+                <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-center">
+                  <Calendar className="h-5 w-5 text-sky-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-sky-900 dark:text-sky-100">
                     {new Date(selectedCustomer.created_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
                   </div>
-                  <div className="text-xs text-orange-600">登録日</div>
+                  <div className="text-xs text-sky-600">登録日</div>
                 </div>
               </div>
 

@@ -322,7 +322,7 @@ export default function AgentsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Building2 className="h-6 w-6 text-orange-500" />
+              <Building2 className="h-6 w-6 text-sky-500" />
               代理店管理
             </h1>
             <p className="text-muted-foreground mt-1">
@@ -339,7 +339,7 @@ export default function AgentsPage() {
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
-            <Button onClick={handleNewAgent} className="bg-orange-500 hover:bg-orange-600">
+            <Button onClick={handleNewAgent} className="bg-sky-500 hover:bg-sky-600">
               <Plus className="h-4 w-4 mr-2" />
               代理店を登録
             </Button>

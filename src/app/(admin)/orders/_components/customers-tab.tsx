@@ -42,7 +42,7 @@ const CustomerRow = memo(function CustomerRow({
     >
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
-          <AvatarFallback className="bg-orange-100 text-orange-600 text-sm">
+          <AvatarFallback className="bg-sky-100 text-sky-600 text-sm">
             {customer.name.slice(0, 2)}
           </AvatarFallback>
         </Avatar>
@@ -67,7 +67,7 @@ const CustomerRow = memo(function CustomerRow({
           variant="outline"
           className={
             customer.total_orders >= 5
-              ? 'bg-orange-50 text-orange-600 border-orange-200'
+              ? 'bg-sky-50 text-sky-600 border-sky-200'
               : 'bg-muted text-muted-foreground'
           }
         >
@@ -96,7 +96,7 @@ const CustomerDialog = memo(function CustomerDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-orange-100 text-orange-600 text-lg">
+              <AvatarFallback className="bg-sky-100 text-sky-600 text-lg">
                 {customer.name.slice(0, 2)}
               </AvatarFallback>
             </Avatar>
@@ -106,7 +106,7 @@ const CustomerDialog = memo(function CustomerDialog({
                 variant="outline"
                 className={
                   customer.total_orders >= 5
-                    ? 'bg-orange-50 text-orange-600 border-orange-200'
+                    ? 'bg-sky-50 text-sky-600 border-sky-200'
                     : 'bg-muted text-muted-foreground'
                 }
               >
@@ -149,29 +149,29 @@ const CustomerDialog = memo(function CustomerDialog({
 
           {/* ご利用状況 */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
-              <ShoppingBag className="h-5 w-5 text-orange-500 mx-auto mb-1" />
-              <div className="text-lg font-bold text-orange-900 dark:text-orange-100">
+            <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-center">
+              <ShoppingBag className="h-5 w-5 text-sky-500 mx-auto mb-1" />
+              <div className="text-lg font-bold text-sky-900 dark:text-sky-100">
                 {customer.total_orders}
               </div>
-              <div className="text-xs text-orange-600">ご注文回数</div>
+              <div className="text-xs text-sky-600">ご注文回数</div>
             </div>
-            <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
-              <DollarSign className="h-5 w-5 text-orange-500 mx-auto mb-1" />
-              <div className="text-lg font-bold text-orange-900 dark:text-orange-100">
+            <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-center">
+              <DollarSign className="h-5 w-5 text-sky-500 mx-auto mb-1" />
+              <div className="text-lg font-bold text-sky-900 dark:text-sky-100">
                 {formatCurrency(customer.total_spent)}
               </div>
-              <div className="text-xs text-orange-600">ご購入合計</div>
+              <div className="text-xs text-sky-600">ご購入合計</div>
             </div>
-            <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 text-center">
-              <Calendar className="h-5 w-5 text-orange-500 mx-auto mb-1" />
-              <div className="text-lg font-bold text-orange-900 dark:text-orange-100">
+            <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-center">
+              <Calendar className="h-5 w-5 text-sky-500 mx-auto mb-1" />
+              <div className="text-lg font-bold text-sky-900 dark:text-sky-100">
                 {new Date(customer.created_at).toLocaleDateString('ja-JP', {
                   month: 'short',
                   day: 'numeric',
                 })}
               </div>
-              <div className="text-xs text-orange-600">ご登録日</div>
+              <div className="text-xs text-sky-600">ご登録日</div>
             </div>
           </div>
 

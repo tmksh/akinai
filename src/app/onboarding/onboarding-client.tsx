@@ -34,7 +34,7 @@ export default function OnboardingClient() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-orange-50 via-amber-50 to-orange-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-50 via-sky-50 to-sky-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4">
       <Card className="w-full max-w-md shadow-xl border-0 bg-white dark:bg-slate-900">
         <CardContent className="pt-10 pb-8 px-8">
           <div className="flex flex-col items-center mb-8">
@@ -43,7 +43,7 @@ export default function OnboardingClient() {
               alt="AKINAI"
               className="h-24 w-24 object-contain drop-shadow-lg mb-2"
             />
-            <h1 className="text-2xl font-bold text-orange-500 tracking-wide">
+            <h1 className="text-2xl font-bold text-sky-500 tracking-wide">
               組織を作成
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
@@ -81,7 +81,7 @@ export default function OnboardingClient() {
 
             <Button
               type="submit"
-              className="w-full h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-medium text-base"
+              className="w-full h-12 bg-gradient-to-r from-sky-500 to-sky-500 hover:from-sky-600 hover:to-sky-600 text-white font-medium text-base"
               disabled={isLoading || !name.trim()}
             >
               {isLoading ? (

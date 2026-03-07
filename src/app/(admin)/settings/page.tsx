@@ -109,7 +109,7 @@ export default function SettingsPage() {
                       <CardTitle className="text-base">{category.title}</CardTitle>
                     </div>
                     {category.badge && (
-                      <Badge variant="default" className="text-xs bg-orange-500">
+                      <Badge variant="default" className="text-xs bg-sky-500">
                         {category.badge}
                       </Badge>
                     )}

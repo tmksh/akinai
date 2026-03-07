@@ -87,7 +87,7 @@ function NavItem({
         'flex flex-col items-center rounded-xl transition-all duration-200 relative group shrink-0 active:scale-[0.97]',
         isCompact ? 'gap-1 px-2 py-2' : 'gap-1.5 px-3 py-2.5',
         isActive
-          ? 'bg-orange-50/80 dark:bg-orange-950/30'
+          ? 'bg-sky-50/80 dark:bg-sky-950/30'
           : 'hover:bg-white/40 dark:hover:bg-white/5'
       )}
     >
@@ -96,8 +96,8 @@ function NavItem({
           'transition-all',
           isCompact ? 'h-5 w-5' : 'h-6 w-6',
           isActive
-            ? 'text-orange-500 scale-110'
-            : 'text-slate-500 dark:text-slate-400 group-hover:text-orange-500'
+            ? 'text-sky-500 scale-110'
+            : 'text-slate-500 dark:text-slate-400 group-hover:text-sky-500'
         )} />
         {item.badge && (
           <Badge
@@ -112,13 +112,13 @@ function NavItem({
         'font-medium text-center leading-tight transition-colors',
         isCompact ? 'text-xs' : 'text-sm',
         isActive
-          ? 'text-orange-600 dark:text-orange-400'
+          ? 'text-sky-600 dark:text-sky-400'
           : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
       )}>
         {item.title}
       </span>
       {isActive && (
-        <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full" />
+        <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-sky-500 to-sky-500 rounded-full" />
       )}
     </Link>
   );
@@ -213,7 +213,7 @@ export function TopNavigation() {
                 <Button variant="ghost" className="flex items-center gap-1 md:gap-2 h-8 md:h-9 px-1.5 md:px-2">
                   <Avatar className="h-6 w-6 md:h-7 md:w-7">
                     <AvatarImage src={currentUser?.avatar ?? undefined} />
-                    <AvatarFallback className="bg-orange-500 text-white text-[10px] md:text-xs">
+                    <AvatarFallback className="bg-sky-500 text-white text-[10px] md:text-xs">
                       {currentUser ? currentUser.name.slice(0, 2) : '?'}
                     </AvatarFallback>
                   </Avatar>
@@ -280,14 +280,14 @@ export function TopNavigation() {
                     className={cn(
                       'flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all duration-200 relative',
                       active
-                        ? 'bg-orange-50/80 dark:bg-orange-950/30'
+                        ? 'bg-sky-50/80 dark:bg-sky-950/30'
                         : 'hover:bg-white/40 dark:hover:bg-white/5'
                     )}
                   >
                     <div className="relative">
                       <Icon className={cn(
                         "h-5 w-5 transition-all",
-                        active ? 'text-orange-500 scale-110' : 'text-slate-500 dark:text-slate-400'
+                        active ? 'text-sky-500 scale-110' : 'text-slate-500 dark:text-slate-400'
                       )} />
                       {item.badge && (
                         <Badge
@@ -300,7 +300,7 @@ export function TopNavigation() {
                     </div>
                     <span className={cn(
                       "text-[10px] font-medium text-center leading-tight",
-                      active ? 'text-orange-600 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'
+                      active ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400'
                     )}>
                       {item.title}
                     </span>

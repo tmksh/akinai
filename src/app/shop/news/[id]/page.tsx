@@ -150,7 +150,7 @@ export default function NewsDetailPage() {
             priority
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-100" />
+          <div className="w-full h-full bg-gradient-to-br from-sky-100 to-sky-100" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
@@ -173,7 +173,7 @@ export default function NewsDetailPage() {
         <div className="bg-white rounded-2xl shadow-xl p-6 md:p-10">
           {/* ヘッダー */}
           <header className="mb-8">
-            <Badge className="mb-4 bg-orange-500">{article.type}</Badge>
+            <Badge className="mb-4 bg-sky-500">{article.type}</Badge>
             <h1 className="text-2xl md:text-4xl font-bold text-slate-900 mb-4">
               {article.title}
             </h1>
@@ -201,7 +201,7 @@ export default function NewsDetailPage() {
           {/* 本文 */}
           {htmlContent ? (
             <div
-              className="prose prose-lg prose-slate max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:leading-relaxed prose-li:leading-relaxed prose-blockquote:border-l-orange-500 prose-blockquote:bg-orange-50 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-lg prose-a:text-orange-500 prose-a:no-underline hover:prose-a:underline"
+              className="prose prose-lg prose-slate max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:leading-relaxed prose-li:leading-relaxed prose-blockquote:border-l-sky-500 prose-blockquote:bg-sky-50 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-lg prose-a:text-sky-500 prose-a:no-underline hover:prose-a:underline"
               dangerouslySetInnerHTML={{ __html: htmlContent }}
             />
           ) : (
@@ -249,7 +249,7 @@ export default function NewsDetailPage() {
                     <Badge variant="outline" className="mb-2 text-xs">
                       {related.type}
                     </Badge>
-                    <h3 className="font-medium text-slate-900 group-hover:text-orange-500 transition-colors line-clamp-2">
+                    <h3 className="font-medium text-slate-900 group-hover:text-sky-500 transition-colors line-clamp-2">
                       {related.title}
                     </h3>
                     <p className="text-xs text-slate-400 mt-1">
@@ -266,14 +266,14 @@ export default function NewsDetailPage() {
         <div className="flex justify-between items-center py-8 border-t border-slate-100 mb-16">
           <Link
             href="/shop/news"
-            className="flex items-center gap-2 text-slate-500 hover:text-orange-500 transition-colors"
+            className="flex items-center gap-2 text-slate-500 hover:text-sky-500 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             記事一覧に戻る
           </Link>
           <Link
             href="/shop/products"
-            className="flex items-center gap-2 text-slate-500 hover:text-orange-500 transition-colors"
+            className="flex items-center gap-2 text-slate-500 hover:text-sky-500 transition-colors"
           >
             商品を見る
             <ArrowRight className="h-4 w-4" />

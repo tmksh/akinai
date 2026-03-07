@@ -97,7 +97,7 @@ export default function InventoryPage() {
   const filterTabs = [
     { key: 'all' as StockFilterType, label: 'すべて', count: totalItems, icon: Boxes },
     { key: 'out' as StockFilterType, label: '在庫切れ', count: outOfStockItems, icon: XCircle, color: 'text-red-500' },
-    { key: 'low' as StockFilterType, label: '在庫少', count: lowStockItems, icon: AlertTriangle, color: 'text-amber-500' },
+    { key: 'low' as StockFilterType, label: '在庫少', count: lowStockItems, icon: AlertTriangle, color: 'text-sky-500' },
     { key: 'ok' as StockFilterType, label: '在庫あり', count: healthyItems, icon: CheckCircle2, color: 'text-emerald-500' },
   ];
 
@@ -179,10 +179,10 @@ export default function InventoryPage() {
             商品の在庫状況を確認・調整します
           </p>
         </div>
-        <div className="hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border border-orange-100 dark:border-orange-900/30">
-          <Boxes className="h-4 w-4 text-orange-500" />
+        <div className="hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-50 to-sky-50 dark:from-sky-950/30 dark:to-sky-950/30 border border-sky-100 dark:border-sky-900/30">
+          <Boxes className="h-4 w-4 text-sky-500" />
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-bold text-orange-600">{totalStock.toLocaleString()}</span>
+            <span className="text-xl font-bold text-sky-600">{totalStock.toLocaleString()}</span>
             <span className="text-xs text-muted-foreground">点</span>
           </div>
         </div>
@@ -202,8 +202,8 @@ export default function InventoryPage() {
               className={cn(
                 "flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all duration-200",
                 isActive
-                  ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/25"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+                  ? "bg-sky-500 text-white border-sky-500 shadow-lg shadow-sky-500/25"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/20"
               )}
             >
               <Icon className={cn("h-4 w-4", isActive ? "text-white" : tab.color)} />
@@ -266,9 +266,9 @@ export default function InventoryPage() {
                   label: "在庫あり"
                 },
                 low: { 
-                  gradient: "from-amber-500 to-orange-500",
-                  bg: "bg-amber-50 dark:bg-amber-950/20",
-                  text: "text-amber-600",
+                  gradient: "from-sky-500 to-sky-500",
+                  bg: "bg-sky-50 dark:bg-sky-950/20",
+                  text: "text-sky-600",
                   label: "在庫少"
                 },
                 out: { 
@@ -383,7 +383,7 @@ export default function InventoryPage() {
                 <Button
                   type="button"
                   variant={adjustmentType === 'out' ? 'default' : 'outline'}
-                  className={cn(adjustmentType === 'out' && "bg-amber-500 hover:bg-amber-600")}
+                  className={cn(adjustmentType === 'out' && "bg-sky-500 hover:bg-sky-600")}
                   onClick={() => setAdjustmentType('out')}
                 >
                   <Minus className="mr-2 h-4 w-4" />
@@ -411,9 +411,9 @@ export default function InventoryPage() {
               />
             </div>
             {adjustmentQuantity && selectedItem && (
-              <div className="flex items-center justify-between rounded-xl bg-orange-50 dark:bg-orange-950/30 p-4 border border-orange-100 dark:border-orange-900/30">
+              <div className="flex items-center justify-between rounded-xl bg-sky-50 dark:bg-sky-950/30 p-4 border border-sky-100 dark:border-sky-900/30">
                 <span className="text-sm text-muted-foreground">調整後</span>
-                <span className="text-2xl font-bold text-orange-600">
+                <span className="text-2xl font-bold text-sky-600">
                   {selectedItem.currentStock + (adjustmentType === 'in' ? parseInt(adjustmentQuantity, 10) || 0 : -(parseInt(adjustmentQuantity, 10) || 0))}
                 </span>
               </div>

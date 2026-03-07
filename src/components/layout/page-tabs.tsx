@@ -41,7 +41,7 @@ export function PageTabs({ tabs, className }: PageTabsProps) {
               className={cn(
                 "relative px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-all rounded-lg",
                 active
-                  ? "bg-white/80 dark:bg-white/[0.12] text-orange-600 dark:text-orange-400 border border-white/80 dark:border-white/[0.1] shadow-[0_1px_6px_rgba(100,120,160,0.12),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                  ? "bg-white/80 dark:bg-white/[0.12] text-sky-600 dark:text-sky-400 border border-white/80 dark:border-white/[0.1] shadow-[0_1px_6px_rgba(100,120,160,0.12),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08)]"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/40 dark:hover:bg-white/[0.05]"
               )}
             >

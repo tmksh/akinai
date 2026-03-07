@@ -162,8 +162,8 @@ export default function ContactPage() {
               {contactInfo.map((info, index) => (
                 <Card key={index}>
                   <CardContent className="flex items-start gap-4 pt-6">
-                    <div className="p-3 bg-orange-50 rounded-xl shrink-0">
-                      <info.icon className="h-5 w-5 text-orange-500" />
+                    <div className="p-3 bg-sky-50 rounded-xl shrink-0">
+                      <info.icon className="h-5 w-5 text-sky-500" />
                     </div>
                     <div>
                       <h3 className="font-medium text-slate-900">{info.title}</h3>
@@ -180,15 +180,15 @@ export default function ContactPage() {
               <CardContent className="pt-6 space-y-4">
                 <h3 className="font-bold text-slate-900">お役立ちリンク</h3>
                 <div className="space-y-2">
-                  <a href="/shop/guide" className="flex items-center gap-2 text-slate-600 hover:text-orange-500 transition-colors">
+                  <a href="/shop/guide" className="flex items-center gap-2 text-slate-600 hover:text-sky-500 transition-colors">
                     <HelpCircle className="h-4 w-4" />
                     ご利用ガイド
                   </a>
-                  <a href="/shop/shipping" className="flex items-center gap-2 text-slate-600 hover:text-orange-500 transition-colors">
+                  <a href="/shop/shipping" className="flex items-center gap-2 text-slate-600 hover:text-sky-500 transition-colors">
                     <Package className="h-4 w-4" />
                     配送について
                   </a>
-                  <a href="/shop/returns" className="flex items-center gap-2 text-slate-600 hover:text-orange-500 transition-colors">
+                  <a href="/shop/returns" className="flex items-center gap-2 text-slate-600 hover:text-sky-500 transition-colors">
                     <MessageCircle className="h-4 w-4" />
                     返品・交換
                   </a>
@@ -285,7 +285,7 @@ export default function ContactPage() {
                   <Button
                     type="submit"
                     size="lg"
-                    className="w-full bg-orange-500 hover:bg-orange-600"
+                    className="w-full bg-sky-500 hover:bg-sky-600"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (

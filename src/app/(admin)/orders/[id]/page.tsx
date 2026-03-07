@@ -78,9 +78,9 @@ const orderStatusConfig: Record<
   OrderStatus,
   { label: string; color: string; bgColor: string; icon: React.ElementType }
 > = {
-  pending: { label: '未処理', color: 'text-amber-600', bgColor: 'bg-amber-100', icon: Clock },
-  confirmed: { label: '確認済', color: 'text-orange-600', bgColor: 'bg-orange-100', icon: CheckCircle },
-  processing: { label: '処理中', color: 'text-amber-600', bgColor: 'bg-amber-100', icon: Package },
+  pending: { label: '未処理', color: 'text-sky-600', bgColor: 'bg-sky-100', icon: Clock },
+  confirmed: { label: '確認済', color: 'text-sky-600', bgColor: 'bg-sky-100', icon: CheckCircle },
+  processing: { label: '処理中', color: 'text-sky-600', bgColor: 'bg-sky-100', icon: Package },
   shipped: { label: '発送済', color: 'text-emerald-600', bgColor: 'bg-emerald-100', icon: Truck },
   delivered: { label: '配達完了', color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle },
   cancelled: { label: 'キャンセル', color: 'text-red-600', bgColor: 'bg-red-100', icon: XCircle },
@@ -91,7 +91,7 @@ const paymentStatusConfig: Record<
   PaymentStatus,
   { label: string; color: string; bgColor: string }
 > = {
-  pending: { label: '未払い', color: 'text-amber-600', bgColor: 'bg-amber-100' },
+  pending: { label: '未払い', color: 'text-sky-600', bgColor: 'bg-sky-100' },
   paid: { label: '支払済', color: 'text-green-600', bgColor: 'bg-green-100' },
   failed: { label: '失敗', color: 'text-red-600', bgColor: 'bg-red-100' },
   refunded: { label: '返金済', color: 'text-gray-600', bgColor: 'bg-gray-100' },
@@ -384,7 +384,7 @@ export default function OrderDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-orange-500" />
+                <Package className="h-5 w-5 text-sky-500" />
                 注文内容
               </CardTitle>
               <CardDescription>{order.items.length}点の商品</CardDescription>
@@ -566,7 +566,7 @@ export default function OrderDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-orange-500" />
+                <User className="h-5 w-5 text-sky-500" />
                 顧客情報
               </CardTitle>
             </CardHeader>
@@ -596,7 +596,7 @@ export default function OrderDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-orange-500" />
+                <CreditCard className="h-5 w-5 text-sky-500" />
                 支払い情報
               </CardTitle>
             </CardHeader>

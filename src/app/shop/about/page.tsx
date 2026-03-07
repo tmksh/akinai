@@ -119,8 +119,8 @@ export default function AboutPage() {
                 key={index}
                 className="bg-white rounded-2xl p-6 text-center hover:shadow-lg transition-shadow"
               >
-                <div className="w-16 h-16 mx-auto mb-4 bg-orange-50 rounded-full flex items-center justify-center">
-                  <value.icon className="h-8 w-8 text-orange-500" />
+                <div className="w-16 h-16 mx-auto mb-4 bg-sky-50 rounded-full flex items-center justify-center">
+                  <value.icon className="h-8 w-8 text-sky-500" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 mb-2">
                   {value.title}
@@ -135,7 +135,7 @@ export default function AboutPage() {
       </section>
 
       {/* 数字で見る商い */}
-      <section className="py-16 md:py-24 bg-gradient-to-br from-orange-500 to-amber-500 text-white">
+      <section className="py-16 md:py-24 bg-gradient-to-br from-sky-500 to-sky-500 text-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -185,7 +185,7 @@ export default function AboutPage() {
                 <h3 className="text-lg font-bold text-slate-900">
                   {member.name}
                 </h3>
-                <p className="text-orange-500 text-sm font-medium mb-2">
+                <p className="text-sky-500 text-sm font-medium mb-2">
                   {member.role}
                 </p>
                 <p className="text-sm text-slate-600">
@@ -209,7 +209,7 @@ export default function AboutPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/shop/products">
-              <Button size="lg" className="bg-orange-500 hover:bg-orange-600 gap-2">
+              <Button size="lg" className="bg-sky-500 hover:bg-sky-600 gap-2">
                 商品を見る
                 <ArrowRight className="h-4 w-4" />
               </Button>

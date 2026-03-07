@@ -240,7 +240,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
             <div className="min-w-0 flex-1">
               <Link
                 href={`/contents/${content.id}/edit`}
-                className="font-semibold text-xs leading-tight line-clamp-2 text-foreground hover:text-orange-600 transition-colors"
+                className="font-semibold text-xs leading-tight line-clamp-2 text-foreground hover:text-sky-600 transition-colors"
               >
                 {content.title}
               </Link>
@@ -314,7 +314,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" size="sm">
             <Link href="/settings/contents-schema">
-              <Sparkles className="mr-2 h-4 w-4 text-orange-500" />
+              <Sparkles className="mr-2 h-4 w-4 text-sky-500" />
               カスタムフィールド
             </Link>
           </Button>
@@ -354,25 +354,25 @@ export default function ContentsClient({ initialContents, stats, organizationId,
           {/* 統計バー */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/40" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(12px)' }}>
-              <FileText className="h-3.5 w-3.5 text-orange-400" />
-              <span className="text-xs text-orange-700">全件</span>
-              <span className="text-sm font-semibold text-orange-900">{stats.total}</span>
+              <FileText className="h-3.5 w-3.5 text-sky-400" />
+              <span className="text-xs text-sky-700">全件</span>
+              <span className="text-sm font-semibold text-sky-900">{stats.total}</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-100">
-              <Eye className="h-3.5 w-3.5 text-orange-500" />
-              <span className="text-xs text-orange-700">公開中</span>
-              <span className="text-sm font-semibold text-orange-800">{stats.published}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-100">
+              <Eye className="h-3.5 w-3.5 text-sky-500" />
+              <span className="text-xs text-sky-700">公開中</span>
+              <span className="text-sm font-semibold text-sky-800">{stats.published}</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-amber-100" style={{ background: '#fefce8' }}>
-              <Edit className="h-3.5 w-3.5 text-amber-500" />
-              <span className="text-xs text-amber-700">下書き</span>
-              <span className="text-sm font-semibold text-amber-800">{stats.draft}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sky-100" style={{ background: '#fefce8' }}>
+              <Edit className="h-3.5 w-3.5 text-sky-500" />
+              <span className="text-xs text-sky-700">下書き</span>
+              <span className="text-sm font-semibold text-sky-800">{stats.draft}</span>
             </div>
             {stats.scheduled > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-100 border border-orange-200">
-                <Calendar className="h-3.5 w-3.5 text-orange-600" />
-                <span className="text-xs text-orange-700">予約</span>
-                <span className="text-sm font-semibold text-orange-800">{stats.scheduled}</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-100 border border-sky-200">
+                <Calendar className="h-3.5 w-3.5 text-sky-600" />
+                <span className="text-xs text-sky-700">予約</span>
+                <span className="text-sm font-semibold text-sky-800">{stats.scheduled}</span>
               </div>
             )}
           </div>

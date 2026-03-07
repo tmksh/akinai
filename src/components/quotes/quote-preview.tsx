@@ -123,10 +123,10 @@ export function QuotePreview({
               </div>
               <div className="text-right">
                 <div className="flex items-center justify-end gap-2 mb-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-600">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-sky-600">
                     <Star className="h-4 w-4 text-white" />
                   </div>
-                  <span className="font-bold text-lg text-orange-600">商い</span>
+                  <span className="font-bold text-lg text-sky-600">商い</span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Akinai CMS</p>
               </div>
@@ -170,10 +170,10 @@ export function QuotePreview({
             </div>
 
             {/* 合計金額（強調表示） */}
-            <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-8">
+            <div className="bg-gradient-to-r from-sky-50 to-sky-50 dark:from-sky-950/30 dark:to-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-lg p-4 mb-8">
               <div className="flex justify-between items-center">
                 <span className="text-lg text-slate-700 dark:text-slate-300">ご請求金額（税込）</span>
-                <span className="text-3xl font-bold text-orange-600">{formatCurrency(total)}</span>
+                <span className="text-3xl font-bold text-sky-600">{formatCurrency(total)}</span>
               </div>
             </div>
 
@@ -226,7 +226,7 @@ export function QuotePreview({
                   </tr>
                   <tr className="border-t-2 border-slate-300 dark:border-slate-600">
                     <td colSpan={4} className="py-3 text-right text-lg font-semibold">合計（税込）</td>
-                    <td className="py-3 text-right text-lg font-bold text-orange-600">{formatCurrency(total)}</td>
+                    <td className="py-3 text-right text-lg font-bold text-sky-600">{formatCurrency(total)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -257,10 +257,10 @@ export function QuotePreview({
             <div className="flex justify-end">
               <div className="text-right text-sm">
                 <div className="flex items-center justify-end gap-2 mb-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded bg-gradient-to-br from-orange-400 to-orange-600">
+                  <div className="flex h-6 w-6 items-center justify-center rounded bg-gradient-to-br from-sky-400 to-sky-600">
                     <Star className="h-3 w-3 text-white" />
                   </div>
-                  <span className="font-bold text-orange-600">商い株式会社</span>
+                  <span className="font-bold text-sky-600">商い株式会社</span>
                 </div>
                 <p className="text-slate-500 dark:text-slate-400">〒100-0001 東京都千代田区千代田1-1-1</p>
                 <p className="text-slate-500 dark:text-slate-400">TEL: 03-1234-5678 / FAX: 03-1234-5679</p>

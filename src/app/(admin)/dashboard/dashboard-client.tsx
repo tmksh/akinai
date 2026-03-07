@@ -98,9 +98,9 @@ import { getPerformanceData } from '@/lib/actions/dashboard';
 
 // ステータスの表示設定
 const orderStatusConfig: Record<OrderStatus, { label: string; color: string }> = {
-  pending: { label: '入金待ち', color: 'bg-amber-100 text-amber-700' },
+  pending: { label: '入金待ち', color: 'bg-sky-100 text-sky-700' },
   confirmed: { label: '確認済', color: 'bg-blue-100 text-blue-700' },
-  processing: { label: '対応中', color: 'bg-orange-100 text-orange-700' },
+  processing: { label: '対応中', color: 'bg-sky-100 text-sky-700' },
   shipped: { label: '発送済', color: 'bg-emerald-100 text-emerald-700' },
   delivered: { label: '対応済', color: 'bg-slate-100 text-slate-700' },
   cancelled: { label: 'キャンセル', color: 'bg-red-100 text-red-700' },
@@ -220,7 +220,7 @@ function CircleProgress({
             fill="none"
             stroke="currentColor"
             strokeWidth={strokeWidth}
-            className="text-orange-100 dark:text-orange-900/20"
+            className="text-sky-100 dark:text-sky-900/20"
           />
         </svg>
         <svg className="absolute inset-0 -rotate-90" width={size} height={size}>
@@ -263,9 +263,9 @@ function CircleProgress({
           <span 
             className={cn(
               "font-bold bg-clip-text text-transparent leading-none text-center",
-              colorVariant === 'orange' ? "bg-gradient-to-br from-orange-500 to-amber-600" :
-              colorVariant === 'amber' ? "bg-gradient-to-br from-amber-500 to-yellow-600" :
-              "bg-gradient-to-br from-orange-600 to-red-600"
+              colorVariant === 'orange' ? "bg-gradient-to-br from-sky-500 to-sky-600" :
+              colorVariant === 'amber' ? "bg-gradient-to-br from-sky-500 to-sky-600" :
+              "bg-gradient-to-br from-sky-600 to-red-600"
             )}
             style={{ fontSize: `${Math.max((size - strokeWidth * 2) * 0.28, 14)}px` }}
           >
@@ -444,7 +444,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
   const widgets = useMemo(() => ({
     // 売上カード
     revenue: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20 cursor-grab active:cursor-grabbing">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-sky-500 to-sky-600 text-white shadow-lg shadow-sky-500/20 cursor-grab active:cursor-grabbing">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
         <div className="relative h-full flex flex-col">
@@ -481,7 +481,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // 注文数カード
     orders: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-lg shadow-amber-400/20 cursor-grab active:cursor-grabbing">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-sky-400 to-sky-500 text-white shadow-lg shadow-sky-400/20 cursor-grab active:cursor-grabbing">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
         <div className="relative h-full flex flex-col">
@@ -518,7 +518,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // 商品数カード
     products: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-orange-800 to-red-900 text-white shadow-lg shadow-orange-800/20 cursor-grab active:cursor-grabbing">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-sky-800 to-red-900 text-white shadow-lg shadow-sky-800/20 cursor-grab active:cursor-grabbing">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
         <div className="relative h-full flex flex-col">
@@ -541,7 +541,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // 顧客数カード
     customers: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-orange-300 to-amber-400 text-white shadow-lg shadow-orange-300/20 cursor-grab active:cursor-grabbing">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-sky-300 to-sky-400 text-white shadow-lg shadow-sky-300/20 cursor-grab active:cursor-grabbing">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
         <div className="relative h-full flex flex-col">
@@ -597,7 +597,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           </div>
           <div className="flex items-center gap-3 text-xs mt-1">
             <div className="flex items-center gap-1.5">
-              <div className="h-2 w-5 rounded-full bg-gradient-to-r from-orange-500 to-amber-400" />
+              <div className="h-2 w-5 rounded-full bg-gradient-to-r from-sky-500 to-sky-400" />
               <span className="text-muted-foreground">売上(千円)</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -675,7 +675,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                   performanceData.avgAchievement >= 90
                     ? "text-emerald-600 bg-emerald-50"
                     : performanceData.avgAchievement >= 70
-                      ? "text-orange-600 bg-orange-50"
+                      ? "text-sky-600 bg-sky-50"
                       : "text-slate-500 bg-slate-100"
                 )}>
                   {performanceData.grade}
@@ -736,7 +736,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
       <WidgetWrapper>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-slate-900 dark:text-white text-sm">最近の注文</h3>
-          <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50 text-xs rounded-lg h-7 px-2" asChild>
+          <Button variant="ghost" size="sm" className="text-sky-500 hover:text-sky-600 hover:bg-sky-50 text-xs rounded-lg h-7 px-2" asChild>
             <Link href="/orders">すべて<ArrowRight className="ml-1 h-3 w-3" /></Link>
           </Button>
         </div>
@@ -750,10 +750,10 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                 <Link 
                   key={order.id}
                   href={`/orders/${order.id}`}
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-orange-50/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-sky-50/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                 >
                   <Avatar className="h-8 w-8 rounded-full shadow-sm flex-shrink-0">
-                    <AvatarFallback className="text-[10px] font-medium text-white bg-gradient-to-br from-orange-400 to-amber-500">
+                    <AvatarFallback className="text-[10px] font-medium text-white bg-gradient-to-br from-sky-400 to-sky-500">
                       {customerName.slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
@@ -780,10 +780,10 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
     'stock-alert': (
       <div className="h-full w-full rounded-2xl p-4 relative cursor-grab active:cursor-grabbing bg-white/60 dark:bg-[rgba(30,32,45,0.55)] backdrop-blur-2xl border border-white/70 dark:border-white/[0.08] shadow-[0_2px_24px_rgba(100,120,160,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_2px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]">
         <div className="flex items-center gap-2 mb-3">
-          <AlertCircle className={cn("h-4 w-4", initialData.lowStockItems.length > 0 ? "text-amber-500" : "text-slate-400")} />
+          <AlertCircle className={cn("h-4 w-4", initialData.lowStockItems.length > 0 ? "text-sky-500" : "text-slate-400")} />
           <h3 className="font-semibold text-slate-900 dark:text-white text-sm">在庫アラート</h3>
           {initialData.lowStockItems.length > 0 && (
-            <Badge className="bg-amber-500 text-white text-[9px] h-4 px-1.5">{initialData.lowStockItems.length}</Badge>
+            <Badge className="bg-sky-500 text-white text-[9px] h-4 px-1.5">{initialData.lowStockItems.length}</Badge>
           )}
         </div>
         {initialData.lowStockItems.length > 0 ? (
@@ -814,7 +814,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                   <p className="text-[10px] text-slate-500 truncate">{item.variantName}</p>
                 </div>
                 {/* 在庫数 */}
-                <span className={`text-xs font-bold flex-shrink-0 ${item.stock === 0 ? 'text-red-500' : 'text-amber-600'}`}>
+                <span className={`text-xs font-bold flex-shrink-0 ${item.stock === 0 ? 'text-red-500' : 'text-sky-600'}`}>
                   残{item.stock}
                 </span>
               </Link>
@@ -836,7 +836,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
             <h3 className="font-semibold text-slate-900 dark:text-white">人気商品</h3>
             <p className="text-xs text-slate-500">今月のベストセラー</p>
           </div>
-          <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50 text-xs rounded-lg" asChild>
+          <Button variant="ghost" size="sm" className="text-sky-500 hover:text-sky-600 hover:bg-sky-50 text-xs rounded-lg" asChild>
             <Link href="/products">すべて見る<ArrowRight className="ml-1 h-3 w-3" /></Link>
           </Button>
         </div>
@@ -846,9 +846,9 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
               <Link
                 key={product.id}
                 href={`/products/${product.id}`}
-                className="group/item relative flex-shrink-0 w-36 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-orange-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer overflow-hidden border border-slate-100 dark:border-slate-700/50"
+                className="group/item relative flex-shrink-0 w-36 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-sky-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer overflow-hidden border border-slate-100 dark:border-slate-700/50"
               >
-                <div className="absolute top-2 left-2 z-10 h-5.5 w-5.5 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md">
+                <div className="absolute top-2 left-2 z-10 h-5.5 w-5.5 rounded-full bg-gradient-to-br from-sky-400 to-sky-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md">
                   {index + 1}
                 </div>
                 <div className="relative aspect-square bg-white dark:bg-slate-800 overflow-hidden">
@@ -922,7 +922,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
             <RotateCcw className="h-4 w-4 mr-1.5" />
             <span className="hidden xs:inline">レイアウトを</span>リセット
           </Button>
-          <Button className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-300 text-xs sm:text-sm" asChild>
+          <Button className="bg-gradient-to-r from-sky-500 to-sky-500 hover:from-sky-600 hover:to-sky-600 text-white rounded-xl shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 transition-all duration-300 text-xs sm:text-sm" asChild>
             <Link href="/reports">レポートを見る</Link>
           </Button>
         </div>

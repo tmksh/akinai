@@ -208,12 +208,12 @@ export default function CheckoutCompletePage() {
                     <dt className="text-slate-500">口座名義</dt>
                     <dd className="font-medium text-slate-900">{bankInfo.accountHolder}</dd>
                   </dl>
-                  <div className="mt-4 p-3 bg-amber-50 rounded-lg">
+                  <div className="mt-4 p-3 bg-sky-50 rounded-lg">
                     <div className="flex items-start gap-2">
-                      <Clock className="h-4 w-4 text-amber-600 mt-0.5" />
+                      <Clock className="h-4 w-4 text-sky-600 mt-0.5" />
                       <div className="text-sm">
-                        <p className="font-medium text-amber-800">振込期限: 7日以内</p>
-                        <p className="text-amber-700">
+                        <p className="font-medium text-sky-800">振込期限: 7日以内</p>
+                        <p className="text-sky-700">
                           振込名義人は「{orderData.customerName}」様でお願いいたします。
                         </p>
                       </div>
@@ -306,23 +306,23 @@ export default function CheckoutCompletePage() {
           </h2>
           <ol className="space-y-3 text-sm text-slate-600">
             <li className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+              <span className="flex-shrink-0 w-6 h-6 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
               <span>確認メールが届きます（{orderData.customerEmail}）</span>
             </li>
             {orderData.paymentMethod === 'bank_transfer' && (
               <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                <span className="flex-shrink-0 w-6 h-6 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
                 <span>7日以内に指定口座にお振込みください</span>
               </li>
             )}
             <li className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">
+              <span className="flex-shrink-0 w-6 h-6 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center text-xs font-bold">
                 {orderData.paymentMethod === 'bank_transfer' ? '3' : '2'}
               </span>
               <span>商品の発送準備ができ次第、発送完了メールをお送りします</span>
             </li>
             <li className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">
+              <span className="flex-shrink-0 w-6 h-6 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center text-xs font-bold">
                 {orderData.paymentMethod === 'bank_transfer' ? '4' : '3'}
               </span>
               <span>商品をお届けいたします（通常2-5営業日）</span>
@@ -338,7 +338,7 @@ export default function CheckoutCompletePage() {
               トップページへ
             </Link>
           </Button>
-          <Button asChild className="flex-1 bg-orange-500 hover:bg-orange-600">
+          <Button asChild className="flex-1 bg-sky-500 hover:bg-sky-600">
             <Link href="/shop/products">
               お買い物を続ける
               <ArrowRight className="h-4 w-4 ml-2" />

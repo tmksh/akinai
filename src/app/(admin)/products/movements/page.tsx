@@ -43,9 +43,9 @@ const productTabs = [
 
 const typeConfig = {
   in: { label: '入庫', color: 'text-emerald-600', bgColor: 'bg-emerald-100 dark:bg-emerald-900/30', icon: ArrowDownLeft },
-  out: { label: '出庫', color: 'text-orange-600', bgColor: 'bg-orange-100 dark:bg-orange-900/30', icon: ArrowUpRight },
-  adjustment: { label: '調整', color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30', icon: RefreshCw },
-  transfer: { label: '移動', color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30', icon: Truck },
+  out: { label: '出庫', color: 'text-sky-600', bgColor: 'bg-sky-100 dark:bg-sky-900/30', icon: ArrowUpRight },
+  adjustment: { label: '調整', color: 'text-sky-600', bgColor: 'bg-sky-100 dark:bg-sky-900/30', icon: RefreshCw },
+  transfer: { label: '移動', color: 'text-sky-600', bgColor: 'bg-sky-100 dark:bg-sky-900/30', icon: Truck },
 };
 
 const formatDate = (dateString: string) =>
@@ -127,19 +127,19 @@ export default function StockMovementsPage() {
           </div>
           <div className="text-2xl font-bold text-emerald-600">+{stats.totalIn}</div>
         </div>
-        <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30">
+        <div className="p-4 rounded-xl bg-sky-50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900/30">
           <div className="flex items-center gap-2 mb-2">
-            <ArrowUpRight className="h-4 w-4 text-orange-500" />
-            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">総出庫</span>
+            <ArrowUpRight className="h-4 w-4 text-sky-500" />
+            <span className="text-xs font-medium text-sky-700 dark:text-sky-300">総出庫</span>
           </div>
-          <div className="text-2xl font-bold text-orange-600">-{stats.totalOut}</div>
+          <div className="text-2xl font-bold text-sky-600">-{stats.totalOut}</div>
         </div>
-        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30">
+        <div className="p-4 rounded-xl bg-sky-50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900/30">
           <div className="flex items-center gap-2 mb-2">
-            <RefreshCw className="h-4 w-4 text-amber-500" />
-            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">調整</span>
+            <RefreshCw className="h-4 w-4 text-sky-500" />
+            <span className="text-xs font-medium text-sky-700 dark:text-sky-300">調整</span>
           </div>
-          <div className="text-2xl font-bold text-amber-600">{stats.adjustments}</div>
+          <div className="text-2xl font-bold text-sky-600">{stats.adjustments}</div>
         </div>
       </div>
 
@@ -243,7 +243,7 @@ export default function StockMovementsPage() {
                       <TableCell className="text-right">
                         <span className={cn(
                           "font-semibold tabular-nums",
-                          quantity > 0 ? "text-emerald-600" : "text-orange-600"
+                          quantity > 0 ? "text-emerald-600" : "text-sky-600"
                         )}>
                           {quantity > 0 ? '+' : ''}{quantity}
                         </span>

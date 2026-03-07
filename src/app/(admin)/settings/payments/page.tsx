@@ -241,10 +241,10 @@ function PaymentsSettingsContent() {
 
       {/* テストモードの警告 */}
       {testMode && (
-        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
-          <AlertCircle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800 dark:text-amber-200">テストモードが有効です</AlertTitle>
-          <AlertDescription className="text-amber-700 dark:text-amber-300">
+        <Alert className="border-sky-200 bg-sky-50 dark:bg-sky-950/30 dark:border-sky-800">
+          <AlertCircle className="h-4 w-4 text-sky-600" />
+          <AlertTitle className="text-sky-800 dark:text-sky-200">テストモードが有効です</AlertTitle>
+          <AlertDescription className="text-sky-700 dark:text-sky-300">
             テスト用の決済情報を使用しています。本番環境に移行する前にテストモードを無効にしてください。
           </AlertDescription>
         </Alert>
@@ -258,7 +258,7 @@ function PaymentsSettingsContent() {
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-sky-500">
                   <CreditCard className="h-6 w-6 text-white" />
                 </div>
                 <div>
@@ -329,14 +329,14 @@ function PaymentsSettingsContent() {
             ) : stripeStatus?.status === 'pending' ? (
               // オンボーディング中の場合
               <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <div className="p-4 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800">
                   <div className="flex items-center gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600" />
+                    <AlertCircle className="h-5 w-5 text-sky-600" />
                     <div>
-                      <p className="font-medium text-amber-800 dark:text-amber-200">
+                      <p className="font-medium text-sky-800 dark:text-sky-200">
                         Stripeの設定を完了してください
                       </p>
-                      <p className="text-sm text-amber-600 dark:text-amber-400">
+                      <p className="text-sm text-sky-600 dark:text-sky-400">
                         本人確認や銀行口座の登録が必要です
                       </p>
                     </div>
@@ -392,7 +392,7 @@ function PaymentsSettingsContent() {
         {/* その他の決済プロバイダー（Coming Soon） */}
         <div className="grid gap-4 md:grid-cols-2">
           {[
-            { id: 'payjp', name: 'PAY.JP', icon: CreditCard, color: 'from-orange-400 to-amber-500' },
+            { id: 'payjp', name: 'PAY.JP', icon: CreditCard, color: 'from-sky-400 to-sky-500' },
             { id: 'paypay', name: 'PayPay', icon: Wallet, color: 'from-red-500 to-pink-500' },
           ].map((provider) => (
             <Card key={provider.id} className="opacity-60">
@@ -450,7 +450,7 @@ function PaymentsSettingsContent() {
                     </div>
                     <div className="flex items-center gap-4">
                       {needsStripe && (
-                        <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
+                        <Badge variant="outline" className="text-xs text-sky-600 border-sky-300">
                           Stripe連携が必要
                         </Badge>
                       )}
