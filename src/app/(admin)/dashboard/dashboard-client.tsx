@@ -601,18 +601,18 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
       </WidgetWrapper>
     ),
 
-    // パフォーマンス（ビッグドーナツデザイン）
+    // パフォーマンス
     performance: (
       <div className="h-full w-full relative overflow-hidden rounded-2xl bg-white/60 dark:bg-[rgba(30,32,45,0.55)] backdrop-blur-2xl border border-white/70 dark:border-white/[0.08] shadow-[0_2px_24px_rgba(100,120,160,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_2px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)] p-5 cursor-grab active:cursor-grabbing">
         <div className="relative h-full flex flex-col gap-4">
           {/* ヘッダー */}
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground tracking-tight">パフォーマンス</h3>
-            <div className="flex items-center rounded-full bg-muted/80 p-0.5">
+            <div className="flex items-center rounded-full bg-white/60 dark:bg-white/[0.06] border border-white/70 dark:border-white/[0.08] p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
               <button
                 onClick={() => handlePerformanceMonthChange(Math.max(performanceMonth - 1, 0))}
                 disabled={performanceMonth <= 0 || isLoadingPerformance}
-                className="rounded-full p-1.5 text-muted-foreground hover:bg-background hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="rounded-full p-1.5 text-muted-foreground hover:bg-white/70 hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
               </button>
@@ -622,105 +622,98 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
               <button
                 onClick={() => handlePerformanceMonthChange(Math.min(performanceMonth + 1, 5))}
                 disabled={performanceMonth >= 5 || isLoadingPerformance}
-                className="rounded-full p-1.5 text-muted-foreground hover:bg-background hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="rounded-full p-1.5 text-muted-foreground hover:bg-white/70 hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
 
-          {/* 大きなドーナツチャート + 中央テキスト */}
-          <div className={cn("flex flex-col items-center gap-4 flex-1 min-h-0", isLoadingPerformance && "opacity-50 pointer-events-none")}>
-            <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
-              {/* 重ね合わせドーナツ: 売上・注文・顧客の3層 */}
-              <svg className="absolute inset-0 -rotate-90" width={160} height={160}>
+          {/* コンテンツ */}
+          <div className={cn("flex flex-col items-center gap-5 flex-1 min-h-0", isLoadingPerformance && "opacity-50 pointer-events-none")}>
+
+            {/* クリーンな1リング + 中央テキスト */}
+            <div className="relative flex items-center justify-center" style={{ width: 140, height: 140 }}>
+              <svg className="absolute inset-0 -rotate-90" width={140} height={140}>
                 <defs>
-                  <linearGradient id="perfGradOrange" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <linearGradient id="perfMainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#f97316" />
-                    <stop offset="100%" stopColor="#fb923c" />
-                  </linearGradient>
-                  <linearGradient id="perfGradPurple" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#8b5cf6" />
-                    <stop offset="100%" stopColor="#a78bfa" />
-                  </linearGradient>
-                  <linearGradient id="perfGradTeal" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#14b8a6" />
-                    <stop offset="100%" stopColor="#2dd4bf" />
+                    <stop offset="60%" stopColor="#fb923c" />
+                    <stop offset="100%" stopColor="#fbbf24" />
                   </linearGradient>
                 </defs>
-                {/* 外周: 売上 */}
-                {(() => {
-                  const r = 70, sw = 14, circ = r * 2 * Math.PI;
-                  const p = Math.min(performanceData.salesAchievement / 100, 1);
-                  return <>
-                    <circle cx={80} cy={80} r={r} fill="none" stroke="rgba(249,115,22,0.12)" strokeWidth={sw} />
-                    <circle cx={80} cy={80} r={r} fill="none" stroke="url(#perfGradOrange)" strokeWidth={sw}
-                      strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ - p * circ}
-                      className="transition-all duration-1000 ease-out" />
-                  </>;
-                })()}
-                {/* 中周: 注文 */}
-                {(() => {
-                  const r = 52, sw = 14, circ = r * 2 * Math.PI;
-                  const p = Math.min(performanceData.ordersAchievement / 100, 1);
-                  return <>
-                    <circle cx={80} cy={80} r={r} fill="none" stroke="rgba(139,92,246,0.12)" strokeWidth={sw} />
-                    <circle cx={80} cy={80} r={r} fill="none" stroke="url(#perfGradPurple)" strokeWidth={sw}
-                      strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ - p * circ}
-                      className="transition-all duration-1000 ease-out" />
-                  </>;
-                })()}
-                {/* 内周: 顧客 */}
-                {(() => {
-                  const r = 34, sw = 14, circ = r * 2 * Math.PI;
-                  const p = Math.min(performanceData.customersAchievement / 100, 1);
-                  return <>
-                    <circle cx={80} cy={80} r={r} fill="none" stroke="rgba(20,184,166,0.12)" strokeWidth={sw} />
-                    <circle cx={80} cy={80} r={r} fill="none" stroke="url(#perfGradTeal)" strokeWidth={sw}
-                      strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ - p * circ}
-                      className="transition-all duration-1000 ease-out" />
-                  </>;
-                })()}
+                {/* トラック */}
+                <circle cx={70} cy={70} r={58} fill="none"
+                  stroke="rgba(249,115,22,0.08)" strokeWidth={12} />
+                {/* プログレス */}
+                <circle cx={70} cy={70} r={58} fill="none"
+                  stroke="url(#perfMainGrad)" strokeWidth={12}
+                  strokeLinecap="round"
+                  strokeDasharray={58 * 2 * Math.PI}
+                  strokeDashoffset={58 * 2 * Math.PI * (1 - Math.min(performanceData.avgAchievement / 100, 1))}
+                  className="transition-all duration-1000 ease-out" />
               </svg>
-              {/* 中央: 平均達成率 */}
-              <div className="flex flex-col items-center justify-center z-10">
-                <span className="text-2xl font-extrabold text-foreground tabular-nums leading-none">
-                  {performanceData.avgAchievement}%
+              {/* 中央 */}
+              <div className="flex flex-col items-center z-10">
+                <span className="text-3xl font-black text-foreground tabular-nums leading-none tracking-tight">
+                  {performanceData.avgAchievement}
+                  <span className="text-lg">%</span>
                 </span>
-                <span className="text-[10px] text-muted-foreground mt-0.5 font-medium">平均達成</span>
-                <span className="text-sm font-bold text-primary mt-0.5">{performanceData.grade}</span>
+                <span className="text-[10px] text-muted-foreground mt-1 font-medium">平均達成率</span>
+                <span className={cn(
+                  "text-xs font-bold mt-0.5 px-2 py-0.5 rounded-full",
+                  performanceData.avgAchievement >= 90
+                    ? "text-emerald-700 bg-emerald-50"
+                    : performanceData.avgAchievement >= 70
+                      ? "text-orange-600 bg-orange-50"
+                      : "text-slate-500 bg-slate-50"
+                )}>
+                  {performanceData.grade}
+                </span>
               </div>
             </div>
 
-            {/* 凡例 + 各指標 */}
-            <div className="w-full space-y-2">
+            {/* 3指標（縦並び・クリーン） */}
+            <div className="w-full space-y-3">
               {[
-                { label: '売上', color: '#f97316', value: performanceData.salesAchievement, sub: `¥${Math.round(performanceData.salesActual / 10000)}万 / ¥${Math.round(performanceData.salesTarget / 10000)}万` },
-                { label: '注文', color: '#8b5cf6', value: performanceData.ordersAchievement, sub: `${performanceData.ordersActual}件 / ${performanceData.ordersTarget}件` },
-                { label: '顧客', color: '#14b8a6', value: performanceData.customersAchievement, sub: `${performanceData.customersActual}人 / ${performanceData.customersTarget}人` },
-              ].map(({ label, color, value, sub }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                  <span className="text-xs text-muted-foreground w-8 flex-shrink-0">{label}</span>
-                  <div className="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden">
+                { label: '売上', value: performanceData.salesAchievement, actual: `¥${Math.round(performanceData.salesActual / 10000)}万`, target: `¥${Math.round(performanceData.salesTarget / 10000)}万` },
+                { label: '注文', value: performanceData.ordersAchievement, actual: `${performanceData.ordersActual}件`, target: `${performanceData.ordersTarget}件` },
+                { label: '顧客', value: performanceData.customersAchievement, actual: `${performanceData.customersActual}人`, target: `${performanceData.customersTarget}人` },
+              ].map(({ label, value, actual, target }) => (
+                <div key={label} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground/70">{label}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-muted-foreground">{actual} / {target}</span>
+                      <span className="text-xs font-bold tabular-nums text-foreground">{value}%</span>
+                    </div>
+                  </div>
+                  <div className="h-1 rounded-full overflow-hidden"
+                    style={{ background: 'rgba(0,0,0,0.06)' }}>
                     <div
                       className="h-full rounded-full transition-all duration-1000 ease-out"
-                      style={{ width: `${Math.min(value, 100)}%`, background: color }}
+                      style={{
+                        width: `${Math.min(value, 100)}%`,
+                        background: value >= 100
+                          ? 'linear-gradient(90deg, #10b981, #34d399)'
+                          : value >= 70
+                            ? 'linear-gradient(90deg, #f97316, #fb923c)'
+                            : 'linear-gradient(90deg, #94a3b8, #cbd5e1)',
+                      }}
                     />
                   </div>
-                  <span className="text-xs font-semibold tabular-nums text-foreground w-8 text-right">{value}%</span>
                 </div>
               ))}
             </div>
 
             {/* 前月比 */}
-            <div className="w-full flex items-center justify-between pt-2 border-t border-border/50">
-              <span className="text-xs text-muted-foreground">前月比</span>
+            <div className="w-full flex items-center justify-between pt-3 border-t border-white/40 dark:border-white/[0.06]">
+              <span className="text-xs text-muted-foreground">前月比成長</span>
               <span className={cn(
                 "text-sm font-bold tabular-nums",
                 performanceData.growthRate >= 0 ? "text-emerald-500" : "text-destructive"
               )}>
-                {performanceData.growthRate >= 0 ? '+' : ''}{performanceData.growthRate}%
+                {performanceData.growthRate >= 0 ? '▲' : '▼'} {Math.abs(performanceData.growthRate)}%
               </span>
             </div>
           </div>
