@@ -144,7 +144,7 @@ export function TopNavigation() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full px-3 md:px-4 pt-3">
-        <div className="bg-white/60 dark:bg-[rgba(22,22,35,0.65)] backdrop-blur-2xl border border-white/40 dark:border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.06)] rounded-2xl">
+        <div className="bg-white/65 dark:bg-[rgba(30,32,45,0.65)] backdrop-blur-2xl border border-white/75 dark:border-white/[0.08] shadow-[0_4px_24px_rgba(100,120,160,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)] rounded-2xl">
           {/* Main header */}
           <div className="flex items-center justify-between h-14 md:h-16 px-3 md:px-4 lg:px-5">
           {/* Logo */}

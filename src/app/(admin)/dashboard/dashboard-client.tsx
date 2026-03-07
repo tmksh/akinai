@@ -293,7 +293,12 @@ function WidgetWrapper({
 }) {
   return (
     <div className={cn(
-      "h-full w-full overflow-hidden rounded-2xl bg-white/55 dark:bg-[rgba(22,22,35,0.5)] backdrop-blur-xl border border-white/40 dark:border-white/[0.06] shadow-[0_2px_16px_rgba(0,0,0,0.04)] relative cursor-grab active:cursor-grabbing",
+      "h-full w-full overflow-hidden rounded-2xl relative cursor-grab active:cursor-grabbing",
+      "bg-white/60 dark:bg-[rgba(30,32,45,0.55)]",
+      "backdrop-blur-2xl",
+      "border border-white/70 dark:border-white/[0.08]",
+      "shadow-[0_2px_24px_rgba(100,120,160,0.08),inset_0_1px_0_rgba(255,255,255,0.85)]",
+      "dark:shadow-[0_2px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]",
       !noPadding && "p-4",
       className
     )}>
@@ -598,7 +603,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // パフォーマンス（ビッグドーナツデザイン）
     performance: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl bg-white/55 dark:bg-[rgba(22,22,35,0.5)] backdrop-blur-xl border border-white/40 dark:border-white/[0.06] shadow-[0_2px_16px_rgba(0,0,0,0.04)] p-5 cursor-grab active:cursor-grabbing">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl bg-white/60 dark:bg-[rgba(30,32,45,0.55)] backdrop-blur-2xl border border-white/70 dark:border-white/[0.08] shadow-[0_2px_24px_rgba(100,120,160,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_2px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)] p-5 cursor-grab active:cursor-grabbing">
         <div className="relative h-full flex flex-col gap-4">
           {/* ヘッダー */}
           <div className="flex items-center justify-between">
@@ -770,12 +775,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // 在庫アラート
     'stock-alert': (
-      <div className={cn(
-        "h-full w-full rounded-2xl p-4 relative cursor-grab active:cursor-grabbing",
-        initialData.lowStockItems.length > 0 
-          ? "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200/50 dark:border-amber-700/30" 
-          : "bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-100 dark:border-slate-700/50 shadow-sm"
-      )}>
+      <div className="h-full w-full rounded-2xl p-4 relative cursor-grab active:cursor-grabbing bg-white/60 dark:bg-[rgba(30,32,45,0.55)] backdrop-blur-2xl border border-white/70 dark:border-white/[0.08] shadow-[0_2px_24px_rgba(100,120,160,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_2px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]">
         <div className="flex items-center gap-2 mb-3">
           <AlertCircle className={cn("h-4 w-4", initialData.lowStockItems.length > 0 ? "text-amber-500" : "text-slate-400")} />
           <h3 className="font-semibold text-slate-900 dark:text-white text-sm">在庫アラート</h3>

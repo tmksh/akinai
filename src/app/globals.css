@@ -211,16 +211,16 @@
   /* Main background gradient - シルバー系 */
   .main-gradient-bg {
     background: linear-gradient(145deg,
-      oklch(0.95 0.004 260) 0%,
-      oklch(0.94 0.005 240) 40%,
-      oklch(0.935 0.006 220) 70%,
-      oklch(0.945 0.004 250) 100%);
+      oklch(0.96 0.003 250) 0%,
+      oklch(0.955 0.005 240) 35%,
+      oklch(0.95 0.006 230) 65%,
+      oklch(0.96 0.003 245) 100%);
   }
   .dark .main-gradient-bg {
     background: linear-gradient(145deg,
-      oklch(0.16 0.01 250) 0%,
-      oklch(0.14 0.01 260) 50%,
-      oklch(0.13 0.01 270) 100%);
+      oklch(0.15 0.012 250) 0%,
+      oklch(0.13 0.012 260) 50%,
+      oklch(0.12 0.01 270) 100%);
   }
 
   /* Card hover - floating */
@@ -523,13 +523,15 @@
   @page { size: A4; margin: 10mm; }
 }
 
-/* bg-card を使う全要素にガラス効果を適用 */
+/* bg-card を使う全要素にシルバーガラス効果を適用 */
 .bg-card {
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border-color: rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 0 2px 24px rgba(100, 120, 160, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
 }
 .dark .bg-card {
-  border-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
 }
 
