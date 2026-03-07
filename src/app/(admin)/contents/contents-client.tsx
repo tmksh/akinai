@@ -193,10 +193,20 @@ export default function ContentsClient({ initialContents, stats, organizationId,
     const statusInfo = statusConfig[content.status];
 
     return (
-      <Card key={content.id} className="group relative overflow-hidden transition-shadow hover:shadow-md">
+      <div
+        key={content.id}
+        className="group relative overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(100,120,160,0.15)]"
+        style={{
+          background: 'rgba(255,255,255,0.62)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,255,255,0.8)',
+          boxShadow: '0 2px_20px rgba(100,120,160,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+        }}
+      >
         {/* サムネイル */}
         <Link href={`/contents/${content.id}/edit`} className="block">
-          <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
             {content.featuredImage ? (
               <Image
                 src={content.featuredImage}
@@ -204,22 +214,24 @@ export default function ContentsClient({ initialContents, stats, organizationId,
                 fill
                 sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
                 loading="lazy"
-                className="object-cover transition-transform group-hover:scale-105"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-muted-foreground bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
-                <TypeIcon className="h-8 w-8 opacity-40" />
+              <div className="flex h-full w-full items-center justify-center text-muted-foreground"
+                style={{ background: 'linear-gradient(135deg, rgba(248,250,252,0.8) 0%, rgba(241,245,249,0.8) 100%)' }}>
+                <TypeIcon className="h-10 w-10 opacity-20" />
               </div>
             )}
-            {/* ステータス */}
-            <div className="absolute top-1.5 left-1.5">
-              <Badge variant={statusInfo.variant} className="shadow-sm text-[10px] px-1.5 py-0">
+            {/* グラデーションオーバーレイ */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            {/* バッジ */}
+            <div className="absolute top-2 left-2">
+              <Badge variant={statusInfo.variant} className="text-[10px] px-1.5 py-0 shadow-sm backdrop-blur-sm bg-white/80">
                 {statusInfo.label}
               </Badge>
             </div>
-            {/* タイプ */}
-            <div className="absolute top-1.5 right-1.5">
-              <Badge variant="secondary" className="shadow-sm text-[10px] px-1.5 py-0 gap-0.5">
+            <div className="absolute top-2 right-2">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5 shadow-sm backdrop-blur-sm bg-white/80">
                 <TypeIcon className="h-3 w-3" />
                 {typeInfo.label}
               </Badge>
@@ -228,19 +240,19 @@ export default function ContentsClient({ initialContents, stats, organizationId,
         </Link>
 
         {/* 情報 */}
-        <CardContent className="p-2">
+        <div className="p-3">
           <div className="flex items-start justify-between gap-1">
             <div className="min-w-0 flex-1">
               <Link
                 href={`/contents/${content.id}/edit`}
-                className="font-medium text-xs leading-tight line-clamp-2 hover:underline hover:text-orange-600"
+                className="font-semibold text-xs leading-tight line-clamp-2 text-foreground hover:text-orange-600 transition-colors"
               >
                 {content.title}
               </Link>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" disabled={isPending}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" disabled={isPending}>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -285,12 +297,12 @@ export default function ContentsClient({ initialContents, stats, organizationId,
             </DropdownMenu>
           </div>
           {/* 日付 */}
-          <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1 mt-1.5 text-[10px] text-muted-foreground">
             <Calendar className="h-3 w-3" />
             <span>{formatDate(content.publishedAt || content.scheduledAt)}</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   };
 
