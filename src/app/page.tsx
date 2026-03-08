@@ -186,7 +186,7 @@ function LogoBar() {
     { value: '99.9%', label: '稼働率' },
   ];
   return (
-    <section className="py-12 bg-gray-50 border-y border-gray-100">
+    <section className="py-12 border-y border-blue-100/50" style={{ background: 'linear-gradient(90deg, rgba(240,247,255,0.8), rgba(245,240,255,0.6), rgba(240,247,255,0.8))' }}>
       <div className="max-w-6xl mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {stats.map((s, i) => (
@@ -233,7 +233,7 @@ function FeaturesSection() {
   ];
 
   return (
-    <section id="features" className="py-24 md:py-32 bg-white">
+    <section id="features" className="py-24 md:py-32 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #f8fbff 60%, #f3f0ff 100%)' }}>
       <div ref={ref} className="max-w-6xl mx-auto px-6">
         <div className={`mb-16 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <p className="text-xs tracking-[0.3em] uppercase text-sky-500 font-semibold mb-4">Features</p>
@@ -327,7 +327,7 @@ function ScreenshotsSection() {
   ];
 
   return (
-    <section id="screenshots" className="py-24 md:py-32" style={{ background: '#f8faff' }}>
+    <section id="screenshots" className="py-24 md:py-32 relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #f0eeff 0%, #eef5ff 40%, #e8f4ff 100%)' }}>
       <div ref={ref} className="max-w-6xl mx-auto px-6">
         <div className={`text-center mb-14 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <p className="text-xs tracking-[0.3em] uppercase text-sky-500 font-semibold mb-4">Screenshots</p>
@@ -382,7 +382,7 @@ function ScreenshotsSection() {
 function B2BSection() {
   const { ref, visible } = useInView();
   return (
-    <section className="py-24 md:py-32 bg-white">
+    <section className="py-24 md:py-32 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #f3f0ff 0%, #ffffff 50%, #f0f7ff 100%)' }}>
       <div ref={ref} className="max-w-6xl mx-auto px-6">
         <div className="grid md:grid-cols-2 gap-16 items-center">
           <div className={`transition-all duration-700 ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
@@ -453,7 +453,7 @@ function PricingSection() {
     },
   ];
   return (
-    <section id="pricing" className="py-24 md:py-32" style={{ background: '#f8faff' }}>
+    <section id="pricing" className="py-24 md:py-32 relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #e8f4ff 0%, #f0eeff 50%, #e8f4ff 100%)' }}>
       <div ref={ref} className="max-w-5xl mx-auto px-6">
         <div className={`text-center mb-16 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <p className="text-xs tracking-[0.3em] uppercase text-sky-500 font-semibold mb-4">Pricing</p>
@@ -507,7 +507,7 @@ function PricingSection() {
 function CTASection() {
   const { ref, visible } = useInView();
   return (
-    <section className="py-24 md:py-32 bg-white">
+    <section className="py-24 md:py-32 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #eef6ff 0%, #f5f0ff 50%, #f0f7ff 100%)' }}>
       <div ref={ref} className={`max-w-3xl mx-auto px-6 text-center transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-6">
           あなたの「商い」を、<br />
@@ -531,7 +531,7 @@ function CTASection() {
 // ── フッター ──
 function Footer() {
   return (
-    <footer className="bg-gray-50 border-t border-gray-100 py-16">
+    <footer className="border-t border-blue-100/50 py-16" style={{ background: 'linear-gradient(180deg, #f0f7ff 0%, #f8f6ff 100%)' }}>
       <div className="max-w-6xl mx-auto px-6">
         <div className="grid md:grid-cols-4 gap-10 mb-12">
           <div>
