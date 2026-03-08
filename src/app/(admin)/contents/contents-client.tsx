@@ -107,6 +107,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>('all');
   const [deleteTarget, setDeleteTarget] = useState<ContentData | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -306,8 +307,18 @@ export default function ContentsClient({ initialContents, stats, organizationId,
       {/* ページヘッダー */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">お知らせ</h1>
-          <p className="text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">コンテンツ管理</h1>
+            {activeTab !== 'all' && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground/40 text-lg">/</span>
+                <span className="text-sm font-semibold text-sky-600 bg-sky-50 border border-sky-200/60 px-2.5 py-0.5 rounded-full">
+                  {getTypeConfig(activeTab).label}
+                </span>
+              </div>
+            )}
+          </div>
+          <p className="text-muted-foreground text-sm mt-0.5">
             記事・ニュース・特集などを作成・管理します
           </p>
         </div>
@@ -339,7 +350,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
       <PageTabs tabs={contentTabs} />
 
       {/* フィルタータブ（設定で有効にしたタイプはすべて表示。0件でもタブを出して「このタイプで追加」できる） */}
-      <Tabs defaultValue="all" className="space-y-4">
+      <Tabs defaultValue="all" className="space-y-4" onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="all">すべて</TabsTrigger>
           {allDisplayTypes.map((type) => {
