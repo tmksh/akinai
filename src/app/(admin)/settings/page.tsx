@@ -15,13 +15,6 @@ const settingsCategories = [
     badge: null,
   },
   {
-    title: 'ショップテーマ',
-    description: 'ショップのデザイン・レイアウトをカスタマイズ',
-    href: '/settings/shop-theme',
-    icon: Store,
-    badge: 'NEW',
-  },
-  {
     title: 'お知らせで使うタイプ',
     description: '記事・ニュース・特集など、使うコンテンツタイプを選択',
     href: '/settings/contents',
