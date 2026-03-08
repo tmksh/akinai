@@ -189,7 +189,7 @@ function FeaturesSection() {
       tag: '在庫・バリエーション・カスタム属性',
       title: '在庫・バリエーション・カテゴリをひとつの画面で',
       desc: '複数SKU・画像・カスタム属性まで一元管理。CSVインポートで大量データも即反映。',
-      img: 'https://picsum.photos/seed/products-feature/600/800',
+      img: 'https://loremflickr.com/600/800/product,warehouse,inventory?lock=1',
       accent: 'rgba(14,165,233,0.6)',
     },
     {
@@ -197,7 +197,7 @@ function FeaturesSection() {
       tag: '掛売り・ロット割引・請求書',
       title: 'B2B取引特有の商習慣に完全対応',
       desc: '掛売り・ロット割引・請求書発行。ステータス管理からメール通知まで自動化。',
-      img: 'https://picsum.photos/seed/orders-feature/600/800',
+      img: 'https://loremflickr.com/600/800/business,office,meeting?lock=2',
       accent: 'rgba(99,102,241,0.6)',
     },
     {
@@ -205,7 +205,7 @@ function FeaturesSection() {
       tag: 'ニュース・特集・お知らせ',
       title: 'ECとCMSを同一画面で管理',
       desc: 'ニュース・特集・お知らせをリッチエディタで作成・公開。ショップとシームレスに連携。',
-      img: 'https://picsum.photos/seed/contents-feature/600/800',
+      img: 'https://loremflickr.com/600/800/laptop,digital,content?lock=3',
       accent: 'rgba(20,184,166,0.6)',
     },
   ];
