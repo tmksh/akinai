@@ -62,7 +62,6 @@ import { contentTypeConfig, getContentTypeConfig } from '@/lib/content-types';
 
 const contentTabs = [
   { label: '一覧', href: '/contents', exact: true },
-  { label: 'カテゴリ', href: '/contents/categories' },
 ];
 
 // タイプ設定を取得（共通設定から）
