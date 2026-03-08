@@ -185,70 +185,99 @@ function FeaturesSection() {
 
   const features = [
     {
-      tag: '01 商品管理',
+      label: '商品管理',
+      tag: '在庫・バリエーション・カスタム属性',
       title: '在庫・バリエーション・カテゴリをひとつの画面で',
       desc: '複数SKU・画像・カスタム属性まで一元管理。CSVインポートで大量データも即反映。',
-      img: 'https://picsum.photos/seed/products-screen/800/600',
+      img: 'https://picsum.photos/seed/products-feature/600/800',
+      accent: 'rgba(14,165,233,0.6)',
     },
     {
-      tag: '02 受注管理',
+      label: '受注管理',
+      tag: '掛売り・ロット割引・請求書',
       title: 'B2B取引特有の商習慣に完全対応',
       desc: '掛売り・ロット割引・請求書発行。ステータス管理からメール通知まで自動化。',
-      img: 'https://picsum.photos/seed/orders-screen/800/600',
+      img: 'https://picsum.photos/seed/orders-feature/600/800',
+      accent: 'rgba(99,102,241,0.6)',
     },
     {
-      tag: '03 コンテンツ管理',
+      label: 'コンテンツ管理',
+      tag: 'ニュース・特集・お知らせ',
       title: 'ECとCMSを同一画面で管理',
       desc: 'ニュース・特集・お知らせをリッチエディタで作成・公開。ショップとシームレスに連携。',
-      img: 'https://picsum.photos/seed/contents-screen/800/600',
+      img: 'https://picsum.photos/seed/contents-feature/600/800',
+      accent: 'rgba(20,184,166,0.6)',
     },
   ];
 
   return (
     <section id="features" className="py-24 md:py-32 bg-white">
       <div ref={ref} className="max-w-6xl mx-auto px-6">
-        <div className={`mb-20 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div className={`mb-16 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <p className="text-xs tracking-[0.3em] uppercase text-sky-500 font-semibold mb-4">Features</p>
           <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight max-w-2xl">
             B2B ECに必要な機能を、<br />すべて搭載
           </h2>
         </div>
 
-        <div className="space-y-32">
+        {/* 写真カードグリッド */}
+        <div className={`grid md:grid-cols-3 gap-5 transition-all duration-700 delay-200 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           {features.map((f, i) => (
-            <div
+            <Link
               key={i}
-              ref={i === 0 ? undefined : undefined}
-              className={`grid md:grid-cols-2 gap-12 items-center transition-all duration-700 delay-${i * 100} ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+              href="/signup"
+              className="group relative rounded-3xl overflow-hidden cursor-pointer block"
+              style={{
+                aspectRatio: '3/4',
+                transitionDelay: `${i * 80}ms`,
+              }}
             >
-              {/* テキスト（奇数は右） */}
-              <div className={i % 2 === 1 ? 'md:order-2' : ''}>
-                <span className="text-xs font-bold text-sky-500 tracking-widest uppercase">{f.tag}</span>
-                <h3 className="text-2xl md:text-3xl font-black text-gray-900 mt-3 mb-5 leading-tight">{f.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{f.desc}</p>
-                <Link href="/signup" className="inline-flex items-center gap-2 mt-6 text-sm font-semibold text-sky-600 hover:text-sky-700 transition-colors">
-                  詳しく見る <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
+              {/* 写真 */}
+              <Image
+                src={f.img}
+                alt={f.label}
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
+              />
 
-              {/* 画像 */}
-              <div className={i % 2 === 1 ? 'md:order-1' : ''}>
-                <div className="rounded-2xl overflow-hidden shadow-xl shadow-gray-200/60 border border-gray-100">
-                  <Image
-                    src={f.img}
-                    alt={f.title}
-                    width={800} height={600}
-                    className="w-full object-cover"
-                  />
+              {/* グラデーションオーバーレイ */}
+              <div className="absolute inset-0"
+                style={{
+                  background: `linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.75) 100%)`,
+                }} />
+
+              {/* アクセントカラーオーバーレイ */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-500"
+                style={{ background: f.accent }} />
+
+              {/* コンテンツ */}
+              <div className="absolute inset-0 flex flex-col justify-between p-6">
+                {/* 上部：タイトル＋タグ */}
+                <div>
+                  <h3 className="text-xl font-black text-white mb-2">{f.label}</h3>
+                  <span className="inline-block text-[11px] font-medium text-white/80 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20">
+                    {f.tag}
+                  </span>
+                </div>
+
+                {/* 下部：説明＋矢印 */}
+                <div>
+                  <p className="text-sm text-white/85 leading-relaxed mb-4">{f.desc}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-white/70">詳しく見る</span>
+                    <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                      <ArrowRight className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
         {/* 機能リスト */}
-        <div className={`mt-24 pt-16 border-t border-gray-100 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <p className="text-sm text-gray-400 mb-8 text-center">その他の機能</p>
+        <div className={`mt-16 pt-12 border-t border-gray-100 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <p className="text-sm text-gray-400 mb-6 text-center">その他の機能</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {['顧客管理', '見積管理', 'ダッシュボード', 'ショップ構築', '代理店管理', '権限管理', 'テーマ設定', 'API / Webhook', 'CSV出力', 'PDF見積', 'メール通知', 'パフォーマンス追跡'].map((f, i) => (
               <div key={i} className="flex items-center gap-2 text-sm text-gray-600 py-2 px-3 rounded-xl bg-gray-50">
