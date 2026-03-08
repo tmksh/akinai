@@ -183,26 +183,6 @@ export default function ProductsClient({
       {/* ── タブ ── */}
       <PageTabs tabs={productTabs} />
 
-      {/* ── サマリーバー ── */}
-      <div className="flex items-center rounded-2xl overflow-hidden divide-x divide-white/30"
-        style={{ background: 'linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(56,189,248,0.08) 50%, rgba(103,232,249,0.1) 100%)', backdropFilter: 'blur(20px)', border: '1px solid rgba(56,189,248,0.25)', boxShadow: '0 1px 8px rgba(14,165,233,0.08), inset 0 1px 0 rgba(255,255,255,0.8)' }}>
-        {[
-          { label: '全商品',   value: stats.total,      filter: 'all',       alert: false, color: 'text-sky-900' },
-          { label: '公開中',   value: stats.published,  filter: 'published', alert: false, color: 'text-sky-600' },
-          { label: '下書き',   value: stats.draft,      filter: 'draft',     alert: false, color: 'text-slate-600' },
-          { label: '在庫切れ', value: stats.outOfStock, filter: 'all',       alert: stats.outOfStock > 0, color: stats.outOfStock > 0 ? 'text-red-500' : 'text-slate-500' },
-        ].map(({ label, value, filter, alert, color }) => (
-          <button
-            key={label}
-            onClick={() => setStatusFilter(filter)}
-            className={`flex-1 flex flex-col items-center py-4 px-2 transition-all ${statusFilter === filter && label !== '在庫切れ' ? 'bg-sky-400/10' : 'hover:bg-sky-400/5'}`}
-          >
-            <span className={`text-xl font-black tabular-nums ${color}`}>{value}</span>
-            <span className={`text-[11px] font-medium mt-0.5 ${alert ? 'text-red-400' : 'text-sky-600/60'}`}>{label}</span>
-          </button>
-        ))}
-      </div>
-
       {/* ── 検索・フィルター ── */}
       <div className="space-y-3">
         <div className="flex gap-2">
