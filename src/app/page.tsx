@@ -152,10 +152,6 @@ function HeroSection() {
           {/* ダッシュボードイラスト */}
           <div className={`transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
             <div className="relative">
-              {/* グロー */}
-              <div className="absolute -inset-8 rounded-3xl opacity-30"
-                style={{ background: 'radial-gradient(ellipse, rgba(147,197,253,0.5), transparent 70%)', filter: 'blur(20px)' }} />
-
               {/* ブラウザフレーム */}
               <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-sky-200/40 border border-white/80"
                 style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)' }}>
