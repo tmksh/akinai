@@ -76,13 +76,35 @@ function HeroSection() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-white pt-16">
-      {/* 背景グラデーション */}
+    <section className="relative min-h-screen flex items-center overflow-hidden pt-16"
+      style={{
+        background: 'linear-gradient(135deg, #f0f7ff 0%, #fafbff 40%, #f5f0ff 70%, #eef6ff 100%)',
+      }}>
+
+      {/* メッシュグラデーション背景 */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[70%] h-full opacity-[0.06]"
-          style={{ background: 'radial-gradient(ellipse at top right, #38bdf8, transparent 60%)' }} />
-        <div className="absolute bottom-0 left-0 w-[50%] h-[60%] opacity-[0.04]"
-          style={{ background: 'radial-gradient(ellipse at bottom left, #6366f1, transparent 60%)' }} />
+        {/* 右上：スカイブルーの光 */}
+        <div className="absolute -top-32 -right-32 w-[700px] h-[700px] rounded-full opacity-40"
+          style={{ background: 'radial-gradient(circle, rgba(186,230,253,0.8) 0%, rgba(125,211,252,0.3) 40%, transparent 70%)', filter: 'blur(60px)' }} />
+        {/* 左中：パープルの光 */}
+        <div className="absolute top-[20%] -left-32 w-[500px] h-[500px] rounded-full opacity-30"
+          style={{ background: 'radial-gradient(circle, rgba(196,181,253,0.7) 0%, rgba(165,180,252,0.3) 40%, transparent 70%)', filter: 'blur(70px)' }} />
+        {/* 右下：シアンの光 */}
+        <div className="absolute -bottom-20 right-[25%] w-[400px] h-[400px] rounded-full opacity-25"
+          style={{ background: 'radial-gradient(circle, rgba(167,243,208,0.6) 0%, rgba(110,231,183,0.2) 40%, transparent 70%)', filter: 'blur(60px)' }} />
+        {/* 中央下：ライトブルー */}
+        <div className="absolute bottom-0 left-[30%] w-[600px] h-[300px] opacity-20"
+          style={{ background: 'radial-gradient(ellipse, rgba(147,197,253,0.6) 0%, transparent 70%)', filter: 'blur(50px)' }} />
+
+        {/* SVGメッシュパターン（超薄） */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.025]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#6366f1" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 w-full">
