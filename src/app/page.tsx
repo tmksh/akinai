@@ -62,7 +62,7 @@ function Navbar() {
         <span
           className="text-2xl font-black tracking-tight"
           style={{
-            background: 'linear-gradient(135deg, #f97316 0%, #fb923c 40%, #fbbf24 100%)',
+            background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 40%, #67e8f9 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}
@@ -120,14 +120,14 @@ function HeroSection() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden" style={{ background: '#faf9f7' }}>
+    <section className="relative min-h-screen flex items-center overflow-hidden" style={{ background: '#f0f7ff' }}>
       {/* 装飾サークル */}
       <div className="pointer-events-none absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full opacity-20"
-        style={{ background: 'radial-gradient(circle, #fbbf24, transparent 70%)' }} />
+        style={{ background: 'radial-gradient(circle, #38bdf8, transparent 70%)' }} />
       <div className="pointer-events-none absolute top-[20%] -left-24 w-[400px] h-[400px] rounded-full opacity-15"
-        style={{ background: 'radial-gradient(circle, #fb923c, transparent 70%)' }} />
+        style={{ background: 'radial-gradient(circle, #0ea5e9, transparent 70%)' }} />
       <div className="pointer-events-none absolute -bottom-20 right-[20%] w-[350px] h-[350px] rounded-full opacity-15"
-        style={{ background: 'radial-gradient(circle, #f97316, transparent 70%)' }} />
+        style={{ background: 'radial-gradient(circle, #0284c7, transparent 70%)' }} />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 pt-24 pb-16 w-full">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -143,7 +143,7 @@ function HeroSection() {
               <br />
               <span
                 style={{
-                  background: 'linear-gradient(135deg, #f97316 0%, #fb923c 40%, #fbbf24 100%)',
+                  background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 40%, #67e8f9 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
@@ -246,8 +246,8 @@ function DashboardMockup() {
                     <div key={i} className="flex-1 rounded-t-sm" style={{
                       height: `${h}%`,
                       background: i === 11
-                        ? 'linear-gradient(to top, #f97316, #fbbf24)'
-                        : 'linear-gradient(to top, #fed7aa, #fdba74)',
+                        ? 'linear-gradient(to top, #0ea5e9, #38bdf8)'
+                        : 'linear-gradient(to top, #bae6fd, #7dd3fc)',
                     }} />
                   ))}
                 </div>
@@ -262,8 +262,8 @@ function DashboardMockup() {
                         strokeDasharray="88" strokeDashoffset="18" strokeLinecap="round" />
                       <defs>
                         <linearGradient id="donut-gradient" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor="#f97316" />
-                          <stop offset="100%" stopColor="#fbbf24" />
+                          <stop offset="0%" stopColor="#0ea5e9" />
+                          <stop offset="100%" stopColor="#38bdf8" />
                         </linearGradient>
                       </defs>
                     </svg>
@@ -471,8 +471,8 @@ function DashboardScreenMock() {
                 <div key={i} className="flex-1 rounded-t-md transition-all" style={{
                   height: `${h}%`,
                   background: i === 11
-                    ? 'linear-gradient(to top, #ea580c, #f97316, #fbbf24)'
-                    : 'linear-gradient(to top, #fed7aa, #fdba74)',
+                    ? 'linear-gradient(to top, #0284c7, #0ea5e9, #38bdf8)'
+                    : 'linear-gradient(to top, #bae6fd, #7dd3fc)',
                   opacity: i === 11 ? 1 : 0.7,
                 }} />
               ))}
@@ -491,8 +491,8 @@ function DashboardScreenMock() {
                     strokeDasharray="94.2" strokeDashoffset="18.8" strokeLinecap="round" />
                   <defs>
                     <linearGradient id="screen-donut" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#ea580c" />
-                      <stop offset="100%" stopColor="#fbbf24" />
+                      <stop offset="0%" stopColor="#0284c7" />
+                      <stop offset="100%" stopColor="#38bdf8" />
                     </linearGradient>
                   </defs>
                 </svg>
@@ -723,7 +723,7 @@ function MockSidebar({ active }: { active: number }) {
       <div className="flex items-center gap-2 px-2 mb-6">
         <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-400 to-sky-500" />
         <span className="text-sm font-bold" style={{
-          background: 'linear-gradient(135deg, #f97316, #fbbf24)',
+          background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>AKINAI</span>
@@ -969,11 +969,11 @@ function CTASection() {
   const { ref, visible } = useInView();
 
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden" style={{ background: '#faf9f7' }}>
+    <section className="py-24 md:py-32 relative overflow-hidden" style={{ background: '#f0f7ff' }}>
       <div className="pointer-events-none absolute -top-20 -right-20 w-[400px] h-[400px] rounded-full opacity-20"
-        style={{ background: 'radial-gradient(circle, #fbbf24, transparent 70%)' }} />
+        style={{ background: 'radial-gradient(circle, #38bdf8, transparent 70%)' }} />
       <div className="pointer-events-none absolute -bottom-20 -left-20 w-[300px] h-[300px] rounded-full opacity-15"
-        style={{ background: 'radial-gradient(circle, #fb923c, transparent 70%)' }} />
+        style={{ background: 'radial-gradient(circle, #0ea5e9, transparent 70%)' }} />
 
       <div ref={ref} className={`relative z-10 max-w-3xl mx-auto px-6 text-center transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
         <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-6">
@@ -981,7 +981,7 @@ function CTASection() {
           <br />
           <span
             style={{
-              background: 'linear-gradient(135deg, #f97316 0%, #fb923c 40%, #fbbf24 100%)',
+              background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 40%, #67e8f9 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}
@@ -1016,7 +1016,7 @@ function Footer() {
             <span
               className="text-2xl font-black"
               style={{
-                background: 'linear-gradient(135deg, #f97316 0%, #fb923c 40%, #fbbf24 100%)',
+                background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 40%, #67e8f9 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
