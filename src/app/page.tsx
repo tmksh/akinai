@@ -561,7 +561,6 @@ export default function LandingPage() {
     <main className="overflow-hidden">
       <Navbar />
       <HeroSection />
-      <LogoBar />
       <FeaturesSection />
       <ScreenshotsSection />
       <B2BSection />
