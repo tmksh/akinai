@@ -78,40 +78,44 @@ function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-16"
       style={{
-        background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 25%, #67e8f9 50%, #22d3ee 75%, #0ea5e9 100%)',
+        background: 'linear-gradient(140deg, #3ba5b5 0%, #5cbdcc 20%, #6ec8d8 40%, #85d4e0 60%, #a0deea 80%, #bae6f0 100%)',
       }}>
 
-      {/* 抽象ガラスオーブ背景 */}
+      {/* ガラスオーブ + ストリーク */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* 大きなガラスオーブ: 右上 */}
-        <div className="absolute -top-20 right-[10%] w-[450px] h-[450px] rounded-full"
-          style={{ background: 'radial-gradient(circle at 40% 40%, rgba(255,255,255,0.4) 0%, rgba(186,230,253,0.3) 30%, rgba(14,165,233,0.1) 60%, transparent 80%)', filter: 'blur(2px)' }} />
-        {/* 中くらいのオーブ: 左中 */}
-        <div className="absolute top-[30%] left-[5%] w-[350px] h-[350px] rounded-full"
-          style={{ background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.35) 0%, rgba(103,232,249,0.2) 40%, transparent 70%)', filter: 'blur(3px)' }} />
+        {/* 大きなオーブ: 左上 */}
+        <div className="absolute -top-[5%] left-[5%] w-[500px] h-[500px] rounded-full"
+          style={{ background: 'radial-gradient(circle at 45% 45%, rgba(255,255,255,0.7) 0%, rgba(200,240,250,0.4) 25%, rgba(100,200,220,0.15) 50%, transparent 70%)' }} />
+        {/* 中央のオーブ */}
+        <div className="absolute top-[35%] left-[25%] w-[380px] h-[380px] rounded-full"
+          style={{ background: 'radial-gradient(circle at 40% 40%, rgba(255,255,255,0.55) 0%, rgba(190,235,245,0.3) 30%, rgba(100,200,220,0.1) 55%, transparent 70%)' }} />
+        {/* 右中のオーブ */}
+        <div className="absolute top-[15%] right-[10%] w-[280px] h-[280px] rounded-full"
+          style={{ background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(186,230,248,0.3) 30%, transparent 65%)' }} />
         {/* 小さなオーブ: 右下 */}
-        <div className="absolute bottom-[15%] right-[25%] w-[200px] h-[200px] rounded-full"
-          style={{ background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5) 0%, rgba(186,230,253,0.3) 30%, transparent 70%)', filter: 'blur(1px)' }} />
+        <div className="absolute bottom-[20%] right-[30%] w-[180px] h-[180px] rounded-full"
+          style={{ background: 'radial-gradient(circle at 38% 38%, rgba(255,255,255,0.6) 0%, rgba(200,240,250,0.25) 35%, transparent 65%)' }} />
         {/* 極小オーブ: 左下 */}
-        <div className="absolute bottom-[25%] left-[20%] w-[120px] h-[120px] rounded-full"
-          style={{ background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.45) 0%, rgba(103,232,249,0.25) 40%, transparent 70%)' }} />
-        {/* ぼんやりした光: 中央上 */}
-        <div className="absolute top-[10%] left-[40%] w-[600px] h-[300px] opacity-40"
-          style={{ background: 'radial-gradient(ellipse, rgba(255,255,255,0.3) 0%, transparent 60%)', filter: 'blur(40px)' }} />
+        <div className="absolute bottom-[30%] left-[15%] w-[100px] h-[100px] rounded-full"
+          style={{ background: 'radial-gradient(circle at 40% 40%, rgba(255,255,255,0.5) 0%, rgba(180,230,240,0.2) 40%, transparent 70%)' }} />
 
-        {/* 斜めのライトストリーク */}
-        <div className="absolute inset-0" style={{ opacity: 0.15 }}>
-          <div className="absolute top-[5%] left-[20%] w-[2px] h-[250px] bg-white rounded-full rotate-[30deg]" />
-          <div className="absolute top-[8%] left-[25%] w-[3px] h-[180px] bg-white rounded-full rotate-[32deg]" />
-          <div className="absolute top-[15%] right-[15%] w-[2px] h-[200px] bg-white rounded-full rotate-[25deg]" />
-          <div className="absolute top-[20%] right-[35%] w-[1.5px] h-[300px] bg-white rounded-full rotate-[28deg]" />
-          <div className="absolute bottom-[20%] left-[40%] w-[2px] h-[150px] bg-white rounded-full rotate-[35deg]" />
-          <div className="absolute bottom-[30%] right-[20%] w-[3px] h-[220px] bg-white rounded-full rotate-[22deg]" />
-        </div>
+        {/* ライトストリーク（白い斜め線） */}
+        <div className="absolute top-[3%] left-[18%] w-[4px] h-[220px] rounded-full rotate-[30deg]"
+          style={{ background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.6) 30%, rgba(255,255,255,0.6) 70%, transparent)' }} />
+        <div className="absolute top-[6%] left-[24%] w-[3px] h-[160px] rounded-full rotate-[32deg]"
+          style={{ background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.5) 30%, rgba(255,255,255,0.5) 70%, transparent)' }} />
+        <div className="absolute top-[10%] right-[18%] w-[3px] h-[200px] rounded-full rotate-[25deg]"
+          style={{ background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.55) 30%, rgba(255,255,255,0.55) 70%, transparent)' }} />
+        <div className="absolute top-[18%] right-[38%] w-[2px] h-[280px] rounded-full rotate-[28deg]"
+          style={{ background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.4) 30%, rgba(255,255,255,0.4) 70%, transparent)' }} />
+        <div className="absolute bottom-[25%] left-[35%] w-[3px] h-[150px] rounded-full rotate-[35deg]"
+          style={{ background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.45) 30%, rgba(255,255,255,0.45) 70%, transparent)' }} />
+        <div className="absolute bottom-[15%] right-[22%] w-[4px] h-[200px] rounded-full rotate-[22deg]"
+          style={{ background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.5) 30%, rgba(255,255,255,0.5) 70%, transparent)' }} />
 
-        {/* ベースのオーバーレイグラデーション */}
-        <div className="absolute inset-0"
-          style={{ background: 'linear-gradient(180deg, rgba(14,165,233,0.1) 0%, rgba(56,189,248,0.05) 50%, rgba(255,255,255,0.15) 100%)' }} />
+        {/* ソフトな上部明るさ */}
+        <div className="absolute top-0 left-0 w-full h-[40%]"
+          style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%)' }} />
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 w-full">
