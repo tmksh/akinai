@@ -79,9 +79,16 @@ export default async function AdminLayout({
       <Suspense fallback={null}>
         <NavigationProgress />
       </Suspense>
-      <div className="min-h-screen overflow-x-hidden main-gradient-bg">
+      <div className="min-h-screen overflow-x-hidden main-gradient-bg relative">
+        {/* 固定アンビエントグロー */}
+        <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+          <div className="absolute top-0 left-[10%] w-[600px] h-[400px] opacity-[0.18]"
+            style={{ background: 'radial-gradient(ellipse, #bae6fd, transparent 70%)', filter: 'blur(40px)' }} />
+          <div className="absolute bottom-0 right-[5%] w-[500px] h-[400px] opacity-[0.12]"
+            style={{ background: 'radial-gradient(ellipse, #a5b4fc, transparent 70%)', filter: 'blur(50px)' }} />
+        </div>
         <TopNavigation />
-        <main className="p-3 sm:p-4 md:p-6 pt-4 md:pt-5 max-w-7xl mx-auto w-full min-w-0">
+        <main className="relative z-10 p-3 sm:p-4 md:p-6 pt-4 md:pt-5 max-w-7xl mx-auto w-full min-w-0">
           {children}
         </main>
         <Toaster />

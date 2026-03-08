@@ -208,19 +208,26 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  /* Main background gradient - シルバー系 */
+  /* Main background gradient - プレミアムシルバー */
   .main-gradient-bg {
-    background: linear-gradient(145deg,
-      oklch(0.96 0.003 250) 0%,
-      oklch(0.955 0.005 240) 35%,
-      oklch(0.95 0.006 230) 65%,
-      oklch(0.96 0.003 245) 100%);
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 0%, rgba(186, 230, 253, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(165, 180, 252, 0.2) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 30% at 100% 30%, rgba(125, 211, 252, 0.15) 0%, transparent 50%),
+      linear-gradient(160deg,
+        oklch(0.975 0.004 250) 0%,
+        oklch(0.968 0.006 245) 30%,
+        oklch(0.962 0.007 235) 60%,
+        oklch(0.970 0.004 250) 100%);
   }
   .dark .main-gradient-bg {
-    background: linear-gradient(145deg,
-      oklch(0.15 0.012 250) 0%,
-      oklch(0.13 0.012 260) 50%,
-      oklch(0.12 0.01 270) 100%);
+    background:
+      radial-gradient(ellipse 70% 50% at 20% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 100%, rgba(99, 102, 241, 0.07) 0%, transparent 60%),
+      linear-gradient(160deg,
+        oklch(0.155 0.014 250) 0%,
+        oklch(0.138 0.014 260) 50%,
+        oklch(0.128 0.012 270) 100%);
   }
 
   /* Card hover - floating */
