@@ -78,70 +78,74 @@ function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-16"
       style={{
-        background: 'linear-gradient(135deg, #f0f7ff 0%, #fafbff 40%, #f5f0ff 70%, #eef6ff 100%)',
+        background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 25%, #67e8f9 50%, #22d3ee 75%, #0ea5e9 100%)',
       }}>
 
-      {/* メッシュグラデーション背景 */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* 右上：スカイブルーの光 */}
-        <div className="absolute -top-32 -right-32 w-[700px] h-[700px] rounded-full opacity-40"
-          style={{ background: 'radial-gradient(circle, rgba(186,230,253,0.8) 0%, rgba(125,211,252,0.3) 40%, transparent 70%)', filter: 'blur(60px)' }} />
-        {/* 左中：パープルの光 */}
-        <div className="absolute top-[20%] -left-32 w-[500px] h-[500px] rounded-full opacity-30"
-          style={{ background: 'radial-gradient(circle, rgba(196,181,253,0.7) 0%, rgba(165,180,252,0.3) 40%, transparent 70%)', filter: 'blur(70px)' }} />
-        {/* 右下：シアンの光 */}
-        <div className="absolute -bottom-20 right-[25%] w-[400px] h-[400px] rounded-full opacity-25"
-          style={{ background: 'radial-gradient(circle, rgba(167,243,208,0.6) 0%, rgba(110,231,183,0.2) 40%, transparent 70%)', filter: 'blur(60px)' }} />
-        {/* 中央下：ライトブルー */}
-        <div className="absolute bottom-0 left-[30%] w-[600px] h-[300px] opacity-20"
-          style={{ background: 'radial-gradient(ellipse, rgba(147,197,253,0.6) 0%, transparent 70%)', filter: 'blur(50px)' }} />
+      {/* 抽象ガラスオーブ背景 */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* 大きなガラスオーブ: 右上 */}
+        <div className="absolute -top-20 right-[10%] w-[450px] h-[450px] rounded-full"
+          style={{ background: 'radial-gradient(circle at 40% 40%, rgba(255,255,255,0.4) 0%, rgba(186,230,253,0.3) 30%, rgba(14,165,233,0.1) 60%, transparent 80%)', filter: 'blur(2px)' }} />
+        {/* 中くらいのオーブ: 左中 */}
+        <div className="absolute top-[30%] left-[5%] w-[350px] h-[350px] rounded-full"
+          style={{ background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.35) 0%, rgba(103,232,249,0.2) 40%, transparent 70%)', filter: 'blur(3px)' }} />
+        {/* 小さなオーブ: 右下 */}
+        <div className="absolute bottom-[15%] right-[25%] w-[200px] h-[200px] rounded-full"
+          style={{ background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5) 0%, rgba(186,230,253,0.3) 30%, transparent 70%)', filter: 'blur(1px)' }} />
+        {/* 極小オーブ: 左下 */}
+        <div className="absolute bottom-[25%] left-[20%] w-[120px] h-[120px] rounded-full"
+          style={{ background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.45) 0%, rgba(103,232,249,0.25) 40%, transparent 70%)' }} />
+        {/* ぼんやりした光: 中央上 */}
+        <div className="absolute top-[10%] left-[40%] w-[600px] h-[300px] opacity-40"
+          style={{ background: 'radial-gradient(ellipse, rgba(255,255,255,0.3) 0%, transparent 60%)', filter: 'blur(40px)' }} />
 
-        {/* SVGメッシュパターン（超薄） */}
-        <svg className="absolute inset-0 w-full h-full opacity-[0.025]" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#6366f1" strokeWidth="0.5"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
+        {/* 斜めのライトストリーク */}
+        <div className="absolute inset-0" style={{ opacity: 0.15 }}>
+          <div className="absolute top-[5%] left-[20%] w-[2px] h-[250px] bg-white rounded-full rotate-[30deg]" />
+          <div className="absolute top-[8%] left-[25%] w-[3px] h-[180px] bg-white rounded-full rotate-[32deg]" />
+          <div className="absolute top-[15%] right-[15%] w-[2px] h-[200px] bg-white rounded-full rotate-[25deg]" />
+          <div className="absolute top-[20%] right-[35%] w-[1.5px] h-[300px] bg-white rounded-full rotate-[28deg]" />
+          <div className="absolute bottom-[20%] left-[40%] w-[2px] h-[150px] bg-white rounded-full rotate-[35deg]" />
+          <div className="absolute bottom-[30%] right-[20%] w-[3px] h-[220px] bg-white rounded-full rotate-[22deg]" />
+        </div>
+
+        {/* ベースのオーバーレイグラデーション */}
+        <div className="absolute inset-0"
+          style={{ background: 'linear-gradient(180deg, rgba(14,165,233,0.1) 0%, rgba(56,189,248,0.05) 50%, rgba(255,255,255,0.15) 100%)' }} />
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 w-full">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* テキスト */}
           <div className={`space-y-8 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="inline-flex items-center gap-2 border border-sky-200 bg-sky-50 rounded-full px-4 py-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-              <span className="text-xs font-medium text-sky-700">B2B EC CMS — オープンベータ公開中</span>
+            <div className="inline-flex items-center gap-2 border border-white/30 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              <span className="text-xs font-medium text-white">B2B EC CMS — オープンベータ公開中</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-black tracking-tight text-gray-900 leading-[1.1]">
+            <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white leading-[1.1]">
               ECも、CMSも、<br />
-              <span style={{
-                background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-              }}>これひとつ。</span>
+              <span className="text-white/90">これひとつ。</span>
             </h1>
 
-            <p className="text-lg text-gray-500 leading-relaxed max-w-lg">
+            <p className="text-lg text-white/80 leading-relaxed max-w-lg">
               商品管理・受注・顧客・見積・コンテンツ・ショップ。<br />
               B2B ECに必要なすべてを、美しい管理画面に。
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link href="/signup" className="bg-gray-900 text-white font-bold px-8 py-4 rounded-full text-sm flex items-center justify-center gap-2 hover:bg-gray-700 transition-all shadow-xl shadow-gray-900/20">
+              <Link href="/signup" className="bg-white text-sky-700 font-bold px-8 py-4 rounded-full text-sm flex items-center justify-center gap-2 hover:bg-white/90 transition-all shadow-xl shadow-black/10">
                 無料で始める <ArrowRight className="h-4 w-4" />
               </Link>
-              <a href="#screenshots" className="text-gray-600 font-medium px-8 py-4 rounded-full text-sm flex items-center justify-center gap-2 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all">
+              <a href="#screenshots" className="text-white font-medium px-8 py-4 rounded-full text-sm flex items-center justify-center gap-2 border border-white/40 hover:bg-white/10 transition-all backdrop-blur-sm">
                 画面を見る
               </a>
             </div>
 
-            <div className="flex items-center gap-6 text-sm text-gray-400">
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-sky-400" />クレカ不要</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-sky-400" />即日利用可</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-sky-400" />日本語対応</span>
+            <div className="flex items-center gap-6 text-sm text-white/70">
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-white/80" />クレカ不要</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-white/80" />即日利用可</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-white/80" />日本語対応</span>
             </div>
           </div>
 
