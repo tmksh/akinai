@@ -309,48 +309,70 @@ function FeaturesSection() {
   const { ref, visible } = useInView();
 
   const features = [
-    { icon: Package, title: '商品管理', desc: '在庫・バリエーション・カテゴリを一元管理。画像も複数枚ドラッグ&ドロップで登録。' },
-    { icon: ShoppingCart, title: '受注管理', desc: 'ステータス管理、メール通知、CSV出力。BtoBの掛売りにも対応。' },
-    { icon: Users, title: '顧客管理', desc: '法人・個人を統合管理。取引履歴や与信情報もひと目で把握。' },
-    { icon: FileText, title: '見積管理', desc: 'オンラインで見積を作成・送付。PDF出力やステータス管理も。' },
-    { icon: Globe, title: 'ショップ構築', desc: 'テーマカスタマイズ対応のECショップを自動生成。レスポンシブ対応。' },
-    { icon: Layers, title: 'コンテンツ管理', desc: 'ニュース・特集記事・お知らせをリッチエディタで作成・公開。' },
-    { icon: Bot, title: '代理店管理', desc: '代理店コード発行、手数料設定、売上レポートの自動生成。' },
-    { icon: BarChart3, title: 'ダッシュボード', desc: 'KPI・売上推移・達成率をリアルタイムで可視化。ウィジェットは自由配置。' },
-    { icon: Palette, title: 'テーマ設定', desc: 'ショップの配色・フォント・セクション順を管理画面からノーコードで変更。' },
-    { icon: Shield, title: '権限管理', desc: 'ロールベースのアクセス制御。メンバー招待や組織管理も。' },
-    { icon: TrendingUp, title: 'パフォーマンス', desc: '売上目標の設定と達成率の追跡。グレード評価で組織の健康状態を把握。' },
-    { icon: Zap, title: 'Webhook / API', desc: '外部サービスとの連携に対応。Webhook設定やAPIキー管理も管理画面から。' },
+    { icon: Package, title: '商品管理', desc: '在庫・バリエーション・カテゴリを一元管理。画像も複数枚ドラッグ&ドロップで登録。', color: 'from-sky-500 to-blue-600' },
+    { icon: ShoppingCart, title: '受注管理', desc: 'ステータス管理、メール通知、CSV出力。BtoBの掛売りにも対応。', color: 'from-violet-500 to-purple-600' },
+    { icon: Users, title: '顧客管理', desc: '法人・個人を統合管理。取引履歴や与信情報もひと目で把握。', color: 'from-emerald-500 to-teal-600' },
+    { icon: FileText, title: '見積管理', desc: 'オンラインで見積を作成・送付。PDF出力やステータス管理も。', color: 'from-cyan-500 to-sky-600' },
+    { icon: Globe, title: 'ショップ構築', desc: 'テーマカスタマイズ対応のECショップを自動生成。レスポンシブ対応。', color: 'from-blue-500 to-indigo-600' },
+    { icon: Layers, title: 'コンテンツ管理', desc: 'ニュース・特集記事・お知らせをリッチエディタで作成・公開。', color: 'from-indigo-500 to-violet-600' },
+    { icon: Bot, title: '代理店管理', desc: '代理店コード発行、手数料設定、売上レポートの自動生成。', color: 'from-purple-500 to-pink-600' },
+    { icon: BarChart3, title: 'ダッシュボード', desc: 'KPI・売上推移・達成率をリアルタイムで可視化。ウィジェットは自由配置。', color: 'from-sky-400 to-cyan-500' },
+    { icon: Palette, title: 'テーマ設定', desc: 'ショップの配色・フォント・セクション順を管理画面からノーコードで変更。', color: 'from-pink-500 to-rose-500' },
+    { icon: Shield, title: '権限管理', desc: 'ロールベースのアクセス制御。メンバー招待や組織管理も。', color: 'from-slate-500 to-gray-600' },
+    { icon: TrendingUp, title: 'パフォーマンス', desc: '売上目標の設定と達成率の追跡。グレード評価で組織の健康状態を把握。', color: 'from-teal-500 to-emerald-600' },
+    { icon: Zap, title: 'Webhook / API', desc: '外部サービスとの連携に対応。Webhook設定やAPIキー管理も管理画面から。', color: 'from-amber-500 to-yellow-500' },
   ];
 
   return (
-    <section id="features" className="py-24 md:py-32 bg-white">
-      <div ref={ref} className="max-w-7xl mx-auto px-6">
-        <div className={`text-center mb-16 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <p className="text-xs tracking-[0.3em] uppercase text-sky-500 font-semibold mb-3">Features</p>
-          <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
-            B2B ECに必要な機能を、すべて搭載
+    <section id="features" className="py-24 md:py-32 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #f0f7ff 0%, #ffffff 60%)' }}>
+      {/* 背景装飾 */}
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] opacity-[0.07]"
+        style={{ background: 'radial-gradient(ellipse at center, #38bdf8, transparent 70%)' }} />
+
+      <div ref={ref} className="relative z-10 max-w-7xl mx-auto px-6">
+        {/* ヘッダー */}
+        <div className={`text-center mb-20 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <div className="inline-flex items-center gap-2 bg-sky-50 border border-sky-200/60 rounded-full px-4 py-1.5 mb-4">
+            <span className="text-xs font-semibold text-sky-600 tracking-widest uppercase">Features</span>
+          </div>
+          <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight mb-5">
+            B2B ECに必要な機能を、<br className="hidden md:block" />すべて搭載
           </h2>
-          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
+          <p className="text-gray-500 max-w-2xl mx-auto text-base leading-relaxed">
             複数のSaaSを組み合わせる必要はありません。AKINAIひとつで、商品登録からショップ公開、受注・顧客管理まで完結します。
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        {/* カードグリッド */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {features.map((f, i) => {
             const Icon = f.icon;
             return (
               <div
                 key={i}
-                className={`group p-6 rounded-2xl border border-gray-100 hover:border-sky-200 bg-white hover:bg-sky-50/30 transition-all duration-500 ${
+                className={`group relative p-6 rounded-2xl transition-all duration-500 cursor-default hover:-translate-y-1 ${
                   visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
                 }`}
-                style={{ transitionDelay: `${i * 50}ms` }}
+                style={{
+                  transitionDelay: `${i * 40}ms`,
+                  background: 'rgba(255,255,255,0.7)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255,255,255,0.8)',
+                  boxShadow: '0 2px 16px rgba(100,120,160,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+                }}
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-100 to-sky-50 flex items-center justify-center mb-4 group-hover:from-sky-200 group-hover:to-sky-100 transition-colors">
-                  <Icon className="h-5 w-5 text-sky-500" />
+                {/* ホバー時グロー */}
+                <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br ${f.color}`}
+                  style={{ opacity: 0, filter: 'blur(20px)', transform: 'scale(0.9)' }} />
+
+                {/* アイコン */}
+                <div className={`relative w-11 h-11 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 shadow-sm`}>
+                  <Icon className="h-5 w-5 text-white" />
                 </div>
-                <h3 className="text-sm font-bold text-gray-900 mb-2">{f.title}</h3>
+
+                {/* テキスト */}
+                <h3 className="text-sm font-bold text-gray-900 mb-2 group-hover:text-gray-800">{f.title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
               </div>
             );
