@@ -334,8 +334,8 @@ export default function ContentsClient({ initialContents, stats, organizationId,
         </div>
       </div>
 
-      {/* ページタブナビゲーション */}
-      <PageTabs tabs={contentTabs} />
+      {/* ページタブ（複数タブある場合のみ表示） */}
+      {contentTabs.length > 1 && <PageTabs tabs={contentTabs} />}
 
       {/* フィルタータブ（設定で有効にしたタイプはすべて表示。0件でもタブを出して「このタイプで追加」できる） */}
       <Tabs defaultValue="all" className="space-y-4">
