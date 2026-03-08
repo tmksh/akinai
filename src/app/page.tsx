@@ -119,25 +119,25 @@ function HeroSection() {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 w-full">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="flex flex-col items-center text-center">
           {/* テキスト */}
-          <div className={`space-y-8 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <div className={`space-y-8 max-w-2xl transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <div className="inline-flex items-center gap-2 border border-white/30 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               <span className="text-xs font-medium text-white">B2B EC CMS — オープンベータ公開中</span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-black tracking-tight text-white leading-[1.1]">
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight text-white leading-[1.1]">
               ECも、CMSも、<br />
               <span className="text-white/90">これひとつ。</span>
             </h1>
 
-            <p className="text-lg text-white/80 leading-relaxed max-w-lg">
+            <p className="text-lg text-white/80 leading-relaxed max-w-lg mx-auto">
               商品管理・受注・顧客・見積・コンテンツ・ショップ。<br />
               B2B ECに必要なすべてを、美しい管理画面に。
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/signup" className="bg-white text-sky-700 font-bold px-8 py-4 rounded-full text-sm flex items-center justify-center gap-2 hover:bg-white/90 transition-all shadow-xl shadow-black/10">
                 無料で始める <ArrowRight className="h-4 w-4" />
               </Link>
@@ -146,119 +146,10 @@ function HeroSection() {
               </a>
             </div>
 
-            <div className="flex items-center gap-6 text-sm text-white/70">
+            <div className="flex items-center gap-6 text-sm text-white/70 justify-center">
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-white/80" />クレカ不要</span>
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-white/80" />即日利用可</span>
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-white/80" />日本語対応</span>
-            </div>
-          </div>
-
-          {/* ダッシュボードイラスト */}
-          <div className={`transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-            <div className="relative">
-              {/* ブラウザフレーム */}
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-sky-200/40 border border-white/80"
-                style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)' }}>
-                {/* タイトルバー */}
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100/80"
-                  style={{ background: 'rgba(249,250,251,0.9)' }}>
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-400/80" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-400/80" />
-                    <div className="w-3 h-3 rounded-full bg-green-400/80" />
-                  </div>
-                  <div className="flex-1 flex justify-center">
-                    <div className="rounded-full px-10 py-1 text-[10px] text-gray-400 border border-gray-200"
-                      style={{ background: 'rgba(243,244,246,0.8)' }}>akinai.app/dashboard</div>
-                  </div>
-                </div>
-
-                {/* ダッシュボードイラスト本体 */}
-                <div className="p-4 space-y-3" style={{ background: 'linear-gradient(160deg, #f0f7ff 0%, #f8f5ff 100%)', minHeight: 320 }}>
-                  {/* KPIカード行 */}
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { label: '月間売上', value: '¥2.4M', change: '+12%', color: 'from-sky-400 to-blue-500' },
-                      { label: '受注数', value: '148', change: '+8%', color: 'from-violet-400 to-purple-500' },
-                      { label: '顧客数', value: '1,247', change: '+5%', color: 'from-emerald-400 to-teal-500' },
-                      { label: '商品数', value: '386', change: '+3', color: 'from-violet-500 to-purple-600' },
-                    ].map((item, i) => (
-                      <div key={i} className="rounded-xl p-3 text-white relative overflow-hidden shadow-sm"
-                        style={{ background: `linear-gradient(135deg, var(--tw-gradient-stops))` }}>
-                        <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${item.color}`} />
-                        <div className="relative">
-                          <div className="text-[9px] text-white/70 mb-0.5">{item.label}</div>
-                          <div className="text-sm font-black">{item.value}</div>
-                          <div className="text-[8px] text-white/80 mt-0.5">{item.change}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* チャートエリア */}
-                  <div className="grid grid-cols-3 gap-2">
-                    {/* 棒グラフ */}
-                    <div className="col-span-2 rounded-xl p-3 border border-white/80 shadow-sm"
-                      style={{ background: 'rgba(255,255,255,0.8)' }}>
-                      <div className="text-[9px] text-gray-500 font-semibold mb-2">月次売上推移</div>
-                      <div className="flex items-end gap-1 h-16">
-                        {[35, 50, 42, 60, 48, 68, 55, 75, 62, 82, 70, 92].map((h, i) => (
-                          <div key={i} className="flex-1 rounded-t-sm"
-                            style={{
-                              height: `${h}%`,
-                              background: i === 11
-                                ? 'linear-gradient(to top, #0ea5e9, #38bdf8)'
-                                : `rgba(186,230,253,${0.4 + i * 0.04})`,
-                            }} />
-                        ))}
-                      </div>
-                      <div className="flex justify-between mt-1.5 text-[8px] text-gray-300">
-                        <span>4月</span><span>7月</span><span>10月</span><span>3月</span>
-                      </div>
-                    </div>
-                    {/* ドーナツ */}
-                    <div className="rounded-xl p-3 border border-white/80 shadow-sm flex flex-col items-center justify-center"
-                      style={{ background: 'rgba(255,255,255,0.8)' }}>
-                      <div className="text-[9px] text-gray-500 font-semibold mb-2 self-start">達成率</div>
-                      <div className="relative w-16 h-16">
-                        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                          <circle cx="18" cy="18" r="14" fill="none" stroke="#e0f2fe" strokeWidth="4" />
-                          <circle cx="18" cy="18" r="14" fill="none" stroke="url(#hero-grad)" strokeWidth="4"
-                            strokeDasharray="88" strokeDashoffset="18" strokeLinecap="round" />
-                          <defs>
-                            <linearGradient id="hero-grad" x1="0" y1="0" x2="1" y2="1">
-                              <stop offset="0%" stopColor="#0ea5e9" />
-                              <stop offset="100%" stopColor="#6366f1" />
-                            </linearGradient>
-                          </defs>
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-xs font-black text-gray-800">80%</span>
-                          <span className="text-[7px] text-gray-400">達成</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* テーブル行 */}
-                  <div className="rounded-xl border border-white/80 overflow-hidden shadow-sm"
-                    style={{ background: 'rgba(255,255,255,0.8)' }}>
-                    <div className="px-3 py-2 border-b border-gray-100 text-[9px] text-gray-500 font-semibold">最近の受注</div>
-                    {[
-                      { id: '#1248', name: '東京商事', amount: '¥128,000', color: 'bg-sky-100 text-sky-700' },
-                      { id: '#1247', name: '大阪物産', amount: '¥256,000', color: 'bg-emerald-100 text-emerald-700' },
-                      { id: '#1246', name: '名古屋工業', amount: '¥84,000', color: 'bg-violet-100 text-violet-700' },
-                    ].map((row, i) => (
-                      <div key={i} className="flex items-center px-3 py-2 border-b border-gray-50 last:border-0 text-[8px]">
-                        <span className="text-gray-400 font-mono w-12">{row.id}</span>
-                        <span className="flex-1 text-gray-700">{row.name}</span>
-                        <span className="text-gray-800 font-semibold mr-2">{row.amount}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[7px] font-medium ${row.color}`}>完了</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
