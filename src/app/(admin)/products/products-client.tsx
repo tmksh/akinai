@@ -184,20 +184,21 @@ export default function ProductsClient({
       <PageTabs tabs={productTabs} />
 
       {/* ── サマリーバー ── */}
-      <div className="flex items-center rounded-2xl border border-white/40 overflow-hidden divide-x divide-white/30 dark:divide-slate-800" style={{ background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(16px)' }}>
+      <div className="flex items-center rounded-2xl overflow-hidden divide-x divide-white/50 dark:divide-slate-700"
+        style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(20px)', border: '1px solid rgba(200,220,240,0.6)', boxShadow: '0 1px 8px rgba(100,120,160,0.08), inset 0 1px 0 rgba(255,255,255,0.9)' }}>
         {[
-          { label: '全商品',   value: stats.total,      filter: 'all',       alert: false },
-          { label: '公開中',   value: stats.published,  filter: 'published', alert: false },
-          { label: '下書き',   value: stats.draft,      filter: 'draft',     alert: false },
-          { label: '在庫切れ', value: stats.outOfStock, filter: 'all',       alert: stats.outOfStock > 0 },
-        ].map(({ label, value, filter, alert }) => (
+          { label: '全商品',   value: stats.total,      filter: 'all',       alert: false, color: 'text-slate-800' },
+          { label: '公開中',   value: stats.published,  filter: 'published', alert: false, color: 'text-sky-600' },
+          { label: '下書き',   value: stats.draft,      filter: 'draft',     alert: false, color: 'text-slate-600' },
+          { label: '在庫切れ', value: stats.outOfStock, filter: 'all',       alert: stats.outOfStock > 0, color: stats.outOfStock > 0 ? 'text-red-500' : 'text-slate-600' },
+        ].map(({ label, value, filter, alert, color }) => (
           <button
             key={label}
             onClick={() => setStatusFilter(filter)}
-            className={`flex-1 flex flex-col items-center py-3 px-2 transition-colors hover:bg-sky-50 ${statusFilter === filter && label !== '在庫切れ' ? 'bg-sky-50' : ''}`}
+            className={`flex-1 flex flex-col items-center py-4 px-2 transition-all hover:bg-sky-50/70 ${statusFilter === filter && label !== '在庫切れ' ? 'bg-sky-50/80' : ''}`}
           >
-            <span className={`text-lg font-bold ${alert ? 'text-red-500' : 'text-foreground'}`}>{value}</span>
-            <span className="text-[11px] text-muted-foreground">{label}</span>
+            <span className={`text-xl font-black tabular-nums ${color}`}>{value}</span>
+            <span className={`text-[11px] font-medium mt-0.5 ${alert ? 'text-red-400' : 'text-slate-400'}`}>{label}</span>
           </button>
         ))}
       </div>
