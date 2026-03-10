@@ -35,6 +35,7 @@ export interface ContentData {
   organizationId: string;
   createdAt: string;
   updatedAt: string;
+  custom_fields: { key: string; label?: string; value: string; type: string; options?: string[] }[];
 }
 
 // コンテンツ作成入力
@@ -149,6 +150,7 @@ export async function getContents(
       organizationId: item.organization_id as string,
       createdAt: item.created_at as string,
       updatedAt: item.updated_at as string,
+      custom_fields: (item.custom_fields as ContentData['custom_fields']) || [],
     }));
 
     return { data: contents, error: null, total: count || 0 };
