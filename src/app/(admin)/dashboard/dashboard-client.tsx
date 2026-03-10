@@ -727,13 +727,6 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                 );
               })}
             </div>
-                      <div className="h-full rounded-full transition-all duration-1000 ease-out"
-                        style={{ width: `${Math.min(value, 100)}%`, background: barColor }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
 
               {/* 前月比 */}
               <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-black/[0.05]">
