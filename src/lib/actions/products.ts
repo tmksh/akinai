@@ -1,8 +1,16 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import type { Database } from '@/types/database';
+
+function getAdminClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 // 型定義
 type Product = Database['public']['Tables']['products']['Row'];
@@ -671,7 +679,7 @@ export async function importProducts(
   organizationId: string,
   rows: CsvProductRow[]
 ): Promise<ImportResult> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
   const result: ImportResult = { total: rows.length, success: 0, failed: 0, errors: [] };
 
   // カテゴリキャッシュ（名前 → ID）

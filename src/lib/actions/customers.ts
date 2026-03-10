@@ -1,7 +1,15 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+
+function getAdminClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 import type { Database } from '@/types/database';
 
 // 型定義
@@ -117,7 +125,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<{
   data: CustomerWithAddresses | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // 顧客を作成
@@ -195,7 +203,7 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<{
   data: Customer | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     const updateData: Record<string, unknown> = {};
@@ -234,7 +242,7 @@ export async function deleteCustomer(customerId: string): Promise<{
   success: boolean;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // 住所は CASCADE で自動削除される
@@ -273,7 +281,7 @@ export async function addCustomerAddress(
   data: CustomerAddress | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // デフォルトに設定する場合、既存のデフォルトを解除
@@ -318,7 +326,7 @@ export async function deleteCustomerAddress(addressId: string): Promise<{
   success: boolean;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     const { error } = await supabase
@@ -348,7 +356,7 @@ export async function setDefaultAddress(
   success: boolean;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // 既存のデフォルトを解除

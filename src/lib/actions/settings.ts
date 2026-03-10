@@ -78,6 +78,8 @@ export async function updateProductFieldSchema(
 ) {
   const supabase = getAdminClient();
 
+  console.log('[updateProductFieldSchema] orgId:', organizationId, 'schema count:', schema.length);
+
   const { data: org, error: fetchError } = await supabase
     .from('organizations')
     .select('settings')
@@ -85,11 +87,14 @@ export async function updateProductFieldSchema(
     .single();
 
   if (fetchError) {
+    console.error('[updateProductFieldSchema] fetch error:', fetchError);
     return { data: null, error: fetchError.message };
   }
 
   const currentSettings = (org?.settings as Record<string, unknown>) || {};
   const newSettings = { ...currentSettings, product_field_schema: schema };
+
+  console.log('[updateProductFieldSchema] updating settings...');
 
   const { data, error } = await supabase
     .from('organizations')
@@ -99,9 +104,12 @@ export async function updateProductFieldSchema(
     .single();
 
   if (error) {
-    console.error('Error updating product field schema:', error);
+    console.error('[updateProductFieldSchema] update error:', error);
     return { data: null, error: error.message };
   }
+
+  const savedSchema = (data?.settings as Record<string, unknown>)?.product_field_schema;
+  console.log('[updateProductFieldSchema] saved schema count:', Array.isArray(savedSchema) ? savedSchema.length : 'N/A');
 
   revalidatePath('/settings/products');
   return { data, error: null };

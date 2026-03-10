@@ -1,7 +1,15 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+
+function getAdminClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 import type { Database } from '@/types/database';
 
 // 型定義
@@ -163,7 +171,7 @@ export async function createQuote(input: CreateQuoteInput): Promise<{
   data: QuoteWithItems | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // 見積番号を生成
@@ -268,7 +276,7 @@ export async function updateQuote(input: UpdateQuoteInput): Promise<{
   data: QuoteWithItems | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // 見積を更新
@@ -354,7 +362,7 @@ export async function updateQuoteStatus(
   data: Quote | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     const { data, error } = await supabase
@@ -384,7 +392,7 @@ export async function deleteQuote(quoteId: string): Promise<{
   success: boolean;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // 見積明細は CASCADE で自動削除される
@@ -412,7 +420,7 @@ export async function sendQuote(quoteId: string): Promise<{
   data: Quote | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   // 見積詳細を取得
   const { data: quoteWithItems, error: fetchError } = await getQuote(quoteId);
@@ -490,7 +498,7 @@ export async function convertQuoteToOrder(quoteId: string): Promise<{
   orderId: string | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // 見積を取得

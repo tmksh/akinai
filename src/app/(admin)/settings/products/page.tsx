@@ -139,9 +139,14 @@ export default function ProductSchemaSettingsPage() {
   };
 
   const handleSave = () => {
-    if (!organization?.id) return;
+    if (!organization?.id) {
+      toast.error('組織情報が読み込まれていません');
+      return;
+    }
+    console.log('[Schema Save] org:', organization.id, 'schema:', JSON.stringify(schema));
     startTransition(async () => {
-      const { error } = await updateProductFieldSchema(organization.id, schema);
+      const { data, error } = await updateProductFieldSchema(organization.id, schema);
+      console.log('[Schema Save] result:', { data: !!data, error });
       if (error) {
         toast.error('保存に失敗しました: ' + error);
       } else {

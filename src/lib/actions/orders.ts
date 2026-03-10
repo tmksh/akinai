@@ -1,7 +1,15 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+
+function getAdminClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 import type { Database } from '@/types/database';
 
 // 型定義
@@ -66,7 +74,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{
   data: OrderWithItems | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
   const reserveStock = input.reserveStock !== false; // デフォルトtrue
 
   try {
@@ -304,7 +312,7 @@ export async function updateOrderStatus(
   data: Order | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     const updateData: Record<string, unknown> = { status };
@@ -346,7 +354,7 @@ export async function updatePaymentStatus(
   data: Order | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     const { data, error } = await supabase
@@ -379,7 +387,7 @@ export async function updateTrackingNumber(
   data: Order | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     const { data, error } = await supabase
@@ -412,7 +420,7 @@ export async function updateOrderNotes(
   data: Order | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     const { data, error } = await supabase
@@ -447,7 +455,7 @@ export async function shipOrder(
   data: Order | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // 1. 注文と注文明細を取得
@@ -575,7 +583,7 @@ export async function cancelOrder(
   success: boolean;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // 1. 注文と注文明細を取得
@@ -670,7 +678,7 @@ export async function refundOrder(
   data: Order | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   try {
     // 1. 注文と注文明細を取得

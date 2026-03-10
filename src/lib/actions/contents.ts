@@ -1,8 +1,16 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import type { ContentType, ContentStatus } from '@/types';
+
+function getAdminClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 import { getEnabledContentTypes } from '@/lib/actions/settings';
 
 // コンテンツ型定義
@@ -242,7 +250,7 @@ export async function createContent(
   organizationId: string
 ): Promise<{ data: ContentData | null; error: string | null }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     // 設定で有効にしたタイプのみ作成可能
     const { data: enabledTypes } = await getEnabledContentTypes(organizationId);
@@ -340,7 +348,7 @@ export async function updateContent(
   organizationId: string
 ): Promise<{ data: ContentData | null; error: string | null }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     // 設定で有効にしたタイプのみ更新可能
     if (input.type) {
@@ -443,7 +451,7 @@ export async function deleteContent(
   organizationId: string
 ): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     
     const { error } = await supabase
       .from('contents')
@@ -468,7 +476,7 @@ export async function publishContent(
   organizationId: string
 ): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     
     const { error } = await supabase
       .from('contents')
@@ -497,7 +505,7 @@ export async function archiveContent(
   organizationId: string
 ): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     
     const { error } = await supabase
       .from('contents')
@@ -522,7 +530,7 @@ export async function duplicateContent(
   organizationId: string
 ): Promise<{ data: ContentData | null; error: string | null }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     
     // 元のコンテンツを取得
     const { data: original, error: fetchError } = await supabase
@@ -674,7 +682,7 @@ export async function createContentCategory(input: {
   type: string;
 }): Promise<{ data: ContentCategory | null; error: string | null }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const { data, error } = await supabase
       .from('content_categories')
       .insert({
@@ -715,7 +723,7 @@ export async function updateContentCategory(
   input: { name?: string; slug?: string; description?: string; type?: string }
 ): Promise<{ data: ContentCategory | null; error: string | null }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const updateData: Record<string, unknown> = {};
     if (input.name !== undefined) updateData.name = input.name;
     if (input.slug !== undefined) updateData.slug = input.slug;
@@ -756,7 +764,7 @@ export async function deleteContentCategory(
   categoryId: string
 ): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const { error } = await supabase
       .from('content_categories')
       .delete()
@@ -776,7 +784,7 @@ export async function setContentCategories(
   categoryIds: string[]
 ): Promise<{ success: boolean; error: string | null }> {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     // 既存を削除
     await supabase
