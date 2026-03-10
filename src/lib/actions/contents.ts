@@ -236,6 +236,7 @@ export async function getContent(
       organizationId: data.organization_id,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
+      custom_fields: data.custom_fields || [],
     };
 
     return { data: content, error: null };
@@ -333,6 +334,7 @@ export async function createContent(
       organizationId: data.organization_id,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
+      custom_fields: data.custom_fields || [],
     };
 
     return { data: content, error: null };
@@ -437,6 +439,7 @@ export async function updateContent(
       organizationId: data.organization_id,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
+      custom_fields: data.custom_fields || [],
     };
 
     return { data: content, error: null };
@@ -604,6 +607,7 @@ export async function duplicateContent(
       organizationId: data.organization_id,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
+      custom_fields: data.custom_fields || [],
     };
 
     return { data: content, error: null };
