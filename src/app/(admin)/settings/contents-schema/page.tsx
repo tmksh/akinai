@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import {
   ArrowLeft,
   Save,
@@ -79,6 +79,13 @@ export default function ContentSchemaSettingsPage() {
   const [schema, setSchema] = useState<ContentFieldSchemaItem[]>(
     () => organization?.contentFieldSchema ?? []
   );
+
+  // organizationが後から読み込まれた場合に同期
+  useEffect(() => {
+    if (organization?.contentFieldSchema) {
+      setSchema(organization.contentFieldSchema);
+    }
+  }, [organization?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [isAdding, setIsAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');

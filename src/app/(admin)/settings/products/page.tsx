@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import {
   ArrowLeft,
   Save,
@@ -80,6 +80,13 @@ export default function ProductSchemaSettingsPage() {
   const [schema, setSchema] = useState<ProductFieldSchemaItem[]>(
     () => organization?.productFieldSchema ?? []
   );
+
+  // organizationが後から読み込まれた場合に同期
+  useEffect(() => {
+    if (organization?.productFieldSchema) {
+      setSchema(organization.productFieldSchema);
+    }
+  }, [organization?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [isAdding, setIsAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
