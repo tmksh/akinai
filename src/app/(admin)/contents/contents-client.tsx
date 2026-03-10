@@ -191,6 +191,72 @@ export default function ContentsClient({ initialContents, stats, organizationId,
     const TypeIcon = typeInfo.icon;
     const statusInfo = statusConfig[content.status];
 
+    const hasImage = !!content.featuredImage;
+
+    // Q&A等の画像なしコンテンツ用リストスタイル
+    if (!hasImage && (content.type === 'qa' || content.type === 'faq')) {
+      return (
+        <Link
+          key={content.id}
+          href={`/contents/${content.id}/edit`}
+          className="group flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(100,120,160,0.12)]"
+          style={{
+            background: 'rgba(255,255,255,0.65)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.8)',
+            boxShadow: '0 1px 8px rgba(100,120,160,0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+          }}
+        >
+          {/* アイコン */}
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center flex-shrink-0">
+            <TypeIcon className="h-5 w-5 text-violet-500" />
+          </div>
+          {/* テキスト */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate group-hover:text-sky-600 transition-colors">
+              {content.title}
+            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
+                <TypeIcon className="h-3 w-3" />
+                {typeInfo.label}
+              </Badge>
+              <span className="text-[10px] text-muted-foreground">
+                {formatDate(content.publishedAt || content.scheduledAt)}
+              </span>
+            </div>
+          </div>
+          {/* メニュー */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" disabled={isPending}
+                onClick={(e) => e.preventDefault()}>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/contents/${content.id}/edit`}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  編集
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDuplicate(content)}>
+                <Copy className="mr-2 h-4 w-4" />
+                複製
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(content)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                削除
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </Link>
+      );
+    }
+
+    // 画像ありカード（ギャラリー、ニュース等）
     return (
       <div
         key={content.id}
@@ -475,7 +541,10 @@ export default function ContentsClient({ initialContents, stats, organizationId,
                   </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                <div className={type === 'qa' || type === 'faq'
+                  ? 'space-y-2'
+                  : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3'
+                }>
                   {typeContents.map(renderContentCard)}
                 </div>
               )}
