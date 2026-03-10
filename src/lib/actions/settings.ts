@@ -1,9 +1,16 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { randomBytes } from 'crypto';
 import { ShopThemeSettings, DEFAULT_SHOP_THEME } from '@/types';
+
+function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createServiceClient(url, key);
+}
 
 // APIキーを生成する関数
 function generateApiKey(prefix: 'live' | 'test' = 'live'): string {
@@ -42,7 +49,7 @@ export async function updateOrganization(
     frontend_url?: string;
   }
 ) {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
   
   const { data: updated, error } = await supabase
     .from('organizations')
@@ -69,7 +76,7 @@ export async function updateProductFieldSchema(
   organizationId: string,
   schema: { id: string; key: string; label: string; type: string; options?: string[] }[]
 ) {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { data: org, error: fetchError } = await supabase
     .from('organizations')
@@ -105,7 +112,7 @@ export async function updateContentFieldSchema(
   organizationId: string,
   schema: { id: string; key: string; label: string; type: string; options?: string[] }[]
 ) {
-  const supabase = await createClient();
+  const supabase = getAdminClient();
 
   const { data: org, error: fetchError } = await supabase
     .from('organizations')
