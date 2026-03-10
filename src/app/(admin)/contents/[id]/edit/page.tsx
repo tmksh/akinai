@@ -391,10 +391,7 @@ export default function EditContentPage() {
                 <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
                   <SelectTrigger className="w-full"><SelectValue placeholder="タイプを選択" /></SelectTrigger>
                   <SelectContent>
-                    {(enabledContentTypes.length > 0
-                      ? enabledContentTypes
-                      : [contentType]
-                    ).map((key) => {
+                    {[...new Set([...enabledContentTypes, ...(contentType ? [contentType] : [])])].map((key) => {
                       const config = contentTypeConfig[key];
                       if (!config) return null;
                       return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
@@ -493,10 +490,7 @@ export default function EditContentPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(enabledContentTypes.length > 0
-                        ? enabledContentTypes
-                        : [contentType]
-                      ).map((key) => {
+                      {[...new Set([...enabledContentTypes, ...(contentType ? [contentType] : [])])].map((key) => {
                         const config = contentTypeConfig[key];
                         if (!config) return null;
                         return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
@@ -635,10 +629,7 @@ export default function EditContentPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(enabledContentTypes.length > 0
-                        ? enabledContentTypes
-                        : [contentType]
-                      ).map((key) => {
+                      {[...new Set([...enabledContentTypes, ...(contentType ? [contentType] : [])])].map((key) => {
                         const config = contentTypeConfig[key];
                         if (!config) return null;
                         return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
