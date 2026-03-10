@@ -650,9 +650,16 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           {/* 中央コンテンツ：横分割 */}
           <div className={cn("flex gap-5 flex-1 min-h-0 items-center", isLoadingPerformance && "opacity-50 pointer-events-none")}>
 
-            {/* 左：リング */}
+            {/* 左：リング - 浮き感のある白カード */}
             <div className="relative flex items-center justify-center flex-shrink-0">
-              <svg className="-rotate-90" width={120} height={120} style={{ display: 'block' }}>
+              {/* リング背景カード */}
+              <div className="absolute inset-0 rounded-full"
+                style={{
+                  background: 'rgba(255,255,255,0.7)',
+                  boxShadow: '0 4px_16px rgba(100,120,180,0.12), inset 0 1px 0 rgba(255,255,255,0.9)',
+                  backdropFilter: 'blur(8px)',
+                }} />
+              <svg className="-rotate-90" width={120} height={120} style={{ display: 'block', position: 'relative', zIndex: 1 }}>
                 <defs>
                   <linearGradient id="perfMainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#38bdf8" />
@@ -660,7 +667,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                     <stop offset="100%" stopColor="#0284c7" />
                   </linearGradient>
                 </defs>
-                <circle cx={60} cy={60} r={48} fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth={10} />
+                <circle cx={60} cy={60} r={48} fill="none" stroke="rgba(14,165,233,0.1)" strokeWidth={10} />
                 <circle cx={60} cy={60} r={48} fill="none"
                   stroke="url(#perfMainGrad)" strokeWidth={10}
                   strokeLinecap="round"
@@ -668,28 +675,28 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                   strokeDashoffset={48 * 2 * Math.PI * (1 - Math.min(performanceData.avgAchievement / 100, 1))}
                   className="transition-all duration-1000 ease-out" />
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ zIndex: 2 }}>
                 <span className="text-2xl font-black text-foreground tabular-nums leading-none">
                   {performanceData.avgAchievement}<span className="text-sm">%</span>
                 </span>
                 <span className="text-[9px] text-muted-foreground mt-0.5">平均達成</span>
                 <span className={cn(
-                  "text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded-full",
-                  performanceData.avgAchievement >= 90 ? "text-emerald-600 bg-emerald-50"
-                  : performanceData.avgAchievement >= 70 ? "text-sky-600 bg-sky-50"
-                  : "text-slate-500 bg-slate-100"
+                  "text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded-full shadow-sm",
+                  performanceData.avgAchievement >= 90 ? "text-emerald-600 bg-white"
+                  : performanceData.avgAchievement >= 70 ? "text-sky-600 bg-white"
+                  : "text-slate-500 bg-white"
                 )}>
                   {performanceData.grade}
                 </span>
               </div>
             </div>
 
-            {/* 右：指標リスト */}
-            <div className="flex-1 min-w-0 space-y-3">
+            {/* 右：指標リスト - 浮き感のあるガラスカード */}
+            <div className="flex-1 min-w-0 space-y-2">
               {[
-                { label: '売上', icon: '¥', value: performanceData.salesAchievement, actual: `¥${Math.round(performanceData.salesActual / 10000)}万`, target: `¥${Math.round(performanceData.salesTarget / 10000)}万` },
-                { label: '注文', icon: '📦', value: performanceData.ordersAchievement, actual: `${performanceData.ordersActual}件`, target: `${performanceData.ordersTarget}件` },
-                { label: '顧客', icon: '👤', value: performanceData.customersAchievement, actual: `${performanceData.customersActual}人`, target: `${performanceData.customersTarget}人` },
+                { label: '売上', value: performanceData.salesAchievement, actual: `¥${Math.round(performanceData.salesActual / 10000)}万`, target: `¥${Math.round(performanceData.salesTarget / 10000)}万` },
+                { label: '注文', value: performanceData.ordersAchievement, actual: `${performanceData.ordersActual}件`, target: `${performanceData.ordersTarget}件` },
+                { label: '顧客', value: performanceData.customersAchievement, actual: `${performanceData.customersActual}人`, target: `${performanceData.customersTarget}人` },
               ].map(({ label, value, actual, target }) => {
                 const barColor = value >= 100
                   ? 'linear-gradient(90deg, #10b981, #34d399)'
@@ -697,8 +704,13 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                     ? 'linear-gradient(90deg, #38bdf8, #0ea5e9)'
                     : 'linear-gradient(90deg, #94a3b8, #cbd5e1)';
                 return (
-                  <div key={label}>
-                    <div className="flex items-center justify-between mb-1">
+                  <div key={label} className="rounded-xl px-3 py-2"
+                    style={{
+                      background: 'rgba(255,255,255,0.65)',
+                      boxShadow: '0 2px 8px rgba(100,120,180,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+                      border: '1px solid rgba(255,255,255,0.7)',
+                    }}>
+                    <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-semibold text-foreground/80">{label}</span>
                       <div className="flex items-baseline gap-1">
                         <span className="text-[10px] text-muted-foreground">{actual}</span>
@@ -706,13 +718,22 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                         <span className="text-xs font-black tabular-nums text-foreground ml-1">{value}%</span>
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden bg-black/[0.05]">
+                    <div className="h-1.5 rounded-full overflow-hidden"
+                      style={{ background: 'rgba(0,0,0,0.06)' }}>
                       <div className="h-full rounded-full transition-all duration-1000 ease-out"
                         style={{ width: `${Math.min(value, 100)}%`, background: barColor }} />
                     </div>
                   </div>
                 );
               })}
+            </div>
+                      <div className="h-full rounded-full transition-all duration-1000 ease-out"
+                        style={{ width: `${Math.min(value, 100)}%`, background: barColor }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
               {/* 前月比 */}
               <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-black/[0.05]">
