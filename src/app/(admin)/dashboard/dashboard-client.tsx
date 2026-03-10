@@ -614,7 +614,12 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // パフォーマンス
     performance: (
-      <div className="h-full w-full relative overflow-hidden rounded-2xl bg-white/60 dark:bg-[rgba(30,32,45,0.55)] backdrop-blur-2xl border border-white/70 dark:border-white/[0.08] shadow-[0_2px_24px_rgba(100,120,160,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_2px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)] p-5 cursor-grab active:cursor-grabbing">
+      <div className="h-full w-full relative overflow-hidden rounded-2xl backdrop-blur-2xl cursor-grab active:cursor-grabbing p-5"
+        style={{
+          background: 'linear-gradient(160deg, rgba(235,240,250,0.9) 0%, rgba(240,235,252,0.85) 100%)',
+          border: '1px solid rgba(200,210,230,0.5)',
+          boxShadow: 'inset 0 2px 8px rgba(100,120,180,0.12), inset 0 1px 3px rgba(100,120,180,0.08), 0 1px 0 rgba(255,255,255,0.8)',
+        }}>
         <div className="h-full flex flex-col gap-4">
           {/* ヘッダー */}
           <div className="flex items-center justify-between flex-shrink-0">
