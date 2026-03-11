@@ -11,10 +11,10 @@ const fallbackData = {
   orders: { month: { total: 0, change: 0 }, year: { total: 0, change: 0 }, total: { total: 0, change: 0 } },
   customers: { month: { total: 0, change: 0 }, year: { total: 0, change: 0 }, total: { total: 0, change: 0 } },
   products: { total: 0, newThisMonth: 0 },
-  recentOrders: [] as never[],
-  topProducts: [] as never[],
-  lowStockItems: [] as never[],
-  monthlySales: [] as never[],
+  recentOrders: [] as { id: string; order_number: string; customer_name: string; total: number; status: string; created_at: string }[],
+  topProducts: [] as { id: string; name: string; image: string | null; sales: number }[],
+  lowStockItems: [] as { productId: string; variantId: string; productName: string; variantName: string; sku: string; stock: number; threshold: number; image: string | null }[],
+  monthlySales: [] as { name: string; sales: number; orders: number }[],
   performance: {
     salesTarget: 0, salesActual: 0, salesAchievement: 0,
     ordersTarget: 0, ordersActual: 0, ordersAchievement: 0,
@@ -25,7 +25,8 @@ const fallbackData = {
 
 export default function DashboardPage() {
   const { organization } = useOrganization();
-  const [data, setData] = useState<typeof fallbackData | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
     if (!organization?.id) return;
