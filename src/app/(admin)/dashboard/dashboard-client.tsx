@@ -652,41 +652,56 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           {/* 中央コンテンツ：横分割 */}
           <div className={cn("flex gap-5 flex-1 min-h-0 items-center", isLoadingPerformance && "opacity-50 pointer-events-none")}>
 
-            {/* 左：リング - 浮き感のある白カード */}
+            {/* 左：リング - 3D浮きデザイン */}
             <div className="relative flex items-center justify-center flex-shrink-0">
-              {/* リング背景カード */}
+              {/* 外側グロー */}
+              <div className="absolute rounded-full"
+                style={{
+                  inset: '-6px',
+                  background: 'radial-gradient(circle, rgba(14,165,233,0.12) 0%, transparent 70%)',
+                  filter: 'blur(6px)',
+                }} />
+              {/* 背景ディスク（窪み感） */}
               <div className="absolute inset-0 rounded-full"
                 style={{
-                  background: 'rgba(255,255,255,0.7)',
-                  boxShadow: '0 4px_16px rgba(100,120,180,0.12), inset 0 1px 0 rgba(255,255,255,0.9)',
+                  background: 'linear-gradient(145deg, rgba(230,245,255,0.9) 0%, rgba(255,255,255,0.95) 60%)',
+                  boxShadow: 'inset 0 3px 8px rgba(14,165,233,0.12), inset 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(255,255,255,0.8), 0 1px 0 rgba(255,255,255,1)',
                   backdropFilter: 'blur(8px)',
                 }} />
               <svg className="-rotate-90" width={120} height={120} style={{ display: 'block', position: 'relative', zIndex: 1 }}>
                 <defs>
                   <linearGradient id="perfMainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#38bdf8" />
-                    <stop offset="60%" stopColor="#0ea5e9" />
+                    <stop offset="0%" stopColor="#7dd3fc" />
+                    <stop offset="40%" stopColor="#38bdf8" />
                     <stop offset="100%" stopColor="#0284c7" />
                   </linearGradient>
+                  <filter id="ringGlow">
+                    <feGaussianBlur stdDeviation="2" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
                 </defs>
-                <circle cx={60} cy={60} r={48} fill="none" stroke="rgba(14,165,233,0.1)" strokeWidth={10} />
+                {/* トラック（窪み感） */}
+                <circle cx={60} cy={60} r={48} fill="none" stroke="rgba(14,165,233,0.12)" strokeWidth={11} />
+                {/* プログレスリング（3Dグロー） */}
                 <circle cx={60} cy={60} r={48} fill="none"
                   stroke="url(#perfMainGrad)" strokeWidth={10}
                   strokeLinecap="round"
                   strokeDasharray={48 * 2 * Math.PI}
                   strokeDashoffset={48 * 2 * Math.PI * (1 - Math.min(performanceData.avgAchievement / 100, 1))}
+                  filter="url(#ringGlow)"
                   className="transition-all duration-1000 ease-out" />
               </svg>
+              {/* 中央テキスト */}
               <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ zIndex: 2 }}>
-                <span className="text-2xl font-black text-foreground tabular-nums leading-none">
+                <span className="text-2xl font-black text-slate-700 tabular-nums leading-none" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
                   {performanceData.avgAchievement}<span className="text-sm">%</span>
                 </span>
-                <span className="text-[9px] text-muted-foreground mt-0.5">平均達成</span>
+                <span className="text-[9px] text-slate-400 mt-0.5">平均達成</span>
                 <span className={cn(
-                  "text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded-full shadow-sm",
-                  performanceData.avgAchievement >= 90 ? "text-emerald-600 bg-white"
-                  : performanceData.avgAchievement >= 70 ? "text-sky-600 bg-white"
-                  : "text-slate-500 bg-white"
+                  "text-[10px] font-bold mt-1 px-1.5 py-0.5 rounded-full",
+                  performanceData.avgAchievement >= 90 ? "text-emerald-600 bg-white shadow-sm"
+                  : performanceData.avgAchievement >= 70 ? "text-sky-600 bg-white shadow-sm"
+                  : "text-slate-500 bg-white shadow-sm"
                 )}>
                   {performanceData.grade}
                 </span>
