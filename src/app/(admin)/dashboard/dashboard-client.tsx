@@ -812,7 +812,12 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
               <Link
                 key={`${item.productId}-${item.variantId}`}
                 href={`/products/${item.productId}`}
-                className="flex items-center gap-2.5 p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 transition-colors"
+                className="flex items-center gap-2.5 p-2 rounded-xl transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.75)',
+                  boxShadow: '0 2px 8px rgba(14,165,233,0.07), inset 0 1px 0 rgba(255,255,255,0.95)',
+                  border: '1px solid rgba(186,230,253,0.35)',
+                }}
               >
                 {/* 商品画像 */}
                 <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-700">
@@ -866,7 +871,12 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
               <Link
                 key={product.id}
                 href={`/products/${product.id}`}
-                className="group/item relative flex-shrink-0 w-36 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-sky-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer overflow-hidden border border-slate-100 dark:border-slate-700/50"
+                className="group/item relative flex-shrink-0 w-36 rounded-xl transition-all cursor-pointer overflow-hidden"
+                style={{
+                  background: 'rgba(255,255,255,0.78)',
+                  boxShadow: '0 3px 10px rgba(14,165,233,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+                  border: '1px solid rgba(186,230,253,0.35)',
+                }}
               >
                 <div className="absolute top-2 left-2 z-10 h-5.5 w-5.5 rounded-full bg-gradient-to-br from-sky-400 to-sky-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md">
                   {index + 1}
