@@ -518,7 +518,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
               )}
             </div>
           ) : (
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
+            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
               {filteredContents.map(renderContentCard)}
             </div>
           )}
@@ -546,7 +546,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
                   ? 'space-y-2'
                   : 'grid gap-3'
                 }
-                style={type !== 'qa' && type !== 'faq' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' } : {}}>
+                style={type !== 'qa' && type !== 'faq' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' } : {}}>
                   {typeContents.map(renderContentCard)}
                 </div>
               )}
