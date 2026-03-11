@@ -29,13 +29,11 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
+  // getSession() はローカルJWT検証のみ（ネットワーク往復なし）。
+  // 実ユーザー検証は Layout 側の getAuthOrganization() で1回だけ行う。
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const pathname = request.nextUrl.pathname;
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup');
@@ -46,19 +44,19 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/api/');
   const isOnboardingRoute = pathname.startsWith('/onboarding');
 
-  if (!user && !isAuthRoute && !isPublicRoute && !isOnboardingRoute) {
+  if (!session && !isAuthRoute && !isPublicRoute && !isOnboardingRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthRoute) {
+  if (session && isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
 
-  if (!user && isOnboardingRoute) {
+  if (!session && isOnboardingRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
@@ -66,4 +64,3 @@ export async function updateSession(request: NextRequest) {
 
   return supabaseResponse;
 }
-

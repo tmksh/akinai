@@ -5,60 +5,45 @@ import { OrganizationProvider } from '@/components/providers/organization-provid
 import type { Organization, CurrentUser } from '@/components/providers/organization-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { getAuthOrganization } from '@/lib/auth-helpers';
-import { createClient } from '@/lib/supabase/server';
 
 async function getInitialData(): Promise<{
   organization: Organization | null;
   currentUser: CurrentUser | null;
 }> {
   try {
-    const { user, organizationId } = await getAuthOrganization();
+    const { user, userProfile, orgRow } = await getAuthOrganization();
 
     if (!user) return { organization: null, currentUser: null };
-
-    const supabase = await createClient();
-
-    const [profileRes, orgRes] = await Promise.all([
-      supabase.from('users').select('name, avatar').eq('id', user.id).single(),
-      organizationId
-        ? supabase
-            .from('organizations')
-            .select('id, name, slug, logo, email, phone, website, address, frontend_url, frontend_api_key, plan, settings, owner_id, is_active, created_at, updated_at')
-            .eq('id', organizationId)
-            .single()
-        : Promise.resolve({ data: null }),
-    ]);
 
     const currentUser: CurrentUser = {
       id: user.id,
       email: user.email ?? '',
-      name: (profileRes.data?.name as string) ?? user.user_metadata?.name ?? user.email ?? 'ユーザー',
-      avatar: (profileRes.data?.avatar as string) ?? user.user_metadata?.avatar_url ?? null,
+      name: (userProfile?.name as string) ?? user.user_metadata?.name ?? user.email ?? 'ユーザー',
+      avatar: (userProfile?.avatar as string) ?? user.user_metadata?.avatar_url ?? null,
     };
 
-    const org = orgRes.data;
-    if (!org) return { organization: null, currentUser };
+    if (!orgRow) return { organization: null, currentUser };
 
-    const settings = (org.settings as Record<string, unknown>) || {};
+    const settings = (orgRow.settings as Record<string, unknown>) || {};
     const organization: Organization = {
-      id: org.id as string,
-      name: org.name as string,
-      slug: org.slug as string,
-      logo: org.logo as string | null,
-      email: org.email as string | null,
-      phone: org.phone as string | null,
-      website: org.website as string | null,
-      address: org.address as string | null,
-      frontendUrl: org.frontend_url as string | null,
-      frontendApiKey: org.frontend_api_key as string | null,
-      plan: org.plan as 'starter' | 'pro' | 'enterprise',
+      id: orgRow.id as string,
+      name: orgRow.name as string,
+      slug: orgRow.slug as string,
+      logo: orgRow.logo as string | null,
+      email: orgRow.email as string | null,
+      phone: orgRow.phone as string | null,
+      website: orgRow.website as string | null,
+      address: orgRow.address as string | null,
+      frontendUrl: orgRow.frontend_url as string | null,
+      frontendApiKey: orgRow.frontend_api_key as string | null,
+      plan: orgRow.plan as 'starter' | 'pro' | 'enterprise',
       settings,
       productFieldSchema: (settings.product_field_schema as Organization['productFieldSchema']) || [],
       contentFieldSchema: (settings.content_field_schema as Organization['contentFieldSchema']) || [],
-      ownerId: org.owner_id as string | null,
-      isActive: org.is_active as boolean,
-      createdAt: org.created_at as string,
-      updatedAt: org.updated_at as string,
+      ownerId: orgRow.owner_id as string | null,
+      isActive: orgRow.is_active as boolean,
+      createdAt: orgRow.created_at as string,
+      updatedAt: orgRow.updated_at as string,
     };
 
     return { organization, currentUser };
@@ -80,7 +65,6 @@ export default async function AdminLayout({
         <NavigationProgress />
       </Suspense>
       <div className="min-h-screen overflow-x-hidden main-gradient-bg relative">
-        {/* 固定アンビエントグロー */}
         <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
           <div className="absolute top-0 left-[10%] w-[600px] h-[400px] opacity-[0.18]"
             style={{ background: 'radial-gradient(ellipse, #bae6fd, transparent 70%)', filter: 'blur(40px)' }} />
