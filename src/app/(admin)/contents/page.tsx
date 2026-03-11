@@ -18,7 +18,7 @@ export default function ContentsPage() {
     if (!organization?.id) return;
     let cancelled = false;
     Promise.all([
-      getContents(organization.id, { limit: 30 }),
+      getContents(organization.id, { limit: 100 }),
       getContentStats(organization.id),
       getEnabledContentTypes(organization.id),
     ]).then(([c, s, t]) => {

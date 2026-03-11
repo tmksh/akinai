@@ -20,7 +20,7 @@ export default function ProductsPage() {
     if (!organization?.id) return;
     let cancelled = false;
     Promise.all([
-      getProducts(organization.id, { limit: 30 }),
+      getProducts(organization.id, { limit: 100 }),
       getCategories(organization.id),
     ]).then(([p, c]) => {
       if (cancelled) return;
