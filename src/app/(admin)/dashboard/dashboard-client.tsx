@@ -616,9 +616,9 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
     performance: (
       <div className="h-full w-full relative overflow-hidden rounded-2xl backdrop-blur-2xl cursor-grab active:cursor-grabbing p-5"
         style={{
-          background: 'linear-gradient(160deg, rgba(240,250,255,0.92) 0%, rgba(224,244,255,0.88) 100%)',
-          border: '1px solid rgba(186,230,253,0.5)',
-          boxShadow: 'inset 0 2px 8px rgba(14,165,233,0.08), inset 0 1px 3px rgba(14,165,233,0.05), 0 1px 0 rgba(255,255,255,0.85)',
+          background: 'linear-gradient(160deg, rgba(250,253,255,0.95) 0%, rgba(240,249,255,0.92) 100%)',
+          border: '1px solid rgba(186,230,253,0.4)',
+          boxShadow: 'inset 0 2px 6px rgba(14,165,233,0.06), inset 0 1px 2px rgba(14,165,233,0.04), 0 1px 0 rgba(255,255,255,0.9)',
         }}>
         <div className="h-full flex flex-col gap-4">
           {/* ヘッダー */}
