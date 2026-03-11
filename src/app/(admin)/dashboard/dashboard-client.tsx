@@ -292,16 +292,18 @@ function WidgetWrapper({
   noPadding?: boolean;
 }) {
   return (
-    <div className={cn(
-      "h-full w-full overflow-hidden rounded-2xl relative cursor-grab active:cursor-grabbing",
-      "bg-white/60 dark:bg-[rgba(30,32,45,0.55)]",
-      "backdrop-blur-2xl",
-      "border border-white/70 dark:border-white/[0.08]",
-      "shadow-[0_2px_24px_rgba(100,120,160,0.08),inset_0_1px_0_rgba(255,255,255,0.85)]",
-      "dark:shadow-[0_2px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]",
-      !noPadding && "p-4",
-      className
-    )}>
+    <div
+      className={cn(
+        "h-full w-full overflow-hidden rounded-2xl relative cursor-grab active:cursor-grabbing backdrop-blur-2xl",
+        !noPadding && "p-4",
+        className
+      )}
+      style={{
+        background: 'linear-gradient(160deg, rgba(250,253,255,0.95) 0%, rgba(240,249,255,0.92) 100%)',
+        border: '1px solid rgba(186,230,253,0.4)',
+        boxShadow: 'inset 0 2px 6px rgba(14,165,233,0.06), inset 0 1px 2px rgba(14,165,233,0.04), 0 1px 0 rgba(255,255,255,0.9)',
+      }}
+    >
       {children}
     </div>
   );
@@ -791,7 +793,12 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
     // 在庫アラート
     'stock-alert': (
-      <div className="h-full w-full rounded-2xl p-4 relative cursor-grab active:cursor-grabbing bg-white/60 dark:bg-[rgba(30,32,45,0.55)] backdrop-blur-2xl border border-white/70 dark:border-white/[0.08] shadow-[0_2px_24px_rgba(100,120,160,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_2px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]">
+      <div className="h-full w-full rounded-2xl p-4 relative cursor-grab active:cursor-grabbing backdrop-blur-2xl"
+        style={{
+          background: 'linear-gradient(160deg, rgba(250,253,255,0.95) 0%, rgba(240,249,255,0.92) 100%)',
+          border: '1px solid rgba(186,230,253,0.4)',
+          boxShadow: 'inset 0 2px 6px rgba(14,165,233,0.06), inset 0 1px 2px rgba(14,165,233,0.04), 0 1px 0 rgba(255,255,255,0.9)',
+        }}>
         <div className="flex items-center gap-2 mb-3">
           <AlertCircle className={cn("h-4 w-4", initialData.lowStockItems.length > 0 ? "text-sky-500" : "text-slate-400")} />
           <h3 className="font-semibold text-slate-900 dark:text-white text-sm">在庫アラート</h3>
