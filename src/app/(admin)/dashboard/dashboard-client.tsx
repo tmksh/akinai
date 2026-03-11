@@ -728,17 +728,17 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
               })}
             </div>
 
-              {/* 前月比 */}
-              <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-black/[0.05]">
-                <span className="text-[10px] text-muted-foreground font-medium">前月比成長</span>
-                <span className={cn(
-                  "text-sm font-black tabular-nums",
-                  performanceData.growthRate >= 0 ? "text-sky-500" : "text-destructive"
-                )}>
-                  {performanceData.growthRate >= 0 ? '▲' : '▼'} {Math.abs(performanceData.growthRate)}%
-                </span>
-              </div>
-            </div>
+          </div>
+
+          {/* 前月比 */}
+          <div className="flex items-center justify-between pt-2.5 border-t border-black/[0.05] flex-shrink-0">
+            <span className="text-[10px] text-muted-foreground font-medium">前月比成長</span>
+            <span className={cn(
+              "text-sm font-black tabular-nums",
+              performanceData.growthRate >= 0 ? "text-sky-500" : "text-destructive"
+            )}>
+              {performanceData.growthRate >= 0 ? '▲' : '▼'} {Math.abs(performanceData.growthRate)}%
+            </span>
           </div>
         </div>
       </div>
