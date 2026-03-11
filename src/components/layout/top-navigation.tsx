@@ -268,7 +268,7 @@ export function TopNavigation() {
         {/* Mobile nav */}
         {mobileMenuOpen && (
           <nav className="md:hidden border-t border-white/20 dark:border-white/[0.06] px-3 py-3 max-h-[70vh] overflow-y-auto rounded-b-2xl">
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);

@@ -160,16 +160,16 @@ export default function ProductsClient({
           <h1 className="text-xl font-bold tracking-tight">商品管理</h1>
           <p className="text-sm text-muted-foreground mt-0.5">商品の登録・編集・在庫管理</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button asChild variant="outline" size="sm">
             <Link href="/settings/products">
-              <Sparkles className="h-4 w-4 mr-1.5 text-sky-500" />
-              カスタムフィールド
+              <Sparkles className="h-4 w-4 sm:mr-1.5 text-sky-500" />
+              <span className="hidden sm:inline">カスタムフィールド</span>
             </Link>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
-            <Upload className="h-4 w-4 mr-1.5" />
-            CSVインポート
+            <Upload className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">CSVインポート</span>
           </Button>
           <Button asChild size="sm" className="bg-sky-500 hover:bg-sky-600 text-white shadow-sm">
             <Link href="/products/new">
@@ -320,7 +320,7 @@ export default function ProductsClient({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
           {filteredProducts.map((product) => {
             const totalStock = product.variants.reduce((s, v) => s + v.stock, 0);
             const prices = product.variants.map(v => v.price);

@@ -369,30 +369,30 @@ export default function ContentsClient({ initialContents, stats, organizationId,
   return (
     <div className="space-y-6">
       {/* ページヘッダー */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">コンテンツ管理</h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm mt-0.5">
             記事・ニュース・特集などを作成・管理します
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button asChild variant="outline" size="sm">
             <Link href="/settings/contents-schema">
-              <Sparkles className="mr-2 h-4 w-4 text-sky-500" />
-              カスタムフィールド
+              <Sparkles className="h-4 w-4 sm:mr-2 text-sky-500" />
+              <span className="hidden sm:inline">カスタムフィールド</span>
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/settings/contents">
-              <Settings className="mr-2 h-4 w-4" />
-              タイプ管理
+              <Settings className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">タイプ管理</span>
             </Link>
           </Button>
           {enabledContentTypes.length > 0 && (
             <Button asChild className="btn-premium">
               <Link href="/contents/new">
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-1.5 h-4 w-4" />
                 新規作成
               </Link>
             </Button>
