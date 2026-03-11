@@ -300,7 +300,7 @@ function WidgetWrapper({
       )}
       style={{
         background: 'linear-gradient(160deg, rgba(250,253,255,0.95) 0%, rgba(240,249,255,0.92) 100%)',
-        border: '1px solid rgba(186,230,253,0.4)',
+        border: '1px solid rgba(220,232,245,0.6)',
         boxShadow: 'inset 0 2px 6px rgba(14,165,233,0.06), inset 0 1px 2px rgba(14,165,233,0.04), 0 1px 0 rgba(255,255,255,0.9)',
       }}
     >
@@ -619,7 +619,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
       <div className="h-full w-full relative overflow-hidden rounded-2xl backdrop-blur-2xl cursor-grab active:cursor-grabbing p-5"
         style={{
           background: 'linear-gradient(160deg, rgba(250,253,255,0.95) 0%, rgba(240,249,255,0.92) 100%)',
-          border: '1px solid rgba(186,230,253,0.4)',
+          border: '1px solid rgba(220,232,245,0.6)',
           boxShadow: 'inset 0 2px 6px rgba(14,165,233,0.06), inset 0 1px 2px rgba(14,165,233,0.04), 0 1px 0 rgba(255,255,255,0.9)',
         }}>
         <div className="h-full flex flex-col gap-4">
@@ -796,7 +796,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
       <div className="h-full w-full rounded-2xl p-4 relative cursor-grab active:cursor-grabbing backdrop-blur-2xl"
         style={{
           background: 'linear-gradient(160deg, rgba(250,253,255,0.95) 0%, rgba(240,249,255,0.92) 100%)',
-          border: '1px solid rgba(186,230,253,0.4)',
+          border: '1px solid rgba(220,232,245,0.6)',
           boxShadow: 'inset 0 2px 6px rgba(14,165,233,0.06), inset 0 1px 2px rgba(14,165,233,0.04), 0 1px 0 rgba(255,255,255,0.9)',
         }}>
         <div className="flex items-center gap-2 mb-3">
@@ -816,7 +816,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                 style={{
                   background: 'rgba(255,255,255,0.75)',
                   boxShadow: '0 2px 8px rgba(14,165,233,0.07), inset 0 1px 0 rgba(255,255,255,0.95)',
-                  border: '1px solid rgba(186,230,253,0.35)',
+                  border: '1px solid rgba(220,232,245,0.55)',
                 }}
               >
                 {/* 商品画像 */}
@@ -875,7 +875,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
                 style={{
                   background: 'rgba(255,255,255,0.78)',
                   boxShadow: '0 3px 10px rgba(14,165,233,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
-                  border: '1px solid rgba(186,230,253,0.35)',
+                  border: '1px solid rgba(220,232,245,0.55)',
                 }}
               >
                 <div className="absolute top-2 left-2 z-10 h-5.5 w-5.5 rounded-full bg-gradient-to-br from-sky-400 to-sky-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md">
