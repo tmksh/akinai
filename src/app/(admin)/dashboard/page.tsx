@@ -1,13 +1,11 @@
-import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useOrganization } from '@/components/providers/organization-provider';
 import { getDashboardData } from '@/lib/actions/dashboard';
-import { getAuthOrganization } from '@/lib/auth-helpers';
-import { createDefaultOrganizationForUser } from '@/lib/create-default-organization';
-import { createClient } from '@/lib/supabase/server';
 import DashboardClient from './dashboard-client';
 import { Loader2 } from 'lucide-react';
 
-// エラー時のフォールバックデータ
 const fallbackData = {
   revenue: { month: { total: 0, change: 0 }, year: { total: 0, change: 0 }, total: { total: 0, change: 0 } },
   orders: { month: { total: 0, change: 0 }, year: { total: 0, change: 0 }, total: { total: 0, change: 0 } },
@@ -25,74 +23,32 @@ const fallbackData = {
   },
 };
 
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">ダッシュボード</h1>
-        <p className="text-sm text-slate-500">ショップの概要を読み込み中...</p>
+export default function DashboardPage() {
+  const { organization } = useOrganization();
+  const [data, setData] = useState<typeof fallbackData | null>(null);
+
+  useEffect(() => {
+    if (!organization?.id) return;
+    let cancelled = false;
+    getDashboardData(organization.id)
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(() => { if (!cancelled) setData(fallbackData); });
+    return () => { cancelled = true; };
+  }, [organization?.id]);
+
+  if (!data) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">ダッシュボード</h1>
+          <p className="text-xs sm:text-sm text-slate-500">ショップの概要を読み込み中...</p>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
+        </div>
       </div>
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
-      </div>
-    </div>
-  );
-}
-
-async function DashboardContent({ organizationId }: { organizationId: string }) {
-  let dashboardData;
-  try {
-    dashboardData = await getDashboardData(organizationId);
-  } catch (err) {
-    console.error('[Dashboard] getDashboardData failed:', err);
-    dashboardData = fallbackData;
+    );
   }
 
-  return <DashboardClient initialData={dashboardData} organizationId={organizationId} />;
-}
-
-export default async function DashboardPage() {
-  const { user, organizationId: cachedOrgId } = await getAuthOrganization();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  let organizationId = cachedOrgId;
-
-  if (!organizationId) {
-    const supabase = await createClient();
-    const { data: memberships } = await supabase
-      .from('organization_members')
-      .select('organization_id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .limit(1);
-
-    if (memberships && memberships.length > 0) {
-      organizationId = memberships[0].organization_id;
-      await supabase
-        .from('users')
-        .update({ current_organization_id: organizationId, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
-    } else {
-      try {
-        const result = await createDefaultOrganizationForUser(supabase, user);
-        organizationId = result.organizationId;
-      } catch (err) {
-        console.error('[Dashboard] Failed to create default org:', err);
-        redirect('/onboarding');
-      }
-    }
-
-    if (!organizationId) {
-      redirect('/onboarding');
-    }
-  }
-
-  return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <DashboardContent organizationId={organizationId} />
-    </Suspense>
-  );
+  return <DashboardClient initialData={data} organizationId={organization?.id || ''} />;
 }

@@ -1,43 +1,50 @@
-import { redirect } from 'next/navigation';
-import { getContents, getContentStats } from '@/lib/actions/contents';
-import { getAuthOrganization } from '@/lib/auth-helpers';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getContents, getContentStats, type ContentData } from '@/lib/actions/contents';
+import { getEnabledContentTypes } from '@/lib/actions/settings';
 import ContentsClient from './contents-client';
+import { Loader2 } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+export default function ContentsPage() {
+  const { organization } = useOrganization();
+  const [contents, setContents] = useState<ContentData[]>([]);
+  const [stats, setStats] = useState({ total: 0, published: 0, draft: 0, scheduled: 0 });
+  const [enabledTypes, setEnabledTypes] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
-export default async function ContentsPage() {
-  const { user, organizationId, orgSettings } = await getAuthOrganization();
+  useEffect(() => {
+    if (!organization?.id) return;
+    let cancelled = false;
+    Promise.all([
+      getContents(organization.id, { limit: 30 }),
+      getContentStats(organization.id),
+      getEnabledContentTypes(organization.id),
+    ]).then(([c, s, t]) => {
+      if (cancelled) return;
+      setContents(c.data || []);
+      setStats(s || { total: 0, published: 0, draft: 0, scheduled: 0 });
+      setEnabledTypes(t.data || []);
+      setLoaded(true);
+    });
+    return () => { cancelled = true; };
+  }, [organization?.id]);
 
-  if (!user) {
-    redirect('/login');
-  }
-
-  if (!organizationId) {
+  if (!loaded) {
     return (
-      <ContentsClient
-        initialContents={[]}
-        stats={{ total: 0, published: 0, draft: 0, scheduled: 0 }}
-        organizationId=""
-        enabledContentTypes={[]}
-      />
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
+        <p className="text-sm text-muted-foreground">コンテンツを読み込み中...</p>
+      </div>
     );
   }
 
-  // コンテンツ取得と統計を並列実行（enabledContentTypesはキャッシュ済みsettingsから取得）
-  const [contentsRes, stats] = await Promise.all([
-    getContents(organizationId, { limit: 50 }),
-    getContentStats(organizationId),
-  ]);
-
-  const enabledTypes = Array.isArray(orgSettings?.enabled_content_types)
-    ? orgSettings.enabled_content_types as string[]
-    : [];
-
   return (
     <ContentsClient
-      initialContents={contentsRes.data || []}
-      stats={stats || { total: 0, published: 0, draft: 0, scheduled: 0 }}
-      organizationId={organizationId}
+      initialContents={contents}
+      stats={stats}
+      organizationId={organization?.id || ''}
       enabledContentTypes={enabledTypes}
     />
   );
