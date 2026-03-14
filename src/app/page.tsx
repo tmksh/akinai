@@ -91,125 +91,106 @@ function HeroSection() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden pt-20"
-      style={{ background: 'linear-gradient(180deg, #e8f4fb 0%, #dbeafe 50%, #eef6fc 100%)' }}>
+    <section className="relative overflow-hidden"
+      style={{ background: 'linear-gradient(160deg, #e8f4fb 0%, #dbeafe 50%, #eef6fc 100%)', paddingTop: 80, minHeight: '100vh' }}>
 
       {/* 背景デコレーション */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[10%] left-[10%] w-[500px] h-[500px] rounded-full opacity-40"
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[5%] w-[500px] h-[500px] rounded-full opacity-40"
           style={{ background: 'radial-gradient(circle, #bae6fd 0%, transparent 65%)' }} />
-        <div className="absolute bottom-[5%] right-[10%] w-[400px] h-[400px] rounded-full opacity-30"
+        <div className="absolute bottom-[10%] right-[0%] w-[500px] h-[500px] rounded-full opacity-25"
           style={{ background: 'radial-gradient(circle, #93c5fd 0%, transparent 65%)' }} />
-        <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-15"
-          style={{ background: 'radial-gradient(circle, #7dd3fc 0%, transparent 70%)' }} />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-4 w-full">
-        <div className="flex flex-col lg:flex-row items-center" style={{ gap: 0 }}>
+      <div className="relative z-10 flex flex-col lg:flex-row items-center min-h-[calc(100vh-80px)]">
 
-          {/* 左: テキスト + CTA */}
-          <div className={`space-y-6 transition-all duration-1000 flex-shrink-0 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-            style={{ width: '42%', paddingLeft: 8 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border"
-              style={{ background: 'rgba(255,255,255,0.85)', borderColor: '#7dd3fc', color: '#0284c7' }}>
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-              B2B EC CMS — オープンベータ公開中
-            </div>
+        {/* 左: テキスト */}
+        <div className={`flex-shrink-0 lg:w-[48%] px-8 lg:px-16 py-12 space-y-6 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
 
-            <h1 className="text-4xl md:text-5xl lg:text-[3.2rem] font-black tracking-tight leading-tight" style={{ color: '#1e3a5f' }}>
-              B2B ECを、<br />
-              <span style={{
-                background: 'linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 50%, #38bdf8 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>
-                もっとかんたんに。
-              </span>
-            </h1>
-
-            <p className="text-base md:text-lg leading-relaxed" style={{ color: '#4b5563' }}>
-              商品管理・受注・顧客・見積・コンテンツ・ショップ。<br />
-              B2B ECに必要なすべてを、美しい管理画面に。
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Link href="/signup"
-                className="font-bold px-8 py-4 rounded-full text-sm flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-lg"
-                style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #38bdf8 100%)', color: '#fff', boxShadow: '0 4px 20px rgba(29,78,216,0.35)' }}>
-                無料で始める <ArrowRight className="h-4 w-4" />
-              </Link>
-              <a href="#screenshots"
-                className="font-semibold px-8 py-4 rounded-full text-sm flex items-center justify-center gap-2 border transition-all hover:bg-white/70"
-                style={{ borderColor: '#bae6fd', color: '#0369a1', background: 'rgba(255,255,255,0.6)' }}>
-                画面を見る
-              </a>
-            </div>
-
-            <div className="flex items-center gap-5 text-xs pt-1" style={{ color: '#6b7280' }}>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />クレカ不要</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />即日利用可</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />日本語対応</span>
-            </div>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border"
+            style={{ background: 'rgba(255,255,255,0.85)', borderColor: '#7dd3fc', color: '#0284c7' }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+            B2B EC CMS — オープンベータ公開中
           </div>
 
-          {/* 右: PC + スクショ + 人物 */}
-          <div className={`hidden lg:block transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}
-            style={{ flex: '0 0 58%', position: 'relative', height: 640 }}>
+          <h1 className="font-black tracking-tight leading-[1.1]"
+            style={{ color: '#1e3a5f', fontSize: 'clamp(2.2rem, 4vw, 3.5rem)' }}>
+            B2B ECを、<br />
+            <span style={{
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 50%, #38bdf8 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+            }}>
+              もっとかんたんに。
+            </span>
+          </h1>
 
-            {/* PC: クロップ済み、幅580px → 高さ368px */}
-            <div style={{ position: 'absolute', left: 0, bottom: 120 }}>
-              <div style={{ position: 'relative', width: 580 }}>
-                <Image
-                  src="/hero-laptop-crop.png"
-                  alt="ノートPC"
-                  width={901}
-                  height={572}
-                  style={{ width: 580, height: 'auto', display: 'block', filter: 'drop-shadow(0 10px 32px rgba(30,58,95,0.15))' }}
-                  priority
-                />
-                {/* スクショ: top=6.12% left=16.54% w=66.93% h=68.18% */}
-                <div style={{
-                  position: 'absolute',
-                  top: '6.12%', left: '16.54%',
-                  width: '66.93%', height: '68.18%',
-                  overflow: 'hidden',
-                  zIndex: 2,
-                }}>
-                  <Image
-                    src="/screenshot-dashboard.png"
-                    alt="ダッシュボード"
-                    width={1024}
-                    height={554}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
-                  />
-                </div>
+          <p className="text-base leading-relaxed" style={{ color: '#4b5563' }}>
+            商品管理・受注・顧客・見積・コンテンツ・ショップ。<br />
+            B2B ECに必要なすべてを、美しい管理画面に。
+          </p>
+
+          <div className="flex flex-wrap gap-3">
+            <Link href="/signup"
+              className="font-bold px-8 py-3.5 rounded-full text-sm flex items-center gap-2 transition-all hover:scale-105 shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #38bdf8 100%)', color: '#fff', boxShadow: '0 4px 20px rgba(29,78,216,0.35)' }}>
+              無料で始める <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a href="#screenshots"
+              className="font-semibold px-8 py-3.5 rounded-full text-sm flex items-center gap-2 border transition-all hover:bg-white/70"
+              style={{ borderColor: '#bae6fd', color: '#0369a1', background: 'rgba(255,255,255,0.6)' }}>
+              画面を見る
+            </a>
+          </div>
+
+          {/* 実績バッジ */}
+          <div className="flex items-stretch gap-4 flex-wrap pt-2">
+            {[
+              { val: '1,200+', label: '導入企業数' },
+              { val: '99.9%', label: '稼働率' },
+              { val: '即日', label: '利用開始' },
+            ].map((b) => (
+              <div key={b.val} className="text-center px-5 py-3 rounded-2xl border"
+                style={{ background: 'rgba(255,255,255,0.8)', borderColor: '#bae6fd', boxShadow: '0 2px 12px rgba(14,165,233,0.08)' }}>
+                <p className="text-2xl font-black" style={{ color: '#1d4ed8', lineHeight: 1 }}>{b.val}</p>
+                <p className="text-xs mt-1" style={{ color: '#6b7280' }}>{b.label}</p>
               </div>
-            </div>
-
-            {/* 人物: PCの右端(left≈540)に密着、高さ560px */}
-            <div style={{ position: 'absolute', left: 460, bottom: 120, zIndex: 10 }}>
-              <Image
-                src="/hero-person-crop.png"
-                alt="ビジネスパーソン"
-                width={279}
-                height={667}
-                style={{ height: 560, width: 'auto', display: 'block', filter: 'drop-shadow(0 6px 16px rgba(30,58,95,0.1))' }}
-                priority
-              />
-            </div>
-
+            ))}
           </div>
 
+          <div className="flex items-center gap-5 text-xs" style={{ color: '#6b7280' }}>
+            <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />クレカ不要</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />即日利用可</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />日本語対応</span>
+          </div>
         </div>
+
+        {/* 右: イラスト（はみ出してOK） */}
+        <div className={`flex-1 flex items-end justify-center lg:justify-start transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}
+          style={{ marginRight: -40, overflow: 'visible' }}>
+          <style>{`@keyframes fv-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)} }`}</style>
+          <Image
+            src="/fv-illust-final.png"
+            alt="ECイラスト"
+            width={1311}
+            height={704}
+            className="h-auto"
+            style={{
+              width: 'clamp(400px, 55vw, 780px)',
+              filter: 'drop-shadow(0 16px 48px rgba(30,58,95,0.1))',
+              animation: 'fv-float 4s ease-in-out infinite',
+            }}
+            priority
+            unoptimized
+          />
+        </div>
+
       </div>
 
       {/* 波形ボトム */}
       <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none" style={{ zIndex: 5 }}>
         <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"
           style={{ display: 'block', width: '100%', height: 80 }}>
-          <path d="M0,40 C180,80 360,0 540,40 C720,80 900,0 1080,40 C1260,80 1380,20 1440,40 L1440,80 L0,80 Z"
-            fill="white" />
+          <path d="M0,40 C180,80 360,0 540,40 C720,80 900,0 1080,40 C1260,80 1380,20 1440,40 L1440,80 L0,80 Z" fill="white" />
         </svg>
       </div>
     </section>
