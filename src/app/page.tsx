@@ -91,106 +91,83 @@ function HeroSection() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <section className="relative overflow-hidden"
-      style={{ background: 'linear-gradient(160deg, #e8f4fb 0%, #dbeafe 50%, #eef6fc 100%)', paddingTop: 80, minHeight: '100vh' }}>
+    <section className="relative overflow-hidden" style={{ paddingTop: 80, minHeight: '92vh', background: 'linear-gradient(160deg, #f0f7ff 0%, #e0f2fe 50%, #dbeafe 100%)' }}>
 
-      {/* 背景デコレーション */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[5%] w-[500px] h-[500px] rounded-full opacity-40"
-          style={{ background: 'radial-gradient(circle, #bae6fd 0%, transparent 65%)' }} />
-        <div className="absolute bottom-[10%] right-[0%] w-[500px] h-[500px] rounded-full opacity-25"
-          style={{ background: 'radial-gradient(circle, #93c5fd 0%, transparent 65%)' }} />
+      {/* フローティングイラスト - 絶対配置 */}
+      <style>{`
+        @keyframes fv-float-a { 0%,100%{transform:translateY(0) rotate(-3deg)} 50%{transform:translateY(-18px) rotate(-3deg)} }
+        @keyframes fv-float-b { 0%,100%{transform:translateY(0) rotate(4deg)} 50%{transform:translateY(-14px) rotate(4deg)} }
+        @keyframes fv-float-c { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)} }
+        @keyframes fv-float-d { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-10px) rotate(-2deg)} }
+        @keyframes fv-float-e { 0%,100%{transform:translateY(0) rotate(5deg)} 50%{transform:translateY(-12px) rotate(5deg)} }
+        @keyframes fv-float-f { 0%,100%{transform:translateY(0) rotate(-4deg)} 50%{transform:translateY(-8px) rotate(-4deg)} }
+      `}</style>
+
+      {/* 左下: 女性イラスト（大） */}
+      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '1%', bottom: 50, width: 340, animation: 'fv-float-a 5s ease-in-out infinite' }}>
+        <Image src="/fv-illust-woman.png" alt="" width={400} height={600} className="w-full h-auto" unoptimized />
+      </div>
+      {/* 左上: チャート */}
+      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '8%', top: '12%', width: 240, animation: 'fv-float-b 4s ease-in-out infinite' }}>
+        <Image src="/fv-illust-chart.png" alt="" width={400} height={300} className="w-full h-auto" unoptimized />
+      </div>
+      {/* 左中: カート */}
+      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '2%', top: '38%', width: 200, animation: 'fv-float-e 4.2s ease-in-out infinite' }}>
+        <Image src="/fv-illust-cart.png" alt="" width={400} height={400} className="w-full h-auto" unoptimized />
+      </div>
+      {/* 右上: ラップトップ（大） */}
+      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '0%', top: '8%', width: 400, animation: 'fv-float-c 4.5s ease-in-out infinite' }}>
+        <Image src="/fv-illust-laptop.png" alt="" width={600} height={420} className="w-full h-auto" unoptimized />
+      </div>
+      {/* 右中: 箱 */}
+      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '10%', bottom: 80, width: 190, animation: 'fv-float-d 3.8s ease-in-out infinite' }}>
+        <Image src="/fv-illust-box.png" alt="" width={300} height={300} className="w-full h-auto" unoptimized />
+      </div>
+      {/* 右下: 支払い */}
+      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '1%', bottom: 30, width: 220, animation: 'fv-float-f 5.2s ease-in-out infinite' }}>
+        <Image src="/fv-illust-payment.png" alt="" width={400} height={400} className="w-full h-auto" unoptimized />
       </div>
 
-      <div className="relative z-10 flex flex-col lg:flex-row items-center min-h-[calc(100vh-80px)]">
-
-        {/* 左: テキスト */}
-        <div className={`flex-shrink-0 lg:w-[48%] px-8 lg:px-16 py-12 space-y-6 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold border"
-            style={{ background: 'rgba(255,255,255,0.85)', borderColor: '#7dd3fc', color: '#0284c7' }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-            B2B EC CMS — オープンベータ公開中
-          </div>
+      {/* 中央テキスト */}
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(92vh-80px)] text-center px-8">
+        <div className={`space-y-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+          style={{ maxWidth: 580 }}>
 
           <h1 className="font-black tracking-tight leading-[1.1]"
-            style={{ color: '#1e3a5f', fontSize: 'clamp(2.2rem, 4vw, 3.5rem)' }}>
+            style={{ color: '#1e3a5f', fontSize: 'clamp(2.4rem, 4.5vw, 4rem)' }}>
             B2B ECを、<br />
             <span style={{
-              background: 'linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 50%, #38bdf8 100%)',
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
             }}>
               もっとかんたんに。
             </span>
           </h1>
 
-          <p className="text-base leading-relaxed" style={{ color: '#4b5563' }}>
-            商品管理・受注・顧客・見積・コンテンツ・ショップ。<br />
-            B2B ECに必要なすべてを、美しい管理画面に。
+          <p className="text-lg leading-relaxed" style={{ color: '#4b5563' }}>
+            商品・受注・顧客・見積・コンテンツ・ショップ。<br />
+            B2B ECに必要なすべてを、ひとつの管理画面に。
           </p>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex justify-center gap-4 pt-2">
             <Link href="/signup"
-              className="font-bold px-8 py-3.5 rounded-full text-sm flex items-center gap-2 transition-all hover:scale-105 shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #38bdf8 100%)', color: '#fff', boxShadow: '0 4px 20px rgba(29,78,216,0.35)' }}>
-              無料で始める <ArrowRight className="h-4 w-4" />
+              className="font-bold px-10 py-4 rounded-full text-base flex items-center gap-2 transition-all hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #38bdf8 100%)', color: '#fff', boxShadow: '0 4px 20px rgba(29,78,216,0.3)' }}>
+              無料でショップを開設する <ArrowRight className="h-4 w-4" />
             </Link>
-            <a href="#screenshots"
-              className="font-semibold px-8 py-3.5 rounded-full text-sm flex items-center gap-2 border transition-all hover:bg-white/70"
-              style={{ borderColor: '#bae6fd', color: '#0369a1', background: 'rgba(255,255,255,0.6)' }}>
-              画面を見る
-            </a>
           </div>
 
-          {/* 実績バッジ */}
-          <div className="flex items-stretch gap-4 flex-wrap pt-2">
-            {[
-              { val: '1,200+', label: '導入企業数' },
-              { val: '99.9%', label: '稼働率' },
-              { val: '即日', label: '利用開始' },
-            ].map((b) => (
-              <div key={b.val} className="text-center px-5 py-3 rounded-2xl border"
-                style={{ background: 'rgba(255,255,255,0.8)', borderColor: '#bae6fd', boxShadow: '0 2px 12px rgba(14,165,233,0.08)' }}>
-                <p className="text-2xl font-black" style={{ color: '#1d4ed8', lineHeight: 1 }}>{b.val}</p>
-                <p className="text-xs mt-1" style={{ color: '#6b7280' }}>{b.label}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-5 text-xs" style={{ color: '#6b7280' }}>
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />クレカ不要</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />即日利用可</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-sky-400" />日本語対応</span>
-          </div>
+          <p className="text-sm" style={{ color: '#9ca3af' }}>
+            月額費用 ¥0〜 ・ クレカ不要 ・ 即日利用可
+          </p>
         </div>
-
-        {/* 右: イラスト（はみ出してOK） */}
-        <div className={`flex-1 flex items-end justify-center lg:justify-start transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}
-          style={{ marginRight: -40, overflow: 'visible' }}>
-          <style>{`@keyframes fv-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)} }`}</style>
-          <Image
-            src="/fv-illust-final.png"
-            alt="ECイラスト"
-            width={1311}
-            height={704}
-            className="h-auto"
-            style={{
-              width: 'clamp(400px, 55vw, 780px)',
-              filter: 'drop-shadow(0 16px 48px rgba(30,58,95,0.1))',
-              animation: 'fv-float 4s ease-in-out infinite',
-            }}
-            priority
-            unoptimized
-          />
-        </div>
-
       </div>
 
       {/* 波形ボトム */}
-      <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none" style={{ zIndex: 5 }}>
-        <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"
-          style={{ display: 'block', width: '100%', height: 80 }}>
-          <path d="M0,40 C180,80 360,0 540,40 C720,80 900,0 1080,40 C1260,80 1380,20 1440,40 L1440,80 L0,80 Z" fill="white" />
+      <div className="absolute bottom-0 left-0 w-full leading-none" style={{ zIndex: 5, lineHeight: 0, marginBottom: -1 }}>
+        <svg viewBox="0 0 1440 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"
+          style={{ display: 'block', width: '100%', height: 100 }}>
+          <path d="M0,60 C240,110 480,20 720,70 C960,115 1200,30 1440,65 L1440,100 L0,100 Z" fill="#ffffff" />
         </svg>
       </div>
     </section>
@@ -206,7 +183,7 @@ function LogoBar() {
     { value: '99.9%', label: '稼働率' },
   ];
   return (
-    <section className="py-12 border-y" style={{ background: '#f0f6fe', borderColor: '#bae6fd' }}>
+    <section className="py-12" style={{ background: '#f0f6fe', marginTop: 0 }}>
       <div className="max-w-6xl mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {stats.map((s, i) => (
@@ -227,72 +204,60 @@ function FeaturesSection() {
 
   const features = [
     {
+      num: '01',
       label: '商品管理',
-      tag: '在庫・バリエーション・カスタム属性',
       desc: '複数SKU・画像・カスタム属性まで一元管理。CSVインポートで大量データも即反映。',
-      img: 'https://loremflickr.com/600/800/product,warehouse,inventory?lock=1',
-      accent: 'rgba(37,99,235,0.55)',
-      href: '/products',
+      img: '/feat-illust-01.png',
     },
     {
+      num: '02',
       label: '受注管理',
-      tag: '掛売り・ロット割引・請求書',
       desc: '掛売り・ロット割引・請求書発行。ステータス管理からメール通知まで自動化。',
-      img: 'https://loremflickr.com/600/800/business,office,meeting?lock=2',
-      accent: 'rgba(2,132,199,0.55)',
-      href: '/orders',
+      img: '/feat-illust-02.png',
     },
     {
+      num: '03',
       label: 'コンテンツ管理',
-      tag: 'ニュース・特集・お知らせ',
       desc: 'ニュース・特集・お知らせをリッチエディタで作成・公開。ショップとシームレスに連携。',
-      img: 'https://loremflickr.com/600/800/laptop,digital,content?lock=3',
-      accent: 'rgba(14,165,233,0.55)',
-      href: '/contents',
+      img: '/feat-illust-03.png',
     },
   ];
 
   return (
     <section id="features" className="py-24 md:py-32 relative overflow-hidden" style={{ background: '#ffffff' }}>
       <div ref={ref} className="max-w-6xl mx-auto px-6">
-        <div className={`mb-16 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div className={`mb-16 text-center transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <p className="text-xs tracking-[0.3em] uppercase font-semibold mb-4" style={{ color: '#0ea5e9' }}>Features</p>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight max-w-2xl" style={{ color: '#1e3a5f' }}>
-            B2B ECに必要な機能を、<br />すべて搭載
+          <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight" style={{ color: '#1e3a5f' }}>
+            B2B ECに必要な機能を、すべて搭載
           </h2>
         </div>
 
-        <div className={`grid md:grid-cols-3 gap-5 transition-all duration-700 delay-200 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div className={`grid md:grid-cols-3 gap-10 transition-all duration-700 delay-200 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           {features.map((f, i) => (
-            <Link
+            <div
               key={i}
-              href={f.href}
-              className="group relative rounded-3xl overflow-hidden cursor-pointer block"
-              style={{ aspectRatio: '3/4', transitionDelay: `${i * 80}ms` }}
+              className="flex flex-col items-center text-center"
+              style={{ transitionDelay: `${i * 100}ms` }}
             >
-              <Image src={f.img} alt={f.label} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
-              <div className="absolute inset-0"
-                style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.75) 100%)' }} />
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-500"
-                style={{ background: f.accent }} />
-              <div className="absolute inset-0 flex flex-col justify-between p-6">
-                <div>
-                  <h3 className="text-xl font-black text-white mb-2">{f.label}</h3>
-                  <span className="inline-block text-[11px] font-medium text-white/80 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20">
-                    {f.tag}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm text-white/85 leading-relaxed mb-4">{f.desc}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-white/70">詳しく見る</span>
-                    <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                      <ArrowRight className="h-4 w-4 text-white" />
-                    </div>
-                  </div>
-                </div>
+              {/* イラスト */}
+              <div className="relative w-full" style={{ height: 200 }}>
+                <Image
+                  src={f.img}
+                  alt={f.label}
+                  fill
+                  className="object-contain object-center"
+                  unoptimized
+                />
               </div>
-            </Link>
+
+              {/* 区切り線 */}
+              <div className="w-12 h-px my-5" style={{ background: 'linear-gradient(90deg, transparent, #93c5fd, transparent)' }} />
+
+              {/* テキスト */}
+              <h3 className="text-lg font-black mb-2" style={{ color: '#1e3a5f' }}>{f.label}</h3>
+              <p className="text-sm leading-relaxed" style={{ color: '#4b6080' }}>{f.desc}</p>
+            </div>
           ))}
         </div>
 
@@ -372,6 +337,19 @@ function ScreenshotsSection() {
       orb2: '#2563eb',
       reverse: true,
     },
+    {
+      num: '05',
+      label: '代理店管理',
+      title: '代理店ネットワークを一元管理',
+      desc: '代理店の登録・コード発行・手数料設定・売上レポートを自動生成。代理店経由の売上もリアルタイムで把握できます。',
+      img: '/screenshot-agencies.png',
+      bg: '#ffffff',
+      accent: '#1d4ed8',
+      numColor: '#93c5fd',
+      orb1: '#818cf8',
+      orb2: '#38bdf8',
+      reverse: false,
+    },
   ];
 
   return (
@@ -438,13 +416,6 @@ function ScreenshotsSection() {
 
                 {/* テキスト側 */}
                 <div className="flex-1 min-w-0">
-                  {/* 番号 */}
-                  <div
-                    className="text-5xl md:text-7xl font-black mb-4 leading-none"
-                    style={{ color: s.accent, opacity: 0.35 }}
-                  >
-                    {s.num}
-                  </div>
                   <div
                     className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-3"
                     style={{ background: `${s.accent}18`, color: s.accent, border: `1px solid ${s.accent}40` }}
@@ -495,38 +466,40 @@ function ScreenshotsSection() {
 // ── B2Bセクション ──
 function B2BSection() {
   const { ref, visible } = useInView();
+  const points = [
+    { title: '見積 → 受注の一気通貫', desc: 'オンライン見積からそのまま受注変換。PDF出力も即座に。' },
+    { title: '代理店ネットワーク管理', desc: 'コード発行・手数料設定・実績レポートを自動生成。' },
+    { title: '権限・組織管理', desc: 'ロール設定でメンバーごとに閲覧・操作権限を細かく制御。' },
+  ];
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden" style={{ background: '#e8f0f8' }}>
-      <div ref={ref} className="max-w-6xl mx-auto px-6">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
-          <div className={`transition-all duration-700 ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
-            <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #bae6fd' }}>
-              <Image src="https://picsum.photos/seed/b2b-quote/800/600" alt="見積管理" width={800} height={600} className="w-full object-cover" />
-            </div>
-          </div>
-          <div className={`transition-all duration-700 delay-200 ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}>
-            <p className="text-xs tracking-[0.3em] uppercase font-semibold mb-4" style={{ color: '#0ea5e9' }}>For B2B</p>
-            <h2 className="text-4xl font-black tracking-tight mb-6 leading-tight" style={{ color: '#1e3a5f' }}>
-              BtoB ECに、<br />本気で向き合う
+    <section className="py-24 md:py-32 relative overflow-hidden" style={{ background: '#ffffff' }}>
+      <div ref={ref} className="max-w-5xl mx-auto px-6">
+        <div className={`transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          {/* ラベル */}
+          <p className="text-xs tracking-[0.3em] uppercase font-semibold mb-5 text-center" style={{ color: '#0ea5e9' }}>For B2B</p>
+
+          {/* 見出し + リード文 中央 */}
+          <div className="text-center mb-16 pb-10" style={{ borderBottom: '1px solid #e8f0f8' }}>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight mb-6" style={{ color: '#1e3a5f' }}>
+              BtoB ECに、本気で向き合う
             </h2>
-            <p className="leading-relaxed mb-8" style={{ color: '#4a6fa5' }}>
+            <p className="text-base leading-relaxed mx-auto" style={{ color: '#6b7280', maxWidth: 480 }}>
               法人取引特有の商習慣に深く対応。掛売り・見積・代理店管理など、BtoCプラットフォームでは難しい領域をカバーします。
             </p>
-            <div className="space-y-4">
-              {[
-                { title: '見積 → 受注の一気通貫', desc: 'オンライン見積からそのまま受注変換。PDF出力も即座に。' },
-                { title: '代理店ネットワーク管理', desc: 'コード発行・手数料設定・実績レポートを自動生成。' },
-                { title: '権限・組織管理', desc: 'ロール設定でメンバーごとに閲覧・操作権限を細かく制御。' },
-              ].map((p, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="w-1.5 rounded-full flex-shrink-0 mt-1" style={{ background: '#bae6fd' }} />
-                  <div>
-                    <p className="text-sm font-bold mb-1" style={{ color: '#1e3a5f' }}>{p.title}</p>
-                    <p className="text-sm" style={{ color: '#4a6fa5' }}>{p.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          </div>
+
+          {/* 3カラム テキストリスト */}
+          <div className="grid md:grid-cols-3 gap-0">
+            {points.map((p, i) => (
+              <div key={i} className="py-8 md:px-8 flex flex-col gap-3"
+                style={{ borderLeft: i > 0 ? '1px solid #e8f0f8' : 'none' }}>
+                <span className="text-4xl font-black leading-none" style={{ color: '#dbeafe', WebkitTextStroke: '1.5px #93c5fd' }}>
+                  0{i + 1}
+                </span>
+                <p className="text-xl font-black leading-snug" style={{ color: '#1e3a5f' }}>{p.title}</p>
+                <p className="text-sm leading-relaxed" style={{ color: '#6b7280' }}>{p.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -599,7 +572,7 @@ function PricingSection() {
   ];
 
   return (
-    <section id="pricing" className="py-24 md:py-32 relative overflow-hidden" style={{ background: '#e8f0f8' }}>
+    <section id="pricing" className="py-24 md:py-32 relative overflow-hidden" style={{ background: '#ffffff' }}>
       {/* 装飾サークル */}
       <div className="absolute pointer-events-none rounded-full blur-[100px] opacity-25"
         style={{ width: 500, height: 500, background: 'radial-gradient(circle, #bae6fd, transparent 70%)', top: '-120px', right: '-100px' }} />
@@ -631,13 +604,13 @@ function PricingSection() {
               {/* オススメ円形バッジ */}
               {plan.recommended && (
                 <div
-                  className="absolute -top-5 left-1/2 -translate-x-1/2 z-20 w-12 h-12 rounded-full flex items-center justify-center text-[10px] font-black text-white leading-tight text-center"
+                  className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 rounded-full flex items-center justify-center text-[10px] font-black text-white whitespace-nowrap px-3 py-1"
                   style={{
                     background: 'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)',
                     boxShadow: '0 4px 16px rgba(37,99,235,0.45)',
                   }}
                 >
-                  オス<br />スメ
+                  おすすめ
                 </div>
               )}
 
@@ -702,7 +675,7 @@ function FAQSection() {
   ];
 
   return (
-    <section className="py-24 relative overflow-hidden" style={{ background: '#f0f6fe' }}>
+    <section className="py-24 relative overflow-hidden" style={{ background: '#ffffff' }}>
       {/* 薄い装飾サークル */}
       <div className="absolute pointer-events-none rounded-full blur-[80px] opacity-20"
         style={{ width: 400, height: 400, background: 'radial-gradient(circle, #bae6fd, transparent 70%)', top: '-100px', right: '-80px' }} />
@@ -751,64 +724,6 @@ function FAQSection() {
 }
 
 // ── その他の機能セクション ──
-function OtherFeaturesSection() {
-  const { ref, visible } = useInView();
-  const items = [
-    { icon: '📦', label: '商品管理', sub: '在庫・SKU・カテゴリ' },
-    { icon: '🛒', label: '受注管理', sub: '掛売り・請求書発行' },
-    { icon: '📝', label: 'コンテンツ', sub: 'ニュース・特集' },
-    { icon: '💬', label: '見積管理', sub: 'B2B見積・承認フロー' },
-    { icon: '🏪', label: 'ECショップ', sub: 'フロント公開機能' },
-    { icon: '🤝', label: '代理店管理', sub: 'コミッション・売上' },
-    { icon: '🔗', label: 'API連携', sub: 'Webhook・外部連携' },
-  ];
-
-  return (
-    <section className="py-20 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #e8f4fb 0%, #dbeafe 100%)' }}>
-      {/* 背景のドット模様 */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(circle, #93c5fd 1px, transparent 1px)',
-          backgroundSize: '32px 32px',
-        }} />
-
-      <div ref={ref} className="relative z-10 max-w-5xl mx-auto px-6">
-        <div className={`text-center mb-10 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <h2 className="text-3xl font-black mb-2" style={{ color: '#1e3a5f' }}>
-            その他の機能
-          </h2>
-          <p className="text-sm" style={{ color: '#4a6fa5' }}>
-            AKINAIは多機能！使いたい機能だけを選択してご利用できます！
-          </p>
-        </div>
-
-        <div className={`flex flex-wrap justify-center gap-4 mb-8 transition-all duration-700 delay-200 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          {items.map((item, i) => (
-            <div key={i}
-              className="flex flex-col items-center gap-2 bg-white rounded-xl px-5 py-4 text-center"
-              style={{
-                boxShadow: '0 2px 12px rgba(56,189,248,0.1)',
-                border: '1px solid rgba(186,230,253,0.6)',
-                minWidth: 110,
-              }}>
-              <span className="text-3xl">{item.icon}</span>
-              <div>
-                <p className="text-sm font-bold" style={{ color: '#1e3a5f' }}>{item.label}</p>
-                <p className="text-[10px]" style={{ color: '#4a6fa5' }}>{item.sub}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <p className={`text-center font-bold text-sm transition-all duration-700 delay-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
-          style={{ color: '#1e3a5f' }}>
-          の全てに対応しています！
-        </p>
-      </div>
-    </section>
-  );
-}
-
 // ── CTAセクション ──
 function CTASection() {
   const { ref, visible } = useInView();
@@ -816,23 +731,19 @@ function CTASection() {
     <section className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 30%, #38bdf8 70%, #22d3ee 100%)' }}>
       {/* 波形上部 */}
       <div className="absolute top-0 left-0 w-full overflow-hidden leading-none" style={{ height: 60 }}>
-        <svg viewBox="0 0 1440 60" className="w-full h-full" preserveAspectRatio="none">
-          <path d="M0,0 L1440,0 L1440,20 Q1320,60 1200,35 Q1080,10 960,40 Q840,65 720,35 Q600,5 480,40 Q360,65 240,35 Q120,5 0,40 Z" fill="#dbeafe" />
+        <svg viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: '100%' }}>
+          <path d="M0,0 C360,60 720,0 1080,40 C1260,58 1380,20 1440,30 L1440,0 Z" fill="white" />
         </svg>
       </div>
       {/* 波形下部 */}
       <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none" style={{ height: 60 }}>
-        <svg viewBox="0 0 1440 60" className="w-full h-full" preserveAspectRatio="none">
-          <path d="M0,60 L1440,60 L1440,20 Q1320,-15 1200,20 Q1080,50 960,20 Q840,-10 720,20 Q600,50 480,20 Q360,-10 240,20 Q120,50 0,20 Z" fill="#e8f0f8" />
+        <svg viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: '100%' }}>
+          <path d="M0,60 C360,0 720,60 1080,20 C1260,2 1380,40 1440,30 L1440,60 Z" fill="#e8f0f8" />
         </svg>
       </div>
 
-      <div ref={ref} className="relative z-10 max-w-5xl mx-auto px-6 py-20">
+      <div ref={ref} className="relative z-10 max-w-5xl mx-auto px-6 py-24">
         <div className={`flex flex-col md:flex-row items-center justify-center gap-6 transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          {/* 左 装飾サークル */}
-          <div className="hidden md:flex items-center justify-center flex-shrink-0" style={{ width: 100 }}>
-            <div className="w-20 h-20 rounded-full" style={{ background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.3)' }} />
-          </div>
 
           {/* テキスト＋ボタン */}
           <div className="text-center flex-1">
@@ -853,10 +764,6 @@ function CTASection() {
             </div>
           </div>
 
-          {/* 右 装飾サークル */}
-          <div className="hidden md:flex items-center justify-center flex-shrink-0" style={{ width: 100 }}>
-            <div className="w-20 h-20 rounded-full" style={{ background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.3)' }} />
-          </div>
         </div>
       </div>
     </section>
@@ -911,7 +818,6 @@ export default function LandingPage() {
       <B2BSection />
       <PricingSection />
       <FAQSection />
-      <OtherFeaturesSection />
       <CTASection />
       <Footer />
     </main>
