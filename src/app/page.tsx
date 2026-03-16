@@ -516,10 +516,10 @@ function PricingSection() {
   // 中央: 同系ヘッダー帯 + 白カード本体 + オススメ円形バッジ
   const plans = [
     {
-      name: 'フリー',
-      price: '無料',
-      priceNote: '',
-      desc: '小規模ショップやお試しに',
+      name: 'ライト',
+      price: '¥3,000',
+      priceNote: '/ 月（税抜）',
+      desc: '小規模ショップやはじめての方に',
       features: [
         { text: '商品50件まで', active: true },
         { text: '月間100注文まで', active: true },
@@ -529,7 +529,7 @@ function PricingSection() {
         { text: '見積管理', active: false },
         { text: 'API / Webhook', active: false },
       ],
-      cta: '無料で始める',
+      cta: 'ライトで始める',
       recommended: false,
       headerBg: 'linear-gradient(135deg, #60a5fa 0%, #38bdf8 100%)',
     },
