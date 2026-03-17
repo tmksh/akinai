@@ -134,7 +134,7 @@ function HeroSection() {
           style={{ maxWidth: 580 }}>
 
           <h1 className="font-black tracking-tight leading-[1.1]"
-            style={{ color: '#1e3a5f', fontSize: 'clamp(2.4rem, 4.5vw, 4rem)' }}>
+            style={{ color: '#1e3a5f', fontSize: 'clamp(2rem, 4.5vw, 4rem)' }}>
             B2B ECを、<br />
             <span style={{
               background: 'linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%)',
