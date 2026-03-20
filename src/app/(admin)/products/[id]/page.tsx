@@ -149,43 +149,72 @@ export default function ProductDetailPage() {
           {product.variants && product.variants.length > 0 && (
             <Card className="card-hover">
               <CardHeader>
-                <CardTitle>色やサイズの種類</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>色やサイズの種類</CardTitle>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                    {product.variants.length} 種類
+                  </span>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
                   {product.variants.map((variant) => {
-                    const hiddenKeys = new Set(['imageUrl', 'image_url', 'image']);
-                    const displayOptions = variant.options
-                      ? Object.entries(variant.options as Record<string, string>).filter(
-                          ([key, val]) => !hiddenKeys.has(key) && val && !val.startsWith('http')
-                        )
-                      : [];
+                    const options = variant.options as Record<string, string> | null;
+                    const imageUrl = options?.imageUrl || options?.image_url || options?.image;
+                    const stockLevel = variant.stock === 0 ? 'out' : variant.stock <= 5 ? 'low' : 'ok';
 
                     return (
-                      <div
-                        key={variant.id}
-                        className="flex items-center justify-between p-3 rounded-lg border"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium truncate">{variant.name}</p>
-                          <p className="text-sm text-muted-foreground font-mono truncate">
-                            SKU: {variant.sku}
-                          </p>
-                          {displayOptions.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-1">
-                              {displayOptions.map(([key, val]) => (
-                                <Badge key={key} variant="outline" className="text-xs">
-                                  {key}: {val}
-                                </Badge>
-                              ))}
-                            </div>
+                      <div key={variant.id} className="rounded-xl border bg-white dark:bg-slate-900/50 overflow-hidden">
+                        {/* 上段: 画像 + 名前 */}
+                        <div className="flex items-center gap-3 px-3 py-2.5">
+                          <div className="h-10 w-10 rounded-lg border shrink-0 overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-slate-800">
+                            {imageUrl ? (
+                              <img src={imageUrl} alt={variant.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <Package className="h-4 w-4 text-slate-300" />
+                            )}
+                          </div>
+                          <span className="text-sm font-medium flex-1 min-w-0 leading-snug">
+                            {variant.name}
+                          </span>
+                          {variant.compare_at_price && variant.compare_at_price > variant.price && (
+                            <Badge className="bg-red-500 text-white text-xs shrink-0">
+                              {Math.round((1 - variant.price / variant.compare_at_price) * 100)}% OFF
+                            </Badge>
                           )}
                         </div>
-                        <div className="text-right shrink-0 ml-3">
-                          <p className="font-bold">{formatCurrency(variant.price)}</p>
-                          <p className="text-sm text-muted-foreground">
-                            在庫: {variant.stock}
-                          </p>
+                        {/* 下段: SKU / 価格 / 在庫 */}
+                        <div className="grid grid-cols-3 border-t divide-x text-sm dark:divide-white/[0.06] dark:border-white/[0.06]">
+                          <div className="px-3 py-2">
+                            <p className="text-[10px] text-muted-foreground mb-0.5">SKU</p>
+                            <p className="text-xs font-mono truncate">{variant.sku || '-'}</p>
+                          </div>
+                          <div className="px-3 py-2">
+                            <p className="text-[10px] text-muted-foreground mb-0.5">価格（税込）</p>
+                            <div className="flex items-baseline gap-0.5">
+                              <span className="text-xs font-bold">{formatCurrency(variant.price)}</span>
+                            </div>
+                            {variant.compare_at_price && variant.compare_at_price > variant.price && (
+                              <p className="text-[10px] text-muted-foreground line-through">
+                                {formatCurrency(variant.compare_at_price)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="px-3 py-2">
+                            <p className="text-[10px] text-muted-foreground mb-0.5">在庫数</p>
+                            <div className="flex items-center gap-1">
+                              <span className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
+                                stockLevel === 'out' ? 'bg-red-400' :
+                                stockLevel === 'low' ? 'bg-amber-400' : 'bg-emerald-400'
+                              }`} />
+                              <span className={`text-xs font-medium ${
+                                stockLevel === 'out' ? 'text-red-500' :
+                                stockLevel === 'low' ? 'text-amber-600' : ''
+                              }`}>
+                                {variant.stock}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     );

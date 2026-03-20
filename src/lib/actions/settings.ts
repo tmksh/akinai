@@ -115,6 +115,38 @@ export async function updateProductFieldSchema(
   return { data, error: null };
 }
 
+// バリエーション入力モードを更新
+export async function updateVariantInputMode(
+  organizationId: string,
+  mode: 'simple' | 'matrix'
+) {
+  const supabase = getAdminClient();
+
+  const { data: org, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) return { data: null, error: fetchError.message };
+
+  const currentSettings = (org?.settings as Record<string, unknown>) || {};
+  const newSettings = { ...currentSettings, variant_input_mode: mode };
+
+  const { data, error } = await supabase
+    .from('organizations')
+    .update({ settings: newSettings, updated_at: new Date().toISOString() })
+    .eq('id', organizationId)
+    .select()
+    .single();
+
+  if (error) return { data: null, error: error.message };
+
+  revalidatePath('/settings/products');
+  revalidatePath('/products');
+  return { data, error: null };
+}
+
 // コンテンツフィールドスキーマを更新
 export async function updateContentFieldSchema(
   organizationId: string,

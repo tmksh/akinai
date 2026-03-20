@@ -23,6 +23,7 @@ import {
   ListFilter,
   Phone,
   Info,
+  Layers,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { useOrganization } from '@/components/providers/organization-provider';
 import type { ProductFieldSchemaItem } from '@/components/providers/organization-provider';
 import type { CustomFieldType } from '@/components/products/custom-fields';
-import { updateProductFieldSchema } from '@/lib/actions/settings';
+import { updateProductFieldSchema, updateVariantInputMode } from '@/lib/actions/settings';
 import { toast } from 'sonner';
 
 const fieldTypeConfig: Record<CustomFieldType, { label: string; icon: React.ElementType; color: string; category: 'basic' | 'media' | 'advanced' }> = {
@@ -81,10 +82,17 @@ export default function ProductSchemaSettingsPage() {
     () => organization?.productFieldSchema ?? []
   );
 
+  const [variantInputMode, setVariantInputMode] = useState<'simple' | 'matrix'>(
+    () => ((organization?.settings?.variant_input_mode as 'simple' | 'matrix') ?? 'simple')
+  );
+
   // organizationが後から読み込まれた場合に同期
   useEffect(() => {
     if (organization?.productFieldSchema) {
       setSchema(organization.productFieldSchema);
+    }
+    if (organization?.settings) {
+      setVariantInputMode((organization.settings.variant_input_mode as 'simple' | 'matrix') ?? 'simple');
     }
   }, [organization?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -156,6 +164,20 @@ export default function ProductSchemaSettingsPage() {
     });
   };
 
+  const handleVariantModeSave = (mode: 'simple' | 'matrix') => {
+    if (!organization?.id) return;
+    startTransition(async () => {
+      const { error } = await updateVariantInputMode(organization.id, mode);
+      if (error) {
+        toast.error('保存に失敗しました: ' + error);
+      } else {
+        setVariantInputMode(mode);
+        toast.success('バリエーション入力方式を変更しました');
+        await refetch();
+      }
+    });
+  };
+
   const groupedTypes = Object.entries(fieldTypeConfig).reduce<Record<string, [string, typeof fieldTypeConfig[CustomFieldType]][]>>((acc, entry) => {
     const cat = entry[1].category;
     if (!acc[cat]) acc[cat] = [];
@@ -205,6 +227,88 @@ export default function ProductSchemaSettingsPage() {
                 各商品ごとに値を入力するだけでOKです。
               </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* バリエーション入力方式 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Layers className="h-5 w-5 text-sky-500" />
+            バリエーション入力方式
+          </CardTitle>
+          <CardDescription>商品登録画面でのバリエーション（色・サイズなど）の入力スタイルを選択します</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {/* シンプルモード */}
+            <button
+              type="button"
+              onClick={() => handleVariantModeSave('simple')}
+              disabled={isPending}
+              className={`rounded-xl border-2 p-4 text-left transition-all ${
+                variantInputMode === 'simple'
+                  ? 'border-sky-400 bg-sky-50/60 dark:border-sky-600 dark:bg-sky-950/20'
+                  : 'border-border hover:border-sky-200 dark:hover:border-sky-800'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold">手動で追加（デフォルト）</span>
+                {variantInputMode === 'simple' && (
+                  <Badge className="bg-sky-500 text-white text-xs px-1.5 py-0.5">使用中</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                バリエーションを1行ずつ手動で追加します
+              </p>
+              <div className="rounded-lg border bg-background p-2 space-y-1">
+                {['ホワイト / M', 'ホワイト / L', 'ブラック / M'].map((v) => (
+                  <div key={v} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-2 h-2 rounded-sm bg-slate-200 dark:bg-slate-700 shrink-0" />
+                    {v}
+                  </div>
+                ))}
+              </div>
+            </button>
+
+            {/* マトリクスモード */}
+            <button
+              type="button"
+              onClick={() => handleVariantModeSave('matrix')}
+              disabled={isPending}
+              className={`rounded-xl border-2 p-4 text-left transition-all ${
+                variantInputMode === 'matrix'
+                  ? 'border-sky-400 bg-sky-50/60 dark:border-sky-600 dark:bg-sky-950/20'
+                  : 'border-border hover:border-sky-200 dark:hover:border-sky-800'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold">組み合わせで自動生成</span>
+                {variantInputMode === 'matrix' && (
+                  <Badge className="bg-sky-500 text-white text-xs px-1.5 py-0.5">使用中</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                色・サイズなどの軸を設定すると組み合わせを自動生成します
+              </p>
+              <div className="rounded-lg border bg-background p-2">
+                <div className="grid grid-cols-4 gap-0.5 text-[10px] text-center">
+                  <div className="text-muted-foreground/50" />
+                  {['S', 'M', 'L'].map(s => (
+                    <div key={s} className="font-medium text-muted-foreground">{s}</div>
+                  ))}
+                  {['白', '黒'].map(c => (
+                    <>
+                      <div key={c} className="font-medium text-muted-foreground text-left pl-1">{c}</div>
+                      {['S', 'M', 'L'].map(s => (
+                        <div key={s} className="rounded bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 py-0.5">✓</div>
+                      ))}
+                    </>
+                  ))}
+                </div>
+              </div>
+            </button>
           </div>
         </CardContent>
       </Card>

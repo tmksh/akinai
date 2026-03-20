@@ -10,10 +10,8 @@ import {
   EyeOff,
   Columns,
   Plus,
-  Trash2,
-  GripVertical,
-  Upload,
   X,
+  Upload,
   Smartphone,
   Monitor,
   ShoppingCart,
@@ -51,6 +49,9 @@ import {
 import { PageTabs } from '@/components/layout/page-tabs';
 import { CustomFields, type CustomField } from '@/components/products/custom-fields';
 import { FieldLabel } from '@/components/products/field-label';
+import { SimpleVariantInput, type ProductVariant } from '@/components/products/simple-variant-input';
+import { MatrixVariantInput } from '@/components/products/matrix-variant-input';
+import type { Axis as MatrixAxis } from '@/components/products/matrix-variant-input';
 import { cn } from '@/lib/utils';
 import { getCategories, createProduct, generateUniqueSlug } from '@/lib/actions/products';
 import type { Database } from '@/types/database';
@@ -63,20 +64,13 @@ const productTabs = [
   { label: 'カテゴリー', href: '/products/categories' },
 ];
 
-interface ProductVariant {
-  id: string;
-  name: string;
-  sku: string;
-  price: number;
-  compareAtPrice?: number;
-  stock: number;
-  imageUrl?: string;
-}
-
 export default function NewProductPage() {
   const router = useRouter();
   const { organization, isLoading: orgLoading } = useOrganization();
   const [isPending, startTransition] = useTransition();
+  
+  const defaultVariantMode = (organization?.settings?.variant_input_mode as 'simple' | 'matrix') ?? 'simple';
+  const [variantInputMode, setVariantInputMode] = useState<'simple' | 'matrix'>(defaultVariantMode);
   
   const [productName, setProductName] = useState('');
   const [description, setDescription] = useState('');
@@ -102,6 +96,9 @@ export default function NewProductPage() {
       return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
     });
   });
+  const [previewVariantImage, setPreviewVariantImage] = useState<string | null>(null);
+  const [previewAxes, setPreviewAxes] = useState<MatrixAxis[]>([]);
+  const [previewSelectedItems, setPreviewSelectedItems] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(true);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('mobile');
   const [previewQuantity, setPreviewQuantity] = useState(1);
@@ -202,38 +199,6 @@ export default function NewProductPage() {
   // タグ削除
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter((tag) => tag !== tagToRemove));
-  };
-
-  // バリエーション追加
-  const addVariant = () => {
-    setVariants([
-      ...variants,
-      {
-        id: Date.now().toString(),
-        name: '',
-        sku: '',
-        price: 0,
-        stock: 0,
-      },
-    ]);
-  };
-
-  // バリエーション削除
-  const removeVariant = (id: string) => {
-    if (variants.length > 1) {
-      setVariants(variants.filter((v) => v.id !== id));
-    }
-  };
-
-  // バリエーション更新
-  const updateVariant = (
-    id: string,
-    field: keyof ProductVariant,
-    value: string | number
-  ) => {
-    setVariants(
-      variants.map((v) => (v.id === id ? { ...v, [field]: value } : v))
-    );
   };
 
   // 保存処理
@@ -443,110 +408,48 @@ export default function NewProductPage() {
                     商品の色やサイズなど、選べる種類を設定します
                   </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={addVariant}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  追加
-                </Button>
+                <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/30 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setVariantInputMode('simple')}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                      variantInputMode === 'simple'
+                        ? 'bg-background shadow-sm text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    手動で追加
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVariantInputMode('matrix')}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                      variantInputMode === 'matrix'
+                        ? 'bg-background shadow-sm text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    組み合わせで自動生成
+                  </button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {variants.map((variant, index) => (
-                  <div
-                    key={variant.id}
-                    className="rounded-lg border p-4 space-y-3"
-                  >
-                    {/* 上段: ドラッグ・画像・削除 */}
-                    <div className="flex items-center gap-3">
-                      <div className="text-muted-foreground cursor-grab">
-                        <GripVertical className="h-4 w-4" />
-                      </div>
-                      <label className="block cursor-pointer group shrink-0">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
-                          }}
-                        />
-                        <div className={cn(
-                          "h-10 w-10 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors",
-                          "hover:border-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/20",
-                          variant.imageUrl ? "border-transparent" : "border-slate-200 dark:border-slate-700"
-                        )}>
-                          {variant.imageUrl ? (
-                            <img src={variant.imageUrl} alt={variant.name} className="h-full w-full object-cover rounded-lg" />
-                          ) : (
-                            <Upload className="h-4 w-4 text-muted-foreground group-hover:text-sky-500" />
-                          )}
-                        </div>
-                      </label>
-                      <span className="text-sm font-medium flex-1 truncate">
-                        {variant.name || `バリエーション ${index + 1}`}
-                      </span>
-                      {variant.imageUrl && (
-                        <button
-                          type="button"
-                          className="text-xs text-muted-foreground hover:text-destructive"
-                          onClick={() => updateVariant(variant.id, 'imageUrl', '')}
-                        >
-                          画像削除
-                        </button>
-                      )}
-                      {variants.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => removeVariant(variant.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                    {/* 下段: 入力フィールド */}
-                    <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">バリエーション名</Label>
-                        <Input
-                          placeholder="例: ホワイト / M"
-                          value={variant.name}
-                          onChange={(e) => updateVariant(variant.id, 'name', e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">SKU *</Label>
-                        <Input
-                          placeholder="例: PRD-001-WH-M"
-                          value={variant.sku}
-                          onChange={(e) => updateVariant(variant.id, 'sku', e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">価格（税込）</Label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          value={variant.price || ''}
-                          onChange={(e) => updateVariant(variant.id, 'price', parseInt(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">在庫数</Label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          value={variant.stock || ''}
-                          onChange={(e) => updateVariant(variant.id, 'stock', parseInt(e.target.value) || 0)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {variantInputMode === 'matrix' ? (
+                <MatrixVariantInput
+                  variants={variants}
+                  onChange={setVariants}
+                  onSelectedVariantChange={(v) => setPreviewVariantImage(v?.imageUrl ?? null)}
+                  onAxesChange={setPreviewAxes}
+                  disabled={isPending}
+                />
+              ) : (
+                <SimpleVariantInput
+                  variants={variants}
+                  onChange={setVariants}
+                  disabled={isPending}
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -705,13 +608,23 @@ export default function NewProductPage() {
                   <div className="space-y-4">
                     {/* 商品画像プレースホルダー */}
                     <div className={cn(
-                      "bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-xl flex items-center justify-center",
+                      "rounded-xl overflow-hidden",
                       previewMode === 'mobile' ? "aspect-square" : "aspect-[4/3]"
                     )}>
-                      <div className="text-center text-slate-400">
-                        <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs">商品画像</p>
-                      </div>
+                      {previewVariantImage ? (
+                        <img
+                          src={previewVariantImage}
+                          alt="バリエーション画像"
+                          className="w-full h-full object-cover transition-all duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">
+                          <div className="text-center text-slate-400">
+                            <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                            <p className="text-xs">商品画像</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* 商品情報 */}
@@ -777,7 +690,76 @@ export default function NewProductPage() {
                       </div>
 
                       {/* バリエーション選択 */}
-                      {variants.length > 1 && (
+                      {variantInputMode === 'matrix' && previewAxes.some(a => a.items.length > 0) ? (
+                        <div className="space-y-3 rounded-lg border p-3 bg-slate-50/60">
+                          {previewAxes.filter(a => a.items.length > 0).map((axis) => {
+                            const selectedVal = previewSelectedItems[axis.id] ?? axis.items[0]?.value;
+                            return (
+                              <div key={axis.id}>
+                                <p className="text-sm font-bold mb-2">
+                                  <span className="text-red-500 mr-0.5">*</span>
+                                  {axis.name}
+                                  {selectedVal && <span className="font-normal text-muted-foreground">：{selectedVal}</span>}
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {axis.items.map((item) => {
+                                    const isSelected = (previewSelectedItems[axis.id] ?? axis.items[0]?.value) === item.value;
+                                    const selectedName = previewAxes
+                                      .filter(a => a.items.length > 0)
+                                      .map(a => {
+                                        const sel = a.id === axis.id ? item.value : (previewSelectedItems[a.id] ?? a.items[0]?.value);
+                                        return sel;
+                                      })
+                                      .filter(Boolean)
+                                      .join(' / ');
+                                    const matchedVariant = variants.find(v => v.name === selectedName);
+                                    return (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => {
+                                          const next = { ...previewSelectedItems, [axis.id]: item.value };
+                                          setPreviewSelectedItems(next);
+                                          const name = previewAxes
+                                            .filter(a => a.items.length > 0)
+                                            .map(a => next[a.id] ?? a.items[0]?.value)
+                                            .filter(Boolean)
+                                            .join(' / ');
+                                          const v = variants.find(vt => vt.name === name);
+                                          setPreviewVariantImage(v?.imageUrl ?? null);
+                                        }}
+                                        className={cn(
+                                          'h-10 w-10 rounded-md border-2 overflow-hidden flex items-center justify-center transition-all',
+                                          isSelected ? 'border-slate-800 shadow-sm' : 'border-slate-200 hover:border-slate-400',
+                                          !item.imageUrl && 'bg-white'
+                                        )}
+                                        title={item.value}
+                                      >
+                                        {item.imageUrl
+                                          ? <img src={item.imageUrl} alt={item.value} className="w-full h-full object-cover" />
+                                          : <span className="text-[9px] text-center leading-tight px-0.5 text-slate-500">{item.value}</span>
+                                        }
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = { ...previewSelectedItems };
+                                    delete next[axis.id];
+                                    setPreviewSelectedItems(next);
+                                    setPreviewVariantImage(null);
+                                  }}
+                                  className="mt-1 text-xs text-muted-foreground/60 hover:text-muted-foreground underline underline-offset-2"
+                                >
+                                  クリア
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : variants.length > 1 ? (
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">バリエーション</Label>
                           <div className="flex flex-wrap gap-2">
@@ -796,7 +778,7 @@ export default function NewProductPage() {
                             ))}
                           </div>
                         </div>
-                      )}
+                      ) : null}
 
                       {/* 数量選択 */}
                       <div className="space-y-2">
