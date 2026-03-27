@@ -271,12 +271,11 @@ export async function POST(request: NextRequest) {
 
     // 7. 代理店の累計売上・コミッションを更新
     if (agentId && agentCommissionAmount !== null) {
+      // エラーは無視（注文は成立済み）
       await supabase.rpc('increment_agent_totals', {
         p_agent_id: agentId,
         p_sales: subtotal,
         p_commission: agentCommissionAmount,
-      }).catch(() => {
-        // RPC が未定義でもエラーにしない（注文は成立）
       });
     }
 
