@@ -3,11 +3,13 @@
 -- ============================================
 
 -- 認証済みユーザーは組織を作成できる
+DROP POLICY IF EXISTS "Authenticated users can create organizations" ON organizations;
 CREATE POLICY "Authenticated users can create organizations"
   ON organizations FOR INSERT
   WITH CHECK (auth.uid() IS NOT NULL);
 
 -- ユーザーは「まだメンバーが1人もいない組織」に自分を最初のメンバー（オーナー）として追加できる
+DROP POLICY IF EXISTS "Users can add themselves as first organization member" ON organization_members;
 CREATE POLICY "Users can add themselves as first organization member"
   ON organization_members FOR INSERT
   WITH CHECK (

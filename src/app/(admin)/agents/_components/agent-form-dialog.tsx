@@ -69,7 +69,7 @@ export function AgentFormDialog({
   });
   const [errors, setErrors] = useState<Partial<Record<keyof AgentFormData, string>>>({});
 
-  const isEditing = !!agent;
+  const isEditing = !!agent?.id;
 
   useEffect(() => {
     if (agent) {
