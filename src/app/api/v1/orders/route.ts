@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { 
   validateApiKey, 
   apiError, 
@@ -6,7 +7,12 @@ import {
   handleOptions,
   corsHeaders,
 } from '@/lib/api/auth';
-import { createClient } from '@/lib/supabase/server';
+
+function createClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createSupabaseClient(supabaseUrl, supabaseServiceKey);
+}
 
 // 注文アイテムの型
 interface OrderItem {
@@ -85,7 +91,7 @@ export async function POST(request: NextRequest) {
     return apiError('paymentMethod must be one of: credit_card, bank_transfer, cod', 400);
   }
 
-  const supabase = await createClient();
+  const supabase = createClient();
 
   try {
     // 1. 注文アイテムの検証と在庫確認
@@ -395,7 +401,7 @@ export async function GET(request: NextRequest) {
     return apiError(auth.error!, auth.status);
   }
 
-  const supabase = await createClient();
+  const supabase = createClient();
   const { searchParams } = new URL(request.url);
   
   const status = searchParams.get('status');
