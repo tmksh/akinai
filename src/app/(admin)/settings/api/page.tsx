@@ -295,6 +295,8 @@ export default function ApiSettingsPage() {
               { method: 'GET', path: '/api/v1/products/:id', description: '商品詳細を取得' },
               { method: 'GET', path: '/api/v1/categories', description: 'カテゴリ一覧を取得' },
               { method: 'POST', path: '/api/v1/orders', description: '注文を作成' },
+              { method: 'GET', path: '/api/v1/agents', description: '代理店一覧を取得' },
+              { method: 'GET', path: '/api/v1/agents?code=AG0001', description: '代理店コードを検証' },
               { method: 'GET', path: '/api/v1/contents', description: 'コンテンツ一覧を取得' },
               { method: 'GET', path: '/api/v1/contents/:id', description: 'コンテンツ詳細を取得' },
               { method: 'POST', path: '/api/v1/cart/validate', description: 'カート内容を検証' },

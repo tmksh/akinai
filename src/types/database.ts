@@ -480,6 +480,10 @@ export interface Database {
           tracking_number: string | null
           shipped_at: string | null
           delivered_at: string | null
+          agent_id: string | null
+          agent_code: string | null
+          agent_commission_rate: number | null
+          agent_commission_amount: number | null
           created_at: string
           updated_at: string
         }
@@ -503,6 +507,10 @@ export interface Database {
           tracking_number?: string | null
           shipped_at?: string | null
           delivered_at?: string | null
+          agent_id?: string | null
+          agent_code?: string | null
+          agent_commission_rate?: number | null
+          agent_commission_amount?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -526,6 +534,10 @@ export interface Database {
           tracking_number?: string | null
           shipped_at?: string | null
           delivered_at?: string | null
+          agent_id?: string | null
+          agent_code?: string | null
+          agent_commission_rate?: number | null
+          agent_commission_amount?: number | null
           created_at?: string
           updated_at?: string
         }

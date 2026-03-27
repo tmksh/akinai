@@ -42,6 +42,7 @@ interface CreateOrderRequest {
   paymentMethod: 'credit_card' | 'bank_transfer' | 'cod';
   customerId?: string;
   couponCode?: string;
+  agentCode?: string;
   note?: string;
 }
 
@@ -176,10 +177,29 @@ export async function POST(request: NextRequest) {
     const tax = Math.floor((subtotal - discount) * taxRate);
     const total = subtotal + shippingFee + codFee + tax - discount;
 
-    // 3. 顧客名の構築
+    // 3. 代理店コードの検証
+    let agentId: string | null = null;
+    let agentCommissionRate: number | null = null;
+    let agentCommissionAmount: number | null = null;
+    if (body.agentCode) {
+      const { data: agent } = await supabase
+        .from('agents')
+        .select('id, commission_rate, status')
+        .eq('organization_id', auth.organizationId)
+        .eq('code', body.agentCode.toUpperCase())
+        .single();
+
+      if (agent && agent.status === 'active') {
+        agentId = agent.id;
+        agentCommissionRate = Number(agent.commission_rate);
+        agentCommissionAmount = Math.floor(subtotal * agentCommissionRate / 100);
+      }
+    }
+
+    // 4. 顧客名の構築
     const customerName = `${body.shippingAddress.lastName} ${body.shippingAddress.firstName}`;
 
-    // 4. 注文を作成
+    // 5. 注文を作成
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -195,6 +215,10 @@ export async function POST(request: NextRequest) {
         status: body.paymentMethod === 'bank_transfer' ? 'pending' : 'pending',
         payment_status: body.paymentMethod === 'bank_transfer' ? 'pending' : 'pending',
         payment_method: body.paymentMethod,
+        agent_id: agentId,
+        agent_code: body.agentCode?.toUpperCase() || null,
+        agent_commission_rate: agentCommissionRate,
+        agent_commission_amount: agentCommissionAmount,
         shipping_address: {
           postalCode: body.shippingAddress.postalCode,
           prefecture: body.shippingAddress.prefecture,
@@ -221,7 +245,7 @@ export async function POST(request: NextRequest) {
       return apiError('Failed to create order', 500);
     }
 
-    // 5. 注文明細を作成
+    // 6. 注文明細を作成
     const orderItemsToInsert = orderItems.map((item) => ({
       order_id: order.id,
       product_id: item.productId,
@@ -245,7 +269,18 @@ export async function POST(request: NextRequest) {
       return apiError('Failed to create order items', 500);
     }
 
-    // 6. 在庫引き当て記録（stock_movementsに記録）
+    // 7. 代理店の累計売上・コミッションを更新
+    if (agentId && agentCommissionAmount !== null) {
+      await supabase.rpc('increment_agent_totals', {
+        p_agent_id: agentId,
+        p_sales: subtotal,
+        p_commission: agentCommissionAmount,
+      }).catch(() => {
+        // RPC が未定義でもエラーにしない（注文は成立）
+      });
+    }
+
+    // 8. 在庫引き当て記録（stock_movementsに記録）
     for (const item of orderItems) {
       const { data: variant } = await supabase
         .from('product_variants')
@@ -271,7 +306,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 7. レスポンス
+    // 9. レスポンス
     const responseData: {
       order: {
         id: string;
@@ -289,6 +324,8 @@ export async function POST(request: NextRequest) {
         paymentMethod: string;
         paymentStatus: string;
         couponCode: string | null;
+        agentCode: string | null;
+        agentCommissionAmount: number | null;
         note: string | null;
         createdAt: string;
       };
@@ -311,6 +348,8 @@ export async function POST(request: NextRequest) {
         paymentMethod: body.paymentMethod,
         paymentStatus: order.payment_status,
         couponCode: body.couponCode || null,
+        agentCode: body.agentCode?.toUpperCase() || null,
+        agentCommissionAmount,
         note: body.note || null,
         createdAt: order.created_at,
       },
