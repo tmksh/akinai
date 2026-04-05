@@ -24,15 +24,44 @@ export const getAuthOrganization = cache(async () => {
     supabase,
   };
 
-  // users テーブルから org_id + profile を1クエリで取得
-  const { data: userData } = await supabase
-    .from('users')
-    .select('current_organization_id, name, avatar')
-    .eq('id', user.id)
-    .single();
+  // users テーブルと organization_members を並列取得
+  const [userRes, membershipRes] = await Promise.all([
+    supabase
+      .from('users')
+      .select('current_organization_id, name, avatar')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .limit(1)
+      .single(),
+  ]);
 
-  const organizationId = userData?.current_organization_id as string | null;
-  const userProfile = userData ? { name: userData.name, avatar: userData.avatar } : null;
+  const userProfile = userRes.data
+    ? { name: userRes.data.name, avatar: userRes.data.avatar }
+    : null;
+
+  // current_organization_id が未設定でもメンバーシップから組織IDを補完する
+  const organizationId = (userRes.data?.current_organization_id as string | null)
+    ?? (membershipRes.data?.organization_id as string | null)
+    ?? null;
+
+  // current_organization_id が未設定の場合はここで更新する
+  if (
+    !userRes.data?.current_organization_id &&
+    membershipRes.data?.organization_id
+  ) {
+    await supabase
+      .from('users')
+      .update({
+        current_organization_id: membershipRes.data.organization_id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id);
+  }
 
   // organizations テーブルから全カラムを1クエリで取得
   let orgRow: Record<string, unknown> | null = null;

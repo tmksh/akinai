@@ -447,6 +447,7 @@ function ScreenshotsSection() {
                       width={1024} height={554}
                       className="w-full object-cover object-top"
                       priority={i === 0}
+                      unoptimized
                     />
                   </div>
                 </div>
@@ -517,6 +518,7 @@ function PricingSection() {
   const plans = [
     {
       name: 'ライト',
+      slug: 'light',
       price: '¥3,000',
       priceNote: '/ 月（税抜）',
       desc: '小規模ショップやはじめての方に',
@@ -529,12 +531,13 @@ function PricingSection() {
         { text: '見積管理', active: false },
         { text: 'API / Webhook', active: false },
       ],
-      cta: 'ライトで始める',
+      cta: '事前登録する',
       recommended: false,
       headerBg: 'linear-gradient(135deg, #60a5fa 0%, #38bdf8 100%)',
     },
     {
       name: 'スタンダード',
+      slug: 'standard',
       price: '¥9,800',
       priceNote: '/ 月（税抜）',
       desc: '成長するビジネスに最適',
@@ -547,12 +550,13 @@ function PricingSection() {
         { text: '見積管理', active: true },
         { text: 'API / Webhook', active: true },
       ],
-      cta: 'スタンダードで始める',
+      cta: '事前登録する',
       recommended: true,
       headerBg: 'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)',
     },
     {
       name: 'エンタープライズ',
+      slug: 'enterprise',
       price: 'お問合せ',
       priceNote: '',
       desc: '大規模組織・カスタム要件に',
@@ -619,7 +623,14 @@ function PricingSection() {
                 className="px-6 pt-8 pb-5 rounded-t-xl"
                 style={{ background: plan.headerBg }}
               >
-                <p className="text-sm font-bold mb-2" style={{ color: 'rgba(255,255,255,0.75)' }}>{plan.name}</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.75)' }}>{plan.name}</p>
+                  {plan.slug !== 'enterprise' && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(4px)' }}>
+                      準備中
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-end gap-1">
                   <span className="text-4xl font-black text-white leading-none">{plan.price}</span>
                   {plan.priceNote && (
@@ -642,7 +653,7 @@ function PricingSection() {
                 </ul>
 
                 <Link
-                  href="/signup"
+                  href={plan.slug === 'enterprise' ? '/contact?plan=enterprise' : `/signup?plan=${plan.slug}`}
                   className="block w-full text-center py-2.5 rounded-lg text-sm font-bold transition-all hover:opacity-90 active:scale-[.98]"
                   style={{
                     background: plan.recommended
@@ -788,7 +799,7 @@ function Footer() {
             <a href="#features" className="hover:text-sky-500 transition-colors">機能</a>
             <a href="#pricing" className="hover:text-sky-500 transition-colors">料金・プラン</a>
             <a href="#screenshots" className="hover:text-sky-500 transition-colors">画面イメージ</a>
-            <a href="#" className="hover:text-sky-500 transition-colors">お問い合わせ</a>
+            <a href="/contact" className="hover:text-sky-500 transition-colors">お問い合わせ</a>
           </nav>
         </div>
 
@@ -796,9 +807,9 @@ function Footer() {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs" style={{ color: '#7dd3fc' }}>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-sky-400 transition-colors" style={{ color: '#4a6fa5' }}>お問い合わせ</a>
-            <a href="#" className="hover:text-sky-400 transition-colors" style={{ color: '#4a6fa5' }}>プライバシーポリシー</a>
-            <a href="#" className="hover:text-sky-400 transition-colors" style={{ color: '#4a6fa5' }}>利用規約</a>
+            <a href="/contact" className="hover:text-sky-400 transition-colors" style={{ color: '#4a6fa5' }}>お問い合わせ</a>
+            <a href="/privacy" className="hover:text-sky-400 transition-colors" style={{ color: '#4a6fa5' }}>プライバシーポリシー</a>
+            <a href="/terms" className="hover:text-sky-400 transition-colors" style={{ color: '#4a6fa5' }}>利用規約</a>
           </div>
           <p style={{ color: '#4a6fa5' }}>&copy; 2026 AKINAI. All rights reserved.</p>
         </div>
