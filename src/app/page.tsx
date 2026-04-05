@@ -104,27 +104,27 @@ function HeroSection() {
       `}</style>
 
       {/* 左下: 女性イラスト（大） */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '1%', bottom: 50, width: 340, animation: 'fv-float-a 5s ease-in-out infinite' }}>
+      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '0%', bottom: 30, width: 440, animation: 'fv-float-a 5s ease-in-out infinite' }}>
         <Image src="/fv-illust-woman.png" alt="" width={400} height={600} className="w-full h-auto" unoptimized />
       </div>
       {/* 左上: チャート */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '8%', top: '12%', width: 240, animation: 'fv-float-b 4s ease-in-out infinite' }}>
+      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '7%', top: '10%', width: 320, animation: 'fv-float-b 4s ease-in-out infinite' }}>
         <Image src="/fv-illust-chart.png" alt="" width={400} height={300} className="w-full h-auto" unoptimized />
       </div>
       {/* 左中: カート */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '2%', top: '38%', width: 200, animation: 'fv-float-e 4.2s ease-in-out infinite' }}>
+      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '1%', top: '38%', width: 280, animation: 'fv-float-e 4.2s ease-in-out infinite' }}>
         <Image src="/fv-illust-cart.png" alt="" width={400} height={400} className="w-full h-auto" unoptimized />
       </div>
       {/* 右上: ラップトップ（大） */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '0%', top: '8%', width: 400, animation: 'fv-float-c 4.5s ease-in-out infinite' }}>
+      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '-1%', top: '6%', width: 520, animation: 'fv-float-c 4.5s ease-in-out infinite' }}>
         <Image src="/fv-illust-laptop.png" alt="" width={600} height={420} className="w-full h-auto" unoptimized />
       </div>
       {/* 右中: 箱 */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '10%', bottom: 80, width: 190, animation: 'fv-float-d 3.8s ease-in-out infinite' }}>
+      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '9%', bottom: 60, width: 270, animation: 'fv-float-d 3.8s ease-in-out infinite' }}>
         <Image src="/fv-illust-box.png" alt="" width={300} height={300} className="w-full h-auto" unoptimized />
       </div>
       {/* 右下: 支払い */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '1%', bottom: 30, width: 220, animation: 'fv-float-f 5.2s ease-in-out infinite' }}>
+      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '0%', bottom: 20, width: 300, animation: 'fv-float-f 5.2s ease-in-out infinite' }}>
         <Image src="/fv-illust-payment.png" alt="" width={400} height={400} className="w-full h-auto" unoptimized />
       </div>
 
@@ -156,10 +156,6 @@ function HeroSection() {
               無料でショップを開設する <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-
-          <p className="text-sm" style={{ color: '#9ca3af' }}>
-            月額費用 ¥0〜 ・ クレカ不要 ・ 即日利用可
-          </p>
         </div>
       </div>
 
@@ -282,6 +278,7 @@ function FeaturesSection() {
 // ── スクリーンショットセクション ──
 function ScreenshotsSection() {
   const { ref, visible } = useInView();
+  const [lightbox, setLightbox] = useState<{ img: string; label: string } | null>(null);
 
   // ログイン画面と同じブルー系パレットで統一
   const screens = [
@@ -435,11 +432,25 @@ function ScreenshotsSection() {
                 {/* スクリーンショット側 */}
                 <div className="flex-1 min-w-0 w-full">
                   <div
-                    className="relative rounded-2xl overflow-hidden"
+                    className="relative rounded-2xl overflow-hidden cursor-zoom-in"
                     style={{
                       boxShadow: `0 24px 64px rgba(37,99,235,0.15), 0 4px 16px rgba(37,99,235,0.08)`,
                       border: `2px solid rgba(186,230,253,0.8)`,
+                      transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease',
                     }}
+                    onMouseEnter={e => {
+                      const el = e.currentTarget as HTMLDivElement;
+                      el.style.transform = 'scale(1.03) translateY(-4px)';
+                      el.style.boxShadow = '0 32px 60px rgba(37,99,235,0.25), 0 8px 20px rgba(37,99,235,0.12)';
+                      el.style.borderColor = 'rgba(96,165,250,0.9)';
+                    }}
+                    onMouseLeave={e => {
+                      const el = e.currentTarget as HTMLDivElement;
+                      el.style.transform = 'scale(1) translateY(0)';
+                      el.style.boxShadow = '0 24px 64px rgba(37,99,235,0.15), 0 4px 16px rgba(37,99,235,0.08)';
+                      el.style.borderColor = 'rgba(186,230,253,0.8)';
+                    }}
+                    onClick={() => setLightbox({ img: s.img, label: s.label })}
                   >
                     <Image
                       src={s.img}
@@ -460,6 +471,54 @@ function ScreenshotsSection() {
 
       {/* 下部パディング */}
       <div className="pb-8" />
+
+      {/* ライトボックスモーダル */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+          style={{ background: 'rgba(10,20,40,0.85)', backdropFilter: 'blur(12px)', animation: 'lb-in 0.3s cubic-bezier(0.34,1.4,0.64,1)' }}
+          onClick={() => setLightbox(null)}
+        >
+          <style>{`
+            @keyframes lb-in {
+              from { opacity: 0; }
+              to   { opacity: 1; }
+            }
+            @keyframes lb-img-in {
+              from { opacity: 0; transform: scale(0.88); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+          <div
+            className="relative w-full max-w-5xl"
+            style={{ animation: 'lb-img-in 0.3s cubic-bezier(0.34,1.4,0.64,1)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* 閉じるボタン */}
+            <button
+              onClick={() => setLightbox(null)}
+              className="absolute -top-10 right-0 flex items-center gap-1.5 text-white/70 hover:text-white transition-colors text-sm font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              閉じる
+            </button>
+            {/* 画像 */}
+            <div className="rounded-2xl overflow-hidden" style={{ boxShadow: '0 40px 120px rgba(0,0,0,0.6)', border: '2px solid rgba(186,230,253,0.3)' }}>
+              <Image
+                src={lightbox.img}
+                alt={lightbox.label}
+                width={1280} height={693}
+                className="w-full h-auto"
+                unoptimized
+              />
+            </div>
+            {/* ラベル */}
+            <p className="mt-3 text-center text-white/60 text-sm font-medium">{lightbox.label}</p>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -670,6 +729,7 @@ function PricingSection() {
           ))}
         </div>
       </div>
+
     </section>
   );
 }
@@ -677,6 +737,7 @@ function PricingSection() {
 // ── FAQセクション ──
 function FAQSection() {
   const { ref, visible } = useInView();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const faqs = [
     { q: '無料プランはいつまで使えますか？', a: '期間制限なくご利用いただけます。商品50件・月間100注文の範囲内であれば、ずっと無料です。' },
     { q: '導入まで最短どれくらいかかりますか？', a: 'アカウント作成後、即日ご利用いただけます。初期設定のサポートもご用意しています。' },
@@ -712,22 +773,40 @@ function FAQSection() {
           </div>
         </div>
 
-        {/* FAQ リスト */}
+        {/* FAQ アコーディオン */}
         <div className={`space-y-0 transition-all duration-700 delay-200 ${visible ? 'opacity-100' : 'opacity-0'}`}>
-          {faqs.map((faq, i) => (
-            <div key={i} className="border-b py-6" style={{ borderColor: '#bae6fd' }}>
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0 mt-0.5"
-                  style={{ background: 'linear-gradient(135deg, #2563eb, #38bdf8)' }}>Q</div>
-                <p className="font-bold text-base" style={{ color: '#1e3a5f' }}>{faq.q}</p>
+          {faqs.map((faq, i) => {
+            const isOpen = openIndex === i;
+            return (
+              <div key={i} className="border-b" style={{ borderColor: '#bae6fd' }}>
+                <button
+                  className="w-full flex items-center gap-3 py-5 text-left"
+                  onClick={() => setOpenIndex(isOpen ? null : i)}
+                >
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #2563eb, #38bdf8)' }}>Q</div>
+                  <p className="flex-1 font-bold text-base" style={{ color: '#1e3a5f' }}>{faq.q}</p>
+                  <svg
+                    className="flex-shrink-0 transition-transform duration-300"
+                    style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', color: '#38bdf8' }}
+                    width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                <div
+                  className="overflow-hidden transition-all duration-300"
+                  style={{ maxHeight: isOpen ? '200px' : '0px', opacity: isOpen ? 1 : 0 }}
+                >
+                  <div className="flex items-start gap-3 pb-5">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0 mt-0.5"
+                      style={{ background: 'linear-gradient(135deg, #38bdf8, #67e8f9)' }}>A</div>
+                    <p className="text-sm leading-relaxed" style={{ color: '#4a6fa5' }}>{faq.a}</p>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0 mt-0.5"
-                  style={{ background: 'linear-gradient(135deg, #38bdf8, #67e8f9)' }}>A</div>
-                <p className="text-sm leading-relaxed" style={{ color: '#4a6fa5' }}>{faq.a}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -767,10 +846,6 @@ function CTASection() {
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-black text-sm transition-all hover:opacity-90 active:scale-[.98]"
                 style={{ background: '#fff', color: '#1d4ed8', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
                 無料で始める <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link href="/signup"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-black text-sm transition-all hover:bg-white/20 border border-white/40 text-white backdrop-blur-sm">
-                AKINAIについて詳しく見る <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
