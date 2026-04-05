@@ -95,12 +95,18 @@ function HeroSection() {
 
       {/* 背景写真（人物込みの1枚） */}
       <div className="absolute inset-0 z-0">
+        <style>{`
+          .fv-bg-img { object-position: center 12%; }
+          @media (max-width: 1279px) { .fv-bg-img { object-position: 68% 12%; } }
+          @media (max-width: 1023px) { .fv-bg-img { object-position: 76% 12%; } }
+          @media (max-width: 767px)  { .fv-bg-img { object-position: 84% 12%; } }
+          @media (max-width: 480px)  { .fv-bg-img { object-position: 90% 12%; } }
+        `}</style>
         <Image
           src="/fv-hero.jpg"
           alt=""
           fill
-          className="object-cover"
-          style={{ objectPosition: 'center 12%' }}
+          className="object-cover fv-bg-img"
           priority
           unoptimized
         />
