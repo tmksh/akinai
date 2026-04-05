@@ -97,10 +97,10 @@ function HeroSection() {
       <div className="absolute inset-0 z-0">
         <style>{`
           .fv-bg-img { object-position: center 12%; }
-          @media (max-width: 1279px) { .fv-bg-img { object-position: 68% 12%; } }
-          @media (max-width: 1023px) { .fv-bg-img { object-position: 76% 12%; } }
-          @media (max-width: 767px)  { .fv-bg-img { object-position: 84% 12%; } }
-          @media (max-width: 480px)  { .fv-bg-img { object-position: 90% 12%; } }
+          @media (max-width: 1279px) { .fv-bg-img { object-position: 60% 12%; } }
+          @media (max-width: 1023px) { .fv-bg-img { object-position: 65% 12%; } }
+          @media (max-width: 767px)  { .fv-bg-img { object-position: 70% 12%; } }
+          @media (max-width: 480px)  { .fv-bg-img { object-position: 72% 12%; } }
         `}</style>
         <Image
           src="/fv-hero.jpg"
