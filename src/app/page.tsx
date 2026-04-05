@@ -91,76 +91,108 @@ function HeroSection() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <section className="relative overflow-hidden" style={{ paddingTop: 80, minHeight: '92vh', background: 'linear-gradient(160deg, #f0f7ff 0%, #e0f2fe 50%, #dbeafe 100%)' }}>
+    <section className="relative overflow-hidden" style={{ minHeight: '96vh' }}>
 
-      {/* フローティングイラスト - 絶対配置 */}
-      <style>{`
-        @keyframes fv-float-a { 0%,100%{transform:translateY(0) rotate(-3deg)} 50%{transform:translateY(-18px) rotate(-3deg)} }
-        @keyframes fv-float-b { 0%,100%{transform:translateY(0) rotate(4deg)} 50%{transform:translateY(-14px) rotate(4deg)} }
-        @keyframes fv-float-c { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)} }
-        @keyframes fv-float-d { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-10px) rotate(-2deg)} }
-        @keyframes fv-float-e { 0%,100%{transform:translateY(0) rotate(5deg)} 50%{transform:translateY(-12px) rotate(5deg)} }
-        @keyframes fv-float-f { 0%,100%{transform:translateY(0) rotate(-4deg)} 50%{transform:translateY(-8px) rotate(-4deg)} }
-      `}</style>
-
-      {/* 左下: 女性イラスト（大） */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '0%', bottom: 30, width: 440, animation: 'fv-float-a 5s ease-in-out infinite' }}>
-        <Image src="/fv-illust-woman.png" alt="" width={400} height={600} className="w-full h-auto" unoptimized />
-      </div>
-      {/* 左上: チャート */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '7%', top: '10%', width: 320, animation: 'fv-float-b 4s ease-in-out infinite' }}>
-        <Image src="/fv-illust-chart.png" alt="" width={400} height={300} className="w-full h-auto" unoptimized />
-      </div>
-      {/* 左中: カート */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ left: '1%', top: '38%', width: 280, animation: 'fv-float-e 4.2s ease-in-out infinite' }}>
-        <Image src="/fv-illust-cart.png" alt="" width={400} height={400} className="w-full h-auto" unoptimized />
-      </div>
-      {/* 右上: ラップトップ（大） */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '-1%', top: '6%', width: 520, animation: 'fv-float-c 4.5s ease-in-out infinite' }}>
-        <Image src="/fv-illust-laptop.png" alt="" width={600} height={420} className="w-full h-auto" unoptimized />
-      </div>
-      {/* 右中: 箱 */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '9%', bottom: 60, width: 270, animation: 'fv-float-d 3.8s ease-in-out infinite' }}>
-        <Image src="/fv-illust-box.png" alt="" width={300} height={300} className="w-full h-auto" unoptimized />
-      </div>
-      {/* 右下: 支払い */}
-      <div className="absolute hidden lg:block pointer-events-none" style={{ right: '0%', bottom: 20, width: 300, animation: 'fv-float-f 5.2s ease-in-out infinite' }}>
-        <Image src="/fv-illust-payment.png" alt="" width={400} height={400} className="w-full h-auto" unoptimized />
+      {/* 背景写真（人物込みの1枚） */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/fv-hero.jpg"
+          alt=""
+          fill
+          className="object-cover"
+          style={{ objectPosition: 'center 12%' }}
+          priority
+          unoptimized
+        />
+        {/* 左側テキストエリアを読みやすく */}
+        <div className="absolute inset-0" style={{
+          background: 'linear-gradient(105deg, rgba(240,248,255,0.80) 0%, rgba(230,244,255,0.60) 35%, rgba(210,235,255,0.15) 60%, transparent 80%)'
+        }} />
       </div>
 
-      {/* 中央テキスト */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(92vh-80px)] text-center px-8">
-        <div className={`space-y-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
-          style={{ maxWidth: 580 }}>
+      {/* テキストコンテンツ（左寄せ・参照画像レイアウト） */}
+      <div className="relative z-20 flex items-center min-h-screen" style={{ paddingTop: 64, paddingLeft: 'clamp(60px, 12vw, 220px)', paddingRight: 32 }}>
+        <div className={`transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+          style={{ maxWidth: 520 }}>
 
-          <h1 className="font-black tracking-tight leading-[1.1]"
-            style={{ color: '#1e3a5f', fontSize: 'clamp(2rem, 4.5vw, 4rem)' }}>
+          {/* 装飾テキスト（参照の「1st step.」に相当） */}
+          <div className="relative mb-2 select-none pointer-events-none">
+            <span
+              className="absolute font-black italic leading-none"
+              style={{
+                fontSize: 'clamp(3rem, 8vw, 7rem)',
+                color: 'rgba(29,78,216,0.07)',
+                top: '-0.2em',
+                left: '-0.05em',
+                whiteSpace: 'nowrap',
+                fontFamily: 'Georgia, serif',
+              }}
+            >
+              AKINAI
+            </span>
+          </div>
+
+          {/* メインキャッチコピー（参照の「一緒に一歩、踏み出そう。」に相当） */}
+          <h1
+            className="font-black leading-[1.1] tracking-tight mb-6 relative z-10"
+            style={{ color: '#1e3a5f', fontSize: 'clamp(1.8rem, 3.2vw, 3.0rem)' }}
+          >
             B2B ECを、<br />
             <span style={{
               background: 'linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+              whiteSpace: 'nowrap',
             }}>
               もっとかんたんに。
             </span>
           </h1>
 
-          <p className="text-lg leading-relaxed" style={{ color: '#4b5563' }}>
-            商品・受注・顧客・見積・コンテンツ・ショップ。<br />
+          {/* ボディテキスト */}
+          <p className="leading-loose mb-6 text-sm" style={{ color: '#334155' }}>
             B2B ECに必要なすべてを、ひとつの管理画面に。
           </p>
 
-          <div className="flex justify-center gap-4 pt-2">
-            <Link href="/signup"
-              className="font-bold px-10 py-4 rounded-full text-base flex items-center gap-2 transition-all hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #38bdf8 100%)', color: '#fff', boxShadow: '0 4px 20px rgba(29,78,216,0.3)' }}>
-              無料でショップを開設する <ArrowRight className="h-4 w-4" />
-            </Link>
+          {/* ダッシュボードプレビュー */}
+          <div
+            className="mb-8 rounded-xl overflow-hidden"
+            style={{
+              boxShadow: '0 8px 32px rgba(37,99,235,0.18), 0 2px 8px rgba(37,99,235,0.1)',
+              border: '1.5px solid rgba(186,230,253,0.8)',
+              maxWidth: 420,
+            }}
+          >
+            <Image
+              src="/screenshot-dashboard.png"
+              alt="ダッシュボード"
+              width={1024}
+              height={554}
+              className="w-full object-cover object-top"
+              unoptimized
+            />
           </div>
+
+          {/* CTA ボタン（参照の丸ボタンスタイル） */}
+          <Link
+            href="/signup"
+            className="inline-flex items-center gap-3 font-bold rounded-full transition-all hover:scale-105"
+            style={{
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #38bdf8 100%)',
+              color: '#fff',
+              boxShadow: '0 4px 24px rgba(29,78,216,0.35)',
+              padding: '14px 36px',
+              fontSize: '0.95rem',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            無料でショップを開設する
+          </Link>
         </div>
       </div>
 
       {/* 波形ボトム */}
-      <div className="absolute bottom-0 left-0 w-full leading-none" style={{ zIndex: 5, lineHeight: 0, marginBottom: -1 }}>
+      <div className="absolute bottom-0 left-0 w-full leading-none" style={{ zIndex: 30, lineHeight: 0, marginBottom: -1 }}>
         <svg viewBox="0 0 1440 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"
           style={{ display: 'block', width: '100%', height: 100 }}>
           <path d="M0,60 C240,110 480,20 720,70 C960,115 1200,30 1440,65 L1440,100 L0,100 Z" fill="#ffffff" />
@@ -578,8 +610,8 @@ function PricingSection() {
     {
       name: 'ライト',
       slug: 'light',
-      price: '¥3,000',
-      priceNote: '/ 月（税抜）',
+      price: '¥3,300',
+      priceNote: '/ 月（税込）',
       desc: '小規模ショップやはじめての方に',
       features: [
         { text: '商品50件まで', active: true },
@@ -597,8 +629,8 @@ function PricingSection() {
     {
       name: 'スタンダード',
       slug: 'standard',
-      price: '¥9,800',
-      priceNote: '/ 月（税抜）',
+      price: '¥10,780',
+      priceNote: '/ 月（税込）',
       desc: '成長するビジネスに最適',
       features: [
         { text: '商品無制限', active: true },

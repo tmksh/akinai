@@ -9,8 +9,8 @@ import { confirmUserAndSignIn } from '@/lib/actions/auth';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 const PLAN_LABELS: Record<string, { name: string; price: string; color: string }> = {
-  light:    { name: 'ライトプラン',       price: '¥3,000 / 月',  color: '#38bdf8' },
-  standard: { name: 'スタンダードプラン', price: '¥9,800 / 月',  color: '#2563eb' },
+  light:    { name: 'ライトプラン',       price: '¥3,300 / 月（税込）',  color: '#38bdf8' },
+  standard: { name: 'スタンダードプラン', price: '¥10,780 / 月（税込）', color: '#2563eb' },
 };
 
 function SignupForm() {
