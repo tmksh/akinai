@@ -465,6 +465,7 @@ export default function ProductEditPage() {
                 <SimpleVariantInput
                   variants={variants}
                   onChange={setVariants}
+                  onSelectedVariantChange={(v) => setPreviewVariantImage(v?.imageUrl || null)}
                   disabled={isPending}
                 />
               )}
@@ -592,27 +593,15 @@ export default function ProductEditPage() {
                 <div className={cn("p-4 min-h-[500px] overflow-auto", previewMode === 'mobile' ? "text-sm" : "p-6")}>
                   <div className="space-y-4">
                     {/* 商品画像 */}
-                    {previewVariantImage ? (
+                    {(previewVariantImage || variants[0]?.imageUrl || productImages[0]?.url) ? (
                       <div className={cn(
                         "relative rounded-xl overflow-hidden",
                         previewMode === 'mobile' ? "aspect-square" : "aspect-[4/3]"
                       )}>
                         <img
-                          src={previewVariantImage}
-                          alt="バリエーション画像"
+                          src={previewVariantImage || variants[0]?.imageUrl || productImages[0].url}
+                          alt="商品画像"
                           className="w-full h-full object-cover transition-all duration-300"
-                        />
-                      </div>
-                    ) : productImages.length > 0 ? (
-                      <div className={cn(
-                        "relative rounded-xl overflow-hidden",
-                        previewMode === 'mobile' ? "aspect-square" : "aspect-[4/3]"
-                      )}>
-                        <Image
-                          src={productImages[0].url}
-                          alt={productImages[0].alt || formData.name}
-                          fill
-                          className="object-cover"
                         />
                       </div>
                     ) : (

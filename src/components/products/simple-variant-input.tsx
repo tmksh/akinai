@@ -20,10 +20,11 @@ export interface ProductVariant {
 interface SimpleVariantInputProps {
   variants: ProductVariant[];
   onChange: (variants: ProductVariant[]) => void;
+  onSelectedVariantChange?: (variant: ProductVariant | null) => void;
   disabled?: boolean;
 }
 
-export function SimpleVariantInput({ variants, onChange, disabled }: SimpleVariantInputProps) {
+export function SimpleVariantInput({ variants, onChange, onSelectedVariantChange, disabled }: SimpleVariantInputProps) {
   // バリアントが多い場合はデフォルトでグリッド表示
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(variants.length >= 8 ? 'grid' : 'list');
 
@@ -86,34 +87,39 @@ export function SimpleVariantInput({ variants, onChange, disabled }: SimpleVaria
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
           {variants.map((variant) => (
             <div key={variant.id} className="group relative">
-              <label className="block cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={disabled}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
-                  }}
-                />
-                <div className={cn(
-                  'aspect-square rounded-lg border-2 overflow-hidden transition-all',
-                  'hover:border-sky-400',
-                  variant.imageUrl ? 'border-transparent' : 'border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800/50'
-                )}>
-                  {variant.imageUrl ? (
-                    <img
-                      src={variant.imageUrl}
-                      alt={variant.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Upload className="h-5 w-5 text-muted-foreground/50" />
-                  )}
-                </div>
-              </label>
+              <div
+                className="cursor-pointer"
+                onClick={() => onSelectedVariantChange?.(variant)}
+              >
+                <label className="block cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={disabled}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
+                    }}
+                  />
+                  <div className={cn(
+                    'aspect-square rounded-lg border-2 overflow-hidden transition-all',
+                    'hover:border-sky-400',
+                    variant.imageUrl ? 'border-transparent' : 'border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800/50'
+                  )}>
+                    {variant.imageUrl ? (
+                      <img
+                        src={variant.imageUrl}
+                        alt={variant.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Upload className="h-5 w-5 text-muted-foreground/50" />
+                    )}
+                  </div>
+                </label>
+              </div>
               <p className="mt-1 text-[11px] text-muted-foreground text-center leading-tight truncate px-0.5" title={variant.name}>
                 {variant.name || '未設定'}
               </p>
