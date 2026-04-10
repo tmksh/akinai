@@ -147,7 +147,7 @@ export async function GET(
           compareAtPrice: v.compare_at_price,
           stock: v.stock,
           available: v.stock > 0,
-          imageUrl: (opts.imageUrl as string) || null,
+          imageUrl: (v.image_url as string) || (opts.imageUrl as string) || null,
           options: opts,
         };
       }),
