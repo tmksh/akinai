@@ -593,6 +593,7 @@ export interface Database {
           stock: number
           low_stock_threshold: number
           options: Json
+          image_url: string | null
           created_at: string
           updated_at: string
         }
@@ -606,6 +607,7 @@ export interface Database {
           stock?: number
           low_stock_threshold?: number
           options?: Json
+          image_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -619,6 +621,7 @@ export interface Database {
           stock?: number
           low_stock_threshold?: number
           options?: Json
+          image_url?: string | null
           created_at?: string
           updated_at?: string
         }

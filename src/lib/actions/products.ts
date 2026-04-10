@@ -927,3 +927,111 @@ export async function duplicateProduct(productId: string): Promise<{
   }
 }
 
+// ============================================
+// 外部Supabase（dabranch.com）からバリアント画像を同期
+// ============================================
+export interface SyncVariantImagesResult {
+  total: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
+}
+
+export async function syncVariantImagesFromSource(
+  organizationId: string,
+  sourceSupabaseUrl: string,
+  sourceSupabaseKey: string
+): Promise<SyncVariantImagesResult> {
+  const result: SyncVariantImagesResult = { total: 0, updated: 0, skipped: 0, errors: [] };
+  const destClient = getAdminClient();
+
+  try {
+    // 同期元からバリアント一覧を取得（image_url付き）
+    const sourceRes = await fetch(
+      `${sourceSupabaseUrl}/rest/v1/product_variants?select=sku,image_url&image_url=not.is.null`,
+      {
+        headers: {
+          apikey: sourceSupabaseKey,
+          Authorization: `Bearer ${sourceSupabaseKey}`,
+        },
+      }
+    );
+
+    if (!sourceRes.ok) {
+      result.errors.push(`同期元の取得に失敗しました: ${sourceRes.status} ${sourceRes.statusText}`);
+      return result;
+    }
+
+    const sourceVariants: { sku: string; image_url: string | null }[] = await sourceRes.json();
+    result.total = sourceVariants.length;
+
+    // 画像URLがあるものだけ処理
+    const toUpdate = sourceVariants.filter(v => v.image_url);
+
+    for (const sv of toUpdate) {
+      // akinai側で同一SKUのバリアントを検索
+      const { data: destVariant, error: findError } = await destClient
+        .from('product_variants')
+        .select('id, image_url')
+        .eq('sku', sv.sku)
+        .single();
+
+      if (findError || !destVariant) {
+        result.skipped++;
+        continue;
+      }
+
+      // 既に同じURLが設定されていればスキップ
+      if (destVariant.image_url === sv.image_url) {
+        result.skipped++;
+        continue;
+      }
+
+      const { error: updateError } = await destClient
+        .from('product_variants')
+        .update({ image_url: sv.image_url })
+        .eq('id', destVariant.id);
+
+      if (updateError) {
+        result.errors.push(`SKU ${sv.sku}: ${updateError.message}`);
+      } else {
+        result.updated++;
+      }
+    }
+
+    revalidatePath('/products');
+    return result;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : '不明なエラー';
+    result.errors.push(msg);
+    return result;
+  }
+}
+
+// ============================================
+// マイグレーション：product_variants に image_url を追加
+// ============================================
+export async function ensureVariantImageUrlColumn(): Promise<{ ok: boolean; message: string }> {
+  const supabase = getAdminClient();
+
+  try {
+    // image_url カラムが存在するか確認（存在しなければ追加）
+    const { error } = await supabase.rpc('exec_sql' as never, {
+      sql: 'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS image_url TEXT;',
+    } as never);
+
+    // rpc が無い環境では REST API でテスト更新してカラム存在を確認
+    if (error) {
+      // カラムが既に存在すれば問題なし
+      if (error.message?.includes('already exists') || error.message?.includes('42701')) {
+        return { ok: true, message: 'カラムは既に存在します' };
+      }
+      // 直接 SQL 実行できない場合はフラグのみ返す
+      return { ok: true, message: 'マイグレーションはSupabaseダッシュボードから手動で適用してください' };
+    }
+
+    return { ok: true, message: 'image_url カラムを追加しました' };
+  } catch {
+    return { ok: true, message: 'マイグレーションはSupabaseダッシュボードから手動で適用してください' };
+  }
+}

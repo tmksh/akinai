@@ -24,16 +24,20 @@ export default function ProductClient({ product }: ProductClientProps) {
 
   const selectedVariant = product.variants[selectedVariantIndex];
   const hasMultipleVariants = product.variants.length > 1;
-  const hasMultipleImages = product.images.length > 1;
+
+  // バリアント画像 → 商品画像のフォールバック順
+  const variantImage = selectedVariant?.imageUrl ?? null;
+  const productImages = product.images;
+  const hasMultipleImages = productImages.length > 1 || (variantImage !== null && productImages.length > 0);
   const isOutOfStock = selectedVariant?.stock === 0;
   const inWishlist = isInWishlist(product.id);
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
+    setCurrentImageIndex((prev) => (prev + 1) % productImages.length);
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+    setCurrentImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
   };
 
   // カートに追加
@@ -88,7 +92,7 @@ export default function ProductClient({ product }: ProductClientProps) {
     }
   };
 
-  const currentImage = product.images[currentImageIndex]?.url || 'https://picsum.photos/seed/default/800/1000';
+  const currentImage = variantImage || productImages[currentImageIndex]?.url || 'https://picsum.photos/seed/default/800/1000';
 
   return (
     <>
@@ -129,9 +133,9 @@ export default function ProductClient({ product }: ProductClientProps) {
         </div>
 
         {/* サムネイル */}
-        {hasMultipleImages && (
+        {!variantImage && hasMultipleImages && (
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {product.images.map((image, index) => (
+            {productImages.map((image, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentImageIndex(index)}
@@ -150,6 +154,36 @@ export default function ProductClient({ product }: ProductClientProps) {
                 />
               </button>
             ))}
+          </div>
+        )}
+
+        {/* バリアント画像サムネイル（バリアントごとに画像がある場合） */}
+        {variantImage && product.variants.some(v => v.imageUrl) && (
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {product.variants.map((variant, index) => {
+              const thumb = variant.imageUrl || productImages[0]?.url;
+              if (!thumb) return null;
+              return (
+                <button
+                  key={variant.id}
+                  onClick={() => setSelectedVariantIndex(index)}
+                  title={variant.name}
+                  className={cn(
+                    "relative w-20 h-20 flex-shrink-0 overflow-hidden transition-all",
+                    index === selectedVariantIndex
+                      ? "ring-2 ring-slate-800"
+                      : "opacity-60 hover:opacity-100"
+                  )}
+                >
+                  <Image
+                    src={thumb}
+                    alt={variant.name}
+                    fill
+                    className="object-cover"
+                  />
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -196,26 +230,66 @@ export default function ProductClient({ product }: ProductClientProps) {
             <p className="text-sm font-medium text-slate-800 mb-3">
               バリエーション
             </p>
-            <div className="flex flex-wrap gap-2">
-              {product.variants.map((variant, index) => (
-                <button
-                  key={variant.id}
-                  onClick={() => setSelectedVariantIndex(index)}
-                  disabled={variant.stock === 0}
-                  className={cn(
-                    "px-4 py-2 text-sm border transition-all",
-                    selectedVariantIndex === index
-                      ? "border-slate-800 bg-slate-800 text-white"
-                      : variant.stock === 0
-                        ? "border-slate-200 text-slate-300 cursor-not-allowed"
-                        : "border-slate-200 hover:border-slate-400"
-                  )}
-                >
-                  {variant.name}
-                  {variant.stock === 0 && " (売切)"}
-                </button>
-              ))}
-            </div>
+            {product.variants.some(v => v.imageUrl) ? (
+              // バリアント画像がある場合：画像サムネイルで選択
+              <div className="flex flex-wrap gap-3">
+                {product.variants.map((variant, index) => {
+                  const thumb = variant.imageUrl || productImages[0]?.url;
+                  return (
+                    <button
+                      key={variant.id}
+                      onClick={() => { setSelectedVariantIndex(index); setCurrentImageIndex(0); }}
+                      disabled={variant.stock === 0}
+                      title={variant.name}
+                      className={cn(
+                        "relative w-16 h-16 overflow-hidden border-2 transition-all",
+                        selectedVariantIndex === index
+                          ? "border-slate-800"
+                          : variant.stock === 0
+                            ? "border-slate-200 opacity-40 cursor-not-allowed"
+                            : "border-transparent hover:border-slate-400"
+                      )}
+                    >
+                      {thumb ? (
+                        <Image src={thumb} alt={variant.name} fill className="object-cover" />
+                      ) : (
+                        <span className="text-[10px] text-slate-500 p-1 leading-tight">{variant.name}</span>
+                      )}
+                      {variant.stock === 0 && (
+                        <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                          <span className="text-[9px] text-slate-400">売切</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              // バリアント画像がない場合：テキストボタン
+              <div className="flex flex-wrap gap-2">
+                {product.variants.map((variant, index) => (
+                  <button
+                    key={variant.id}
+                    onClick={() => setSelectedVariantIndex(index)}
+                    disabled={variant.stock === 0}
+                    className={cn(
+                      "px-4 py-2 text-sm border transition-all",
+                      selectedVariantIndex === index
+                        ? "border-slate-800 bg-slate-800 text-white"
+                        : variant.stock === 0
+                          ? "border-slate-200 text-slate-300 cursor-not-allowed"
+                          : "border-slate-200 hover:border-slate-400"
+                    )}
+                  >
+                    {variant.name}
+                    {variant.stock === 0 && " (売切)"}
+                  </button>
+                ))}
+              </div>
+            )}
+            {selectedVariant && (
+              <p className="text-xs text-slate-500 mt-2">{selectedVariant.name}</p>
+            )}
           </div>
         )}
 

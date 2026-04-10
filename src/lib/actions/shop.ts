@@ -39,6 +39,7 @@ export interface ShopProduct {
     compareAtPrice: number | null;
     stock: number;
     options: Record<string, string>;
+    imageUrl: string | null;
   }[];
   categories: {
     id: string;
@@ -225,6 +226,7 @@ export async function getShopProducts(options?: {
           compareAtPrice: v.compare_at_price,
           stock: v.stock,
           options: (v.options as Record<string, string>) || {},
+          imageUrl: v.image_url ?? null,
         })),
         categories: productCats.map(c => ({
           id: c.id,
@@ -349,6 +351,7 @@ export async function getShopProduct(productIdOrSlug: string): Promise<{
         compareAtPrice: v.compare_at_price,
         stock: v.stock,
         options: (v.options as Record<string, string>) || {},
+        imageUrl: v.image_url ?? null,
       })),
       categories: categories.map(c => ({
         id: c.id,

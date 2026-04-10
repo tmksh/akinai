@@ -174,7 +174,7 @@ export default function ProductEditPage() {
           price: v.price,
           compareAtPrice: v.compare_at_price || undefined,
           stock: v.stock,
-          imageUrl: (v.options as Record<string, string>)?.imageUrl || undefined,
+          imageUrl: v.image_url || (v.options as Record<string, string>)?.imageUrl || undefined,
         })));
         setProductImages(p.images.map(img => ({
           id: img.id,
