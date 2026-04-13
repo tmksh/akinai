@@ -21,9 +21,9 @@ export async function GET(
   { params }: { params: Promise<{ supplierId: string }> }
 ) {
   const { supplierId } = await params;
+  const auth = await validateApiKey(request);
 
-  return withApiLogging(request, `GET /api/v1/analytics/supplier/${supplierId}`, async () => {
-    const auth = await validateApiKey(request);
+  return withApiLogging(request, auth, async () => {
     if (!auth.success) return apiError(auth.error || 'Unauthorized', auth.status || 401);
 
     const supabase = createClient(

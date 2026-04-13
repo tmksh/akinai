@@ -16,8 +16,8 @@ export function OPTIONS() {
 
 /** POST /api/v1/messages  — サプライヤー→バイヤーへメッセージ送信 */
 export async function POST(request: NextRequest) {
-  return withApiLogging(request, 'POST /api/v1/messages', async () => {
-    const auth = await validateApiKey(request);
+  const auth = await validateApiKey(request);
+  return withApiLogging(request, auth, async () => {
     if (!auth.success) return apiError(auth.error || 'Unauthorized', auth.status || 401);
 
     const body = await request.json().catch(() => null);
@@ -116,8 +116,8 @@ export async function POST(request: NextRequest) {
 
 /** GET /api/v1/messages?customerId={ID}  — 受信メッセージ一覧 */
 export async function GET(request: NextRequest) {
-  return withApiLogging(request, 'GET /api/v1/messages', async () => {
-    const auth = await validateApiKey(request);
+  const auth = await validateApiKey(request);
+  return withApiLogging(request, auth, async () => {
     if (!auth.success) return apiError(auth.error || 'Unauthorized', auth.status || 401);
 
     const { searchParams } = new URL(request.url);

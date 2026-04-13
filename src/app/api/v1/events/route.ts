@@ -27,8 +27,8 @@ export function OPTIONS() {
  *   regions      string[]  対象地域（空=全て）
  */
 export async function POST(request: NextRequest) {
-  return withApiLogging(request, 'POST /api/v1/events', async () => {
-    const auth = await validateApiKey(request);
+  const auth = await validateApiKey(request);
+  return withApiLogging(request, auth, async () => {
     if (!auth.success) return apiError(auth.error || 'Unauthorized', auth.status || 401);
 
     const body = await request.json().catch(() => null);

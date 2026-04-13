@@ -27,8 +27,8 @@ export function OPTIONS() {
  *   referrer    string (任意)
  */
 export async function POST(request: NextRequest) {
-  return withApiLogging(request, 'POST /api/v1/analytics/track', async () => {
-    const auth = await validateApiKey(request);
+  const auth = await validateApiKey(request);
+  return withApiLogging(request, auth, async () => {
     if (!auth.success) return apiError(auth.error || 'Unauthorized', auth.status || 401);
 
     const body = await request.json().catch(() => null);
