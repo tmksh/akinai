@@ -14,6 +14,7 @@ import {
   ImageIcon,
   BookOpen,
   Megaphone,
+  Briefcase,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -36,6 +37,7 @@ export const contentTypeConfig: Record<string, ContentTypeConfig> = {
   faq: { label: 'FAQ', icon: HelpCircle, editor: 'qa' },
   guide: { label: 'ガイド', icon: BookOpen, editor: 'text' },
   announcement: { label: 'お知らせ', icon: Megaphone, editor: 'text' },
+  case: { label: '事例', icon: Briefcase, editor: 'text' },
 };
 
 export const getContentTypeConfig = (type: string): ContentTypeConfig => {
