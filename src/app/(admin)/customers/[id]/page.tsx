@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Mail,
@@ -27,7 +27,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { getCustomer, getCustomerOrders, approveCustomer } from '@/lib/actions/customers';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { getCustomer, getCustomerOrders, approveCustomer, deleteCustomer } from '@/lib/actions/customers';
 import {
   getCustomerRoleLabels,
 } from '@/lib/actions/settings';
@@ -64,6 +74,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 export default function CustomerDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const { organization } = useOrganization();
   const [customer, setCustomer] = useState<CustomerData | null>(null);
@@ -71,6 +82,7 @@ export default function CustomerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [roleLabels, setRoleLabels] = useState<CustomerRoleLabels>({ ...DEFAULT_CUSTOMER_ROLE_LABELS });
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
@@ -98,6 +110,15 @@ export default function CustomerDetailPage() {
       if (error) { toast.error(error); return; }
       toast.success('顧客を承認しました');
       setCustomer((prev) => prev ? { ...prev, status: 'active' } : prev);
+    });
+  };
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      const { error } = await deleteCustomer(id);
+      if (error) { toast.error('削除に失敗しました: ' + error); return; }
+      toast.success('顧客を削除しました');
+      router.push('/customers');
     });
   };
 
@@ -170,7 +191,7 @@ export default function CustomerDetailPage() {
           <Button variant="outline" asChild>
             <Link href={`/customers/${id}/edit`}><Edit className="mr-2 h-4 w-4" />編集</Link>
           </Button>
-          <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+          <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => setDeleteConfirm(true)} disabled={isPending}>
             <Trash2 className="mr-2 h-4 w-4" />削除
           </Button>
         </div>
@@ -375,6 +396,29 @@ export default function CustomerDetailPage() {
         </Card>
         </div>
       </div>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>顧客を削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{customer?.name}」を削除します。この操作は取り消せません。注文履歴などの関連データも削除される場合があります。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

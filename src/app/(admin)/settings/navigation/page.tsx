@@ -12,6 +12,7 @@ import {
   IoSettings,
   IoPeople,
   IoClipboard,
+  IoMegaphone,
 } from 'react-icons/io5';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +30,7 @@ const ALL_NAV_ITEMS: { key: string; title: string; icon: IconType; href: string;
   { key: 'customers', title: '顧客管理', icon: IoPeople, href: '/customers' },
   { key: 'quotes', title: '見積管理', icon: IoClipboard, href: '/quotes' },
   { key: 'agents', title: '代理店', icon: IoBusiness, href: '/agents' },
+  { key: 'marketing', title: 'マーケティング', icon: IoMegaphone, href: '/marketing' },
   { key: 'settings', title: '設定', icon: IoSettings, href: '/settings', required: true },
 ];
 

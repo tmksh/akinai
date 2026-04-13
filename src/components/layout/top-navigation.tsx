@@ -20,6 +20,7 @@ import {
   IoChevronDown,
   IoPeople,
   IoClipboard,
+  IoMegaphone,
 } from 'react-icons/io5';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +50,7 @@ const navigationItems: {
   { title: '顧客管理', icon: IoPeople, href: '/customers' },
   { title: '見積管理', icon: IoClipboard, href: '/quotes' },
   { title: '代理店', icon: IoBusiness, href: '/agents' },
+  { title: 'マーケティング', icon: IoMegaphone, href: '/marketing' },
   { title: '設定', icon: IoSettings, href: '/settings' },
 ];
 

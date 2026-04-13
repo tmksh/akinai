@@ -51,6 +51,8 @@ export interface ShopProduct {
   maxPrice: number;
   totalStock: number;
   hasDiscount: boolean;
+  organizationId: string | null;
+  supplierId: string | null;
 }
 
 // ショップ用カテゴリ型
@@ -363,6 +365,8 @@ export async function getShopProduct(productIdOrSlug: string): Promise<{
       maxPrice,
       totalStock,
       hasDiscount,
+      organizationId: product.organization_id ?? null,
+      supplierId: (product as Record<string, unknown>).supplier_id as string ?? null,
     };
 
     return { data: shopProduct, error: null };
@@ -551,6 +555,67 @@ export async function getShopContent(contentIdOrSlug: string): Promise<{
   }
 }
 
+// ─── アナリティクス計測 ─────────────────────────────────────────────────────
 
+/** 商品ページ閲覧を記録（features.analytics が有効な組織のみ） */
+export async function trackProductView(
+  productId: string,
+  organizationId: string,
+  options?: { supplierId?: string; sessionId?: string; customerId?: string; referrer?: string }
+): Promise<void> {
+  try {
+    const supabase = await createClient();
 
+    // analytics フラグ確認
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('features')
+      .eq('id', organizationId)
+      .single();
 
+    const features = (org?.features as Record<string, boolean>) || {};
+    if (!features.analytics) return;
+
+    await supabase.from('page_views').insert({
+      organization_id: organizationId,
+      product_id: productId,
+      supplier_id: options?.supplierId || null,
+      session_id: options?.sessionId || null,
+      customer_id: options?.customerId || null,
+      referrer: options?.referrer || null,
+    });
+  } catch {
+    // 計測失敗はサイレントに無視
+  }
+}
+
+/** 商品クリック（カートに追加・詳細確認など）を記録 */
+export async function trackProductClick(
+  productId: string,
+  organizationId: string,
+  options?: { supplierId?: string; sessionId?: string; customerId?: string; clickType?: string }
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('features')
+      .eq('id', organizationId)
+      .single();
+
+    const features = (org?.features as Record<string, boolean>) || {};
+    if (!features.analytics) return;
+
+    await supabase.from('product_clicks').insert({
+      organization_id: organizationId,
+      product_id: productId,
+      supplier_id: options?.supplierId || null,
+      session_id: options?.sessionId || null,
+      customer_id: options?.customerId || null,
+      click_type: options?.clickType || 'detail',
+    });
+  } catch {
+    // 計測失敗はサイレントに無視
+  }
+}

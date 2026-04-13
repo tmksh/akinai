@@ -17,6 +17,7 @@ import {
   Moon,
   Sun,
   Building2,
+  Megaphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,13 +46,16 @@ import { useOrganization } from '@/components/providers/organization-provider';
 
 const navigationItems = [
   {
+    key: 'dashboard',
     title: 'ダッシュボード',
     icon: LayoutDashboard,
     href: '/dashboard',
     color: 'text-sky-500',
     hoverClass: 'sidebar-hover-orange',
+    required: true,
   },
   {
+    key: 'products',
     title: '商品管理',
     icon: Package,
     href: '/products',
@@ -59,6 +63,7 @@ const navigationItems = [
     hoverClass: 'sidebar-hover-orange',
   },
   {
+    key: 'contents',
     title: 'お知らせ',
     icon: FileText,
     href: '/contents',
@@ -66,6 +71,7 @@ const navigationItems = [
     hoverClass: 'sidebar-hover-orange',
   },
   {
+    key: 'orders',
     title: '注文管理',
     icon: ShoppingCart,
     href: '/orders',
@@ -73,9 +79,18 @@ const navigationItems = [
     hoverClass: 'sidebar-hover-orange',
   },
   {
+    key: 'agents',
     title: '代理店管理',
     icon: Building2,
     href: '/agents',
+    color: 'text-sky-500',
+    hoverClass: 'sidebar-hover-orange',
+  },
+  {
+    key: 'marketing',
+    title: 'マーケティング',
+    icon: Megaphone,
+    href: '/marketing',
     color: 'text-sky-500',
     hoverClass: 'sidebar-hover-orange',
   },
@@ -118,15 +133,21 @@ function ThemeToggle() {
 }
 
 export function AppSidebar() {
-  const { currentUser } = useOrganization();
+  const { currentUser, organization } = useOrganization();
   const pathname = usePathname();
 
+  // ナビゲーション設定から有効なキーを取得
+  const enabledKeys = (organization?.settings?.enabled_nav_items as string[] | undefined) ?? null;
+
   const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return pathname === '/dashboard';
-    }
+    if (href === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(href);
   };
+
+  // 有効なアイテムのみ表示（設定未保存の場合は全て表示）
+  const visibleItems = navigationItems.filter(item =>
+    item.required || enabledKeys === null || enabledKeys.includes(item.key)
+  );
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="sidebar-accent-line">
@@ -151,7 +172,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>メイン</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild

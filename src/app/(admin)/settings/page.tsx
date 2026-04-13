@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook, FileText, Package, Sparkles, LayoutGrid } from 'lucide-react';
+import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook, FileText, Package, Sparkles, LayoutGrid, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,13 @@ const settingsCategories = [
     description: '店舗名、住所、ロゴなどの基本情報を設定',
     href: '/settings/organization',
     icon: Building2,
+    badge: null,
+  },
+  {
+    title: '送信ドメインの認証',
+    description: '自社ドメインを認証してメルマガを自社アドレスから送信',
+    href: '/settings/email-domain',
+    icon: Mail,
     badge: null,
   },
   {
