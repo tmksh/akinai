@@ -108,6 +108,9 @@ interface CreateCustomerInput {
   company?: string;
   notes?: string;
   tags?: string[];
+  role?: 'personal' | 'buyer' | 'supplier';
+  status?: 'pending' | 'active' | 'suspended';
+  metadata?: Record<string, unknown>;
   // 住所（オプション）
   address?: {
     postalCode: string;
@@ -140,6 +143,9 @@ export async function createCustomer(input: CreateCustomerInput): Promise<{
         company: input.company,
         notes: input.notes,
         tags: input.tags || [],
+        role: input.role || 'personal',
+        status: input.status || 'active',
+        metadata: input.metadata || null,
       })
       .select()
       .single();
@@ -196,6 +202,9 @@ interface UpdateCustomerInput {
   company?: string | null;
   notes?: string | null;
   tags?: string[];
+  role?: 'personal' | 'buyer' | 'supplier';
+  status?: 'pending' | 'active' | 'suspended';
+  metadata?: Record<string, unknown> | null;
 }
 
 // 顧客を更新
@@ -214,6 +223,9 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<{
     if (input.company !== undefined) updateData.company = input.company;
     if (input.notes !== undefined) updateData.notes = input.notes;
     if (input.tags !== undefined) updateData.tags = input.tags;
+    if (input.role !== undefined) updateData.role = input.role;
+    if (input.status !== undefined) updateData.status = input.status;
+    if (input.metadata !== undefined) updateData.metadata = input.metadata;
 
     const { data, error } = await supabase
       .from('customers')
@@ -233,6 +245,33 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<{
     return {
       data: null,
       error: err instanceof Error ? err.message : 'Failed to update customer',
+    };
+  }
+}
+
+// 顧客を承認（pending → active）
+export async function approveCustomer(customerId: string): Promise<{
+  success: boolean;
+  error: string | null;
+}> {
+  const supabase = getAdminClient();
+  try {
+    const { error } = await supabase
+      .from('customers')
+      .update({ status: 'active' })
+      .eq('id', customerId)
+      .eq('status', 'pending');
+
+    if (error) throw error;
+
+    revalidatePath('/customers');
+    revalidatePath(`/customers/${customerId}`);
+    return { success: true, error: null };
+  } catch (err) {
+    console.error('Failed to approve customer:', err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to approve customer',
     };
   }
 }

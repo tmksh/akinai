@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook, FileText, Package, Sparkles } from 'lucide-react';
+import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook, FileText, Package, Sparkles, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,20 @@ const settingsCategories = [
     description: '記事・ニュース・特集など、使うコンテンツタイプを選択',
     href: '/settings/contents',
     icon: FileText,
+    badge: null,
+  },
+  {
+    title: '会員種別の表示名',
+    description: '個人会員・バイヤーなどの表示名をサービスに合わせて変更',
+    href: '/settings/customer-roles',
+    icon: Users,
+    badge: null,
+  },
+  {
+    title: 'ナビゲーション設定',
+    description: 'ヘッダーに表示するメニュー項目の表示・非表示を設定',
+    href: '/settings/navigation',
+    icon: LayoutGrid,
     badge: null,
   },
   {

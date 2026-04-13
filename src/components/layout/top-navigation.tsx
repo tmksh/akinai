@@ -18,6 +18,8 @@ import {
   IoLogOut,
   IoPerson,
   IoChevronDown,
+  IoPeople,
+  IoClipboard,
 } from 'react-icons/io5';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +46,8 @@ const navigationItems: {
   { title: '商品管理', icon: IoCube, href: '/products' },
   { title: 'コンテンツ管理', icon: IoDocument, href: '/contents' },
   { title: '注文管理', icon: IoCart, href: '/orders' },
+  { title: '顧客管理', icon: IoPeople, href: '/customers' },
+  { title: '見積管理', icon: IoClipboard, href: '/quotes' },
   { title: '代理店', icon: IoBusiness, href: '/agents' },
   { title: '設定', icon: IoSettings, href: '/settings' },
 ];
@@ -128,13 +132,22 @@ export function TopNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { currentUser } = useOrganization();
+  const { currentUser, organization } = useOrganization();
+
+  const settings = (organization?.settings as Record<string, unknown>) || {};
+  const enabledKeys = settings.enabled_nav_items as string[] | undefined | null;
+  const visibleNavItems = enabledKeys
+    ? navigationItems.filter((item) => {
+        const key = item.href.replace('/', '') || 'dashboard';
+        return enabledKeys.includes(key);
+      })
+    : navigationItems;
 
   useEffect(() => {
-    navigationItems.forEach(item => {
+    visibleNavItems.forEach(item => {
       router.prefetch(item.href);
     });
-  }, [router]);
+  }, [router, visibleNavItems]);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
@@ -166,21 +179,21 @@ export function TopNavigation() {
 
           {/* Desktop nav - xl */}
           <nav className="hidden xl:flex items-center gap-0.5 flex-1 justify-center mx-4">
-            {navigationItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <NavItem key={item.href} item={item} isActive={isActive(item.href)} size="default" />
             ))}
           </nav>
 
           {/* Tablet nav - lg */}
           <nav className="hidden lg:flex xl:hidden items-center gap-0.5 flex-1 justify-center mx-4">
-            {navigationItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <NavItem key={item.href} item={item} isActive={isActive(item.href)} size="compact" />
             ))}
           </nav>
 
           {/* Small tablet nav - md */}
           <nav className="hidden md:flex lg:hidden items-center gap-0.5 flex-1 justify-center mx-2 overflow-x-auto scrollbar-none">
-            {navigationItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <NavItem key={item.href} item={item} isActive={isActive(item.href)} size="compact" />
             ))}
           </nav>
@@ -269,7 +282,7 @@ export function TopNavigation() {
         {mobileMenuOpen && (
           <nav className="md:hidden border-t border-white/20 dark:border-white/[0.06] px-3 py-3 max-h-[70vh] overflow-y-auto rounded-b-2xl">
             <div className="grid grid-cols-3 gap-2">
-              {navigationItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
                 return (

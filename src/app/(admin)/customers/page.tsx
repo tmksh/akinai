@@ -16,6 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { useOrganization } from '@/components/providers/organization-provider';
 import { getCustomers, getCustomerStats, type CustomerWithAddresses, type CustomerStats } from '@/lib/actions/customers';
+import {
+  getCustomerRoleLabels,
+} from '@/lib/actions/settings';
+import { DEFAULT_CUSTOMER_ROLE_LABELS, type CustomerRoleLabels } from '@/lib/customer-roles';
 
 export default function CustomersPage() {
   const { organization } = useOrganization();
@@ -24,24 +28,23 @@ export default function CustomersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithAddresses | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleLabels, setRoleLabels] = useState<CustomerRoleLabels>({ ...DEFAULT_CUSTOMER_ROLE_LABELS });
 
   // データ取得
   const fetchData = useCallback(async () => {
     if (!organization) return;
-    
+
     setIsLoading(true);
     try {
-      const [customersResult, statsResult] = await Promise.all([
+      const [customersResult, statsResult, labelsResult] = await Promise.all([
         getCustomers(organization.id),
         getCustomerStats(organization.id),
+        getCustomerRoleLabels(organization.id),
       ]);
-      
-      if (customersResult.data) {
-        setCustomers(customersResult.data);
-      }
-      if (statsResult.data) {
-        setStats(statsResult.data);
-      }
+
+      if (customersResult.data) setCustomers(customersResult.data);
+      if (statsResult.data) setStats(statsResult.data);
+      setRoleLabels(labelsResult.data);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -193,9 +196,32 @@ export default function CustomersPage() {
                   </Avatar>
                   <div>
                     <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{customer.name}</div>
-                    <div className="flex items-center gap-1 text-xs text-slate-500">
-                      <Mail className="h-3 w-3" />
-                      {customer.email}
+                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                      <span className="flex items-center gap-1 text-xs text-slate-500">
+                        <Mail className="h-3 w-3" />
+                        {customer.email}
+                      </span>
+                      {(customer as unknown as { role?: string }).role && (customer as unknown as { role?: string }).role !== 'personal' && (
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${
+                          (customer as unknown as { role?: string }).role === 'buyer'
+                            ? 'bg-orange-50 text-orange-600 border-orange-200'
+                            : 'bg-green-50 text-green-600 border-green-200'
+                        }`}>
+                          {(customer as unknown as { role?: string }).role === 'buyer'
+                            ? roleLabels.buyer
+                            : roleLabels.supplier}
+                        </Badge>
+                      )}
+                      {(customer as unknown as { status?: string }).status === 'pending' && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-yellow-50 text-yellow-700 border-yellow-300">
+                          審査中
+                        </Badge>
+                      )}
+                      {(customer as unknown as { status?: string }).status === 'suspended' && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-red-50 text-red-700 border-red-300">
+                          停止中
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>

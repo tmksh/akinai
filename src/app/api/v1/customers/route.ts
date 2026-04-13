@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 import {
   validateApiKey,
   apiError,
@@ -14,9 +15,13 @@ import {
 interface CreateCustomerRequest {
   name: string;
   email: string;
+  password?: string;
   phone?: string;
   company?: string;
   type?: 'individual' | 'business';
+  role?: 'personal' | 'buyer' | 'supplier';
+  status?: 'pending' | 'active' | 'suspended';
+  metadata?: Record<string, unknown>;
   tags?: string[];
   notes?: string;
   address?: {
@@ -183,8 +188,12 @@ export async function POST(request: NextRequest) {
         phone: body.phone || null,
         company: body.company || null,
         type: body.type || 'individual',
+        role: body.role || 'personal',
+        status: body.status || 'active',
+        metadata: body.metadata || null,
         tags: body.tags || [],
         notes: body.notes || null,
+        password_hash: body.password ? await bcrypt.hash(body.password, 12) : null,
       })
       .select()
       .single();
@@ -230,11 +239,14 @@ export async function POST(request: NextRequest) {
       {
         id: customer.id,
         type: customer.type,
+        role: customer.role,
+        status: customer.status,
         name: customer.name,
         email: customer.email,
         phone: customer.phone,
         company: customer.company,
         tags: customer.tags || [],
+        metadata: customer.metadata,
         totalOrders: 0,
         totalSpent: 0,
         addresses: address ? [address] : [],

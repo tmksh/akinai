@@ -641,3 +641,134 @@ export async function updateEnabledContentTypes(
   return { data: Array.isArray(result) ? result : types, error: null };
 }
 
+// ============================================
+// ナビゲーション表示設定
+// ============================================
+
+export async function getEnabledNavItems(organizationId: string): Promise<{
+  data: string[] | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching enabled nav items:', error);
+    return { data: null, error: error.message };
+  }
+
+  const settings = (data?.settings as Record<string, unknown>) || {};
+  const items = settings.enabled_nav_items as string[] | undefined;
+  return { data: Array.isArray(items) ? items : null, error: null };
+}
+
+export async function updateEnabledNavItems(
+  organizationId: string,
+  items: string[] | null
+): Promise<{ data: string[] | null; error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: currentData, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) {
+    return { data: null, error: fetchError.message };
+  }
+
+  const currentSettings = (currentData?.settings as Record<string, unknown>) || {};
+  const newSettings = {
+    ...currentSettings,
+    enabled_nav_items: items,
+  };
+
+  const { data: updated, error: updateError } = await supabase
+    .from('organizations')
+    .update({
+      settings: newSettings,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organizationId)
+    .select('settings')
+    .single();
+
+  if (updateError) {
+    return { data: null, error: updateError.message };
+  }
+
+  revalidatePath('/settings/navigation');
+  const result = (updated?.settings as Record<string, unknown>)?.enabled_nav_items as string[] | null;
+  return { data: result ?? items, error: null };
+}
+
+// ============================================
+// 会員種別ラベル設定
+// ============================================
+
+import { DEFAULT_CUSTOMER_ROLE_LABELS, type CustomerRoleLabels } from '@/lib/customer-roles';
+
+export async function getCustomerRoleLabels(organizationId: string): Promise<{
+  data: CustomerRoleLabels;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (error) {
+    return { data: DEFAULT_CUSTOMER_ROLE_LABELS, error: error.message };
+  }
+
+  const settings = (data?.settings as Record<string, unknown>) || {};
+  const saved = settings.customer_role_labels as Partial<CustomerRoleLabels> | undefined;
+  return {
+    data: { ...DEFAULT_CUSTOMER_ROLE_LABELS, ...saved },
+    error: null,
+  };
+}
+
+export async function updateCustomerRoleLabels(
+  organizationId: string,
+  labels: CustomerRoleLabels
+): Promise<{ data: CustomerRoleLabels | null; error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: currentData, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) {
+    return { data: null, error: fetchError.message };
+  }
+
+  const currentSettings = (currentData?.settings as Record<string, unknown>) || {};
+  const newSettings = { ...currentSettings, customer_role_labels: labels };
+
+  const { data: updated, error: updateError } = await supabase
+    .from('organizations')
+    .update({ settings: newSettings, updated_at: new Date().toISOString() })
+    .eq('id', organizationId)
+    .select('settings')
+    .single();
+
+  if (updateError) {
+    return { data: null, error: updateError.message };
+  }
+
+  revalidatePath('/settings/customer-roles');
+  revalidatePath('/customers');
+  const result = (updated?.settings as Record<string, unknown>)?.customer_role_labels as CustomerRoleLabels;
+  return { data: { ...DEFAULT_CUSTOMER_ROLE_LABELS, ...result }, error: null };
+}
+
