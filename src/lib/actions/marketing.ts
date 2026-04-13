@@ -40,7 +40,7 @@ export async function getAnalyticsOverview(organizationId: string) {
   const productMap = new Map<string, { name: string; views: number }>();
   for (const pv of topProducts || []) {
     const pid = pv.product_id as string;
-    const product = (pv as { products: { id: string; name: string } }).products;
+    const product = ((pv as unknown) as { products: { id: string; name: string } }).products;
     if (!product) continue;
     const e = productMap.get(pid);
     if (e) e.views++;
@@ -144,7 +144,7 @@ export async function sendNewsletter(organizationId: string, input: {
 
   const recipientMap = new Map<string, { email: string; name: string }>();
   for (const fav of favorites || []) {
-    const c = (fav as { customers: { id: string; email: string; name: string; status: string } }).customers;
+    const c = ((fav as unknown) as { customers: { id: string; email: string; name: string; status: string } }).customers;
     if (c?.email && c.status === 'active') recipientMap.set(c.id, { email: c.email, name: c.name });
   }
   const recipients = Array.from(recipientMap.values());

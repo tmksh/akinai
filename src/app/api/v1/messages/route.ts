@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       messageCount: inserted?.length || 0,
       sentCount,
       recipientCount: recipients.length,
-    }, 'Messages sent successfully', 201);
+    });
   });
 }
 
@@ -150,6 +150,6 @@ export async function GET(request: NextRequest) {
 
     if (error) return apiError('Failed to fetch messages', 500);
 
-    return apiSuccessPaginated(data || [], count || 0, page, limit);
+    return apiSuccessPaginated(data || [], page, limit, count || 0);
   });
 }

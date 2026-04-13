@@ -145,6 +145,6 @@ export async function POST(request: NextRequest) {
       notifiedCount,
       totalSuppliers: (suppliers || []).length,
       filteredSuppliers: filteredSuppliers.length,
-    }, 'Event created and notifications sent', 201);
+    });
   });
 }

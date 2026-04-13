@@ -240,6 +240,8 @@ export async function getShopProducts(options?: {
         maxPrice,
         totalStock,
         hasDiscount,
+        organizationId: product.organization_id ?? null,
+        supplierId: (product as Record<string, unknown>).supplier_id as string ?? null,
       };
     });
 

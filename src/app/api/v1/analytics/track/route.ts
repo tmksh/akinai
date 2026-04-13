@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const features = (org?.features as Record<string, boolean>) || {};
     if (!features.analytics) {
       // 無効の場合は 204 で無視（エラーにしない）
-      return new NextResponse(null, { status: 204, headers: corsHeaders });
+      return new NextResponse(null, { status: 204, headers: corsHeaders() });
     }
 
     // supplierIdが未指定の場合は商品から取得
@@ -99,6 +99,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return apiSuccess({ tracked: true }, 'Tracked', 201);
+    return apiSuccess({ tracked: true });
   });
 }

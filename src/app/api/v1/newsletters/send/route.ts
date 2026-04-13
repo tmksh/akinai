@@ -148,6 +148,6 @@ export async function POST(request: NextRequest) {
       totalRecipients: recipients.length,
       status: errors.length === 0 ? 'sent' : sentCount > 0 ? 'partial' : 'failed',
       errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
-    }, 'Newsletter sent successfully', 200);
+    });
   });
 }
