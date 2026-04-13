@@ -99,9 +99,9 @@ CREATE INDEX IF NOT EXISTS idx_product_clicks_supplier  ON product_clicks(suppli
 CREATE INDEX IF NOT EXISTS idx_product_clicks_clicked_at ON product_clicks(clicked_at);
 
 -- ⑦ プラン機能フラグ（organizations に追加）
+-- plan カラムは 003_add_multitenancy.sql で既に定義済み（CHECK: starter/pro/enterprise）
 ALTER TABLE organizations
-  ADD COLUMN IF NOT EXISTS plan            TEXT NOT NULL DEFAULT 'free',  -- free / starter / growth / enterprise
-  ADD COLUMN IF NOT EXISTS features        JSONB NOT NULL DEFAULT '{}';   -- 有料機能フラグ
+  ADD COLUMN IF NOT EXISTS features JSONB NOT NULL DEFAULT '{}';  -- 有料機能フラグ
 
 -- machimogu は analytics をデフォルト有効化
 UPDATE organizations
