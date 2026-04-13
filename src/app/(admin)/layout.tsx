@@ -40,6 +40,7 @@ async function getInitialData(): Promise<{
       settings,
       productFieldSchema: (settings.product_field_schema as Organization['productFieldSchema']) || [],
       contentFieldSchema: (settings.content_field_schema as Organization['contentFieldSchema']) || [],
+      customerFieldSchema: (settings.customer_field_schema as Organization['customerFieldSchema']) || [],
       ownerId: orgRow.owner_id as string | null,
       isActive: orgRow.is_active as boolean,
       createdAt: orgRow.created_at as string,

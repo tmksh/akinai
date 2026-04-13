@@ -4,16 +4,20 @@ import { useState, useEffect, useTransition } from 'react';
 import { ArrowLeft, Loader2, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { useOrganization } from '@/components/providers/organization-provider';
 import {
   getCustomerRoleLabels,
   updateCustomerRoleLabels,
 } from '@/lib/actions/settings';
-import { DEFAULT_CUSTOMER_ROLE_LABELS, type CustomerRoleLabels } from '@/lib/customer-roles';
+import {
+  DEFAULT_CUSTOMER_ROLE_LABELS,
+  DEFAULT_CUSTOMER_ROLE_ENABLED,
+  type CustomerRoleLabels,
+  type CustomerRoleEnabled,
+} from '@/lib/customer-roles';
 import { toast } from 'sonner';
 
 const ROLE_KEYS: (keyof CustomerRoleLabels)[] = ['personal', 'buyer', 'supplier'];
@@ -29,12 +33,14 @@ export default function CustomerRolesSettingsPage() {
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
   const [labels, setLabels] = useState<CustomerRoleLabels>({ ...DEFAULT_CUSTOMER_ROLE_LABELS });
+  const [enabled, setEnabled] = useState<CustomerRoleEnabled>({ ...DEFAULT_CUSTOMER_ROLE_ENABLED });
 
   useEffect(() => {
     async function load() {
       if (!organization?.id) return;
-      const { data } = await getCustomerRoleLabels(organization.id);
+      const { data, enabled: enabledData } = await getCustomerRoleLabels(organization.id);
       setLabels(data);
+      setEnabled(enabledData);
       setIsLoading(false);
     }
     load();
@@ -44,8 +50,20 @@ export default function CustomerRolesSettingsPage() {
     setLabels((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleToggle = (key: keyof CustomerRoleEnabled, value: boolean) => {
+    // 最低1つは有効にしておく
+    const willBeEnabled = { ...enabled, [key]: value };
+    const anyEnabled = Object.values(willBeEnabled).some(Boolean);
+    if (!anyEnabled) {
+      toast.error('少なくとも1つの会員種別を有効にしてください');
+      return;
+    }
+    setEnabled(willBeEnabled);
+  };
+
   const handleReset = () => {
     setLabels({ ...DEFAULT_CUSTOMER_ROLE_LABELS });
+    setEnabled({ ...DEFAULT_CUSTOMER_ROLE_ENABLED });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,7 +72,6 @@ export default function CustomerRolesSettingsPage() {
       toast.error('組織が設定されていません');
       return;
     }
-    // 空欄はデフォルトに戻す
     const sanitized: CustomerRoleLabels = {
       personal: labels.personal.trim() || DEFAULT_CUSTOMER_ROLE_LABELS.personal,
       buyer:    labels.buyer.trim()    || DEFAULT_CUSTOMER_ROLE_LABELS.buyer,
@@ -62,9 +79,9 @@ export default function CustomerRolesSettingsPage() {
     };
     setLabels(sanitized);
     startTransition(async () => {
-      const { error } = await updateCustomerRoleLabels(organization.id, sanitized);
+      const { error } = await updateCustomerRoleLabels(organization.id, sanitized, enabled);
       if (error) { toast.error(error); return; }
-      toast.success('会員種別の表示名を保存しました');
+      toast.success('会員種別の設定を保存しました');
     });
   };
 
@@ -83,9 +100,9 @@ export default function CustomerRolesSettingsPage() {
           <Link href="/settings"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">会員種別の表示名</h1>
+          <h1 className="text-2xl font-bold">会員種別の設定</h1>
           <p className="text-muted-foreground">
-            顧客管理画面で表示される会員種別の名称を変更できます
+            使用する会員種別の有効/無効と表示名を設定できます
           </p>
         </div>
       </div>
@@ -93,27 +110,33 @@ export default function CustomerRolesSettingsPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">種別名の編集</CardTitle>
+            <CardTitle className="text-base">種別の有効化と名称編集</CardTitle>
             <CardDescription>
-              ここで設定した名称が顧客登録・一覧・詳細画面に反映されます。空欄にするとデフォルト名に戻ります。
+              使わない種別はオフにすると顧客登録フォームに表示されなくなります。名称は空欄にするとデフォルト名に戻ります。
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {ROLE_KEYS.map((key) => (
-              <div key={key} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor={key}>{DEFAULT_CUSTOMER_ROLE_LABELS[key]}</Label>
-                  <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 h-4 text-muted-foreground">
+              <div key={key} className="rounded-xl border p-4 space-y-2">
+                <div className="flex items-center gap-3">
+                  <input
+                    id={key}
+                    value={labels[key]}
+                    onChange={(e) => handleChange(key, e.target.value)}
+                    placeholder={DEFAULT_CUSTOMER_ROLE_LABELS[key]}
+                    disabled={!enabled[key]}
+                    className="flex-1 text-sm font-medium bg-transparent rounded-md px-2 py-0.5 border border-transparent hover:border-border focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-muted-foreground/50"
+                  />
+                  <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 h-4 text-muted-foreground shrink-0">
                     {key}
                   </Badge>
+                  <Switch
+                    id={`toggle-${key}`}
+                    checked={enabled[key]}
+                    onCheckedChange={(v) => handleToggle(key, v)}
+                  />
                 </div>
-                <Input
-                  id={key}
-                  value={labels[key]}
-                  onChange={(e) => handleChange(key, e.target.value)}
-                  placeholder={DEFAULT_CUSTOMER_ROLE_LABELS[key]}
-                />
-                <p className="text-xs text-muted-foreground">{ROLE_DESCRIPTIONS[key]}</p>
+                <p className="text-xs text-muted-foreground pl-0.5">{ROLE_DESCRIPTIONS[key]}</p>
               </div>
             ))}
           </CardContent>
@@ -123,11 +146,11 @@ export default function CustomerRolesSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">プレビュー</CardTitle>
-            <CardDescription>顧客登録画面での表示イメージ</CardDescription>
+            <CardDescription>顧客登録画面での表示イメージ（有効な種別のみ）</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {ROLE_KEYS.map((key) => (
+              {ROLE_KEYS.filter((key) => enabled[key]).map((key) => (
                 <Badge key={key} variant="outline" className="px-3 py-1 text-sm">
                   {labels[key] || DEFAULT_CUSTOMER_ROLE_LABELS[key]}
                 </Badge>

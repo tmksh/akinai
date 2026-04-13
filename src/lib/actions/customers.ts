@@ -111,6 +111,10 @@ interface CreateCustomerInput {
   role?: 'personal' | 'buyer' | 'supplier';
   status?: 'pending' | 'active' | 'suspended';
   metadata?: Record<string, unknown>;
+  prefecture?: string;
+  businessType?: string;
+  customFields?: Array<{key: string; label: string; value: string; type: string; options?: string[]}> | Record<string, unknown>;
+  password?: string;
   // 住所（オプション）
   address?: {
     postalCode: string;
@@ -132,21 +136,29 @@ export async function createCustomer(input: CreateCustomerInput): Promise<{
 
   try {
     // 顧客を作成
+    const insertData: Record<string, unknown> = {
+      organization_id: input.organizationId,
+      type: input.type || 'individual',
+      name: input.name,
+      email: input.email,
+      phone: input.phone,
+      company: input.company,
+      notes: input.notes,
+      tags: input.tags || [],
+      role: input.role || 'personal',
+      status: input.status || 'active',
+      metadata: input.metadata || null,
+      prefecture: input.prefecture || null,
+      business_type: input.businessType || null,
+      custom_fields: input.customFields || {},
+    };
+    if (input.password) {
+      const bcrypt = await import('bcryptjs');
+      insertData.password_hash = await bcrypt.hash(input.password, 12);
+    }
     const { data: customer, error: customerError } = await supabase
       .from('customers')
-      .insert({
-        organization_id: input.organizationId,
-        type: input.type || 'individual',
-        name: input.name,
-        email: input.email,
-        phone: input.phone,
-        company: input.company,
-        notes: input.notes,
-        tags: input.tags || [],
-        role: input.role || 'personal',
-        status: input.status || 'active',
-        metadata: input.metadata || null,
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -205,6 +217,10 @@ interface UpdateCustomerInput {
   role?: 'personal' | 'buyer' | 'supplier';
   status?: 'pending' | 'active' | 'suspended';
   metadata?: Record<string, unknown> | null;
+  prefecture?: string | null;
+  businessType?: string | null;
+  customFields?: Array<{key: string; label: string; value: string; type: string; options?: string[]}> | Record<string, unknown>;
+  password?: string;
 }
 
 // 顧客を更新
@@ -226,6 +242,13 @@ export async function updateCustomer(input: UpdateCustomerInput): Promise<{
     if (input.role !== undefined) updateData.role = input.role;
     if (input.status !== undefined) updateData.status = input.status;
     if (input.metadata !== undefined) updateData.metadata = input.metadata;
+    if (input.prefecture !== undefined) updateData.prefecture = input.prefecture;
+    if (input.businessType !== undefined) updateData.business_type = input.businessType;
+    if (input.customFields !== undefined) updateData.custom_fields = input.customFields;
+    if (input.password) {
+      const bcrypt = await import('bcryptjs');
+      updateData.password_hash = await bcrypt.hash(input.password, 12);
+    }
 
     const { data, error } = await supabase
       .from('customers')

@@ -19,6 +19,8 @@ import {
   CheckCircle,
   Info,
   Loader2,
+  Sparkles,
+  Code,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -41,6 +43,11 @@ type CustomerData = {
   role?: string | null;
   status?: string | null;
   metadata?: Record<string, unknown> | null;
+  prefecture?: string | null;
+  business_type?: string | null;
+  custom_fields?: Array<{key: string; label: string; value: string; type: string}> | Record<string, unknown> | null;
+  notes?: string | null;
+  tags?: string[] | null;
   total_orders: number;
   total_spent: number;
   created_at: string;
@@ -160,8 +167,8 @@ export default function CustomerDetailPage() {
               承認する
             </Button>
           )}
-          <Button variant="outline">
-            <Edit className="mr-2 h-4 w-4" />編集
+          <Button variant="outline" asChild>
+            <Link href={`/customers/${id}/edit`}><Edit className="mr-2 h-4 w-4" />編集</Link>
           </Button>
           <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50">
             <Trash2 className="mr-2 h-4 w-4" />削除
@@ -287,8 +294,40 @@ export default function CustomerDetailPage() {
           )}
         </div>
 
-        {/* 注文履歴 */}
-        <Card className="lg:col-span-2">
+        {/* カスタムフィールド + 注文履歴 */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* カスタムフィールド */}
+          {Array.isArray(customer.custom_fields) && customer.custom_fields.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Sparkles className="h-4 w-4 text-sky-500" />
+                    カスタムフィールド
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/customers/${id}/edit`}><Edit className="mr-1.5 h-3.5 w-3.5" />編集</Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {(customer.custom_fields as Array<{key: string; label: string; value: string; type: string}>).map((field) => (
+                    <div key={field.key} className="flex items-start gap-2 rounded-lg border bg-muted/30 px-4 py-3">
+                      <Code className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground">{field.label || field.key}</p>
+                        <p className="text-sm font-medium break-all">{field.value || '—'}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 注文履歴 */}
+          <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-base">注文履歴</CardTitle>
@@ -334,6 +373,7 @@ export default function CustomerDetailPage() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

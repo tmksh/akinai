@@ -384,6 +384,15 @@ export interface Database {
           total_orders: number
           total_spent: number
           tags: string[]
+          role: 'personal' | 'buyer' | 'supplier'
+          status: 'pending' | 'active' | 'suspended'
+          metadata: Json | null
+          prefecture: string | null
+          business_type: string | null
+          custom_fields: Json
+          password_hash: string | null
+          email_verified: boolean
+          last_login_at: string | null
           created_at: string
           updated_at: string
         }
@@ -399,6 +408,15 @@ export interface Database {
           total_orders?: number
           total_spent?: number
           tags?: string[]
+          role?: 'personal' | 'buyer' | 'supplier'
+          status?: 'pending' | 'active' | 'suspended'
+          metadata?: Json | null
+          prefecture?: string | null
+          business_type?: string | null
+          custom_fields?: Json
+          password_hash?: string | null
+          email_verified?: boolean
+          last_login_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -414,6 +432,15 @@ export interface Database {
           total_orders?: number
           total_spent?: number
           tags?: string[]
+          role?: 'personal' | 'buyer' | 'supplier'
+          status?: 'pending' | 'active' | 'suspended'
+          metadata?: Json | null
+          prefecture?: string | null
+          business_type?: string | null
+          custom_fields?: Json
+          password_hash?: string | null
+          email_verified?: boolean
+          last_login_at?: string | null
           created_at?: string
           updated_at?: string
         }

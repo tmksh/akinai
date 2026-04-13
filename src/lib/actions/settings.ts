@@ -711,10 +711,11 @@ export async function updateEnabledNavItems(
 // 会員種別ラベル設定
 // ============================================
 
-import { DEFAULT_CUSTOMER_ROLE_LABELS, type CustomerRoleLabels } from '@/lib/customer-roles';
+import { DEFAULT_CUSTOMER_ROLE_LABELS, DEFAULT_CUSTOMER_ROLE_ENABLED, type CustomerRoleLabels, type CustomerRoleEnabled } from '@/lib/customer-roles';
 
 export async function getCustomerRoleLabels(organizationId: string): Promise<{
   data: CustomerRoleLabels;
+  enabled: CustomerRoleEnabled;
   error: string | null;
 }> {
   const supabase = await createClient();
@@ -725,20 +726,23 @@ export async function getCustomerRoleLabels(organizationId: string): Promise<{
     .single();
 
   if (error) {
-    return { data: DEFAULT_CUSTOMER_ROLE_LABELS, error: error.message };
+    return { data: DEFAULT_CUSTOMER_ROLE_LABELS, enabled: DEFAULT_CUSTOMER_ROLE_ENABLED, error: error.message };
   }
 
   const settings = (data?.settings as Record<string, unknown>) || {};
   const saved = settings.customer_role_labels as Partial<CustomerRoleLabels> | undefined;
+  const savedEnabled = settings.customer_role_enabled as Partial<CustomerRoleEnabled> | undefined;
   return {
     data: { ...DEFAULT_CUSTOMER_ROLE_LABELS, ...saved },
+    enabled: { ...DEFAULT_CUSTOMER_ROLE_ENABLED, ...savedEnabled },
     error: null,
   };
 }
 
 export async function updateCustomerRoleLabels(
   organizationId: string,
-  labels: CustomerRoleLabels
+  labels: CustomerRoleLabels,
+  enabled?: CustomerRoleEnabled
 ): Promise<{ data: CustomerRoleLabels | null; error: string | null }> {
   const supabase = await createClient();
 
@@ -753,7 +757,10 @@ export async function updateCustomerRoleLabels(
   }
 
   const currentSettings = (currentData?.settings as Record<string, unknown>) || {};
-  const newSettings = { ...currentSettings, customer_role_labels: labels };
+  const newSettings: Record<string, unknown> = { ...currentSettings, customer_role_labels: labels };
+  if (enabled !== undefined) {
+    newSettings.customer_role_enabled = enabled;
+  }
 
   const { data: updated, error: updateError } = await supabase
     .from('organizations')
@@ -770,5 +777,76 @@ export async function updateCustomerRoleLabels(
   revalidatePath('/customers');
   const result = (updated?.settings as Record<string, unknown>)?.customer_role_labels as CustomerRoleLabels;
   return { data: { ...DEFAULT_CUSTOMER_ROLE_LABELS, ...result }, error: null };
+}
+
+// ============================================
+// 顧客カスタムフィールドスキーマ設定
+// 他の企業がデフォルトは空、自社でフィールドを追加できる
+// ============================================
+
+export interface CustomerFieldSchema {
+  key: string;           // フィールドキー（英数字）
+  label: string;         // 表示名
+  type: 'text' | 'select' | 'multiselect' | 'textarea' | 'number' | 'boolean';
+  options?: string[];    // select/multiselect の選択肢
+  required?: boolean;
+  placeholder?: string;
+  roles?: ('personal' | 'buyer' | 'supplier')[];  // 表示する会員種別（未指定は全て）
+}
+
+export async function getCustomerFieldSchema(organizationId: string): Promise<{
+  data: CustomerFieldSchema[];
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  const settings = (data?.settings as Record<string, unknown>) || {};
+  const schema = (settings.customer_field_schema as CustomerFieldSchema[]) || [];
+  return { data: schema, error: null };
+}
+
+export async function updateCustomerFieldSchema(
+  organizationId: string,
+  schema: CustomerFieldSchema[]
+): Promise<{ data: CustomerFieldSchema[] | null; error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: currentData, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) {
+    return { data: null, error: fetchError.message };
+  }
+
+  const currentSettings = (currentData?.settings as Record<string, unknown>) || {};
+  const newSettings = { ...currentSettings, customer_field_schema: schema };
+
+  const { data: updated, error: updateError } = await supabase
+    .from('organizations')
+    .update({ settings: newSettings, updated_at: new Date().toISOString() })
+    .eq('id', organizationId)
+    .select('settings')
+    .single();
+
+  if (updateError) {
+    return { data: null, error: updateError.message };
+  }
+
+  revalidatePath('/settings');
+  revalidatePath('/customers');
+  const result = (updated?.settings as Record<string, unknown>)?.customer_field_schema as CustomerFieldSchema[];
+  return { data: result || [], error: null };
 }
 

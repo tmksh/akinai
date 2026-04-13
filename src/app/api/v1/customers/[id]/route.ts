@@ -21,6 +21,12 @@ interface UpdateCustomerRequest {
   tags?: string[];
   notes?: string;
   password?: string;
+  role?: 'personal' | 'buyer' | 'supplier';
+  status?: 'pending' | 'active' | 'suspended';
+  prefecture?: string;
+  businessType?: string;
+  metadata?: Record<string, unknown>;
+  customFields?: Record<string, unknown>;
 }
 
 type AuthContext =
@@ -60,6 +66,39 @@ async function resolveAuth(request: NextRequest, targetId: string): Promise<
   return { ok: false, error: 'Invalid or expired token', status: 401 };
 }
 
+const CUSTOMER_SELECT = 'id, name, email, phone, company, type, role, status, prefecture, business_type, tags, metadata, custom_fields, total_orders, total_spent, created_at';
+
+function formatCustomer(customer: Record<string, unknown>, addresses: Record<string, unknown>[] = []) {
+  return {
+    id: customer.id,
+    name: customer.name,
+    email: customer.email,
+    phone: customer.phone,
+    company: customer.company,
+    type: customer.type,
+    role: customer.role,
+    status: customer.status,
+    prefecture: customer.prefecture,
+    businessType: customer.business_type,
+    tags: (customer.tags as string[]) || [],
+    metadata: customer.metadata,
+    customFields: customer.custom_fields ?? {},
+    totalOrders: customer.total_orders,
+    totalSpent: customer.total_spent,
+    addresses: addresses.map((a) => ({
+      id: a.id,
+      postalCode: a.postal_code,
+      prefecture: a.prefecture,
+      city: a.city,
+      line1: a.line1,
+      line2: a.line2,
+      phone: a.phone,
+      isDefault: a.is_default,
+    })),
+    createdAt: customer.created_at,
+  };
+}
+
 // GET /api/v1/customers/:id
 export async function GET(
   request: NextRequest,
@@ -83,7 +122,7 @@ export async function GET(
 
   const { data: customer, error } = await supabase
     .from('customers')
-    .select('id, name, email, phone, company, type, tags, total_orders, total_spent, created_at')
+    .select(CUSTOMER_SELECT)
     .eq('id', id)
     .eq('organization_id', organizationId)
     .single();
@@ -98,29 +137,7 @@ export async function GET(
     .eq('customer_id', id)
     .order('is_default', { ascending: false });
 
-  const response = apiSuccess({
-    id: customer.id,
-    name: customer.name,
-    email: customer.email,
-    phone: customer.phone,
-    company: customer.company,
-    type: customer.type,
-    tags: customer.tags || [],
-    totalOrders: customer.total_orders,
-    totalSpent: customer.total_spent,
-    addresses: (addresses || []).map((a) => ({
-      id: a.id,
-      postalCode: a.postal_code,
-      prefecture: a.prefecture,
-      city: a.city,
-      line1: a.line1,
-      line2: a.line2,
-      phone: a.phone,
-      isDefault: a.is_default,
-    })),
-    createdAt: customer.created_at,
-  });
-
+  const response = apiSuccess(formatCustomer(customer as Record<string, unknown>, (addresses ?? []) as Record<string, unknown>[]));
   Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
   return response;
 }
@@ -166,11 +183,17 @@ export async function PUT(
   }
 
   const updates: Record<string, unknown> = {};
-  if (body.name !== undefined) updates.name = body.name.trim();
-  if (body.phone !== undefined) updates.phone = body.phone || null;
-  if (body.company !== undefined) updates.company = body.company || null;
-  if (body.tags !== undefined) updates.tags = body.tags;
-  if (body.notes !== undefined) updates.notes = body.notes || null;
+  if (body.name !== undefined)       updates.name = body.name.trim();
+  if (body.phone !== undefined)       updates.phone = body.phone || null;
+  if (body.company !== undefined)     updates.company = body.company || null;
+  if (body.tags !== undefined)        updates.tags = body.tags;
+  if (body.notes !== undefined)       updates.notes = body.notes || null;
+  if (body.role !== undefined)        updates.role = body.role;
+  if (body.status !== undefined)      updates.status = body.status;
+  if (body.prefecture !== undefined)  updates.prefecture = body.prefecture || null;
+  if (body.businessType !== undefined) updates.business_type = body.businessType || null;
+  if (body.metadata !== undefined)    updates.metadata = body.metadata;
+  if (body.customFields !== undefined) updates.custom_fields = body.customFields;
   if (body.password) {
     updates.password_hash = await bcrypt.hash(body.password, 12);
   }
@@ -183,26 +206,14 @@ export async function PUT(
     .from('customers')
     .update(updates)
     .eq('id', id)
-    .select('id, name, email, phone, company, type, tags, total_orders, total_spent, created_at')
+    .select(CUSTOMER_SELECT)
     .single();
 
   if (updateError || !updated) {
     return apiError('Failed to update customer', 500);
   }
 
-  const response = apiSuccess({
-    id: updated.id,
-    name: updated.name,
-    email: updated.email,
-    phone: updated.phone,
-    company: updated.company,
-    type: updated.type,
-    tags: updated.tags || [],
-    totalOrders: updated.total_orders,
-    totalSpent: updated.total_spent,
-    createdAt: updated.created_at,
-  });
-
+  const response = apiSuccess(formatCustomer(updated as Record<string, unknown>));
   Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
   return response;
 }

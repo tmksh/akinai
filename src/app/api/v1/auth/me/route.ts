@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   const { data: customer, error } = await supabase
     .from('customers')
-    .select('id, name, email, phone, company, type, tags, total_orders, total_spent, created_at')
+    .select('id, name, email, phone, company, type, role, status, prefecture, business_type, tags, metadata, custom_fields, total_orders, total_spent, created_at')
     .eq('id', customerId)
     .eq('organization_id', organizationId)
     .single();
@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
     return apiError('Customer not found', 404);
   }
 
-  // 住所一覧
   const { data: addresses } = await supabase
     .from('customer_addresses')
     .select('*')
@@ -50,7 +49,13 @@ export async function GET(request: NextRequest) {
     phone: customer.phone,
     company: customer.company,
     type: customer.type,
+    role: customer.role,
+    status: customer.status,
+    prefecture: customer.prefecture,
+    businessType: customer.business_type,
     tags: customer.tags || [],
+    metadata: customer.metadata,
+    customFields: customer.custom_fields ?? {},
     totalOrders: customer.total_orders,
     totalSpent: customer.total_spent,
     addresses: (addresses || []).map((a) => ({

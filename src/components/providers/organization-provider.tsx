@@ -22,6 +22,18 @@ export interface ContentFieldSchemaItem {
   options?: string[];
 }
 
+// 顧客カスタムフィールドスキーマ
+export interface CustomerFieldSchemaItem {
+  id: string;
+  key: string;
+  label: string;
+  type: 'text' | 'select' | 'multiselect' | 'textarea' | 'number' | 'boolean';
+  options?: string[];
+  required?: boolean;
+  placeholder?: string;
+  roles?: ('personal' | 'buyer' | 'supplier')[];
+}
+
 // 組織の型定義
 export interface Organization {
   id: string;
@@ -38,6 +50,7 @@ export interface Organization {
   settings: Record<string, unknown>;
   productFieldSchema: ProductFieldSchemaItem[];
   contentFieldSchema: ContentFieldSchemaItem[];
+  customerFieldSchema: CustomerFieldSchemaItem[];
   ownerId: string | null;
   isActive: boolean;
   createdAt: string;
@@ -93,6 +106,7 @@ function transformOrganization(row: Record<string, unknown>): Organization {
     settings,
     productFieldSchema: (settings.product_field_schema as ProductFieldSchemaItem[]) || [],
     contentFieldSchema: (settings.content_field_schema as ContentFieldSchemaItem[]) || [],
+    customerFieldSchema: (settings.customer_field_schema as CustomerFieldSchemaItem[]) || [],
     ownerId: row.owner_id as string | null,
     isActive: row.is_active as boolean,
     createdAt: row.created_at as string,

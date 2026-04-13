@@ -11,3 +11,15 @@ export const DEFAULT_CUSTOMER_ROLE_LABELS: CustomerRoleLabels = {
   buyer: 'バイヤー',
   supplier: 'サプライヤー',
 };
+
+export interface CustomerRoleEnabled {
+  personal: boolean;
+  buyer: boolean;
+  supplier: boolean;
+}
+
+export const DEFAULT_CUSTOMER_ROLE_ENABLED: CustomerRoleEnabled = {
+  personal: true,
+  buyer: true,
+  supplier: true,
+};

@@ -29,6 +29,13 @@ const settingsCategories = [
     badge: null,
   },
   {
+    title: '顧客カスタムフィールド',
+    description: '顧客登録・編集フォームに独自のフィールドを追加',
+    href: '/settings/customers',
+    icon: Sparkles,
+    badge: null,
+  },
+  {
     title: 'ナビゲーション設定',
     description: 'ヘッダーに表示するメニュー項目の表示・非表示を設定',
     href: '/settings/navigation',

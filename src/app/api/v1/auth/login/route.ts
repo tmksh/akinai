@@ -40,10 +40,9 @@ export async function POST(request: NextRequest) {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // 同一ショップ内で email 検索（password_hash を含めて取得）
   const { data: customer, error } = await supabase
     .from('customers')
-    .select('id, name, email, phone, company, type, tags, total_orders, total_spent, password_hash, created_at')
+    .select('id, name, email, phone, company, type, role, status, prefecture, business_type, tags, total_orders, total_spent, password_hash, created_at')
     .eq('organization_id', auth.organizationId)
     .eq('email', body.email.trim().toLowerCase())
     .single();
@@ -51,6 +50,11 @@ export async function POST(request: NextRequest) {
   // 存在しないか password_hash が未設定の場合も同じエラーを返す（ユーザー列挙防止）
   if (error || !customer || !customer.password_hash) {
     return apiError('Invalid email or password', 401);
+  }
+
+  // suspended ユーザーはログイン不可
+  if (customer.status === 'suspended') {
+    return apiError('Your account has been suspended', 403);
   }
 
   const passwordMatch = await bcrypt.compare(body.password, customer.password_hash);
@@ -81,6 +85,10 @@ export async function POST(request: NextRequest) {
         phone: customer.phone,
         company: customer.company,
         type: customer.type,
+        role: customer.role,
+        status: customer.status,
+        prefecture: customer.prefecture,
+        businessType: customer.business_type,
         tags: customer.tags || [],
         totalOrders: customer.total_orders,
         totalSpent: customer.total_spent,
