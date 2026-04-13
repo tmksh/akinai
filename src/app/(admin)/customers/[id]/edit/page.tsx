@@ -37,9 +37,6 @@ const PREFECTURES = [
   '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県',
 ];
 
-const BUYER_INDUSTRIES = ['飲食店', '小売店', 'ホテル・旅館', '食品商社', '給食・ケータリング', 'その他'];
-const SUPPLIER_CATEGORIES = ['農産物', '水産物', '畜産物', '加工食品', '飲料', 'その他'];
-
 const STATUS_LABELS: Record<CustomerStatus, string> = {
   pending: '審査中',
   active: '有効',
@@ -75,6 +72,7 @@ export default function CustomerEditPage() {
   const [supplierRepresentative, setSupplierRepresentative] = useState('');
   const [supplierPrefecture, setSupplierPrefecture] = useState('');
   const [supplierCategories, setSupplierCategories] = useState<string[]>([]);
+  const [newSupplierCategory, setNewSupplierCategory] = useState('');
 
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
@@ -152,6 +150,16 @@ export default function CustomerEditPage() {
   };
 
   const handleRemoveTag = (tagToRemove: string) => setTags(tags.filter((t) => t !== tagToRemove));
+
+  const handleAddSupplierCategory = () => {
+    if (newSupplierCategory.trim() && !supplierCategories.includes(newSupplierCategory.trim())) {
+      setSupplierCategories([...supplierCategories, newSupplierCategory.trim()]);
+      setNewSupplierCategory('');
+    }
+  };
+
+  const handleRemoveSupplierCategory = (cat: string) =>
+    setSupplierCategories(supplierCategories.filter((c) => c !== cat));
 
   const toggleSupplierCategory = (cat: string) => {
     setSupplierCategories((prev) => prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]);
@@ -328,12 +336,7 @@ export default function CustomerEditPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>業種</Label>
-                  <Select value={buyerIndustry} onValueChange={setBuyerIndustry}>
-                    <SelectTrigger><SelectValue placeholder="業種を選択" /></SelectTrigger>
-                    <SelectContent>
-                      {BUYER_INDUSTRIES.map((ind) => <SelectItem key={ind} value={ind}>{ind}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Input placeholder="例: 小売業、製造業、IT など" value={buyerIndustry} onChange={(e) => setBuyerIndustry(e.target.value)} />
                 </div>
               </CardContent>
             </Card>
@@ -363,17 +366,30 @@ export default function CustomerEditPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>主な商品カテゴリ</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {SUPPLIER_CATEGORIES.map((cat) => (
-                      <button key={cat} type="button" onClick={() => toggleSupplierCategory(cat)}
-                        className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                          supplierCategories.includes(cat) ? 'bg-green-500 text-white border-green-500' : 'border-border hover:bg-muted'
-                        }`}>
-                        {cat}
-                      </button>
-                    ))}
+                  <Label>主な取扱カテゴリ</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="例: 農産物、IT機器、アパレル など"
+                      value={newSupplierCategory}
+                      onChange={(e) => setNewSupplierCategory(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSupplierCategory(); } }}
+                    />
+                    <Button type="button" variant="outline" size="icon" onClick={handleAddSupplierCategory}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
+                  {supplierCategories.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {supplierCategories.map((cat) => (
+                        <Badge key={cat} variant="secondary" className="gap-1">
+                          {cat}
+                          <button type="button" onClick={() => handleRemoveSupplierCategory(cat)} className="ml-1 hover:text-destructive">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
