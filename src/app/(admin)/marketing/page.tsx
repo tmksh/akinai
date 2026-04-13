@@ -287,7 +287,7 @@ function NewsletterTab({ organizationId }: { organizationId: string }) {
                       <p className="font-medium text-sm truncate">{item.subject}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {item.sent_at ? new Date(item.sent_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
-                        {(item.supplier as { name: string } | null)?.name && `　— ${(item.supplier as { name: string }).name}`}
+                        {((item.supplier as unknown) as { name: string } | null)?.name && `　— ${((item.supplier as unknown) as { name: string }).name}`}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
