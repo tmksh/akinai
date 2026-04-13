@@ -30,14 +30,14 @@ export const getAuthOrganization = cache(async () => {
       .from('users')
       .select('current_organization_id, name, avatar')
       .eq('id', user.id)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .limit(1)
-      .single(),
+      .maybeSingle(),
   ]);
 
   const userProfile = userRes.data
