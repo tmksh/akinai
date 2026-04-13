@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     // 重複排除・有効会員のみ
     const recipientMap = new Map<string, { email: string; name: string }>();
     for (const fav of favorites || []) {
-      const c = (fav as { customers: { id: string; email: string; name: string; status: string } }).customers;
+      const c = ((fav as unknown) as { customers: { id: string; email: string; name: string; status: string } }).customers;
       if (c?.email && c.status === 'active') {
         recipientMap.set(c.id, { email: c.email, name: c.name });
       }

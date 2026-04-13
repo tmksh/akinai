@@ -94,7 +94,7 @@ export async function GET(
     const productRankMap = new Map<string, { name: string; slug: string; views: number }>();
     for (const pv of productViewsRaw || []) {
       const pid = pv.product_id as string;
-      const product = (pv as { products: { id: string; name: string; slug: string } }).products;
+      const product = ((pv as unknown) as { products: { id: string; name: string; slug: string } }).products;
       if (!pid || !product) continue;
       const existing = productRankMap.get(pid);
       if (existing) {
