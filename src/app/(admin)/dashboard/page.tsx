@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useOrganization } from '@/components/providers/organization-provider';
 import { getDashboardData } from '@/lib/actions/dashboard';
+import { ensureDefaultOrganization } from '@/lib/actions/onboarding';
 import DashboardClient from './dashboard-client';
 import { Loader2 } from 'lucide-react';
 
@@ -29,7 +30,12 @@ export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    if (!organization?.id) return;
+    if (!organization?.id) {
+      ensureDefaultOrganization().then(() => {
+        window.location.reload();
+      });
+      return;
+    }
     let cancelled = false;
     getDashboardData(organization.id)
       .then(d => { if (!cancelled) setData(d); })
