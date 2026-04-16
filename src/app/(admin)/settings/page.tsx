@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook, FileText, Package, Sparkles, LayoutGrid, Mail } from 'lucide-react';
+import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook, FileText, Package, Sparkles, Mail, ToggleLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,10 +43,10 @@ const settingsCategories = [
     badge: null,
   },
   {
-    title: 'ナビゲーション設定',
-    description: 'ヘッダーに表示するメニュー項目の表示・非表示を設定',
-    href: '/settings/navigation',
-    icon: LayoutGrid,
+    title: '機能設定',
+    description: '通知BOX・紹介コード・商品審査フローなど機能のON/OFFを管理',
+    href: '/settings/features',
+    icon: ToggleLeft,
     badge: null,
   },
   {

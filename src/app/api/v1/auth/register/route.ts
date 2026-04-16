@@ -11,6 +11,12 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { validateApiKey, apiError, apiSuccess, handleOptions, corsHeaders } from '@/lib/api/auth';
 import { signCustomerToken } from '@/lib/api/customer-auth';
+import { randomBytes } from 'crypto';
+
+/** 紹介コードを生成する（例: REF-A3X9K2） */
+function generateReferralCode(): string {
+  return 'REF-' + randomBytes(3).toString('hex').toUpperCase();
+}
 
 interface RegisterRequest {
   name: string;
@@ -22,6 +28,7 @@ interface RegisterRequest {
   businessType?: string;
   company?: string;
   phone?: string;
+  referralCode?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -68,6 +75,32 @@ export async function POST(request: NextRequest) {
     return apiError('A customer with this email already exists', 409);
   }
 
+  // 機能フラグ: referral_code が有効なら自動生成
+  const { data: orgData } = await supabase
+    .from('organizations')
+    .select('features')
+    .eq('id', auth.organizationId)
+    .single();
+  const orgFeatures = (orgData?.features as Record<string, unknown>) || {};
+  const isReferralEnabled = !!orgFeatures.referral_code;
+
+  // 紹介コード重複回避（最大5回リトライ）
+  let newReferralCode: string | null = null;
+  if (isReferralEnabled) {
+    for (let i = 0; i < 5; i++) {
+      const candidate = generateReferralCode();
+      const { data: dup } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('referral_code', candidate)
+        .maybeSingle();
+      if (!dup) {
+        newReferralCode = candidate;
+        break;
+      }
+    }
+  }
+
   const passwordHash = await bcrypt.hash(body.password, 12);
   const role = body.role ?? 'personal';
 
@@ -87,8 +120,10 @@ export async function POST(request: NextRequest) {
       business_type: body.businessType ?? null,
       metadata: body.metadata ?? null,
       email_verified: false,
+      referral_code: newReferralCode,
+      referred_by_code: body.referralCode ?? null,
     })
-    .select('id, name, email, phone, company, type, role, status, prefecture, business_type, tags, total_orders, total_spent, created_at')
+    .select('id, name, email, phone, company, type, role, status, prefecture, business_type, tags, total_orders, total_spent, referral_code, created_at')
     .single();
 
   if (error || !customer) {
@@ -119,6 +154,7 @@ export async function POST(request: NextRequest) {
         tags: customer.tags || [],
         totalOrders: customer.total_orders,
         totalSpent: customer.total_spent,
+        referralCode: customer.referral_code ?? null,
         createdAt: customer.created_at,
       },
     },

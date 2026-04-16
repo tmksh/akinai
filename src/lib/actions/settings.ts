@@ -712,6 +712,7 @@ export async function updateEnabledNavItems(
 // ============================================
 
 import { DEFAULT_CUSTOMER_ROLE_LABELS, DEFAULT_CUSTOMER_ROLE_ENABLED, type CustomerRoleLabels, type CustomerRoleEnabled } from '@/lib/customer-roles';
+import { OrganizationFeatures, DEFAULT_ORGANIZATION_FEATURES } from '@/types/database';
 
 export async function getCustomerRoleLabels(organizationId: string): Promise<{
   data: CustomerRoleLabels;
@@ -849,4 +850,53 @@ export async function updateCustomerFieldSchema(
   const result = (updated?.settings as Record<string, unknown>)?.customer_field_schema as CustomerFieldSchema[];
   return { data: result || [], error: null };
 }
+
+// ============================================
+// 機能フラグ設定（テナントごとのON/OFF）
+// ============================================
+
+export async function getOrganizationFeatures(organizationId: string): Promise<{
+  data: OrganizationFeatures;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('features')
+    .eq('id', organizationId)
+    .single();
+
+  if (error) {
+    return { data: DEFAULT_ORGANIZATION_FEATURES, error: error.message };
+  }
+
+  const saved = (data?.features as Partial<OrganizationFeatures>) || {};
+  return {
+    data: { ...DEFAULT_ORGANIZATION_FEATURES, ...saved },
+    error: null,
+  };
+}
+
+export async function updateOrganizationFeatures(
+  organizationId: string,
+  features: OrganizationFeatures
+): Promise<{ data: OrganizationFeatures | null; error: string | null }> {
+  const supabase = getAdminClient();
+
+  const { data: updated, error } = await supabase
+    .from('organizations')
+    .update({ features, updated_at: new Date().toISOString() })
+    .eq('id', organizationId)
+    .select('features')
+    .single();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  revalidatePath('/settings/features');
+  const result = updated?.features as OrganizationFeatures;
+  return { data: { ...DEFAULT_ORGANIZATION_FEATURES, ...result }, error: null };
+}
+
 

@@ -89,6 +89,14 @@ export async function POST(request: NextRequest) {
 
     if (eventErr || !event) return apiError('Failed to create event', 500);
 
+    // 組織の機能フラグを取得
+    const { data: orgData } = await supabase
+      .from('organizations')
+      .select('features')
+      .eq('id', auth.organizationId!)
+      .single();
+    const features = (orgData?.features as Record<string, unknown>) || {};
+
     // 条件に合うサプライヤーを取得
     let suppliersQuery = supabase
       .from('customers')
@@ -138,6 +146,25 @@ export async function POST(request: NextRequest) {
       .from('events')
       .update({ notified_count: notifiedCount })
       .eq('id', event.id);
+
+    // 機能フラグ: event_notification が有効なら通知BOXにも記録
+    const orgFeatures = (features as Record<string, unknown>) || {};
+    if (orgFeatures.event_notification) {
+      const notifInserts = filteredSuppliers
+        .filter((s) => s.id)
+        .map((s) => ({
+          organization_id: auth.organizationId!,
+          customer_id: s.id,
+          type: 'event_announced' as const,
+          title: `【出展募集】${title}`,
+          body: eventBody || '',
+          related_id: event.id,
+          related_type: 'event' as const,
+        }));
+      if (notifInserts.length > 0) {
+        await supabase.from('notifications').insert(notifInserts);
+      }
+    }
 
     return apiSuccess({
       id: event.id,

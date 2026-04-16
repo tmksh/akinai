@@ -43,6 +43,7 @@ export interface Database {
           stripe_account_status: 'not_connected' | 'pending' | 'active' | 'restricted' | null
           stripe_onboarding_complete: boolean
           settings: Json
+          features: Json
           owner_id: string | null
           is_active: boolean
           created_at: string
@@ -68,6 +69,7 @@ export interface Database {
           stripe_account_status?: 'not_connected' | 'pending' | 'active' | 'restricted' | null
           stripe_onboarding_complete?: boolean
           settings?: Json
+          features?: Json
           owner_id?: string | null
           is_active?: boolean
           created_at?: string
@@ -93,6 +95,7 @@ export interface Database {
           stripe_account_status?: 'not_connected' | 'pending' | 'active' | 'restricted' | null
           stripe_onboarding_complete?: boolean
           settings?: Json
+          features?: Json
           owner_id?: string | null
           is_active?: boolean
           created_at?: string
@@ -393,6 +396,8 @@ export interface Database {
           password_hash: string | null
           email_verified: boolean
           last_login_at: string | null
+          referral_code: string | null
+          referred_by_code: string | null
           created_at: string
           updated_at: string
         }
@@ -417,6 +422,8 @@ export interface Database {
           password_hash?: string | null
           email_verified?: boolean
           last_login_at?: string | null
+          referral_code?: string | null
+          referred_by_code?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -441,6 +448,8 @@ export interface Database {
           password_hash?: string | null
           email_verified?: boolean
           last_login_at?: string | null
+          referral_code?: string | null
+          referred_by_code?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -667,6 +676,9 @@ export interface Database {
           seo_description: string | null
           featured: boolean
           custom_fields: Json
+          approval_status: 'pending' | 'approved' | 'rejected' | null
+          approved_at: string | null
+          approved_by: string | null
           published_at: string | null
           created_at: string
           updated_at: string
@@ -684,6 +696,9 @@ export interface Database {
           seo_description?: string | null
           featured?: boolean
           custom_fields?: Json
+          approval_status?: 'pending' | 'approved' | 'rejected' | null
+          approved_at?: string | null
+          approved_by?: string | null
           published_at?: string | null
           created_at?: string
           updated_at?: string
@@ -701,6 +716,9 @@ export interface Database {
           seo_description?: string | null
           featured?: boolean
           custom_fields?: Json
+          approval_status?: 'pending' | 'approved' | 'rejected' | null
+          approved_at?: string | null
+          approved_by?: string | null
           published_at?: string | null
           created_at?: string
           updated_at?: string
@@ -1064,6 +1082,47 @@ export interface Database {
           updated_at?: string
         }
       }
+      // ============================================
+      // 通知BOXテーブル (021)
+      // ============================================
+      notifications: {
+        Row: {
+          id: string
+          organization_id: string
+          customer_id: string
+          type: 'message_received' | 'review_posted' | 'product_approved' | 'event_announced' | 'general'
+          title: string
+          body: string | null
+          related_id: string | null
+          related_type: 'message' | 'event' | 'product' | 'review' | null
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          customer_id: string
+          type?: 'message_received' | 'review_posted' | 'product_approved' | 'event_announced' | 'general'
+          title: string
+          body?: string | null
+          related_id?: string | null
+          related_type?: 'message' | 'event' | 'product' | 'review' | null
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          customer_id?: string
+          type?: 'message_received' | 'review_posted' | 'product_approved' | 'event_announced' | 'general'
+          title?: string
+          body?: string | null
+          related_id?: string | null
+          related_type?: 'message' | 'event' | 'product' | 'review' | null
+          is_read?: boolean
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -1082,4 +1141,32 @@ export type Tables<T extends keyof Database['public']['Tables']> = Database['pub
 export type InsertTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert']
 export type UpdateTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update']
 
+// ============================================
+// テナント機能フラグ型定義 (021)
+// organizations.features JSONB のスキーマ
+// ============================================
+export interface OrganizationFeatures {
+  /** ① 通知BOX機能: 会員の通知履歴を管理する */
+  notification_box: boolean
+  /** ② イベント告知 → 通知配信: POST /events 時に通知BOXへも記録する */
+  event_notification: boolean
+  /** ③ 紹介コード（アフィリエイト）機能: 会員登録時に referral_code を自動生成 */
+  referral_code: boolean
+  /** ④ メルマガ配信頻度制限: null=無制限, number=月n回まで */
+  newsletter_frequency_limit: number | null
+  /** ⑤ メッセージ月間送信上限: null=無制限, number=月n社まで */
+  message_monthly_limit: number | null
+  /** ⑥ 商品審査フロー: 商品登録後に審査中→承認→公開のワークフローを有効化 */
+  product_approval_flow: boolean
+  /** アナリティクス機能（020から引継ぎ） */
+  analytics?: boolean
+}
 
+export const DEFAULT_ORGANIZATION_FEATURES: OrganizationFeatures = {
+  notification_box: false,
+  event_notification: false,
+  referral_code: false,
+  newsletter_frequency_limit: null,
+  message_monthly_limit: null,
+  product_approval_flow: false,
+}

@@ -52,6 +52,33 @@ export async function POST(request: NextRequest) {
       if (!sender) return apiError('Sender not found', 404);
     }
 
+    // ⑤ メッセージ月間送信上限チェック
+    const { data: orgData } = await supabase
+      .from('organizations')
+      .select('features')
+      .eq('id', auth.organizationId!)
+      .single();
+    const msgFeatures = (orgData?.features as Record<string, unknown>) || {};
+    const msgLimit = msgFeatures.message_monthly_limit;
+    if (typeof msgLimit === 'number' && msgLimit > 0) {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      // 月内にユニーク宛先へ送信した件数（to_customer_id がユニークな社数）
+      const { count: sentThisMonth } = await supabase
+        .from('messages')
+        .select('to_customer_id', { count: 'exact', head: true })
+        .eq('organization_id', auth.organizationId!)
+        .gte('created_at', monthStart)
+        .not('to_customer_id', 'is', null);
+
+      if ((sentThisMonth || 0) >= msgLimit) {
+        return apiError(
+          `Message monthly limit reached: ${msgLimit} recipients per month allowed`,
+          429
+        );
+      }
+    }
+
     // 受信者リスト
     let recipients: { id: string; email: string; name: string }[] = [];
 

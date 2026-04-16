@@ -264,6 +264,19 @@ export async function POST(request: NextRequest) {
       ? body.status as string
       : 'draft';
 
+    // ⑥ 商品審査フローチェック
+    const { data: orgData } = await supabase
+      .from('organizations')
+      .select('features')
+      .eq('id', auth.organizationId)
+      .single();
+    const orgFeatures = (orgData?.features as Record<string, unknown>) || {};
+    const isApprovalEnabled = !!orgFeatures.product_approval_flow;
+
+    // 審査フローが有効で status=published の場合は審査中に差し替え
+    const finalStatus = isApprovalEnabled && status === 'published' ? 'draft' : status;
+    const approvalStatus = isApprovalEnabled ? 'pending' : null;
+
     // 商品を作成
     const { data: product, error: productError } = await supabase
       .from('products')
@@ -273,13 +286,14 @@ export async function POST(request: NextRequest) {
         slug,
         description: (body.description as string) || null,
         short_description: (body.shortDescription as string) || null,
-        status,
+        status: finalStatus,
         tags: (body.tags as string[]) || [],
         seo_title: (body.seoTitle as string) || null,
         seo_description: (body.seoDescription as string) || null,
         featured: (body.featured as boolean) || false,
         custom_fields: (body.customFields as unknown[]) || [],
-        published_at: status === 'published' ? new Date().toISOString() : null,
+        approval_status: approvalStatus,
+        published_at: finalStatus === 'published' ? new Date().toISOString() : null,
       })
       .select()
       .single();
@@ -356,6 +370,7 @@ export async function POST(request: NextRequest) {
       name: product.name,
       slug: product.slug,
       status: product.status,
+      approvalStatus: product.approval_status ?? null,
       variants: (insertedVariants || []).map(v => ({
         id: v.id,
         name: v.name,

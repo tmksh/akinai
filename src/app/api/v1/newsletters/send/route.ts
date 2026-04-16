@@ -92,9 +92,30 @@ export async function POST(request: NextRequest) {
     // 組織のメールアドレス取得
     const { data: org } = await supabase
       .from('organizations')
-      .select('name, mail_from_address, mail_domain_verified')
+      .select('name, mail_from_address, mail_domain_verified, features')
       .eq('id', auth.organizationId!)
       .single();
+
+    // ④ メルマガ配信頻度制限チェック
+    const orgFeatures = (org?.features as Record<string, unknown>) || {};
+    const freqLimit = orgFeatures.newsletter_frequency_limit;
+    if (typeof freqLimit === 'number' && freqLimit > 0) {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const { count: sentThisMonth } = await supabase
+        .from('newsletter_sends')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', auth.organizationId!)
+        .eq('status', 'sent')
+        .gte('sent_at', monthStart);
+
+      if ((sentThisMonth || 0) >= freqLimit) {
+        return apiError(
+          `Newsletter frequency limit reached: ${freqLimit} sends per month allowed`,
+          429
+        );
+      }
+    }
 
     // 送信履歴レコード作成
     const { data: sendRecord, error: insertErr } = await supabase
