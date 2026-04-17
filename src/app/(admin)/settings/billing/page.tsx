@@ -233,7 +233,7 @@ export default function BillingSettingsPage() {
           )}
 
           {/* 解約ボタン */}
-          {(isActive || isTrialing) && subscriptionStatus !== 'canceled' && (
+          {(isActive || isTrialing) && subInfo?.subscription_status !== 'canceled' && (
             <div className="mt-4 pt-4 border-t">
               <Button
                 variant="outline"
