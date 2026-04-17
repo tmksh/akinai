@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { TopNavigation } from '@/components/layout/top-navigation';
 import { NavigationProgress } from '@/components/layout/navigation-progress';
+import { TrialEndingBanner } from '@/components/layout/trial-ending-banner';
 import { OrganizationProvider } from '@/components/providers/organization-provider';
 import type { Organization, CurrentUser } from '@/components/providers/organization-provider';
 import { Toaster } from '@/components/ui/sonner';
@@ -73,6 +74,7 @@ export default async function AdminLayout({
             style={{ background: 'radial-gradient(ellipse, #a5b4fc, transparent 70%)', filter: 'blur(50px)' }} />
         </div>
         <TopNavigation />
+        <TrialEndingBanner />
         <main className="relative z-10 p-3 sm:p-4 md:p-6 pt-4 md:pt-5 max-w-7xl mx-auto w-full min-w-0">
           {children}
         </main>

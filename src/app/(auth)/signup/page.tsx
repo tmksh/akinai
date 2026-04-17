@@ -8,9 +8,9 @@ import { ensureDefaultOrganization } from '@/lib/actions/onboarding';
 import { confirmUserAndSignIn } from '@/lib/actions/auth';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 
-const PLAN_LABELS: Record<string, { name: string; price: string; color: string }> = {
-  light:    { name: 'ライトプラン',       price: '¥3,300 / 月（税込）',  color: '#38bdf8' },
-  standard: { name: 'スタンダードプラン', price: '¥10,780 / 月（税込）', color: '#2563eb' },
+const PLAN_LABELS: Record<string, { name: string; price: string; color: string; trial: string }> = {
+  light:    { name: 'ライトプラン',       price: '¥3,300 / 月（税込）',  color: '#38bdf8', trial: '最初の1ヶ月無料' },
+  standard: { name: 'スタンダードプラン', price: '¥11,000 / 月（税込）', color: '#2563eb', trial: '最初の1ヶ月無料' },
 };
 
 function SignupForm() {
@@ -71,6 +71,25 @@ function SignupForm() {
         // メール確認を自動スキップしてすぐにサインイン可能にする
         await confirmUserAndSignIn(signUpData.user.id, email.trim(), password);
         await ensureDefaultOrganization();
+
+        // プランが選択されている場合は Stripe Checkout へ
+        if (planKey && PLAN_LABELS[planKey]) {
+          try {
+            const res = await fetch('/api/stripe/subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ plan: planKey }),
+            });
+            const data = await res.json();
+            if (data.url) {
+              window.location.href = data.url;
+              return;
+            }
+          } catch {
+            // Checkout 作成失敗時はダッシュボードへ（後から設定可能）
+          }
+        }
+
         window.location.href = '/dashboard';
         return;
       }
@@ -209,19 +228,25 @@ function SignupForm() {
             新規登録
           </h1>
 
-          {/* 選択プラン表示（準備中） */}
+          {/* 選択プラン表示 */}
           {planInfo && (
-            <div className="mb-6 rounded-xl overflow-hidden">
-              <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold"
-                style={{ background: '#f8faff', border: '1.5px solid #bae6fd', borderBottom: 'none', borderRadius: '0.75rem 0.75rem 0 0', color: '#4a6fa5' }}>
-                <svg className="w-4 h-4 flex-shrink-0 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mb-6 rounded-xl overflow-hidden border border-sky-200"
+              style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' }}>
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b border-sky-100">
+                <svg className="w-4 h-4 flex-shrink-0 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
-                <span>{planInfo.name}（{planInfo.price}）を選択中</span>
-                <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: '#fef9c3', color: '#a16207' }}>準備中</span>
+                <span className="text-sm font-semibold text-sky-800">
+                  {planInfo.name}（{planInfo.price}）を選択中
+                </span>
               </div>
-              <div className="px-3 py-2 text-xs leading-relaxed" style={{ background: '#fffbeb', border: '1.5px solid #bae6fd', borderTop: '1px solid #fde68a', borderRadius: '0 0 0.75rem 0.75rem', color: '#92400e' }}>
-                現在、プランのご契約機能を準備中です。アカウント作成後、担当よりご連絡いたします。
+              <div className="px-3 py-2.5 flex items-center gap-2">
+                <svg className="w-4 h-4 flex-shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-xs text-sky-700">
+                  アカウント作成後、<strong>1ヶ月間は無料</strong>でお試しいただけます。トライアル終了後に自動で課金が始まります。
+                </p>
               </div>
             </div>
           )}
@@ -345,7 +370,7 @@ function SignupForm() {
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />登録中...
                 </span>
-              ) : 'アカウントを作成'}
+              ) : planInfo ? 'アカウントを作成して1ヶ月無料で試す' : 'アカウントを作成'}
             </button>
           </form>
 

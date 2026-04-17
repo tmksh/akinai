@@ -77,7 +77,36 @@ export async function POST(request: NextRequest) {
 
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutComplete(supabase, session, connectedAccountId);
+        if (session.mode === 'subscription') {
+          await handleSubscriptionCheckoutComplete(supabase, session);
+        } else {
+          await handleCheckoutComplete(supabase, session, connectedAccountId);
+        }
+        break;
+      }
+
+      case 'customer.subscription.trial_will_end': {
+        const subscription = event.data.object as Stripe.Subscription;
+        await handleTrialWillEnd(supabase, subscription);
+        break;
+      }
+
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription;
+        await handleSubscriptionUpdated(supabase, subscription);
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
+        await handleSubscriptionDeleted(supabase, subscription);
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice;
+        await handleInvoicePaymentSucceeded(supabase, invoice);
         break;
       }
 
@@ -91,6 +120,136 @@ export async function POST(request: NextRequest) {
     console.error('Webhook handler error:', error);
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
+}
+
+/**
+ * サブスクリプション Checkout Session 完了時の処理
+ */
+async function handleSubscriptionCheckoutComplete(
+  supabase: SupabaseAdmin,
+  session: Stripe.Checkout.Session
+) {
+  const organizationId = session.metadata?.organization_id;
+  const plan = session.metadata?.plan;
+
+  if (!organizationId || !plan) {
+    console.warn('subscription checkout: missing metadata');
+    return;
+  }
+
+  console.log(`[Webhook] subscription checkout completed: org=${organizationId}, plan=${plan}`);
+
+  await supabase
+    .from('organizations')
+    .update({
+      plan,
+      stripe_subscription_id: session.subscription as string,
+      stripe_customer_id: session.customer as string,
+      subscription_status: 'trialing',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organizationId);
+}
+
+/**
+ * サブスクリプション更新時の処理
+ */
+async function handleSubscriptionUpdated(
+  supabase: SupabaseAdmin,
+  subscription: Stripe.Subscription
+) {
+  const organizationId = subscription.metadata?.organization_id;
+  if (!organizationId) return;
+
+  console.log(`[Webhook] subscription updated: org=${organizationId}, status=${subscription.status}`);
+
+  await supabase
+    .from('organizations')
+    .update({
+      subscription_status: subscription.status,
+      trial_ends_at: subscription.trial_end
+        ? new Date(subscription.trial_end * 1000).toISOString()
+        : null,
+      subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organizationId);
+}
+
+/**
+ * サブスクリプション削除時の処理
+ */
+async function handleSubscriptionDeleted(
+  supabase: SupabaseAdmin,
+  subscription: Stripe.Subscription
+) {
+  const organizationId = subscription.metadata?.organization_id;
+  if (!organizationId) return;
+
+  console.log(`[Webhook] subscription deleted: org=${organizationId}`);
+
+  await supabase
+    .from('organizations')
+    .update({
+      plan: 'starter',
+      subscription_status: 'canceled',
+      stripe_subscription_id: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organizationId);
+}
+
+/**
+ * 請求書支払い成功時の処理
+ */
+async function handleInvoicePaymentSucceeded(
+  supabase: SupabaseAdmin,
+  invoice: Stripe.Invoice
+) {
+  if (!invoice.subscription) return;
+
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('id')
+    .eq('stripe_subscription_id', invoice.subscription)
+    .single();
+
+  if (!org) return;
+
+  console.log(`[Webhook] invoice.payment_succeeded: org=${org.id}`);
+
+  await supabase
+    .from('organizations')
+    .update({
+      subscription_status: 'active',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', org.id);
+}
+
+/**
+ * トライアル終了直前通知の処理（Stripe は終了 3 日前に送信）
+ */
+async function handleTrialWillEnd(
+  supabase: SupabaseAdmin,
+  subscription: Stripe.Subscription
+) {
+  const organizationId = subscription.metadata?.organization_id;
+  if (!organizationId) return;
+
+  const trialEndsAt = subscription.trial_end
+    ? new Date(subscription.trial_end * 1000).toISOString()
+    : null;
+
+  console.log(`[Webhook] trial_will_end: org=${organizationId}, trialEndsAt=${trialEndsAt}`);
+
+  await supabase
+    .from('organizations')
+    .update({
+      trial_ends_at: trialEndsAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organizationId);
 }
 
 /**
