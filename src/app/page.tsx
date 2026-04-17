@@ -60,7 +60,7 @@ function Navbar() {
           <Link href="/signup"
             className="text-sm font-semibold px-5 py-2.5 rounded-full transition-all hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #2563eb, #38bdf8)', color: '#fff', boxShadow: '0 2px 12px rgba(37,99,235,0.3)' }}>
-            無料で始める
+            無料トライアルを始める
           </Link>
         </div>
 
@@ -77,7 +77,7 @@ function Navbar() {
             <Link href="/login" className="text-sm font-medium" style={{ color: '#2563eb' }}>ログイン</Link>
             <Link href="/signup"
               className="text-sm font-semibold px-5 py-2 rounded-full text-white"
-              style={{ background: 'linear-gradient(135deg, #2563eb, #38bdf8)' }}>無料で始める</Link>
+              style={{ background: 'linear-gradient(135deg, #2563eb, #38bdf8)' }}>無料トライアルを始める</Link>
           </div>
         </div>
       )}
@@ -192,7 +192,7 @@ function HeroSection() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
-            無料でショップを開設する
+            1ヶ月無料トライアルで開設する
           </Link>
         </div>
       </div>
@@ -883,7 +883,7 @@ function CTASection() {
               <Link href="/signup"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-black text-sm transition-all hover:opacity-90 active:scale-[.98]"
                 style={{ background: '#fff', color: '#1d4ed8', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-                無料で始める <ArrowRight className="h-4 w-4" />
+                1ヶ月無料トライアルを始める <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
