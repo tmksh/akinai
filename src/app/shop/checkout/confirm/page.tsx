@@ -94,46 +94,58 @@ export default function CheckoutConfirmPage() {
     setError(null);
 
     try {
-      // 注文番号を生成（実際はサーバーサイドで生成）
-      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const res = await fetch('/api/shop/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: checkoutData.items.map(item => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            name: item.name,
+            variantName: Object.entries(item.variant || {}).map(([k, v]) => `${k}: ${v}`).join(', ') || undefined,
+            sku: item.sku,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+          shipping: checkoutData.shipping,
+          paymentMethod: checkoutData.paymentMethod,
+          successUrl: `${window.location.origin}/shop/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${window.location.origin}/shop/checkout/confirm`,
+        }),
+      });
 
-      // 注文データを作成
-      const orderData = {
-        orderNumber,
-        items: checkoutData.items.map(item => ({
-          productId: item.productId,
-          variantId: item.variantId,
-          productName: item.name,
-          variantName: Object.entries(item.variant).map(([k, v]) => `${k}: ${v}`).join(', ') || '-',
-          sku: item.sku,
-          quantity: item.quantity,
-          unitPrice: item.price,
-        })),
-        customerName: checkoutData.shipping.name,
-        customerEmail: checkoutData.shipping.email,
-        shippingAddress: {
-          postalCode: checkoutData.shipping.postalCode,
-          prefecture: checkoutData.shipping.prefecture,
-          city: checkoutData.shipping.city,
-          line1: checkoutData.shipping.line1,
-          line2: checkoutData.shipping.line2,
-          phone: checkoutData.shipping.phone,
-        },
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || '注文処理中にエラーが発生しました');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // カートをクリア
+      localStorage.removeItem('cart');
+      sessionStorage.removeItem('checkout');
+
+      // クレジットカード → Stripe Checkoutへリダイレクト
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      // 銀行振込・代引き → 完了画面へ
+      sessionStorage.setItem('order-complete', JSON.stringify({
+        orderNumber: data.orderNumber,
+        orderId: data.orderId,
+        items: checkoutData.items,
+        shipping: checkoutData.shipping,
         paymentMethod: checkoutData.paymentMethod,
         subtotal: checkoutData.subtotal,
         shippingFee: checkoutData.shippingFee,
         codFee: checkoutData.codFee,
         total: checkoutData.total,
+        paymentInstructions: data.paymentInstructions || null,
         createdAt: new Date().toISOString(),
-      };
-
-      // 注文完了データをsessionStorageに保存
-      sessionStorage.setItem('order-complete', JSON.stringify(orderData));
-      
-      // カートをクリア
-      localStorage.removeItem('cart');
-
-      // 完了画面へ遷移
+      }));
       router.push('/shop/checkout/complete');
     } catch (err) {
       console.error('Order failed:', err);
@@ -229,7 +241,7 @@ export default function CheckoutConfirmPage() {
               </p>
               {checkoutData.paymentMethod === 'credit_card' && (
                 <p className="text-sm text-slate-600 mt-1">
-                  ※ このデモでは実際の決済処理は行われません
+                  注文確定後、Stripeの安全な決済ページへ移動します
                 </p>
               )}
               {checkoutData.paymentMethod === 'bank_transfer' && (

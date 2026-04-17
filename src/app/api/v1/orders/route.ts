@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import Stripe from 'stripe';
 import { 
   validateApiKey, 
   apiError, 
@@ -328,6 +329,7 @@ export async function POST(request: NextRequest) {
         note: string | null;
         createdAt: string;
       };
+      checkoutUrl?: string | null;
       paymentInstructions?: string;
       nextSteps: string[];
     } = {
@@ -352,18 +354,81 @@ export async function POST(request: NextRequest) {
         note: body.note || null,
         createdAt: order.created_at,
       },
+      checkoutUrl: null,
       nextSteps: [],
     };
 
     // 支払い方法に応じた案内
     switch (body.paymentMethod) {
-      case 'credit_card':
-        responseData.nextSteps = [
-          '決済処理が完了しました',
-          '注文確認メールをお送りしました',
-          '商品の発送準備を開始します',
-        ];
+      case 'credit_card': {
+        const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+        if (stripeSecretKey) {
+          // 組織の Stripe Connect アカウントを取得
+          const { data: orgRow } = await supabase
+            .from('organizations')
+            .select('stripe_account_id')
+            .eq('id', auth.organizationId)
+            .single();
+
+          const stripeAccountId = orgRow?.stripe_account_id as string | null;
+
+          if (stripeAccountId) {
+            try {
+              const stripe = new Stripe(stripeSecretKey);
+
+              const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = orderItems.map(item => ({
+                price_data: {
+                  currency: 'jpy',
+                  product_data: {
+                    name: `${item.productName}（${item.variantName}）`,
+                  },
+                  unit_amount: item.unitPrice,
+                },
+                quantity: item.quantity,
+              }));
+
+              if (shippingFee > 0) {
+                lineItems.push({
+                  price_data: { currency: 'jpy', product_data: { name: '送料' }, unit_amount: shippingFee },
+                  quantity: 1,
+                });
+              }
+
+              const session = await stripe.checkout.sessions.create(
+                {
+                  payment_method_types: ['card'],
+                  line_items: lineItems,
+                  mode: 'payment',
+                  success_url: `${appUrl}/shop/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
+                  cancel_url: `${appUrl}/shop/checkout/confirm`,
+                  customer_email: body.shippingAddress.email,
+                  metadata: { order_id: order.id, organization_id: auth.organizationId },
+                  payment_intent_data: {
+                    metadata: { order_id: order.id, organization_id: auth.organizationId },
+                  },
+                },
+                { stripeAccount: stripeAccountId }
+              );
+
+              await supabase
+                .from('orders')
+                .update({ stripe_checkout_session_id: session.id })
+                .eq('id', order.id);
+
+              responseData.checkoutUrl = session.url;
+            } catch (e) {
+              console.error('Stripe Checkout Session error:', e);
+            }
+          }
+        }
+
+        responseData.nextSteps = responseData.checkoutUrl
+          ? ['以下のURLへリダイレクトして決済を完了してください']
+          : ['決済URLの発行に失敗しました。管理画面からStripe Connect設定を確認してください'];
         break;
+      }
       case 'bank_transfer': {
         const accountTypeLabel: Record<string, string> = {
           ordinary: '普通',
