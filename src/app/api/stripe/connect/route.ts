@@ -80,12 +80,50 @@ export async function GET(request: NextRequest) {
     }
 
     // Account Link でオンボーディングURLを生成
-    const accountLink = await stripe.accountLinks.create({
-      account: stripeAccountId,
-      refresh_url: `${appUrl}/api/stripe/connect`,
-      return_url: `${appUrl}/api/stripe/callback`,
-      type: 'account_onboarding',
-    });
+    let accountLink;
+    try {
+      accountLink = await stripe.accountLinks.create({
+        account: stripeAccountId,
+        refresh_url: `${appUrl}/api/stripe/connect`,
+        return_url: `${appUrl}/api/stripe/callback`,
+        type: 'account_onboarding',
+      });
+    } catch (linkError) {
+      // アカウントが無効な場合はDBをリセットして新規作成
+      console.error('Account link creation failed, resetting:', linkError);
+      await supabase
+        .from('organizations')
+        .update({
+          stripe_account_id: null,
+          stripe_account_status: 'not_connected',
+          stripe_onboarding_complete: false,
+        })
+        .eq('id', member.organization_id);
+
+      const newAccount = await stripe.accounts.create({
+        type: 'express',
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+      });
+
+      await supabase
+        .from('organizations')
+        .update({
+          stripe_account_id: newAccount.id,
+          stripe_account_status: 'pending',
+          stripe_onboarding_complete: false,
+        })
+        .eq('id', member.organization_id);
+
+      accountLink = await stripe.accountLinks.create({
+        account: newAccount.id,
+        refresh_url: `${appUrl}/api/stripe/connect`,
+        return_url: `${appUrl}/api/stripe/callback`,
+        type: 'account_onboarding',
+      });
+    }
 
     return NextResponse.redirect(accountLink.url);
   } catch (error) {
