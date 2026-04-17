@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import Stripe from 'stripe';
 
 /**
  * GET /api/stripe/connect
- * Stripe Connect OAuth フローを開始する
- * 店舗オーナーをStripeの認証ページにリダイレクト
+ * Stripe Connect Account Links フローを開始する
+ * Expressアカウントを作成してオンボーディングURLにリダイレクト
  */
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    
+
     // ユーザー認証チェック
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -33,38 +34,62 @@ export async function GET(request: NextRequest) {
     }
 
     // 環境変数チェック
-    const stripeClientId = process.env.STRIPE_CLIENT_ID;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-    if (!stripeClientId) {
-      console.error('STRIPE_CLIENT_ID is not set');
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      console.error('STRIPE_SECRET_KEY is not set');
       return NextResponse.redirect(new URL('/settings/payments?error=config_error', request.url));
     }
 
-    // Stripe Connect OAuth URL を構築
-    const state = Buffer.from(JSON.stringify({
-      organizationId: member.organization_id,
-      userId: user.id,
-      timestamp: Date.now(),
-    })).toString('base64');
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const stripe = new Stripe(stripeSecretKey);
 
-    const params = new URLSearchParams();
-    params.append('response_type', 'code');
-    params.append('client_id', stripeClientId);
-    params.append('scope', 'read_write');
-    params.append('redirect_uri', `${appUrl}/api/stripe/callback`);
-    params.append('state', state);
-    // 推奨: Express アカウントを使用（簡単なオンボーディング）
-    params.append('stripe_user[business_type]', 'company');
-    params.append('suggested_capabilities[]', 'card_payments');
-    params.append('suggested_capabilities[]', 'transfers');
+    // 既存のStripeアカウントIDを確認
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('stripe_account_id')
+      .eq('id', member.organization_id)
+      .single();
 
-    const stripeConnectUrl = `https://connect.stripe.com/oauth/authorize?${params.toString()}`;
+    let stripeAccountId = org?.stripe_account_id;
 
-    return NextResponse.redirect(stripeConnectUrl);
+    // アカウントがなければ新規作成
+    if (!stripeAccountId) {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+      });
+      stripeAccountId = account.id;
+
+      // DBに保存
+      const { error: updateError } = await supabase
+        .from('organizations')
+        .update({
+          stripe_account_id: stripeAccountId,
+          stripe_account_status: 'pending',
+          stripe_onboarding_complete: false,
+        })
+        .eq('id', member.organization_id);
+
+      if (updateError) {
+        console.error('Failed to save stripe account:', updateError);
+        return NextResponse.redirect(new URL('/settings/payments?error=db_error', request.url));
+      }
+    }
+
+    // Account Link でオンボーディングURLを生成
+    const accountLink = await stripe.accountLinks.create({
+      account: stripeAccountId,
+      refresh_url: `${appUrl}/api/stripe/connect`,
+      return_url: `${appUrl}/api/stripe/callback`,
+      type: 'account_onboarding',
+    });
+
+    return NextResponse.redirect(accountLink.url);
   } catch (error) {
     console.error('Stripe Connect error:', error);
     return NextResponse.redirect(new URL('/settings/payments?error=unknown', request.url));
   }
 }
-

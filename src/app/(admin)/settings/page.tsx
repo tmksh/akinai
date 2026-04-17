@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, Palette, CreditCard, ExternalLink, Store, User, Webhook, FileText, Package, Sparkles, Mail, ToggleLeft } from 'lucide-react';
+import { Building2, Key, Users, Bell, CreditCard, ExternalLink, User, ToggleLeft, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,95 +8,97 @@ import { useOrganization } from '@/components/providers/organization-provider';
 
 const settingsCategories = [
   {
-    title: '組織設定',
-    description: '店舗名、住所、ロゴなどの基本情報を設定',
-    href: '/settings/organization',
-    icon: Building2,
-    badge: null,
+    section: 'ストア設定',
+    items: [
+      {
+        title: '組織設定',
+        description: '店舗名・住所・ロゴ・テーマなど基本情報を設定',
+        href: '/settings/organization',
+        icon: Building2,
+        badge: null,
+      },
+      {
+        title: '機能設定',
+        description: '通知BOX・紹介コード・コンテンツタイプなど機能のON/OFFを管理',
+        href: '/settings/features',
+        icon: ToggleLeft,
+        badge: null,
+      },
+    ],
   },
   {
-    title: '送信ドメインの認証',
-    description: '自社ドメインを認証してメルマガを自社アドレスから送信',
-    href: '/settings/email-domain',
-    icon: Mail,
-    badge: null,
+    section: 'チーム・アカウント',
+    items: [
+      {
+        title: 'メンバー管理',
+        description: 'チームメンバーの招待・権限管理',
+        href: '/settings/members',
+        icon: Users,
+        badge: null,
+      },
+      {
+        title: 'アカウント設定',
+        description: 'パスワード変更、通知設定、セキュリティ',
+        href: '/account',
+        icon: User,
+        badge: null,
+      },
+    ],
   },
   {
-    title: 'お知らせで使うタイプ',
-    description: '記事・ニュース・特集など、使うコンテンツタイプを選択',
-    href: '/settings/contents',
-    icon: FileText,
-    badge: null,
+    section: '顧客',
+    items: [
+      {
+        title: '顧客設定',
+        description: '会員種別の表示名・カスタムフィールドを設定',
+        href: '/settings/customers',
+        icon: Sparkles,
+        badge: null,
+      },
+    ],
   },
   {
-    title: '会員種別の表示名',
-    description: '個人会員・バイヤーなどの表示名をサービスに合わせて変更',
-    href: '/settings/customer-roles',
-    icon: Users,
-    badge: null,
+    section: 'メール・通知',
+    items: [
+      {
+        title: 'メール・通知',
+        description: '送信ドメインの認証・メール通知・アラートの設定',
+        href: '/settings/notifications',
+        icon: Bell,
+        badge: null,
+      },
+    ],
   },
   {
-    title: '顧客カスタムフィールド',
-    description: '顧客登録・編集フォームに独自のフィールドを追加',
-    href: '/settings/customers',
-    icon: Sparkles,
-    badge: null,
+    section: '連携・開発',
+    items: [
+      {
+        title: 'API・Webhook',
+        description: 'APIキーの発行・管理、外部サービスへのイベント通知',
+        href: '/settings/api',
+        icon: Key,
+        badge: '重要',
+      },
+    ],
   },
   {
-    title: '機能設定',
-    description: '通知BOX・紹介コード・商品審査フローなど機能のON/OFFを管理',
-    href: '/settings/features',
-    icon: ToggleLeft,
-    badge: null,
-  },
-  {
-    title: 'アカウント設定',
-    description: 'パスワード変更、通知設定、セキュリティ',
-    href: '/account',
-    icon: User,
-    badge: null,
-  },
-  {
-    title: 'API設定',
-    description: '外部連携用のAPIキーを発行・管理',
-    href: '/settings/api',
-    icon: Key,
-    badge: '重要',
-  },
-  {
-    title: 'メンバー管理',
-    description: 'チームメンバーの招待・権限管理',
-    href: '/settings/members',
-    icon: Users,
-    badge: null,
-  },
-  {
-    title: '通知設定',
-    description: 'メール通知やアラートの設定',
-    href: '/settings/notifications',
-    icon: Bell,
-    badge: null,
-  },
-  {
-    title: 'Webhook設定',
-    description: '外部サービスへのイベント通知',
-    href: '/settings/webhooks',
-    icon: Webhook,
-    badge: null,
-  },
-  {
-    title: '管理画面テーマ',
-    description: '管理画面のカラーテーマを変更',
-    href: '/settings/theme',
-    icon: Palette,
-    badge: null,
-  },
-  {
-    title: '請求・プラン',
-    description: 'プランの確認・変更、請求履歴',
-    href: '/settings/billing',
-    icon: CreditCard,
-    badge: null,
+    section: '決済・プラン',
+    items: [
+      {
+        title: '決済設定',
+        description: 'Stripe連携・決済方法・銀行振込口座の設定',
+        href: '/settings/payments',
+        icon: CreditCard,
+        badge: null,
+      },
+      {
+        title: '請求・プラン',
+        description: 'プランの確認・変更、請求履歴',
+        href: '/settings/billing',
+        icon: CreditCard,
+        badge: null,
+      },
+    ],
   },
 ];
 
@@ -115,37 +117,38 @@ export default function SettingsPage() {
 
       {/* 設定カテゴリー */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {settingsCategories.map((category) => {
-          const Icon = category.icon;
-
-          return (
-            <Link key={category.href} href={category.href}>
-              <Card className="card-hover h-full cursor-pointer group">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                        <Icon className="h-5 w-5 text-primary" />
+        {settingsCategories.flatMap((section) =>
+          section.items.map((category) => {
+            const Icon = category.icon;
+            return (
+              <Link key={category.href} href={category.href}>
+                <Card className="card-hover h-full cursor-pointer group">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                          <Icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <CardTitle className="text-base">{category.title}</CardTitle>
                       </div>
-                      <CardTitle className="text-base">{category.title}</CardTitle>
+                      {category.badge && (
+                        <Badge variant="default" className="text-xs bg-sky-500">
+                          {category.badge}
+                        </Badge>
+                      )}
                     </div>
-                    {category.badge && (
-                      <Badge variant="default" className="text-xs bg-sky-500">
-                        {category.badge}
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="flex items-center gap-1">
-                    {category.description}
-                    <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="flex items-center gap-1">
+                      {category.description}
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })
+        )}
       </div>
 
       {/* 現在のプラン情報 */}
