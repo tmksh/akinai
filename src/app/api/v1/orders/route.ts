@@ -404,9 +404,9 @@ export async function POST(request: NextRequest) {
                   success_url: `${appUrl}/shop/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
                   cancel_url: `${appUrl}/shop/checkout/confirm`,
                   customer_email: body.shippingAddress.email,
-                  metadata: { order_id: order.id, organization_id: auth.organizationId },
+                  metadata: { order_id: order.id, organization_id: auth.organizationId ?? '' },
                   payment_intent_data: {
-                    metadata: { order_id: order.id, organization_id: auth.organizationId },
+                    metadata: { order_id: order.id, organization_id: auth.organizationId ?? '' },
                   },
                 },
                 { stripeAccount: stripeAccountId }
