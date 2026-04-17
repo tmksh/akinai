@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (memberError || !member) {
+      console.error('Member not found:', memberError);
       return NextResponse.redirect(new URL('/settings/payments?error=no_organization', request.url));
     }
 
@@ -41,29 +42,47 @@ export async function GET(request: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const stripe = new Stripe(stripeSecretKey);
+    console.log('appUrl:', appUrl);
+
+    let stripe: Stripe;
+    try {
+      stripe = new Stripe(stripeSecretKey);
+    } catch (e) {
+      console.error('Stripe init error:', e);
+      return NextResponse.redirect(new URL('/settings/payments?error=stripe_init', request.url));
+    }
 
     // 既存のStripeアカウントIDを確認
-    const { data: org } = await supabase
+    const { data: org, error: orgError } = await supabase
       .from('organizations')
       .select('stripe_account_id')
       .eq('id', member.organization_id)
       .single();
 
+    if (orgError) {
+      console.error('Org fetch error:', orgError);
+      return NextResponse.redirect(new URL('/settings/payments?error=db_error', request.url));
+    }
+
     let stripeAccountId = org?.stripe_account_id;
 
     // アカウントがなければ新規作成
     if (!stripeAccountId) {
-      const account = await stripe.accounts.create({
-        type: 'express',
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-      });
-      stripeAccountId = account.id;
+      try {
+        const account = await stripe.accounts.create({
+          type: 'express',
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+        });
+        stripeAccountId = account.id;
+        console.log('Created new stripe account:', stripeAccountId);
+      } catch (e) {
+        console.error('Account create error:', e);
+        return NextResponse.redirect(new URL('/settings/payments?error=account_create', request.url));
+      }
 
-      // DBに保存
       const { error: updateError } = await supabase
         .from('organizations')
         .update({
@@ -89,7 +108,6 @@ export async function GET(request: NextRequest) {
         type: 'account_onboarding',
       });
     } catch (linkError) {
-      // アカウントが無効な場合はDBをリセットして新規作成
       console.error('Account link creation failed, resetting:', linkError);
       await supabase
         .from('organizations')
@@ -100,34 +118,39 @@ export async function GET(request: NextRequest) {
         })
         .eq('id', member.organization_id);
 
-      const newAccount = await stripe.accounts.create({
-        type: 'express',
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-      });
+      try {
+        const newAccount = await stripe.accounts.create({
+          type: 'express',
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+        });
 
-      await supabase
-        .from('organizations')
-        .update({
-          stripe_account_id: newAccount.id,
-          stripe_account_status: 'pending',
-          stripe_onboarding_complete: false,
-        })
-        .eq('id', member.organization_id);
+        await supabase
+          .from('organizations')
+          .update({
+            stripe_account_id: newAccount.id,
+            stripe_account_status: 'pending',
+            stripe_onboarding_complete: false,
+          })
+          .eq('id', member.organization_id);
 
-      accountLink = await stripe.accountLinks.create({
-        account: newAccount.id,
-        refresh_url: `${appUrl}/api/stripe/connect`,
-        return_url: `${appUrl}/api/stripe/callback`,
-        type: 'account_onboarding',
-      });
+        accountLink = await stripe.accountLinks.create({
+          account: newAccount.id,
+          refresh_url: `${appUrl}/api/stripe/connect`,
+          return_url: `${appUrl}/api/stripe/callback`,
+          type: 'account_onboarding',
+        });
+      } catch (retryError) {
+        console.error('Retry failed:', retryError);
+        return NextResponse.redirect(new URL('/settings/payments?error=account_link', request.url));
+      }
     }
 
     return NextResponse.redirect(accountLink.url);
   } catch (error) {
-    console.error('Stripe Connect error:', error);
+    console.error('Stripe Connect unexpected error:', error);
     return NextResponse.redirect(new URL('/settings/payments?error=unknown', request.url));
   }
 }
