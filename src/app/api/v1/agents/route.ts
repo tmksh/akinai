@@ -51,9 +51,16 @@ export async function GET(request: NextRequest) {
 
       const cf = (agent.custom_fields as Record<string, unknown>) ?? {};
       const labels = (cf['__labels__'] as Record<string, string>) ?? {};
+      const meta = (cf['__meta__'] as Record<string, { type?: string; options?: string[] }>) ?? {};
       const customFields = Object.entries(cf)
-        .filter(([k]) => k !== '__labels__')
-        .map(([k, v]) => ({ key: k, label: labels[k] || k, value: String(v ?? '') }));
+        .filter(([k]) => k !== '__labels__' && k !== '__meta__')
+        .map(([k, v]) => ({
+          key: k,
+          label: labels[k] || k,
+          value: String(v ?? ''),
+          type: meta[k]?.type || 'text',
+          options: meta[k]?.options || [],
+        }));
 
       const response = apiSuccess(
         {
@@ -96,9 +103,16 @@ export async function GET(request: NextRequest) {
     const result = (agents || []).map(a => {
       const cf = (a.custom_fields as Record<string, unknown>) ?? {};
       const labels = (cf['__labels__'] as Record<string, string>) ?? {};
+      const meta = (cf['__meta__'] as Record<string, { type?: string; options?: string[] }>) ?? {};
       const customFields = Object.entries(cf)
-        .filter(([k]) => k !== '__labels__')
-        .map(([k, v]) => ({ key: k, label: labels[k] || k, value: String(v ?? '') }));
+        .filter(([k]) => k !== '__labels__' && k !== '__meta__')
+        .map(([k, v]) => ({
+          key: k,
+          label: labels[k] || k,
+          value: String(v ?? ''),
+          type: meta[k]?.type || 'text',
+          options: meta[k]?.options || [],
+        }));
       return {
         id: a.id,
         code: a.code,

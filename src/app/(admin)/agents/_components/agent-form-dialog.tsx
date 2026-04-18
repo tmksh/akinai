@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Building2, User, Mail, Phone, MapPin, Percent, Loader2, Plus, Trash2, X,
+  Building2, User, Mail, Phone, MapPin, Percent, Loader2, Plus, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -38,11 +39,15 @@ export interface AgentFormData {
   customFields: Record<string, string>;
 }
 
+type FieldType = 'text' | 'textarea' | 'number' | 'select' | 'boolean' | 'url' | 'email' | 'phone';
+
 interface ExtraField {
   id: string;
   label: string;
   key: string;
   value: string;
+  type: FieldType;
+  options: string[];
 }
 
 function autoKeyFromLabel(label: string): string {
@@ -51,6 +56,42 @@ function autoKeyFromLabel(label: string): string {
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
   return raw || `field_${Date.now().toString(36)}`;
+}
+
+function renderFieldInput(
+  ef: ExtraField,
+  onChange: (value: string) => void
+) {
+  if (ef.type === 'boolean') {
+    return (
+      <div className="flex items-center gap-2 h-9">
+        <Switch checked={ef.value === 'true'} onCheckedChange={(v) => onChange(v ? 'true' : 'false')} />
+        <span className="text-sm text-muted-foreground">{ef.value === 'true' ? 'ON' : 'OFF'}</span>
+      </div>
+    );
+  }
+  if (ef.type === 'select') {
+    return (
+      <Select value={ef.value} onValueChange={onChange}>
+        <SelectTrigger><SelectValue placeholder="選択してください" /></SelectTrigger>
+        <SelectContent>
+          {ef.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    );
+  }
+  if (ef.type === 'textarea') {
+    return (
+      <Textarea value={ef.value} onChange={(e) => onChange(e.target.value)} rows={2} />
+    );
+  }
+  return (
+    <Input
+      type={ef.type === 'number' ? 'number' : ef.type === 'email' ? 'email' : ef.type === 'url' ? 'url' : ef.type === 'phone' ? 'tel' : 'text'}
+      value={ef.value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
 }
 
 export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFormDialogProps) {
@@ -68,6 +109,8 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
   const [newExtraLabel, setNewExtraLabel] = useState('');
   const [newExtraKey, setNewExtraKey] = useState('');
   const [newExtraKeyManual, setNewExtraKeyManual] = useState(false);
+  const [newExtraType, setNewExtraType] = useState<FieldType>('text');
+  const [newExtraOptions, setNewExtraOptions] = useState('');
   const [newExtraValue, setNewExtraValue] = useState('');
 
   const isEditing = !!agent?.id;
@@ -75,18 +118,26 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
 
   useEffect(() => {
     if (agent) {
-      // スキーマキーとスキーマ外キーを分離
       const schemaKeys = new Set(agentFieldSchema.map(f => f.key));
       const cf = agent.customFields ?? {};
       const storedLabels = (cf['__labels__'] as unknown as Record<string, string>) ?? {};
+      const storedMeta = (cf['__meta__'] as unknown as Record<string, { type?: string; options?: string[] }>) ?? {};
       const schemaValues: Record<string, string> = {};
       const extras: ExtraField[] = [];
       for (const [k, v] of Object.entries(cf)) {
-        if (k === '__labels__') continue;
+        if (k === '__labels__' || k === '__meta__') continue;
         if (schemaKeys.has(k)) {
           schemaValues[k] = v;
         } else {
-          extras.push({ id: k, label: storedLabels[k] || k, key: k, value: v });
+          const meta = storedMeta[k] ?? {};
+          extras.push({
+            id: k,
+            label: storedLabels[k] || k,
+            key: k,
+            value: v,
+            type: (meta.type as FieldType) || 'text',
+            options: meta.options ?? [],
+          });
         }
       }
       setFormData({
@@ -124,16 +175,19 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
   const handleSubmit = async () => {
     if (!validate()) return;
     setIsSubmitting(true);
-    // スキーマフィールド + 追加フィールドをマージ、ラベルも保存
     const merged: Record<string, unknown> = { ...formData.customFields };
     const labels: Record<string, string> = {};
+    const meta: Record<string, unknown> = {};
     extraFields.forEach(f => {
-      if (f.key) {
-        merged[f.key] = f.value;
-        labels[f.key] = f.label;
-      }
+      if (!f.key) return;
+      merged[f.key] = f.value;
+      labels[f.key] = f.label;
+      const fieldMeta: Record<string, unknown> = { type: f.type };
+      if (f.type === 'select' && f.options.length > 0) fieldMeta.options = f.options;
+      meta[f.key] = fieldMeta;
     });
     if (Object.keys(labels).length > 0) merged['__labels__'] = labels;
+    if (Object.keys(meta).length > 0) merged['__meta__'] = meta;
     try {
       await onSubmit({ ...formData, customFields: merged as Record<string, string> });
       toast.success(isEditing ? '代理店情報を更新しました' : '代理店を登録しました');
@@ -160,17 +214,24 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
       return;
     }
     setExtraFields(prev => [...prev, {
-      id: `extra_${Date.now()}`, label: newExtraLabel, key: newExtraKey, value: newExtraValue,
+      id: `extra_${Date.now()}`,
+      label: newExtraLabel,
+      key: newExtraKey,
+      value: newExtraValue,
+      type: newExtraType,
+      options: newExtraType === 'select' ? newExtraOptions.split('\n').filter(Boolean) : [],
     }]);
-    setNewExtraLabel('');
-    setNewExtraKey('');
-    setNewExtraKeyManual(false);
-    setNewExtraValue('');
+    setNewExtraLabel(''); setNewExtraKey(''); setNewExtraKeyManual(false);
+    setNewExtraType('text'); setNewExtraOptions(''); setNewExtraValue('');
     setIsAddingExtra(false);
   };
 
   const removeExtraField = (id: string) => {
     setExtraFields(prev => prev.filter(f => f.id !== id));
+  };
+
+  const updateExtraValue = (id: string, value: string) => {
+    setExtraFields(prev => prev.map(f => f.id === id ? { ...f, value } : f));
   };
 
   return (
@@ -289,6 +350,16 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
                       {field.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                ) : field.type === 'boolean' ? (
+                  <div className="flex items-center gap-2 h-9">
+                    <Switch
+                      checked={formData.customFields[field.key] === 'true'}
+                      onCheckedChange={(v) => handleCfChange(field.key, v ? 'true' : 'false')}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {formData.customFields[field.key] === 'true' ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
                 ) : field.type === 'textarea' ? (
                   <Textarea value={formData.customFields[field.key] ?? ''}
                     onChange={(e) => handleCfChange(field.key, e.target.value)} rows={2} />
@@ -311,8 +382,7 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <Input value={ef.value}
-                  onChange={(e) => setExtraFields(prev => prev.map(f => f.id === ef.id ? { ...f, value: e.target.value } : f))} />
+                {renderFieldInput(ef, (v) => updateExtraValue(ef.id, v))}
               </div>
             ))}
 
@@ -331,27 +401,70 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
                         setNewExtraLabel(e.target.value);
                         if (!newExtraKeyManual) setNewExtraKey(autoKeyFromLabel(e.target.value));
                       }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addExtraField(); } }}
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">キー</Label>
-                    <Input
-                      placeholder="自動生成"
-                      value={newExtraKey}
-                      className="font-mono text-sm"
-                      onChange={(e) => { setNewExtraKey(e.target.value); setNewExtraKeyManual(true); }}
-                    />
+                    <Label className="text-xs text-muted-foreground">タイプ</Label>
+                    <Select value={newExtraType} onValueChange={(v) => { setNewExtraType(v as FieldType); setNewExtraValue(''); }}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">テキスト</SelectItem>
+                        <SelectItem value="textarea">長文</SelectItem>
+                        <SelectItem value="number">数値</SelectItem>
+                        <SelectItem value="select">選択肢</SelectItem>
+                        <SelectItem value="boolean">ON/OFF</SelectItem>
+                        <SelectItem value="url">URL</SelectItem>
+                        <SelectItem value="email">メール</SelectItem>
+                        <SelectItem value="phone">電話</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">値</Label>
+                  <Label className="text-xs text-muted-foreground">キー</Label>
                   <Input
-                    placeholder="入力（後からでも変更可）"
-                    value={newExtraValue}
-                    onChange={(e) => setNewExtraValue(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addExtraField(); } }}
+                    placeholder="自動生成"
+                    value={newExtraKey}
+                    className="font-mono text-sm"
+                    onChange={(e) => { setNewExtraKey(e.target.value); setNewExtraKeyManual(true); }}
                   />
+                </div>
+                {newExtraType === 'select' && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">選択肢（改行区切り）</Label>
+                    <textarea
+                      className="w-full border rounded-md px-3 py-2 bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring text-xs"
+                      rows={3}
+                      placeholder={'例:\n東京\n大阪\n名古屋'}
+                      value={newExtraOptions}
+                      onChange={(e) => setNewExtraOptions(e.target.value)}
+                    />
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">値（初期値）</Label>
+                  {newExtraType === 'boolean' ? (
+                    <div className="flex items-center gap-2 h-9">
+                      <Switch checked={newExtraValue === 'true'} onCheckedChange={(v) => setNewExtraValue(v ? 'true' : 'false')} />
+                      <span className="text-sm text-muted-foreground">{newExtraValue === 'true' ? 'ON' : 'OFF'}</span>
+                    </div>
+                  ) : newExtraType === 'select' ? (
+                    <Select value={newExtraValue} onValueChange={setNewExtraValue}>
+                      <SelectTrigger><SelectValue placeholder="選択してください" /></SelectTrigger>
+                      <SelectContent>
+                        {newExtraOptions.split('\n').filter(Boolean).map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      placeholder="入力（後からでも変更可）"
+                      value={newExtraValue}
+                      type={newExtraType === 'number' ? 'number' : newExtraType === 'email' ? 'email' : newExtraType === 'url' ? 'url' : newExtraType === 'phone' ? 'tel' : 'text'}
+                      onChange={(e) => setNewExtraValue(e.target.value)}
+                    />
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button type="button" size="sm" onClick={addExtraField}
@@ -359,7 +472,7 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
                     <Plus className="h-3.5 w-3.5 mr-1" />追加する
                   </Button>
                   <Button type="button" size="sm" variant="ghost"
-                    onClick={() => { setIsAddingExtra(false); setNewExtraLabel(''); setNewExtraKey(''); setNewExtraKeyManual(false); setNewExtraValue(''); }}>
+                    onClick={() => { setIsAddingExtra(false); setNewExtraLabel(''); setNewExtraKey(''); setNewExtraKeyManual(false); setNewExtraType('text'); setNewExtraOptions(''); setNewExtraValue(''); }}>
                     キャンセル
                   </Button>
                 </div>

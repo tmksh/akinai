@@ -89,6 +89,8 @@ export default function AgentDetailPage() {
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [editingFieldValue, setEditingFieldValue] = useState('');
   const [editingFieldLabel, setEditingFieldLabel] = useState('');
+  const [editingFieldType, setEditingFieldType] = useState<'text' | 'textarea' | 'number' | 'select' | 'boolean' | 'url' | 'email' | 'phone'>('text');
+  const [editingFieldOptions, setEditingFieldOptions] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const agentFieldSchema = organization?.agentFieldSchema ?? [];
@@ -126,10 +128,16 @@ export default function AgentDetailPage() {
     const valueToSave = newFieldType === 'boolean' ? (newFieldValue || 'false') : newFieldValue;
     const current = (agent.custom_fields as Record<string, unknown>) ?? {};
     const existingLabels = (current['__labels__'] as Record<string, string>) ?? {};
+    const existingMeta = (current['__meta__'] as Record<string, unknown>) ?? {};
+    const fieldMeta: Record<string, unknown> = { type: newFieldType };
+    if (newFieldType === 'select' && newFieldOptions.trim()) {
+      fieldMeta.options = newFieldOptions.split('\n').filter(Boolean);
+    }
     const updated = {
       ...current,
       [newFieldKey]: valueToSave,
       __labels__: { ...existingLabels, [newFieldKey]: newFieldLabel },
+      __meta__: { ...existingMeta, [newFieldKey]: fieldMeta },
     };
     const result = await updateAgent(agentId, { customFields: updated as Record<string, string> });
     if (result.data) {
@@ -147,10 +155,21 @@ export default function AgentDetailPage() {
     if (!agent) return;
     setIsSavingEdit(true);
     const current = (agent.custom_fields as Record<string, unknown>) ?? {};
-    const updated = { ...current, [key]: editingFieldValue };
-    if (isExtra && editingFieldLabel.trim()) {
-      const existingLabels = (current['__labels__'] as Record<string, string>) ?? {};
-      updated['__labels__'] = { ...existingLabels, [key]: editingFieldLabel.trim() };
+    const valueToSave = editingFieldType === 'boolean'
+      ? (editingFieldValue || 'false')
+      : editingFieldValue;
+    const updated = { ...current, [key]: valueToSave };
+    if (isExtra) {
+      if (editingFieldLabel.trim()) {
+        const existingLabels = (current['__labels__'] as Record<string, string>) ?? {};
+        updated['__labels__'] = { ...existingLabels, [key]: editingFieldLabel.trim() };
+      }
+      const existingMeta = (current['__meta__'] as Record<string, unknown>) ?? {};
+      const fieldMeta: Record<string, unknown> = { type: editingFieldType };
+      if (editingFieldType === 'select' && editingFieldOptions.trim()) {
+        fieldMeta.options = editingFieldOptions.split('\n').filter(Boolean);
+      }
+      updated['__meta__'] = { ...existingMeta, [key]: fieldMeta };
     }
     // スキーマフィールドのラベル変更
     if (!isExtra && editingFieldLabel.trim() && organization?.id) {
@@ -176,11 +195,14 @@ export default function AgentDetailPage() {
     if (!agent) return;
     const current = (agent.custom_fields as Record<string, unknown>) ?? {};
     const existingLabels = (current['__labels__'] as Record<string, string>) ?? {};
+    const existingMeta = (current['__meta__'] as Record<string, unknown>) ?? {};
     const newLabels = Object.fromEntries(Object.entries(existingLabels).filter(([k]) => k !== key));
+    const newMeta = Object.fromEntries(Object.entries(existingMeta).filter(([k]) => k !== key));
     const updated = Object.fromEntries(
-      Object.entries(current).filter(([k]) => k !== key && k !== '__labels__')
+      Object.entries(current).filter(([k]) => k !== key && k !== '__labels__' && k !== '__meta__')
     );
     if (Object.keys(newLabels).length > 0) updated['__labels__'] = newLabels;
+    if (Object.keys(newMeta).length > 0) updated['__meta__'] = newMeta;
     const result = await updateAgent(agentId, { customFields: updated as Record<string, string> });
     if (result.data) {
       const { data: d } = await getAgent(agentId);
@@ -216,9 +238,10 @@ export default function AgentDetailPage() {
   const display = mapToDisplay(agent);
   const customFields = (agent.custom_fields as Record<string, unknown>) ?? {};
   const fieldLabels = (customFields['__labels__'] as Record<string, string>) ?? {};
+  const fieldMeta = (customFields['__meta__'] as Record<string, { type?: string; options?: string[] }>) ?? {};
   const schemaKeys = new Set(agentFieldSchema.map(f => f.key));
   const extraEntries = Object.entries(customFields).filter(
-    ([k]) => !schemaKeys.has(k) && k !== '__labels__'
+    ([k]) => !schemaKeys.has(k) && k !== '__labels__' && k !== '__meta__'
   ) as [string, string][];
   const hasAnyCustomField = agentFieldSchema.length > 0 || extraEntries.length > 0;
 
@@ -425,13 +448,60 @@ export default function AgentDetailPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">値</p>
+                          <p className="text-xs text-muted-foreground">タイプ</p>
+                          <Select value={editingFieldType} onValueChange={(v) => { setEditingFieldType(v as typeof editingFieldType); setEditingFieldValue(''); }}>
+                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="text">テキスト</SelectItem>
+                              <SelectItem value="textarea">長文</SelectItem>
+                              <SelectItem value="number">数値</SelectItem>
+                              <SelectItem value="select">選択肢</SelectItem>
+                              <SelectItem value="boolean">ON/OFF</SelectItem>
+                              <SelectItem value="url">URL</SelectItem>
+                              <SelectItem value="email">メール</SelectItem>
+                              <SelectItem value="phone">電話</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      {editingFieldType === 'select' && (
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">選択肢（改行区切り）</p>
+                          <textarea
+                            className="w-full border rounded-md px-3 py-2 bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring text-xs"
+                            rows={3}
+                            placeholder={'例:\n東京\n大阪\n名古屋'}
+                            value={editingFieldOptions}
+                            onChange={(e) => setEditingFieldOptions(e.target.value)}
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">値</p>
+                        {editingFieldType === 'boolean' ? (
+                          <div className="flex items-center gap-2 h-9">
+                            <Switch checked={editingFieldValue === 'true'} onCheckedChange={(v) => setEditingFieldValue(v ? 'true' : 'false')} />
+                            <span className="text-sm text-muted-foreground">{editingFieldValue === 'true' ? 'ON' : 'OFF'}</span>
+                          </div>
+                        ) : editingFieldType === 'select' ? (
+                          <Select value={editingFieldValue} onValueChange={setEditingFieldValue}>
+                            <SelectTrigger><SelectValue placeholder="選択してください" /></SelectTrigger>
+                            <SelectContent>
+                              {editingFieldOptions.split('\n').filter(Boolean).map(opt => (
+                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : editingFieldType === 'textarea' ? (
+                          <Textarea value={editingFieldValue} onChange={(e) => setEditingFieldValue(e.target.value)} rows={2} />
+                        ) : (
                           <Input
+                            type={editingFieldType === 'number' ? 'number' : editingFieldType === 'email' ? 'email' : editingFieldType === 'url' ? 'url' : editingFieldType === 'phone' ? 'tel' : 'text'}
                             value={editingFieldValue}
                             onChange={(e) => setEditingFieldValue(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveEdit(key, true); } if (e.key === 'Escape') setEditingFieldKey(null); }}
                           />
-                        </div>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => handleSaveEdit(key, true)} disabled={isSavingEdit}>
@@ -456,7 +526,16 @@ export default function AgentDetailPage() {
                       <button
                         type="button"
                         className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
-                        onClick={() => { setEditingFieldKey(key); setEditingFieldValue(value || ''); setEditingFieldLabel(displayLabel); }}
+                        onClick={() => {
+                          const meta = fieldMeta[key];
+                          const fType = (meta?.type as typeof editingFieldType) || 'text';
+                          const fOptions = (meta?.options ?? []).join('\n');
+                          setEditingFieldKey(key);
+                          setEditingFieldValue(value || '');
+                          setEditingFieldLabel(displayLabel);
+                          setEditingFieldType(fType);
+                          setEditingFieldOptions(fOptions);
+                        }}
                       >
                         <Pencil className="h-3 w-3 text-muted-foreground" />
                       </button>
