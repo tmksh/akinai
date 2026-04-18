@@ -50,12 +50,20 @@ export async function POST(request: NextRequest) {
   };
 
   const agentData: AgentOrderEmailData = {
-    ...dummyData,
+    orderNumber: 'ORD-TEST-0001',
+    customerName: 'テスト 太郎',
     agentName: 'テスト代理店',
-    agentEmail: targetEmail,
+    agentCompany: 'テスト代理店株式会社',
     agentCode: 'AGENT001',
     commissionRate: 10,
     commissionAmount: 1536,
+    items: [
+      { productName: 'テスト商品A', variantName: 'Mサイズ / ブラック', quantity: 2, totalPrice: 7960 },
+      { productName: 'テスト商品B', quantity: 1, totalPrice: 5500 },
+    ],
+    subtotal: 13460,
+    total: 15356,
+    shopName: '商いストア（テスト）',
   };
 
   const results: Record<string, { success: boolean; error?: string }> = {};
