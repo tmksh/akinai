@@ -3,34 +3,19 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useTransition } from 'react';
 import {
-  ArrowLeft,
-  Building2,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  TrendingUp,
-  DollarSign,
-  ShoppingCart,
-  Percent,
-  Loader2,
-  Edit,
-  Trash2,
+  ArrowLeft, Building2, Mail, Phone, MapPin, Calendar, TrendingUp,
+  DollarSign, ShoppingCart, Percent, Loader2, Edit, Trash2, Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { getAgent, deleteAgent, updateAgent } from '@/lib/actions/agents';
+import { useOrganization } from '@/components/providers/organization-provider';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { AgentFormDialog } from '../_components';
 import type { AgentDisplay } from '../types';
@@ -64,6 +49,7 @@ function mapToDisplay(row: AgentRow): AgentDisplay {
     totalCommission: Number(row.total_commission),
     ordersCount: 0,
     joinedAt: row.joined_at,
+    customFields: (row.custom_fields as Record<string, string>) ?? {},
   };
 }
 
@@ -71,6 +57,7 @@ export default function AgentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const agentId = params.id as string;
+  const { organization } = useOrganization();
 
   const [agent, setAgent] = useState<AgentRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +65,8 @@ export default function AgentDetailPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const agentFieldSchema = organization?.agentFieldSchema ?? [];
 
   useEffect(() => {
     getAgent(agentId).then(({ data, error }) => {
@@ -126,6 +115,8 @@ export default function AgentDetailPage() {
 
   const statusInfo = statusConfig[agent.status as keyof typeof statusConfig] || statusConfig.pending;
   const display = mapToDisplay(agent);
+  const customFields = (agent.custom_fields as Record<string, string>) ?? {};
+  const filledCustomFields = agentFieldSchema.filter(f => customFields[f.key]);
 
   return (
     <div className="space-y-6">
@@ -142,15 +133,10 @@ export default function AgentDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setShowEditDialog(true)}>
-            <Edit className="mr-2 h-4 w-4" />
-            編集
+            <Edit className="mr-2 h-4 w-4" />編集
           </Button>
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            削除
+          <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+            <Trash2 className="mr-2 h-4 w-4" />削除
           </Button>
         </div>
       </div>
@@ -265,6 +251,22 @@ export default function AgentDetailPage() {
                 </p>
               </div>
             </div>
+
+            {/* カスタムフィールド（基本情報カード内に統合） */}
+            {filledCustomFields.length > 0 && (
+              <>
+                <Separator />
+                {filledCustomFields.map(field => (
+                  <div key={field.key} className="flex items-start gap-3">
+                    <Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">{field.label}</p>
+                      <p className="font-medium">{customFields[field.key]}</p>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -299,6 +301,7 @@ export default function AgentDetailPage() {
               address: data.address,
               commissionRate: data.commissionRate,
               status: data.status,
+              customFields: data.customFields,
             });
             if (result.data) {
               getAgent(agentId).then(({ data: d }) => {
