@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (code) {
       const { data: agent, error } = await supabase
         .from('agents')
-        .select('id, code, company, name, commission_rate, status')
+        .select('id, code, company, name, commission_rate, status, custom_fields')
         .eq('organization_id', auth.organizationId)
         .eq('code', code.toUpperCase())
         .single();
@@ -49,6 +49,12 @@ export async function GET(request: NextRequest) {
         return apiError(`Agent code "${code}" is not active`, 400);
       }
 
+      const cf = (agent.custom_fields as Record<string, unknown>) ?? {};
+      const labels = (cf['__labels__'] as Record<string, string>) ?? {};
+      const customFields = Object.entries(cf)
+        .filter(([k]) => k !== '__labels__')
+        .map(([k, v]) => ({ key: k, label: labels[k] || k, value: String(v ?? '') }));
+
       const response = apiSuccess(
         {
           id: agent.id,
@@ -56,6 +62,7 @@ export async function GET(request: NextRequest) {
           company: agent.company,
           name: agent.name,
           commissionRate: Number(agent.commission_rate),
+          customFields,
         },
         undefined,
         auth.rateLimit
@@ -67,7 +74,7 @@ export async function GET(request: NextRequest) {
     // 一覧取得（active のみ）
     let query = supabase
       .from('agents')
-      .select('id, code, company, name, commission_rate, joined_at', { count: 'exact' })
+      .select('id, code, company, name, commission_rate, joined_at, custom_fields', { count: 'exact' })
       .eq('organization_id', auth.organizationId)
       .eq('status', 'active')
       .order('joined_at', { ascending: false });
@@ -86,14 +93,22 @@ export async function GET(request: NextRequest) {
       return apiError('Failed to fetch agents', 500);
     }
 
-    const result = (agents || []).map(a => ({
-      id: a.id,
-      code: a.code,
-      company: a.company,
-      name: a.name,
-      commissionRate: Number(a.commission_rate),
-      joinedAt: a.joined_at,
-    }));
+    const result = (agents || []).map(a => {
+      const cf = (a.custom_fields as Record<string, unknown>) ?? {};
+      const labels = (cf['__labels__'] as Record<string, string>) ?? {};
+      const customFields = Object.entries(cf)
+        .filter(([k]) => k !== '__labels__')
+        .map(([k, v]) => ({ key: k, label: labels[k] || k, value: String(v ?? '') }));
+      return {
+        id: a.id,
+        code: a.code,
+        company: a.company,
+        name: a.name,
+        commissionRate: Number(a.commission_rate),
+        joinedAt: a.joined_at,
+        customFields,
+      };
+    });
 
     const response = apiSuccessPaginated(result, page, limit, count || 0, auth.rateLimit);
     Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));

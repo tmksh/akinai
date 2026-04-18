@@ -5,7 +5,7 @@ import { useState, useEffect, useTransition } from 'react';
 import {
   ArrowLeft, Building2, Mail, Phone, MapPin, Calendar, TrendingUp,
   DollarSign, ShoppingCart, Percent, Loader2, Edit, Trash2, Sparkles,
-  Plus, X, Check, ToggleLeft,
+  Plus, X, Check, ToggleLeft, Pencil,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { getAgent, deleteAgent, updateAgent } from '@/lib/actions/agents';
+import { updateAgentFieldSchema } from '@/lib/actions/settings';
 import { useOrganization } from '@/components/providers/organization-provider';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -65,7 +66,7 @@ export default function AgentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const agentId = params.id as string;
-  const { organization } = useOrganization();
+  const { organization, refetch } = useOrganization();
 
   const [agent, setAgent] = useState<AgentRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,6 +84,12 @@ export default function AgentDetailPage() {
   const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'number' | 'select' | 'boolean' | 'url' | 'email' | 'phone'>('text');
   const [newFieldOptions, setNewFieldOptions] = useState('');
   const [isSavingField, setIsSavingField] = useState(false);
+
+  // インライン編集
+  const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
+  const [editingFieldValue, setEditingFieldValue] = useState('');
+  const [editingFieldLabel, setEditingFieldLabel] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const agentFieldSchema = organization?.agentFieldSchema ?? [];
 
@@ -116,11 +123,15 @@ export default function AgentDetailPage() {
   const handleAddField = async () => {
     if (!newFieldLabel.trim() || !newFieldKey.trim() || !agent) return;
     setIsSavingField(true);
-    // boolean は 'true'/'false'、select は選択肢ありで保存
     const valueToSave = newFieldType === 'boolean' ? (newFieldValue || 'false') : newFieldValue;
-    const current = (agent.custom_fields as Record<string, string>) ?? {};
-    const updated = { ...current, [newFieldKey]: valueToSave };
-    const result = await updateAgent(agentId, { customFields: updated });
+    const current = (agent.custom_fields as Record<string, unknown>) ?? {};
+    const existingLabels = (current['__labels__'] as Record<string, string>) ?? {};
+    const updated = {
+      ...current,
+      [newFieldKey]: valueToSave,
+      __labels__: { ...existingLabels, [newFieldKey]: newFieldLabel },
+    };
+    const result = await updateAgent(agentId, { customFields: updated as Record<string, string> });
     if (result.data) {
       const { data: d } = await getAgent(agentId);
       if (d) setAgent(d);
@@ -130,6 +141,55 @@ export default function AgentDetailPage() {
       toast.error('追加に失敗しました');
     }
     setIsSavingField(false);
+  };
+
+  const handleSaveEdit = async (key: string, isExtra = false) => {
+    if (!agent) return;
+    setIsSavingEdit(true);
+    const current = (agent.custom_fields as Record<string, unknown>) ?? {};
+    const updated = { ...current, [key]: editingFieldValue };
+    if (isExtra && editingFieldLabel.trim()) {
+      const existingLabels = (current['__labels__'] as Record<string, string>) ?? {};
+      updated['__labels__'] = { ...existingLabels, [key]: editingFieldLabel.trim() };
+    }
+    // スキーマフィールドのラベル変更
+    if (!isExtra && editingFieldLabel.trim() && organization?.id) {
+      const newSchema = agentFieldSchema.map(f =>
+        f.key === key ? { ...f, label: editingFieldLabel.trim() } : f
+      );
+      await updateAgentFieldSchema(organization.id, newSchema);
+      await refetch();
+    }
+    const result = await updateAgent(agentId, { customFields: updated as Record<string, string> });
+    if (result.data) {
+      const { data: d } = await getAgent(agentId);
+      if (d) setAgent(d);
+      toast.success('更新しました');
+      setEditingFieldKey(null);
+    } else {
+      toast.error('更新に失敗しました');
+    }
+    setIsSavingEdit(false);
+  };
+
+  const handleDeleteField = async (key: string, label: string) => {
+    if (!agent) return;
+    const current = (agent.custom_fields as Record<string, unknown>) ?? {};
+    const existingLabels = (current['__labels__'] as Record<string, string>) ?? {};
+    const newLabels = Object.fromEntries(Object.entries(existingLabels).filter(([k]) => k !== key));
+    const updated = Object.fromEntries(
+      Object.entries(current).filter(([k]) => k !== key && k !== '__labels__')
+    );
+    if (Object.keys(newLabels).length > 0) updated['__labels__'] = newLabels;
+    const result = await updateAgent(agentId, { customFields: updated as Record<string, string> });
+    if (result.data) {
+      const { data: d } = await getAgent(agentId);
+      if (d) setAgent(d);
+      toast.success(`「${label}」を削除しました`);
+      if (editingFieldKey === key) setEditingFieldKey(null);
+    } else {
+      toast.error('削除に失敗しました');
+    }
   };
 
   if (loading) {
@@ -154,9 +214,12 @@ export default function AgentDetailPage() {
 
   const statusInfo = statusConfig[agent.status as keyof typeof statusConfig] || statusConfig.pending;
   const display = mapToDisplay(agent);
-  const customFields = (agent.custom_fields as Record<string, string>) ?? {};
+  const customFields = (agent.custom_fields as Record<string, unknown>) ?? {};
+  const fieldLabels = (customFields['__labels__'] as Record<string, string>) ?? {};
   const schemaKeys = new Set(agentFieldSchema.map(f => f.key));
-  const extraEntries = Object.entries(customFields).filter(([k]) => !schemaKeys.has(k));
+  const extraEntries = Object.entries(customFields).filter(
+    ([k]) => !schemaKeys.has(k) && k !== '__labels__'
+  ) as [string, string][];
   const hasAnyCustomField = agentFieldSchema.length > 0 || extraEntries.length > 0;
 
   return (
@@ -293,25 +356,115 @@ export default function AgentDetailPage() {
 
             {/* スキーマ定義フィールド */}
             {agentFieldSchema.map(field => (
-              <div key={field.key} className="flex items-start gap-3">
-                <Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">{field.label}</p>
-                  <p className="font-medium">{customFields[field.key] || <span className="text-muted-foreground">—</span>}</p>
-                </div>
+              <div key={field.key}>
+                {editingFieldKey === field.key ? (
+                  <div className="rounded-lg border border-dashed border-sky-300 dark:border-sky-800 bg-sky-50/50 dark:bg-sky-950/10 p-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">表示名</p>
+                        <Input
+                          autoFocus
+                          value={editingFieldLabel}
+                          onChange={(e) => setEditingFieldLabel(e.target.value)}
+                          placeholder={field.label}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">値</p>
+                        <Input
+                          value={editingFieldValue}
+                          onChange={(e) => setEditingFieldValue(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveEdit(field.key); } if (e.key === 'Escape') setEditingFieldKey(null); }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => handleSaveEdit(field.key)} disabled={isSavingEdit}>
+                        {isSavingEdit ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}保存
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingFieldKey(null)}><X className="h-3.5 w-3.5 mr-1" />キャンセル</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3 group">
+                    <Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs text-muted-foreground">{field.label}</p>
+                        <span className="text-[10px] font-mono text-muted-foreground/50 bg-muted/50 px-1 rounded">{field.key}</span>
+                      </div>
+                      <p className="font-medium">{(customFields[field.key] as string) || <span className="text-muted-foreground">—</span>}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
+                      onClick={() => { setEditingFieldKey(field.key); setEditingFieldValue((customFields[field.key] as string) || ''); setEditingFieldLabel(field.label); }}
+                    >
+                      <Pencil className="h-3 w-3 text-muted-foreground" />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
 
             {/* 自由追加フィールド */}
-            {extraEntries.map(([key, value]) => (
-              <div key={key} className="flex items-start gap-3">
-                <Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">{key}</p>
-                  <p className="font-medium">{value || <span className="text-muted-foreground">—</span>}</p>
+            {extraEntries.map(([key, value]) => {
+              const displayLabel = fieldLabels[key] || key;
+              return (
+                <div key={key}>
+                  {editingFieldKey === key ? (
+                    <div className="rounded-lg border border-dashed border-sky-300 dark:border-sky-800 bg-sky-50/50 dark:bg-sky-950/10 p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">表示名</p>
+                          <Input
+                            autoFocus
+                            value={editingFieldLabel}
+                            onChange={(e) => setEditingFieldLabel(e.target.value)}
+                            placeholder="例: 決済"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">値</p>
+                          <Input
+                            value={editingFieldValue}
+                            onChange={(e) => setEditingFieldValue(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveEdit(key, true); } if (e.key === 'Escape') setEditingFieldKey(null); }}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => handleSaveEdit(key, true)} disabled={isSavingEdit}>
+                          {isSavingEdit ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}保存
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingFieldKey(null)}><X className="h-3.5 w-3.5 mr-1" />キャンセル</Button>
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive ml-auto" onClick={() => handleDeleteField(key, displayLabel)}>
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />削除
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-3 group">
+                      <Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs text-muted-foreground">{displayLabel}</p>
+                          <span className="text-[10px] font-mono text-muted-foreground/50 bg-muted/50 px-1 rounded">{key}</span>
+                        </div>
+                        <p className="font-medium">{value || <span className="text-muted-foreground">—</span>}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
+                        onClick={() => { setEditingFieldKey(key); setEditingFieldValue(value || ''); setEditingFieldLabel(displayLabel); }}
+                      >
+                        <Pencil className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {!hasAnyCustomField && !isAddingField && (
               <p className="text-xs text-muted-foreground">「追加」ボタンでフィールドを追加できます</p>

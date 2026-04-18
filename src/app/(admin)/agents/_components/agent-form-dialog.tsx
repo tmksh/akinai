@@ -78,13 +78,15 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
       // スキーマキーとスキーマ外キーを分離
       const schemaKeys = new Set(agentFieldSchema.map(f => f.key));
       const cf = agent.customFields ?? {};
+      const storedLabels = (cf['__labels__'] as unknown as Record<string, string>) ?? {};
       const schemaValues: Record<string, string> = {};
       const extras: ExtraField[] = [];
       for (const [k, v] of Object.entries(cf)) {
+        if (k === '__labels__') continue;
         if (schemaKeys.has(k)) {
           schemaValues[k] = v;
         } else {
-          extras.push({ id: k, label: k, key: k, value: v });
+          extras.push({ id: k, label: storedLabels[k] || k, key: k, value: v });
         }
       }
       setFormData({
@@ -122,11 +124,18 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
   const handleSubmit = async () => {
     if (!validate()) return;
     setIsSubmitting(true);
-    // スキーマフィールド + 追加フィールドをマージ
-    const merged: Record<string, string> = { ...formData.customFields };
-    extraFields.forEach(f => { if (f.key) merged[f.key] = f.value; });
+    // スキーマフィールド + 追加フィールドをマージ、ラベルも保存
+    const merged: Record<string, unknown> = { ...formData.customFields };
+    const labels: Record<string, string> = {};
+    extraFields.forEach(f => {
+      if (f.key) {
+        merged[f.key] = f.value;
+        labels[f.key] = f.label;
+      }
+    });
+    if (Object.keys(labels).length > 0) merged['__labels__'] = labels;
     try {
-      await onSubmit({ ...formData, customFields: merged });
+      await onSubmit({ ...formData, customFields: merged as Record<string, string> });
       toast.success(isEditing ? '代理店情報を更新しました' : '代理店を登録しました');
       onOpenChange(false);
     } catch {
