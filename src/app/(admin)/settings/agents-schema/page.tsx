@@ -33,6 +33,24 @@ function generateId() {
   return `field_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function autoKey(label: string): string {
+  const map: Record<string, string> = {
+    '担当エリア': 'area', 'エリア': 'area', '地域': 'region',
+    '契約種別': 'contract_type', '契約': 'contract',
+    '担当者': 'contact_person', '業種': 'industry',
+    '備考': 'notes', 'メモ': 'memo', 'URL': 'url',
+    'ウェブサイト': 'website', '紹介コード': 'referral_code',
+    'ランク': 'rank', '等級': 'grade',
+  };
+  const trimmed = label.trim();
+  if (map[trimmed]) return map[trimmed];
+  const ascii = trimmed
+    .replace(/[A-Z]/g, c => '_' + c.toLowerCase())
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return ascii || `field_${Date.now().toString(36)}`;
+}
+
 export default function AgentsSchemaPage() {
   const { organization } = useOrganization();
   const router = useRouter();
@@ -56,7 +74,18 @@ export default function AgentsSchemaPage() {
   };
 
   const updateField = (id: string, updates: Partial<AgentFieldSchemaItem>) => {
-    setFields(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+    setFields(prev => prev.map(f => {
+      if (f.id !== id) return f;
+      // ラベルが変わり、かつキーがまだ空 or 自動生成のままなら自動更新
+      if (updates.label !== undefined && !updates.key) {
+        const currentAutoKey = autoKey(f.label);
+        const shouldAutoUpdate = !f.key || f.key === currentAutoKey;
+        if (shouldAutoUpdate) {
+          return { ...f, ...updates, key: autoKey(updates.label) };
+        }
+      }
+      return { ...f, ...updates };
+    }));
   };
 
   const handleSave = () => {
@@ -139,8 +168,12 @@ export default function AgentsSchemaPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">フィールドキー <span className="text-destructive">*</span></Label>
-                  <Input placeholder="例: area" value={field.key}
-                    onChange={(e) => updateField(field.id, { key: e.target.value.replace(/\s/g, '_').toLowerCase() })} />
+                  <Input
+                    placeholder="自動生成"
+                    value={field.key}
+                    onChange={(e) => updateField(field.id, { key: e.target.value.replace(/\s/g, '_').toLowerCase() })}
+                    className="font-mono text-sm"
+                  />
                 </div>
               </div>
 
