@@ -116,7 +116,6 @@ export default function AgentDetailPage() {
   const statusInfo = statusConfig[agent.status as keyof typeof statusConfig] || statusConfig.pending;
   const display = mapToDisplay(agent);
   const customFields = (agent.custom_fields as Record<string, string>) ?? {};
-  const filledCustomFields = agentFieldSchema.filter(f => customFields[f.key]);
 
   return (
     <div className="space-y-6">
@@ -253,18 +252,30 @@ export default function AgentDetailPage() {
             </div>
 
             {/* カスタムフィールド（基本情報カード内に統合） */}
-            {filledCustomFields.length > 0 && (
+            {agentFieldSchema.length > 0 && (
               <>
                 <Separator />
-                {filledCustomFields.map(field => (
+                <p className="text-xs font-medium text-muted-foreground">追加情報</p>
+                {agentFieldSchema.map(field => (
                   <div key={field.key} className="flex items-start gap-3">
                     <Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs text-muted-foreground">{field.label}</p>
-                      <p className="font-medium">{customFields[field.key]}</p>
+                      <p className="font-medium">
+                        {customFields[field.key] || <span className="text-muted-foreground">—</span>}
+                      </p>
                     </div>
                   </div>
                 ))}
+              </>
+            )}
+            {agentFieldSchema.length === 0 && (
+              <>
+                <Separator />
+                <p className="text-xs text-muted-foreground">
+                  追加情報フィールドは未設定です。
+                  <Link href="/settings/agents-schema" className="ml-1 text-sky-500 hover:underline">設定する →</Link>
+                </p>
               </>
             )}
           </CardContent>
