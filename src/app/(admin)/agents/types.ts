@@ -14,4 +14,5 @@ export type AgentDisplay = {
   ordersCount: number;
   joinedAt: string;
   lastOrderAt?: string;
+  customFields?: Record<string, string>;
 };

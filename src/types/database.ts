@@ -1044,6 +1044,7 @@ export interface Database {
           joined_at: string
           created_at: string
           updated_at: string
+          custom_fields: Record<string, string> | null
         }
         Insert: {
           id?: string
@@ -1062,6 +1063,7 @@ export interface Database {
           joined_at?: string
           created_at?: string
           updated_at?: string
+          custom_fields?: Record<string, string> | null
         }
         Update: {
           id?: string
@@ -1080,6 +1082,7 @@ export interface Database {
           joined_at?: string
           created_at?: string
           updated_at?: string
+          custom_fields?: Record<string, string> | null
         }
       }
       // ============================================

@@ -109,6 +109,7 @@ export async function createAgent(input: {
   address?: string;
   commissionRate?: number;
   notes?: string;
+  customFields?: Record<string, string>;
 }): Promise<{
   data: Agent | null;
   error: string | null;
@@ -129,6 +130,7 @@ export async function createAgent(input: {
         commission_rate: input.commissionRate || 10,
         notes: input.notes || null,
         status: 'pending',
+        custom_fields: input.customFields || {},
       })
       .select()
       .single();
@@ -166,6 +168,7 @@ export async function updateAgent(
     status?: AgentStatus;
     commissionRate?: number;
     notes?: string | null;
+    customFields?: Record<string, string>;
   }
 ): Promise<{
   data: Agent | null;
@@ -184,6 +187,7 @@ export async function updateAgent(
     if (input.status !== undefined) updateData.status = input.status;
     if (input.commissionRate !== undefined) updateData.commission_rate = input.commissionRate;
     if (input.notes !== undefined) updateData.notes = input.notes;
+    if (input.customFields !== undefined) updateData.custom_fields = input.customFields;
 
     const { data, error } = await supabase
       .from('agents')

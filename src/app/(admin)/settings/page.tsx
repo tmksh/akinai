@@ -58,6 +58,18 @@ const settingsCategories = [
     ],
   },
   {
+    section: '代理店',
+    items: [
+      {
+        title: '代理店カスタムフィールド',
+        description: '代理店登録フォームに表示する追加フィールドを設定',
+        href: '/settings/agents-schema',
+        icon: Building2,
+        badge: null,
+      },
+    ],
+  },
+  {
     section: 'メール・通知',
     items: [
       {

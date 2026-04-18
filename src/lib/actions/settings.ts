@@ -183,7 +183,40 @@ export async function updateContentFieldSchema(
   return { data, error: null };
 }
 
-// APIキーを生成・更新
+// 代理店フィールドスキーマを更新
+export async function updateAgentFieldSchema(
+  organizationId: string,
+  schema: { id: string; key: string; label: string; type: string; options?: string[]; required?: boolean }[]
+) {
+  const supabase = getAdminClient();
+
+  const { data: org, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) {
+    return { data: null, error: fetchError.message };
+  }
+
+  const currentSettings = (org?.settings as Record<string, unknown>) || {};
+  const newSettings = { ...currentSettings, agent_field_schema: schema };
+
+  const { data, error } = await supabase
+    .from('organizations')
+    .update({ settings: newSettings, updated_at: new Date().toISOString() })
+    .eq('id', organizationId)
+    .select()
+    .single();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  revalidatePath('/settings/agents-schema');
+  return { data, error: null };
+}
 export async function generateNewApiKey(
   organizationId: string,
   type: 'live' | 'test' = 'live'

@@ -46,8 +46,9 @@ function mapAgentFromDb(row: AgentRow): AgentDisplay {
     status: row.status,
     totalSales: Number(row.total_sales),
     totalCommission: Number(row.total_commission),
-    ordersCount: 0, // DB に orders_count がなければ 0
+    ordersCount: 0,
     joinedAt: row.joined_at,
+    customFields: (row.custom_fields as Record<string, string>) ?? {},
   };
 }
 
@@ -225,6 +226,7 @@ export default function AgentsPage() {
         address: data.address || null,
         status: data.status,
         commissionRate: data.commissionRate,
+        customFields: data.customFields,
       });
 
       if (result.error) {
@@ -242,6 +244,7 @@ export default function AgentsPage() {
         phone: data.phone,
         address: data.address,
         commissionRate: data.commissionRate,
+        customFields: data.customFields,
       });
 
       if (result.error) {
