@@ -3,7 +3,6 @@
 import { useState, useTransition, useEffect } from 'react';
 import { ArrowLeft, Save, Plus, Trash2, Loader2, Building2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,8 +51,7 @@ function autoKey(label: string): string {
 }
 
 export default function AgentsSchemaPage() {
-  const { organization } = useOrganization();
-  const router = useRouter();
+  const { organization, refetch } = useOrganization();
   const [fields, setFields] = useState<AgentFieldSchemaItem[]>([]);
   const [isPending, startTransition] = useTransition();
 
@@ -108,7 +106,7 @@ export default function AgentsSchemaPage() {
         toast.error(`保存に失敗しました: ${result.error}`);
       } else {
         toast.success('保存しました');
-        router.refresh();
+        await refetch();
       }
     });
   };
