@@ -913,6 +913,7 @@ function Footer() {
             <a href="#pricing" className="hover:text-sky-500 transition-colors">料金・プラン</a>
             <a href="#screenshots" className="hover:text-sky-500 transition-colors">画面イメージ</a>
             <a href="/contact" className="hover:text-sky-500 transition-colors">お問い合わせ</a>
+            <a href="/company" className="hover:text-sky-500 transition-colors">運営会社</a>
           </nav>
         </div>
 

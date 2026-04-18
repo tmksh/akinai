@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
   IoHome,
@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useOrganization } from '@/components/providers/organization-provider';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { IconType } from 'react-icons';
 
@@ -132,7 +132,6 @@ function NavItem({
 
 export function TopNavigation() {
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, organization } = useOrganization();
 
@@ -145,11 +144,8 @@ export function TopNavigation() {
       })
     : navigationItems;
 
-  useEffect(() => {
-    visibleNavItems.forEach(item => {
-      router.prefetch(item.href);
-    });
-  }, [router, visibleNavItems]);
+  // Link コンポーネントはビューポート内で自動的に prefetch を行う。
+  // 以前の useEffect による強制 prefetch は初期描画をブロックしていたため削除。
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
