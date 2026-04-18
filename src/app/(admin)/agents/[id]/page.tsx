@@ -330,10 +330,11 @@ export default function AgentDetailPage() {
                       onChange={(e) => {
                         setNewFieldLabel(e.target.value);
                         if (!newFieldKeyManual) {
-                          const key = e.target.value.trim()
-                            .replace(/[^a-zA-Z0-9\u3040-\u9FFF]+/g, '_')
-                            .replace(/^_+|_+$/g, '') || '';
-                          setNewFieldKey(key);
+                          const raw = e.target.value.trim()
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, '_')
+                            .replace(/^_+|_+$/g, '');
+                          setNewFieldKey(raw || `field_${Date.now().toString(36)}`);
                         }
                       }}
                     />

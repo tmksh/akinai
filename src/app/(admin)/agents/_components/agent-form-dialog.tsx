@@ -46,10 +46,11 @@ interface ExtraField {
 }
 
 function autoKeyFromLabel(label: string): string {
-  return label.trim()
-    .replace(/[A-Z]/g, c => '_' + c.toLowerCase())
+  const raw = label.trim()
+    .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '') || `field_${Date.now().toString(36)}`;
+    .replace(/^_+|_+$/g, '');
+  return raw || `field_${Date.now().toString(36)}`;
 }
 
 export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFormDialogProps) {
