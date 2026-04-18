@@ -399,6 +399,44 @@ export default function ProductEditPage() {
                   className="min-h-[150px]"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <FieldLabel htmlFor="price" fieldKey="price">価格（税込）*</FieldLabel>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">¥</span>
+                    <Input
+                      id="price"
+                      type="number"
+                      min={0}
+                      value={variants[0]?.price ?? ''}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setVariants(prev => prev.map(v => ({ ...v, price: val })));
+                      }}
+                      placeholder="0"
+                      className="pl-7"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor="compareAtPrice" fieldKey="compare_at_price">定価（割引前）</FieldLabel>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">¥</span>
+                    <Input
+                      id="compareAtPrice"
+                      type="number"
+                      min={0}
+                      value={variants[0]?.compareAtPrice ?? ''}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || undefined;
+                        setVariants(prev => prev.map(v => ({ ...v, compareAtPrice: val })));
+                      }}
+                      placeholder="0（空白でなし）"
+                      className="pl-7"
+                    />
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

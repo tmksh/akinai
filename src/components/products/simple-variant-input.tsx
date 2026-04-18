@@ -84,13 +84,10 @@ export function SimpleVariantInput({ variants, onChange, onSelectedVariantChange
 
       {/* グリッド表示（画像サムネイルギャラリー） */}
       {viewMode === 'grid' && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {variants.map((variant) => (
-            <div key={variant.id} className="group relative">
-              <div
-                className="cursor-pointer"
-                onClick={() => onSelectedVariantChange?.(variant)}
-              >
+            <div key={variant.id} className="group relative rounded-lg border p-2 space-y-2 bg-background hover:border-sky-400 transition-colors">
+              <div className="relative">
                 <label className="block cursor-pointer">
                   <input
                     type="file"
@@ -104,8 +101,7 @@ export function SimpleVariantInput({ variants, onChange, onSelectedVariantChange
                     }}
                   />
                   <div className={cn(
-                    'aspect-square rounded-lg border-2 overflow-hidden transition-all',
-                    'hover:border-sky-400',
+                    'aspect-square rounded-md border overflow-hidden transition-all',
                     variant.imageUrl ? 'border-transparent' : 'border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50 dark:bg-slate-800/50'
                   )}>
                     {variant.imageUrl ? (
@@ -119,21 +115,33 @@ export function SimpleVariantInput({ variants, onChange, onSelectedVariantChange
                     )}
                   </div>
                 </label>
+                {/* ホバー時の削除ボタン */}
+                {variants.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeVariant(variant.id)}
+                    disabled={disabled}
+                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
-              <p className="mt-1 text-[11px] text-muted-foreground text-center leading-tight truncate px-0.5" title={variant.name}>
+              <p className="text-[11px] text-muted-foreground text-center leading-tight truncate px-0.5 font-medium" title={variant.name}>
                 {variant.name || '未設定'}
               </p>
-              {/* ホバー時の削除ボタン */}
-              {variants.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeVariant(variant.id)}
+              {/* 価格インライン編集 */}
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground shrink-0">¥</span>
+                <input
+                  type="number"
+                  value={variant.price || ''}
+                  onChange={(e) => updateVariant(variant.id, 'price', parseInt(e.target.value) || 0)}
                   disabled={disabled}
-                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                >
-                  ×
-                </button>
-              )}
+                  placeholder="0"
+                  className="w-full text-xs font-semibold bg-muted/40 rounded px-1.5 py-0.5 border-0 focus:outline-none focus:ring-1 focus:ring-sky-400 text-center"
+                />
+              </div>
             </div>
           ))}
         </div>

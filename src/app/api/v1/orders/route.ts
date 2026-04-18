@@ -401,8 +401,8 @@ export async function POST(request: NextRequest) {
                   payment_method_types: ['card'],
                   line_items: lineItems,
                   mode: 'payment',
-                  success_url: `${appUrl}/shop/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
-                  cancel_url: `${appUrl}/shop/checkout/confirm`,
+                  success_url: body.successUrl || `${appUrl}/shop/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
+                  cancel_url: body.cancelUrl || `${appUrl}/shop/checkout/confirm`,
                   customer_email: body.shippingAddress.email,
                   metadata: { order_id: order.id, organization_id: auth.organizationId ?? '' },
                   payment_intent_data: {
