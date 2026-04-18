@@ -45,6 +45,8 @@ interface CreateOrderRequest {
   couponCode?: string;
   agentCode?: string;
   note?: string;
+  successUrl?: string;
+  cancelUrl?: string;
 }
 
 // 注文番号生成
