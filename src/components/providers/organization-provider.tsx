@@ -13,7 +13,7 @@ export interface ProductFieldSchemaItem {
   options?: string[];
 }
 
-// コンテンツスキーマフィールドの定義（値なし・全コンテンツ共通テンプレート）
+// コンテンツスキーマフィールドの定義（値なし・コンテンツタイプ別テンプレート）
 export interface ContentFieldSchemaItem {
   id: string;
   key: string;
@@ -21,6 +21,9 @@ export interface ContentFieldSchemaItem {
   type: CustomFieldType;
   options?: string[];
 }
+
+// タイプ別コンテンツスキーマ（key = コンテンツタイプ名）
+export type ContentFieldSchemaByType = Record<string, ContentFieldSchemaItem[]>;
 
 // 顧客カスタムフィールドスキーマ
 export interface CustomerFieldSchemaItem {
@@ -49,7 +52,7 @@ export interface Organization {
   plan: 'starter' | 'pro' | 'enterprise';
   settings: Record<string, unknown>;
   productFieldSchema: ProductFieldSchemaItem[];
-  contentFieldSchema: ContentFieldSchemaItem[];
+  contentFieldSchema: ContentFieldSchemaByType;
   customerFieldSchema: CustomerFieldSchemaItem[];
   ownerId: string | null;
   isActive: boolean;
@@ -105,7 +108,13 @@ function transformOrganization(row: Record<string, unknown>): Organization {
     plan: row.plan as 'starter' | 'pro' | 'enterprise',
     settings,
     productFieldSchema: (settings.product_field_schema as ProductFieldSchemaItem[]) || [],
-    contentFieldSchema: (settings.content_field_schema as ContentFieldSchemaItem[]) || [],
+    contentFieldSchema: (() => {
+      const raw = settings.content_field_schema;
+      if (!raw) return {};
+      // 旧形式（配列）の場合は空オブジェクトにフォールバック
+      if (Array.isArray(raw)) return {};
+      return raw as ContentFieldSchemaByType;
+    })(),
     customerFieldSchema: (settings.customer_field_schema as CustomerFieldSchemaItem[]) || [],
     ownerId: row.owner_id as string | null,
     isActive: row.is_active as boolean,

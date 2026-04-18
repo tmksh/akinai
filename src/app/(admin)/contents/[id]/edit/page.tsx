@@ -138,7 +138,7 @@ export default function EditContentPage() {
           type: f.type as CustomField['type'],
           ...(f.options && { options: f.options }),
         }));
-        const contentSchema = organization?.contentFieldSchema ?? [];
+        const contentSchema = organization?.contentFieldSchema?.[data.type] ?? [];
         const existingKeys = new Set(contentFields.map(f => f.key));
         const schemaOnlyFields: CustomField[] = contentSchema
           .filter(s => !existingKeys.has(s.key))

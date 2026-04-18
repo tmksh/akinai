@@ -147,10 +147,10 @@ export async function updateVariantInputMode(
   return { data, error: null };
 }
 
-// コンテンツフィールドスキーマを更新
+// コンテンツフィールドスキーマを更新（タイプ別マップ形式）
 export async function updateContentFieldSchema(
   organizationId: string,
-  schema: { id: string; key: string; label: string; type: string; options?: string[] }[]
+  schema: Record<string, { id: string; key: string; label: string; type: string; options?: string[] }[]>
 ) {
   const supabase = getAdminClient();
 

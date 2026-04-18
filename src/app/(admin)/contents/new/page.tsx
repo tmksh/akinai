@@ -102,8 +102,8 @@ export default function NewContentPage() {
       }
     });
 
-    // 組織スキーマからカスタムフィールドを初期化
-    const schema = organization.contentFieldSchema ?? [];
+    // 組織スキーマからカスタムフィールドを初期化（コンテンツタイプ別）
+    const schema = organization.contentFieldSchema?.[contentType] ?? [];
     if (schema.length > 0) {
       setCustomFields(schema.map(s => {
         let defaultValue = '';
@@ -113,9 +113,11 @@ export default function NewContentPage() {
         if (s.type === 'json') defaultValue = '{}';
         return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
       }));
+    } else {
+      setCustomFields([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organization?.id]);
+  }, [organization?.id, contentType]);
 
   // プレビュー用データ・URL
   const previewData = useMemo(() => ({ title, content, contentType }), [title, content, contentType]);
