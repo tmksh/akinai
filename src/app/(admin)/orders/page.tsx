@@ -35,18 +35,6 @@ const tabs = [
     icon: ShoppingCart,
     description: '注文の確認と対応',
   },
-  {
-    id: 'quotes' as const,
-    label: '見積もり',
-    icon: FileText,
-    description: '見積書の作成と送付',
-  },
-  {
-    id: 'customers' as const,
-    label: 'お客様',
-    icon: Users,
-    description: 'お客様情報の確認',
-  },
 ] as const;
 
 // タブボタンをメモ化
@@ -81,8 +69,6 @@ const TabContent = memo(function TabContent({ activeTab }: { activeTab: TabType 
   return (
     <div className="animate-in fade-in-0 duration-200">
       {activeTab === 'orders' && <OrdersTab />}
-      {activeTab === 'quotes' && <QuotesTab />}
-      {activeTab === 'customers' && <CustomersTab />}
     </div>
   );
 });
