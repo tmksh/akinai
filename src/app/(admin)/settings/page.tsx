@@ -74,6 +74,13 @@ const settingsCategories = [
         icon: Mail,
         badge: null,
       },
+      {
+        title: 'メールドメイン設定',
+        description: '送信元ドメインの認証・独自アドレスの設定',
+        href: '/settings/email-domain',
+        icon: Mail,
+        badge: null,
+      },
     ],
   },
   {
