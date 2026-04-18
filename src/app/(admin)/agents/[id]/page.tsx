@@ -5,7 +5,7 @@ import { useState, useEffect, useTransition } from 'react';
 import {
   ArrowLeft, Building2, Mail, Phone, MapPin, Calendar, TrendingUp,
   DollarSign, ShoppingCart, Percent, Loader2, Edit, Trash2, Sparkles,
-  Plus, X, Check,
+  Plus, X, Check, ToggleLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { getAgent, deleteAgent, updateAgent } from '@/lib/actions/agents';
 import { useOrganization } from '@/components/providers/organization-provider';
@@ -75,6 +80,8 @@ export default function AgentDetailPage() {
   const [newFieldKey, setNewFieldKey] = useState('');
   const [newFieldKeyManual, setNewFieldKeyManual] = useState(false);
   const [newFieldValue, setNewFieldValue] = useState('');
+  const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'number' | 'select' | 'boolean' | 'url' | 'email' | 'phone'>('text');
+  const [newFieldOptions, setNewFieldOptions] = useState('');
   const [isSavingField, setIsSavingField] = useState(false);
 
   const agentFieldSchema = organization?.agentFieldSchema ?? [];
@@ -100,18 +107,25 @@ export default function AgentDetailPage() {
     });
   };
 
+  const resetAddForm = () => {
+    setIsAddingField(false);
+    setNewFieldLabel(''); setNewFieldKey(''); setNewFieldKeyManual(false);
+    setNewFieldValue(''); setNewFieldType('text'); setNewFieldOptions('');
+  };
+
   const handleAddField = async () => {
     if (!newFieldLabel.trim() || !newFieldKey.trim() || !agent) return;
     setIsSavingField(true);
+    // boolean は 'true'/'false'、select は選択肢ありで保存
+    const valueToSave = newFieldType === 'boolean' ? (newFieldValue || 'false') : newFieldValue;
     const current = (agent.custom_fields as Record<string, string>) ?? {};
-    const updated = { ...current, [newFieldKey]: newFieldValue };
+    const updated = { ...current, [newFieldKey]: valueToSave };
     const result = await updateAgent(agentId, { customFields: updated });
     if (result.data) {
       const { data: d } = await getAgent(agentId);
       if (d) setAgent(d);
       toast.success(`「${newFieldLabel}」を追加しました`);
-      setNewFieldLabel(''); setNewFieldKey(''); setNewFieldKeyManual(false);
-      setNewFieldValue(''); setIsAddingField(false);
+      resetAddForm();
     } else {
       toast.error('追加に失敗しました');
     }
@@ -322,7 +336,6 @@ export default function AgentDetailPage() {
                           setNewFieldKey(key);
                         }
                       }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddField(); } }}
                     />
                   </div>
                   <div className="space-y-1">
@@ -335,23 +348,96 @@ export default function AgentDetailPage() {
                     />
                   </div>
                 </div>
+
+                {/* タイプ選択 */}
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">値</Label>
-                  <Input
-                    placeholder="内容を入力"
-                    value={newFieldValue}
-                    onChange={(e) => setNewFieldValue(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddField(); } }}
-                  />
+                  <Label className="text-xs text-muted-foreground">タイプ</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {([
+                      { value: 'text', label: 'テキスト' },
+                      { value: 'textarea', label: '長文' },
+                      { value: 'number', label: '数値' },
+                      { value: 'select', label: '選択肢' },
+                      { value: 'boolean', label: 'ON/OFF' },
+                      { value: 'url', label: 'URL' },
+                      { value: 'email', label: 'メール' },
+                      { value: 'phone', label: '電話' },
+                    ] as const).map(t => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() => { setNewFieldType(t.value); setNewFieldValue(''); }}
+                        className={`px-2 py-0.5 rounded text-xs border transition-all ${
+                          newFieldType === t.value
+                            ? 'border-sky-400 bg-sky-100 text-sky-800 dark:border-sky-600 dark:bg-sky-950/40 dark:text-sky-300'
+                            : 'border-border bg-background text-muted-foreground hover:border-sky-300'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {/* 選択肢の場合は選択肢入力 */}
+                {newFieldType === 'select' && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">選択肢（改行区切り）</Label>
+                    <textarea
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring text-xs"
+                      rows={3}
+                      placeholder={'例:\n東京\n大阪\n名古屋'}
+                      value={newFieldOptions}
+                      onChange={(e) => setNewFieldOptions(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* 値入力 */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">値（初期値）</Label>
+                  {newFieldType === 'boolean' ? (
+                    <div className="flex items-center gap-2 h-9">
+                      <Switch
+                        checked={newFieldValue === 'true'}
+                        onCheckedChange={(v) => setNewFieldValue(v ? 'true' : 'false')}
+                      />
+                      <span className="text-sm text-muted-foreground">{newFieldValue === 'true' ? 'ON' : 'OFF'}</span>
+                    </div>
+                  ) : newFieldType === 'select' ? (
+                    <Select value={newFieldValue} onValueChange={setNewFieldValue}>
+                      <SelectTrigger><SelectValue placeholder="選択してください" /></SelectTrigger>
+                      <SelectContent>
+                        {newFieldOptions.split('\n').filter(Boolean).map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : newFieldType === 'textarea' ? (
+                    <Textarea
+                      placeholder="内容を入力"
+                      value={newFieldValue}
+                      onChange={(e) => setNewFieldValue(e.target.value)}
+                      rows={2}
+                    />
+                  ) : (
+                    <Input
+                      type={newFieldType === 'number' ? 'number' : newFieldType === 'email' ? 'email' : newFieldType === 'url' ? 'url' : newFieldType === 'phone' ? 'tel' : 'text'}
+                      placeholder="内容を入力（後から変更可）"
+                      value={newFieldValue}
+                      onChange={(e) => setNewFieldValue(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddField(); } }}
+                    />
+                  )}
+                </div>
+
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleAddField}
                     disabled={!newFieldLabel.trim() || !newFieldKey.trim() || isSavingField}>
                     {isSavingField ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
                     保存
                   </Button>
-                  <Button size="sm" variant="ghost"
-                    onClick={() => { setIsAddingField(false); setNewFieldLabel(''); setNewFieldKey(''); setNewFieldKeyManual(false); setNewFieldValue(''); }}>
+                  <Button size="sm" variant="ghost" onClick={resetAddForm}>
                     <X className="h-3.5 w-3.5 mr-1" />キャンセル
                   </Button>
                 </div>
