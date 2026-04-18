@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, CreditCard, ExternalLink, User, ToggleLeft, Sparkles } from 'lucide-react';
+import { Building2, Key, Users, Bell, CreditCard, ExternalLink, User, ToggleLeft, Sparkles, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -65,6 +65,13 @@ const settingsCategories = [
         description: '送信ドメインの認証・メール通知・アラートの設定',
         href: '/settings/notifications',
         icon: Bell,
+        badge: null,
+      },
+      {
+        title: 'メールテンプレート',
+        description: '注文確認・通知メールの件名・本文・送信先を自由に編集',
+        href: '/settings/email-templates',
+        icon: Mail,
         badge: null,
       },
     ],
