@@ -111,8 +111,10 @@ function transformOrganization(row: Record<string, unknown>): Organization {
     contentFieldSchema: (() => {
       const raw = settings.content_field_schema;
       if (!raw) return {};
-      // 旧形式（配列）の場合は空オブジェクトにフォールバック
-      if (Array.isArray(raw)) return {};
+      // 旧形式（配列）の場合は gallery タイプに自動移行
+      if (Array.isArray(raw)) {
+        return raw.length > 0 ? { gallery: raw as ContentFieldSchemaItem[] } : {};
+      }
       return raw as ContentFieldSchemaByType;
     })(),
     customerFieldSchema: (settings.customer_field_schema as CustomerFieldSchemaItem[]) || [],

@@ -17,6 +17,7 @@ import { useOrganization } from '@/components/providers/organization-provider';
 import type { ContentFieldSchemaItem, ContentFieldSchemaByType } from '@/components/providers/organization-provider';
 import type { CustomFieldType } from '@/components/products/custom-fields';
 import { updateContentFieldSchema } from '@/lib/actions/settings';
+import { getEnabledContentTypes } from '@/lib/actions/settings';
 import { contentTypeConfig } from '@/lib/content-types';
 import { toast } from 'sonner';
 
@@ -267,6 +268,7 @@ export default function ContentSchemaSettingsPage() {
   const [isPending, startTransition] = useTransition();
 
   const [schemaByType, setSchemaByType] = useState<ContentFieldSchemaByType>({});
+  const [enabledTypes, setEnabledTypes] = useState<string[]>([]);
 
   useEffect(() => {
     if (organization?.contentFieldSchema) {
@@ -274,8 +276,18 @@ export default function ContentSchemaSettingsPage() {
     }
   }, [organization?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const contentTypes = Object.entries(contentTypeConfig);
-  const [activeTab, setActiveTab] = useState(contentTypes[0]?.[0] ?? '');
+  useEffect(() => {
+    if (!organization?.id) return;
+    getEnabledContentTypes(organization.id).then(({ data }) => {
+      const types = data.length > 0 ? data : Object.keys(contentTypeConfig);
+      setEnabledTypes(types);
+      setActiveTab(prev => prev || types[0] || '');
+    });
+  }, [organization?.id]);
+
+  // 有効なコンテンツタイプのみ表示
+  const contentTypes = Object.entries(contentTypeConfig).filter(([type]) => enabledTypes.includes(type));
+  const [activeTab, setActiveTab] = useState('');
 
   const handleSave = () => {
     if (!organization?.id) return;
