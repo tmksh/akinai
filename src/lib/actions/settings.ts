@@ -183,6 +183,45 @@ export async function updateContentFieldSchema(
   return { data, error: null };
 }
 
+// 既存コンテンツの custom_fields から一意なフィールド定義を抽出
+export async function extractContentFieldSchemaFromData(
+  organizationId: string,
+  contentType: string
+): Promise<{
+  data: { id: string; key: string; label: string; type: string; options?: string[] }[] | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  const { data: rows, error } = await supabase
+    .from('contents')
+    .select('custom_fields')
+    .eq('organization_id', organizationId)
+    .eq('type', contentType)
+    .not('custom_fields', 'is', null)
+    .limit(50);
+
+  if (error) return { data: null, error: error.message };
+
+  const fieldMap = new Map<string, { id: string; key: string; label: string; type: string; options?: string[] }>();
+  for (const row of rows ?? []) {
+    const cf = row.custom_fields as { key: string; label?: string; type?: string; options?: string[] }[] | null;
+    if (!Array.isArray(cf)) continue;
+    for (const f of cf) {
+      if (!f.key || fieldMap.has(f.key)) continue;
+      fieldMap.set(f.key, {
+        id: `imported-${f.key}`,
+        key: f.key,
+        label: f.label || f.key,
+        type: f.type || 'text',
+        ...(f.options ? { options: f.options } : {}),
+      });
+    }
+  }
+
+  return { data: Array.from(fieldMap.values()), error: null };
+}
+
 // 代理店フィールドスキーマを更新
 export async function updateAgentFieldSchema(
   organizationId: string,

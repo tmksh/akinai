@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import {
   ArrowLeft, Save, Plus, Trash2, Type, Hash, ToggleLeft, Calendar, Link2,
   Palette, Code, Sparkles, AlignLeft, Mail, Star, ImageIcon, ListOrdered,
-  Braces, ListFilter, Phone, Info, Copy,
+  Braces, ListFilter, Phone, Info, Copy, Download,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
 import type { ContentFieldSchemaItem, ContentFieldSchemaByType, ProductFieldSchemaItem } from '@/components/providers/organization-provider';
 import type { CustomFieldType } from '@/components/products/custom-fields';
-import { updateContentFieldSchema } from '@/lib/actions/settings';
-import { getEnabledContentTypes } from '@/lib/actions/settings';
+import { updateContentFieldSchema, getEnabledContentTypes, extractContentFieldSchemaFromData } from '@/lib/actions/settings';
 import { contentTypeConfig } from '@/lib/content-types';
 import { toast } from 'sonner';
 
@@ -352,6 +351,28 @@ export default function ContentSchemaSettingsPage() {
     setSchemaByType(prev => ({ ...prev, [type]: fields }));
   };
 
+  const handleImportFromData = async (type: string) => {
+    if (!organization?.id) return;
+    const { data, error } = await extractContentFieldSchemaFromData(organization.id, type);
+    if (error || !data) {
+      toast.error('インポートに失敗しました: ' + error);
+      return;
+    }
+    if (data.length === 0) {
+      toast.info('このコンテンツタイプに保存されているカスタムフィールドはありません');
+      return;
+    }
+    const existing = schemaByType[type] ?? [];
+    const existingKeys = new Set(existing.map(f => f.key));
+    const newFields = data.filter(f => !existingKeys.has(f.key)) as ContentFieldSchemaItem[];
+    if (newFields.length === 0) {
+      toast.info('すでにすべてのフィールドが登録済みです');
+      return;
+    }
+    setSchemaByType(prev => ({ ...prev, [type]: [...existing, ...newFields] }));
+    toast.success(`${newFields.length}件のフィールド定義をインポートしました。「保存」で確定してください。`);
+  };
+
   return (
     <div className="space-y-6">
       {/* ヘッダー */}
@@ -415,6 +436,22 @@ export default function ContentSchemaSettingsPage() {
             </TabsList>
             {contentTypes.map(([type]) => (
               <TabsContent key={type} value={type}>
+                {(schemaByType[type]?.length ?? 0) === 0 && (
+                  <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 flex items-center justify-between gap-3">
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                      既存コンテンツにカスタムフィールドがある場合、自動でスキーマを取り込めます
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-400"
+                      onClick={() => handleImportFromData(type)}
+                    >
+                      <Download className="mr-1.5 h-3.5 w-3.5" />
+                      既存データからインポート
+                    </Button>
+                  </div>
+                )}
                 <FieldEditor
                   fields={schemaByType[type] ?? []}
                   onChange={(fields) => updateTypeSchema(type, fields)}
