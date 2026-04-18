@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import {
   ArrowLeft, Save, Plus, Trash2, Type, Hash, ToggleLeft, Calendar, Link2,
   Palette, Code, Sparkles, AlignLeft, Mail, Star, ImageIcon, ListOrdered,
-  Braces, ListFilter, Phone, Info,
+  Braces, ListFilter, Phone, Info, Copy,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
-import type { ContentFieldSchemaItem, ContentFieldSchemaByType } from '@/components/providers/organization-provider';
+import type { ContentFieldSchemaItem, ContentFieldSchemaByType, ProductFieldSchemaItem } from '@/components/providers/organization-provider';
 import type { CustomFieldType } from '@/components/products/custom-fields';
 import { updateContentFieldSchema } from '@/lib/actions/settings';
 import { getEnabledContentTypes } from '@/lib/actions/settings';
@@ -60,9 +60,10 @@ function generateKeyFromLabel(label: string): string {
 interface FieldEditorProps {
   fields: ContentFieldSchemaItem[];
   onChange: (fields: ContentFieldSchemaItem[]) => void;
+  productSchema?: ProductFieldSchemaItem[];
 }
 
-function FieldEditor({ fields, onChange }: FieldEditorProps) {
+function FieldEditor({ fields, onChange, productSchema = [] }: FieldEditorProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newKey, setNewKey] = useState('');
@@ -116,16 +117,61 @@ function FieldEditor({ fields, onChange }: FieldEditorProps) {
     resetForm();
   };
 
+  // 商品スキーマからインポートできるフィールド（まだ追加されていないもの）
+  const importableFields = productSchema.filter(
+    pf => !fields.some(f => f.key === pf.key)
+  );
+
+  const importFromProduct = (pf: ProductFieldSchemaItem) => {
+    const newItem: ContentFieldSchemaItem = {
+      id: `schema-${Date.now()}-${pf.key}`,
+      key: pf.key,
+      label: pf.label,
+      type: pf.type as CustomFieldType,
+      ...(pf.options && { options: pf.options }),
+    };
+    onChange([...fields, newItem]);
+    toast.success(`「${pf.label}」を追加しました`);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <CardDescription>このコンテンツタイプの編集画面に表示するフィールドを定義</CardDescription>
-        {!isAdding && (
-          <Button variant="outline" size="sm" onClick={() => setIsAdding(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            追加
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {importableFields.length > 0 && (
+            <div className="relative group">
+              <Button variant="ghost" size="sm" className="text-muted-foreground">
+                <Copy className="mr-1.5 h-3.5 w-3.5" />
+                商品スキーマからコピー
+              </Button>
+              <div className="absolute right-0 top-full mt-1 z-10 hidden group-hover:block bg-popover border rounded-lg shadow-md py-1 min-w-[180px]">
+                {importableFields.map(pf => {
+                  const config = fieldTypeConfig[pf.type as CustomFieldType];
+                  const Icon = config?.icon ?? Type;
+                  return (
+                    <button
+                      key={pf.key}
+                      type="button"
+                      onClick={() => importFromProduct(pf)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
+                    >
+                      <Icon className={`h-3.5 w-3.5 shrink-0 ${config?.color ?? ''}`} />
+                      <span className="flex-1">{pf.label}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{pf.key}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {!isAdding && (
+            <Button variant="outline" size="sm" onClick={() => setIsAdding(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              追加
+            </Button>
+          )}
+        </div>
       </div>
 
       {isAdding && (
@@ -372,6 +418,7 @@ export default function ContentSchemaSettingsPage() {
                 <FieldEditor
                   fields={schemaByType[type] ?? []}
                   onChange={(fields) => updateTypeSchema(type, fields)}
+                  productSchema={organization?.productFieldSchema ?? []}
                 />
               </TabsContent>
             ))}
