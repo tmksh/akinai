@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
+import { createClient } from '@/lib/supabase/server';
 import {
   buildOrderConfirmationEmail,
   buildNewOrderNotificationEmail,
+  buildAgentOrderNotificationEmail,
   type OrderEmailData,
+  type AgentOrderEmailData,
 } from '@/lib/email-templates/order';
 
 /**
  * POST /api/test-email
- *
- * メール送信テスト用エンドポイント（開発環境のみ）
- * 本番環境では使用不可
+ * メール送信テスト用エンドポイント（ログイン済みユーザーのみ）
  */
 export async function POST(request: NextRequest) {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const body = await request.json().catch(() => ({}));
-  const targetEmail = body.email || 'delivered@resend.dev';
+  const targetEmail = body.email || user.email || 'delivered@resend.dev';
   const fromOverride = body.from as string | undefined;
 
   const dummyData: OrderEmailData = {
@@ -26,19 +29,8 @@ export async function POST(request: NextRequest) {
     customerName: 'テスト 太郎',
     customerEmail: targetEmail,
     items: [
-      {
-        productName: 'テスト商品A',
-        variantName: 'Mサイズ / ブラック',
-        quantity: 2,
-        unitPrice: 3980,
-        totalPrice: 7960,
-      },
-      {
-        productName: 'テスト商品B',
-        quantity: 1,
-        unitPrice: 5500,
-        totalPrice: 5500,
-      },
+      { productName: 'テスト商品A', variantName: 'Mサイズ / ブラック', quantity: 2, unitPrice: 3980, totalPrice: 7960 },
+      { productName: 'テスト商品B', quantity: 1, unitPrice: 5500, totalPrice: 5500 },
     ],
     subtotal: 13460,
     shippingFee: 550,
@@ -57,19 +49,25 @@ export async function POST(request: NextRequest) {
     paymentInstructions: 'みずほ銀行 渋谷支店 / 普通 1234567 / テストショップ株式会社',
   };
 
+  const agentData: AgentOrderEmailData = {
+    ...dummyData,
+    agentName: 'テスト代理店',
+    agentEmail: targetEmail,
+    agentCode: 'AGENT001',
+    commissionRate: 10,
+    commissionAmount: 1536,
+  };
+
   const results: Record<string, { success: boolean; error?: string }> = {};
 
-  // 顧客向け注文確認メール
   const { subject: custSubject, html: custHtml } = buildOrderConfirmationEmail(dummyData);
   results.customer = await sendEmail({ to: targetEmail, subject: custSubject, html: custHtml, from: fromOverride });
 
-  // 管理者向け新規注文通知
   const { subject: adminSubject, html: adminHtml } = buildNewOrderNotificationEmail(dummyData);
   results.admin = await sendEmail({ to: targetEmail, subject: adminSubject, html: adminHtml, from: fromOverride });
 
-  return NextResponse.json({
-    message: 'Test emails sent',
-    targetEmail,
-    results,
-  });
+  const { subject: agentSubject, html: agentHtml } = buildAgentOrderNotificationEmail(agentData);
+  results.agent = await sendEmail({ to: targetEmail, subject: agentSubject, html: agentHtml, from: fromOverride });
+
+  return NextResponse.json({ message: 'Test emails sent', targetEmail, results });
 }
