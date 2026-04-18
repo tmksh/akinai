@@ -251,33 +251,46 @@ export default function AgentDetailPage() {
               </div>
             </div>
 
-            {/* カスタムフィールド（基本情報カード内に統合） */}
-            {agentFieldSchema.length > 0 && (
-              <>
-                <Separator />
-                <p className="text-xs font-medium text-muted-foreground">追加情報</p>
-                {agentFieldSchema.map(field => (
-                  <div key={field.key} className="flex items-start gap-3">
-                    <Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">{field.label}</p>
-                      <p className="font-medium">
-                        {customFields[field.key] || <span className="text-muted-foreground">—</span>}
-                      </p>
+            {/* カスタムフィールド（スキーマ定義 + 自由追加） */}
+            {(() => {
+              const schemaKeys = new Set(agentFieldSchema.map(f => f.key));
+              const extraEntries = Object.entries(customFields).filter(([k]) => !schemaKeys.has(k));
+              const hasAny = agentFieldSchema.length > 0 || extraEntries.length > 0;
+              return hasAny ? (
+                <>
+                  <Separator />
+                  <p className="text-xs font-medium text-muted-foreground">追加情報</p>
+                  {agentFieldSchema.map(field => (
+                    <div key={field.key} className="flex items-start gap-3">
+                      <Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">{field.label}</p>
+                        <p className="font-medium">
+                          {customFields[field.key] || <span className="text-muted-foreground">—</span>}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </>
-            )}
-            {agentFieldSchema.length === 0 && (
-              <>
-                <Separator />
-                <p className="text-xs text-muted-foreground">
-                  追加情報フィールドは未設定です。
-                  <Link href="/settings/agents-schema" className="ml-1 text-sky-500 hover:underline">設定する →</Link>
-                </p>
-              </>
-            )}
+                  ))}
+                  {extraEntries.map(([key, value]) => (
+                    <div key={key} className="flex items-start gap-3">
+                      <Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">{key}</p>
+                        <p className="font-medium">{value || <span className="text-muted-foreground">—</span>}</p>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <Separator />
+                  <p className="text-xs text-muted-foreground">
+                    追加情報フィールドは未設定です。
+                    <Link href="/settings/agents-schema" className="ml-1 text-sky-500 hover:underline">設定する →</Link>
+                  </p>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
