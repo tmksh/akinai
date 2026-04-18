@@ -101,23 +101,21 @@ export default function NewContentPage() {
         setContentType(enabled[0] as ContentType);
       }
     });
+  }, [organization?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // 組織スキーマからカスタムフィールドを初期化（コンテンツタイプ別）
+  // コンテンツタイプが変わるたびにカスタムフィールドをスキーマで初期化
+  useEffect(() => {
+    if (!organization) return;
     const schema = organization.contentFieldSchema?.[contentType] ?? [];
-    if (schema.length > 0) {
-      setCustomFields(schema.map(s => {
-        let defaultValue = '';
-        if (s.type === 'boolean') defaultValue = 'false';
-        if (s.type === 'rating') defaultValue = '0';
-        if (s.type === 'list') defaultValue = '[]';
-        if (s.type === 'json') defaultValue = '{}';
-        return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
-      }));
-    } else {
-      setCustomFields([]);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organization?.id, contentType]);
+    setCustomFields(schema.map(s => {
+      let defaultValue = '';
+      if (s.type === 'boolean') defaultValue = 'false';
+      if (s.type === 'rating') defaultValue = '0';
+      if (s.type === 'list') defaultValue = '[]';
+      if (s.type === 'json') defaultValue = '{}';
+      return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
+    }));
+  }, [contentType, organization?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // プレビュー用データ・URL
   const previewData = useMemo(() => ({ title, content, contentType }), [title, content, contentType]);
