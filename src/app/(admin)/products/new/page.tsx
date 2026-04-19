@@ -69,8 +69,8 @@ export default function NewProductPage() {
   const { organization, isLoading: orgLoading } = useOrganization();
   const [isPending, startTransition] = useTransition();
   
-  const defaultVariantMode = (organization?.settings?.variant_input_mode as 'simple' | 'matrix') ?? 'simple';
-  const [variantInputMode, setVariantInputMode] = useState<'simple' | 'matrix'>(defaultVariantMode);
+  const defaultVariantMode = (organization?.settings?.variant_input_mode as 'simple' | 'matrix' | 'swatch') ?? 'simple';
+  const [variantInputMode, setVariantInputMode] = useState<'simple' | 'matrix' | 'swatch'>(defaultVariantMode);
   
   const [productName, setProductName] = useState('');
   const [description, setDescription] = useState('');
@@ -84,6 +84,7 @@ export default function NewProductPage() {
   const [variants, setVariants] = useState<ProductVariant[]>([
     { id: '1', name: 'デフォルト', sku: '', price: 0, stock: 0 },
   ]);
+  const [swatchConfig, setSwatchConfig] = useState<MatrixAxis[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>(() => {
     // 組織スキーマから初期フィールドを生成（値は空）
     const schema = organization?.productFieldSchema ?? [];
@@ -232,9 +233,13 @@ export default function NewProductPage() {
           seoTitle: seoTitle || undefined,
           seoDescription: seoDescription || undefined,
           categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
-          customFields: customFields.length > 0
-            ? customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) }))
-            : undefined,
+          customFields: [
+            ...(customFields.length > 0 ? customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) })) : []),
+            ...(swatchConfig.length > 0
+              ? [{ key: '_swatch_config', label: '', value: JSON.stringify(swatchConfig.map(a => ({ name: a.name, items: a.items.map(i => ({ value: i.value, color: i.color })) }))), type: 'system' }]
+              : []
+            ),
+          ],
           variants: variants.map(v => ({
             name: v.name,
             sku: v.sku,
@@ -431,17 +436,31 @@ export default function NewProductPage() {
                   >
                     組み合わせで自動生成
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setVariantInputMode('swatch')}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                      variantInputMode === 'swatch'
+                        ? 'bg-background shadow-sm text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    スウォッチ
+                  </button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              {variantInputMode === 'matrix' ? (
+              {variantInputMode === 'matrix' || variantInputMode === 'swatch' ? (
                 <MatrixVariantInput
                   variants={variants}
                   onChange={setVariants}
                   onSelectedVariantChange={(v) => setPreviewVariantImage(v?.imageUrl ?? null)}
                   onAxesChange={setPreviewAxes}
+                  initialSwatchConfig={swatchConfig}
+                  onSwatchConfigChange={setSwatchConfig}
                   disabled={isPending}
+                  showHeroPreview={variantInputMode === 'swatch'}
                 />
               ) : (
                 <SimpleVariantInput
@@ -690,7 +709,7 @@ export default function NewProductPage() {
                       </div>
 
                       {/* バリエーション選択 */}
-                      {variantInputMode === 'matrix' && previewAxes.some(a => a.items.length > 0) ? (
+                      {(variantInputMode === 'matrix' || variantInputMode === 'swatch') && previewAxes.some(a => a.items.length > 0) ? (
                         <div className="space-y-3 rounded-lg border p-3 bg-slate-50/60">
                           {previewAxes.filter(a => a.items.length > 0).map((axis) => {
                             const selectedVal = previewSelectedItems[axis.id] ?? axis.items[0]?.value;

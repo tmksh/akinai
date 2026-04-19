@@ -82,8 +82,8 @@ export default function ProductSchemaSettingsPage() {
     () => organization?.productFieldSchema ?? []
   );
 
-  const [variantInputMode, setVariantInputMode] = useState<'simple' | 'matrix'>(
-    () => ((organization?.settings?.variant_input_mode as 'simple' | 'matrix') ?? 'simple')
+  const [variantInputMode, setVariantInputMode] = useState<'simple' | 'matrix' | 'swatch'>(
+    () => ((organization?.settings?.variant_input_mode as 'simple' | 'matrix' | 'swatch') ?? 'simple')
   );
 
   // organizationが後から読み込まれた場合に同期
@@ -92,7 +92,7 @@ export default function ProductSchemaSettingsPage() {
       setSchema(organization.productFieldSchema);
     }
     if (organization?.settings) {
-      setVariantInputMode((organization.settings.variant_input_mode as 'simple' | 'matrix') ?? 'simple');
+      setVariantInputMode((organization.settings.variant_input_mode as 'simple' | 'matrix' | 'swatch') ?? 'simple');
     }
   }, [organization?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -164,7 +164,7 @@ export default function ProductSchemaSettingsPage() {
     });
   };
 
-  const handleVariantModeSave = (mode: 'simple' | 'matrix') => {
+  const handleVariantModeSave = (mode: 'simple' | 'matrix' | 'swatch') => {
     if (!organization?.id) return;
     startTransition(async () => {
       const { error } = await updateVariantInputMode(organization.id, mode);
@@ -241,8 +241,7 @@ export default function ProductSchemaSettingsPage() {
           <CardDescription>商品登録画面でのバリエーション（色・サイズなど）の入力スタイルを選択します</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {/* シンプルモード */}
+          <div className="grid gap-3 sm:grid-cols-3">
             <button
               type="button"
               onClick={() => handleVariantModeSave('simple')}
@@ -305,6 +304,36 @@ export default function ProductSchemaSettingsPage() {
                         <div key={s} className="rounded bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 py-0.5">✓</div>
                       ))}
                     </>
+                  ))}
+                </div>
+              </div>
+            </button>
+
+            {/* スウォッチモード */}
+            <button
+              type="button"
+              onClick={() => handleVariantModeSave('swatch')}
+              disabled={isPending}
+              className={`rounded-xl border-2 p-4 text-left transition-all ${
+                variantInputMode === 'swatch'
+                  ? 'border-sky-400 bg-sky-50/60 dark:border-sky-600 dark:bg-sky-950/20'
+                  : 'border-border hover:border-sky-200 dark:hover:border-sky-800'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold">スウォッチ</span>
+                {variantInputMode === 'swatch' && (
+                  <Badge className="bg-sky-500 text-white text-xs px-1.5 py-0.5">使用中</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                色や画像で直感的に選択 - プレビュー連動表示
+              </p>
+              <div className="rounded-lg border bg-background p-2">
+                <div className="aspect-[4/3] rounded mb-1.5 bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/30 dark:to-amber-800/30" />
+                <div className="flex gap-1">
+                  {['#0c4a6e', '#a16207', '#f4a8a8', '#475569'].map(c => (
+                    <div key={c} className="w-3.5 h-3.5 rounded-sm border border-border/50" style={{ background: c }} />
                   ))}
                 </div>
               </div>

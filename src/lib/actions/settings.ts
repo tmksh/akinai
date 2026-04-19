@@ -118,7 +118,7 @@ export async function updateProductFieldSchema(
 // バリエーション入力モードを更新
 export async function updateVariantInputMode(
   organizationId: string,
-  mode: 'simple' | 'matrix'
+  mode: 'simple' | 'matrix' | 'swatch'
 ) {
   const supabase = getAdminClient();
 

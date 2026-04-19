@@ -58,12 +58,12 @@ export default function ProductEditPage() {
   const { organization, isLoading: orgLoading } = useOrganization();
   const [isPending, startTransition] = useTransition();
   
-  const defaultVariantMode = (organization?.settings?.variant_input_mode as 'simple' | 'matrix') ?? 'simple';
-  const [variantInputMode, setVariantInputMode] = useState<'simple' | 'matrix'>(defaultVariantMode);
+  const defaultVariantMode = (organization?.settings?.variant_input_mode as 'simple' | 'matrix' | 'swatch') ?? 'simple';
+  const [variantInputMode, setVariantInputMode] = useState<'simple' | 'matrix' | 'swatch'>(defaultVariantMode);
 
   useEffect(() => {
     if (organization?.settings?.variant_input_mode) {
-      setVariantInputMode(organization.settings.variant_input_mode as 'simple' | 'matrix');
+      setVariantInputMode(organization.settings.variant_input_mode as 'simple' | 'matrix' | 'swatch');
     }
   }, [organization?.id]);
   
@@ -88,6 +88,7 @@ export default function ProductEditPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [swatchConfig, setSwatchConfig] = useState<MatrixAxis[]>([]);
   const [productImages, setProductImages] = useState<{
     id: string;
     url: string;
@@ -143,9 +144,16 @@ export default function ProductEditPage() {
         
         setSelectedCategories(p.categories.map(c => c.id));
         setTags(p.tags || []);
-        // カスタムフィールドを復元（スキーマとマージ）
+        // カスタムフィールドを復元（スキーマとマージ）。_swatch_config はシステム用なので除外
         const rawCustomFields = (p.custom_fields as unknown as { key: string; label?: string; value: string; type: string; options?: string[] }[]) || [];
-        const productFields: CustomField[] = rawCustomFields.map((f, i) => ({
+        // スウォッチ設定を抽出
+        const swatchConfigRaw = rawCustomFields.find((f) => f.key === '_swatch_config');
+        if (swatchConfigRaw?.value) {
+          try { setSwatchConfig(JSON.parse(swatchConfigRaw.value)); } catch { /* ignore */ }
+        }
+        const productFields: CustomField[] = rawCustomFields
+          .filter((f) => f.key !== '_swatch_config')  // システムキーを除外
+          .map((f, i) => ({
           id: `cf-${i}-${Date.now()}`,
           key: f.key,
           label: f.label || f.key,
@@ -248,7 +256,14 @@ export default function ProductEditPage() {
           seoTitle: formData.seoTitle || undefined,
           seoDescription: formData.seoDescription || undefined,
           featured: formData.featured,
-          customFields: customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) })),
+          customFields: [
+            ...customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) })),
+            // スウォッチ設定をシステムキーとして保存（UI非表示）
+            ...(swatchConfig.length > 0
+              ? [{ key: '_swatch_config', label: '', value: JSON.stringify(swatchConfig.map(a => ({ name: a.name, items: a.items.map(i => ({ value: i.value, color: i.color })) }))), type: 'system' }]
+              : []
+            ),
+          ],
           categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
           variants: variants.map(v => ({
             name: v.name,
@@ -487,17 +502,31 @@ export default function ProductEditPage() {
                   >
                     組み合わせで自動生成
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setVariantInputMode('swatch')}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                      variantInputMode === 'swatch'
+                        ? 'bg-background shadow-sm text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    スウォッチ
+                  </button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              {variantInputMode === 'matrix' ? (
+              {variantInputMode === 'matrix' || variantInputMode === 'swatch' ? (
                 <MatrixVariantInput
                   variants={variants}
                   onChange={setVariants}
                   onSelectedVariantChange={(v) => setPreviewVariantImage(v?.imageUrl ?? null)}
                   onAxesChange={setPreviewAxes}
+                  initialSwatchConfig={swatchConfig}
+                  onSwatchConfigChange={setSwatchConfig}
                   disabled={isPending}
+                  showHeroPreview={variantInputMode === 'swatch'}
                 />
               ) : (
                 <SimpleVariantInput
@@ -691,7 +720,7 @@ export default function ProductEditPage() {
                       </div>
 
                       {/* バリエーション選択 */}
-                      {variantInputMode === 'matrix' && previewAxes.some(a => a.items.length > 0) ? (
+                      {(variantInputMode === 'matrix' || variantInputMode === 'swatch') && previewAxes.some(a => a.items.length > 0) ? (
                         <div className="space-y-3 rounded-lg border p-3 bg-slate-50/60">
                           {previewAxes.filter(a => a.items.length > 0).map((axis) => {
                             const selectedVal = previewSelectedItems[axis.id] ?? axis.items[0]?.value;

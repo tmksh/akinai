@@ -109,11 +109,8 @@ export default function ContentsClient({ initialContents, stats, organizationId,
   const [deleteTarget, setDeleteTarget] = useState<ContentData | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // 設定で有効なタイプ + DBに実際に存在するタイプを合わせて表示（重複除去）
-  const allDisplayTypes = Array.from(new Set([
-    ...enabledContentTypes,
-    ...contents.map(c => c.type).filter(Boolean),
-  ]));
+  // 設定で有効にしたタイプのみ表示（DBに存在しても無効タイプはタブに出さない）
+  const allDisplayTypes = enabledContentTypes;
 
   // フィルタリング
   const filteredContents = contents.filter((content) => {
