@@ -108,6 +108,7 @@ function SortableSwatchItem({
 
   const hasColor = Boolean(item.color);
   const hasImage = Boolean(item.imageUrl);
+  const isOmakase = item.value === 'おまかせ';
   const [uploading, setUploading] = useState(false);
 
   const handleImageUpload = async (file: File) => {
@@ -151,9 +152,13 @@ function SortableSwatchItem({
           isSelected
             ? 'border-slate-800 dark:border-white shadow-md scale-105'
             : 'border-slate-200 dark:border-white/20 hover:border-slate-400',
-          !hasColor && !hasImage && 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800'
+          !hasColor && !hasImage && !isOmakase && 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800'
         )}
-        style={!hasImage && hasColor ? { backgroundColor: item.color } : undefined}
+        style={
+          isOmakase
+            ? { background: 'linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #c77dff, #ff6b6b)' }
+            : (!hasImage && hasColor ? { backgroundColor: item.color } : undefined)
+        }
         onClick={onSelect}
         title="クリックしてプレビューに反映"
       >
