@@ -545,6 +545,7 @@ export default function ProductEditPage() {
             onChange={setCustomFields}
             disabled={isPending}
             allowAdd={false}
+            organizationId={organization?.id}
           />
 
           {/* SEO設定 */}

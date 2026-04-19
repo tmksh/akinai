@@ -462,6 +462,7 @@ export default function EditContentPage() {
             onChange={setCustomFields}
             disabled={isPending}
             allowAdd={false}
+            organizationId={organization?.id}
           />
 
           {!showPreview && (

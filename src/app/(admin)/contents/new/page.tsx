@@ -348,7 +348,7 @@ export default function NewContentPage() {
             </CardContent>
           </Card>
 
-          <CustomFields fields={customFields} onChange={setCustomFields} disabled={isPending} allowAdd={false} />
+          <CustomFields fields={customFields} onChange={setCustomFields} disabled={isPending} allowAdd={false} organizationId={organization?.id} />
 
           {!showPreview && (
             <Card>

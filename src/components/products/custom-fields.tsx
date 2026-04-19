@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Plus,
   Trash2,
@@ -21,6 +21,8 @@ import {
   ListFilter,
   X,
   Phone,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +44,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { uploadContentImage } from '@/lib/actions/storage';
 
 export type CustomFieldType =
   | 'text'
@@ -87,7 +91,7 @@ const fieldTypeConfig: Record<CustomFieldType, FieldTypeInfo> = {
   url:       { label: 'URL',          icon: Link2,       placeholder: 'https://',       color: 'text-cyan-500',    description: 'リンクURL',           category: 'media' },
   email:     { label: 'メール',       icon: Mail,        placeholder: 'example@mail.com', color: 'text-sky-500', description: 'メールアドレス',       category: 'media' },
   phone:     { label: '電話番号',     icon: Phone,       placeholder: '03-1234-5678',   color: 'text-teal-500',    description: '電話番号',             category: 'media' },
-  image_url: { label: '画像URL',      icon: ImageIcon,   placeholder: 'https://...',    color: 'text-sky-500',  description: '画像プレビュー付き',   category: 'media' },
+  image_url: { label: '画像',      icon: ImageIcon,   placeholder: 'https://...',    color: 'text-sky-500',  description: '画像アップロード',   category: 'media' },
   color:     { label: 'カラー',       icon: Palette,     placeholder: '#000000',        color: 'text-pink-500',    description: 'カラーピッカー',       category: 'media' },
   rating:    { label: '評価',         icon: Star,        placeholder: '',               color: 'text-sky-500',  description: '1〜5の星評価',        category: 'advanced' },
   list:      { label: 'リスト',       icon: ListOrdered, placeholder: '項目を追加',      color: 'text-rose-500',    description: 'タグ形式のリスト',     category: 'advanced' },
@@ -132,9 +136,11 @@ interface CustomFieldsProps {
   onChange: (fields: CustomField[]) => void;
   disabled?: boolean;
   allowAdd?: boolean;
+  /** 画像アップロード先の organizationId（image_url フィールド用） */
+  organizationId?: string;
 }
 
-export function CustomFields({ fields, onChange, disabled = false, allowAdd = true }: CustomFieldsProps) {
+export function CustomFields({ fields, onChange, disabled = false, allowAdd = true, organizationId }: CustomFieldsProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState('');
   const [newFieldKey, setNewFieldKey] = useState('');
@@ -299,29 +305,12 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
 
       case 'image_url':
         return (
-          <div className="space-y-2">
-            <Input
-              type="url"
-              value={field.value}
-              onChange={(e) => updateFieldValue(field.id, e.target.value)}
-              placeholder={config.placeholder}
-              disabled={disabled}
-              className="h-9"
-            />
-            {field.value && (
-              <div className="rounded-lg border overflow-hidden bg-muted/30 w-fit">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={field.value}
-                  alt="プレビュー"
-                  className="max-h-24 max-w-48 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          <ImageUploadField
+            value={field.value}
+            onChange={(url) => updateFieldValue(field.id, url)}
+            disabled={disabled}
+            organizationId={organizationId}
+          />
         );
 
       case 'select':
@@ -671,6 +660,169 @@ function ListInput({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 画像アップロードフィールド（ファイル選択 + ドラッグ&ドロップ）
+// ─────────────────────────────────────────────────────────────────────────────
+interface ImageUploadFieldProps {
+  value: string;
+  onChange: (url: string) => void;
+  disabled?: boolean;
+  organizationId?: string;
+}
+
+function ImageUploadField({ value, onChange, disabled, organizationId }: ImageUploadFieldProps) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFile = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setError('画像ファイルを選択してください');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('10MB 以下のファイルを選択してください');
+      return;
+    }
+    setError(null);
+
+    // organizationId がない場合は objectURL でプレビューだけ
+    if (!organizationId) {
+      onChange(URL.createObjectURL(file));
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await uploadContentImage(organizationId, formData);
+      if (result.error) {
+        setError(result.error);
+      } else if (result.data?.url) {
+        onChange(result.data.url);
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  }, [organizationId, onChange]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  }, [handleFile]);
+
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = () => setIsDragging(false);
+
+  return (
+    <div className="space-y-2">
+      {/* ドロップゾーン */}
+      <label
+        className={cn(
+          'relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-all cursor-pointer',
+          isDragging
+            ? 'border-sky-400 bg-sky-50/60 dark:bg-sky-950/20 scale-[1.01]'
+            : 'border-border hover:border-sky-300 hover:bg-muted/20',
+          disabled && 'opacity-50 cursor-not-allowed',
+          value ? 'p-2' : 'p-6'
+        )}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+      >
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          disabled={disabled || isUploading}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+        />
+
+        {value ? (
+          /* プレビュー表示 */
+          <div className="relative group/preview w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={value}
+              alt="プレビュー"
+              className="max-h-48 w-full object-contain rounded-lg"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+            {/* 変更オーバーレイ */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 group-hover/preview:opacity-100 transition-opacity">
+              <div className="flex flex-col items-center gap-1 text-white">
+                <Upload className="h-6 w-6" />
+                <span className="text-xs font-medium">クリックまたはドラッグで変更</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* 空状態 */
+          <div className="flex flex-col items-center gap-2 text-muted-foreground pointer-events-none">
+            {isUploading ? (
+              <>
+                <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
+                <p className="text-xs">アップロード中...</p>
+              </>
+            ) : (
+              <>
+                <ImageIcon className={cn('h-8 w-8', isDragging ? 'text-sky-500' : 'opacity-30')} />
+                <div className="text-center">
+                  <p className="text-xs font-medium">クリックして画像を選択</p>
+                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">またはここにドラッグ&ドロップ</p>
+                  <p className="text-[10px] text-muted-foreground/40 mt-1">JPG / PNG / WEBP / GIF・10MB 以下</p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* アップロード中スピナー（プレビューあり時） */}
+        {isUploading && value && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-xl">
+            <Loader2 className="h-7 w-7 animate-spin text-white" />
+          </div>
+        )}
+      </label>
+
+      {/* URL 直接入力（折りたたみ） */}
+      <details className="group">
+        <summary className="cursor-pointer text-[11px] text-muted-foreground/60 hover:text-muted-foreground list-none flex items-center gap-1">
+          <span className="group-open:hidden">▶ URLを直接入力</span>
+          <span className="hidden group-open:inline">▼ URLを直接入力</span>
+        </summary>
+        <div className="mt-1.5 flex gap-2">
+          <Input
+            type="url"
+            value={value}
+            onChange={(e) => { onChange(e.target.value); setError(null); }}
+            placeholder="https://example.com/image.jpg"
+            disabled={disabled}
+            className="h-8 text-xs"
+          />
+          {value && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => { onChange(''); setError(null); }}
+              className="h-8 px-2 text-muted-foreground hover:text-destructive shrink-0"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      </details>
+
+      {/* エラー */}
+      {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
 }

@@ -478,6 +478,7 @@ export default function NewProductPage() {
             onChange={setCustomFields}
             disabled={isPending}
             allowAdd={false}
+            organizationId={organization?.id}
           />
 
           {/* SEO */}

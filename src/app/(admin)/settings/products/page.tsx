@@ -47,7 +47,7 @@ const fieldTypeConfig: Record<CustomFieldType, { label: string; icon: React.Elem
   url:       { label: 'URL',          icon: Link2,       color: 'text-cyan-500',    category: 'media' },
   email:     { label: 'メール',       icon: Mail,        color: 'text-sky-500',     category: 'media' },
   phone:     { label: '電話番号',     icon: Phone,       color: 'text-teal-500',    category: 'media' },
-  image_url: { label: '画像URL',      icon: ImageIcon,   color: 'text-sky-500',  category: 'media' },
+  image_url: { label: '画像',      icon: ImageIcon,   color: 'text-sky-500',  category: 'media' },
   color:     { label: 'カラー',       icon: Palette,     color: 'text-pink-500',    category: 'media' },
   rating:    { label: '評価',         icon: Star,        color: 'text-sky-500',  category: 'advanced' },
   list:      { label: 'リスト',       icon: ListOrdered, color: 'text-rose-500',    category: 'advanced' },

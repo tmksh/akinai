@@ -1,10 +1,25 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Trash2, RefreshCw, Upload, X, Search, Wand2, Palette, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Upload, X, Search, Wand2, Palette, Image as ImageIcon, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  horizontalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { ProductVariant } from './simple-variant-input';
 
 interface AxisItem {
@@ -36,6 +51,123 @@ interface MatrixVariantInputProps {
   showHeroPreview?: boolean;
 }
 
+// ────────────────────────────────────────────────────────────
+// ドラッグ可能なスウォッチタイル
+// ────────────────────────────────────────────────────────────
+interface SortableSwatchItemProps {
+  item: AxisItem;
+  isSelected: boolean;
+  disabled?: boolean;
+  onSelect: () => void;
+  onColorChange: (color: string) => void;
+  onValueChange: (value: string) => void;
+  onRemove: () => void;
+}
+
+function SortableSwatchItem({
+  item,
+  isSelected,
+  disabled,
+  onSelect,
+  onColorChange,
+  onValueChange,
+  onRemove,
+}: SortableSwatchItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  const hasColor = Boolean(item.color);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex flex-col items-center gap-1 relative group"
+    >
+      {/* ドラッグハンドル（タイル上部） */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute -top-2 left-1/2 -translate-x-1/2 h-4 w-8 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-60 transition-opacity touch-none"
+        title="ドラッグして並び替え"
+      >
+        <GripVertical className="h-3 w-3 text-slate-400 rotate-90" />
+      </div>
+
+      {/* カラー正方形 */}
+      <div
+        className={cn(
+          'relative h-14 w-14 rounded-lg border-2 overflow-hidden transition-all cursor-pointer',
+          isSelected
+            ? 'border-slate-800 dark:border-white shadow-md scale-105'
+            : 'border-slate-200 dark:border-white/20 hover:border-slate-400',
+          !hasColor && 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800'
+        )}
+        style={hasColor ? { backgroundColor: item.color } : undefined}
+        onClick={onSelect}
+        title="クリックしてプレビューに反映"
+      >
+        {/* 選択チェック */}
+        {isSelected && (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/10">
+            <span className="h-6 w-6 rounded-full bg-white/90 text-slate-800 text-xs flex items-center justify-center font-bold shadow">✓</span>
+          </span>
+        )}
+
+        {/* 色変更ボタン（ホバーで表示） */}
+        <label
+          className="absolute bottom-0.5 right-0.5 h-5 w-5 rounded-md bg-white/80 dark:bg-black/60 backdrop-blur-sm border border-white/60 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+          title="色を変更"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="color"
+            value={item.color ?? '#aaaaaa'}
+            onChange={(e) => onColorChange(e.target.value)}
+            disabled={disabled}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+          <Palette className="h-2.5 w-2.5 text-slate-600 dark:text-slate-300" />
+        </label>
+      </div>
+
+      {/* 名前入力（下段） */}
+      <input
+        type="text"
+        value={item.value}
+        onChange={(e) => onValueChange(e.target.value)}
+        disabled={disabled}
+        className="w-14 text-[11px] text-center bg-transparent border-0 border-b border-transparent hover:border-slate-300 dark:hover:border-slate-600 focus:border-sky-400 outline-none py-0.5 transition-colors leading-tight"
+        title="名前を編集"
+      />
+
+      {/* 削除ボタン（ホバーで右上に出現） */}
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={disabled}
+        title="削除"
+        className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-300 transition-colors opacity-0 group-hover:opacity-100"
+      >
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </div>
+  );
+}
+
 function generateSku(parts: string[]): string {
   return parts
     .map((p) => p.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, ''))
@@ -52,6 +184,22 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
   const [newItemValues, setNewItemValues] = useState<Record<string, string>>({});
   const [selectedItems, setSelectedItems] = useState<Record<string, string>>({});
   const hydratedRef = useRef(false);
+
+  // ドラッグ&ドロップ
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const handleDragEnd = (axisId: string, event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setAxes((prev) =>
+      prev.map((a) => {
+        if (a.id !== axisId) return a;
+        const oldIdx = a.items.findIndex((i) => i.id === active.id);
+        const newIdx = a.items.findIndex((i) => i.id === over.id);
+        if (oldIdx < 0 || newIdx < 0) return a;
+        return { ...a, items: arrayMove(a.items, oldIdx, newIdx) };
+      })
+    );
+  };
 
   // 既存variantsからaxesを自動復元（初回のみ）
   // variant名パターン: "マット:オフホワイト / ベース:オリーブ / フレーム:ソイル"
@@ -140,7 +288,15 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
       .map((a) => selectedItems[a.id] ?? a.items[0]?.value)
       .filter(Boolean)
       .join(' / ');
-    const matched = variants.find((v) => v.name === name) ?? null;
+    // 軸名:値 形式のバリエーション名にも対応
+    const nameWithPrefix = validAxes
+      .map((a) => {
+        const val = selectedItems[a.id] ?? a.items[0]?.value;
+        return val ? `${a.name}:${val}` : null;
+      })
+      .filter(Boolean)
+      .join(' / ');
+    const matched = variants.find((v) => v.name === nameWithPrefix || v.name === name) ?? null;
     onSelectedVariantChangeRef.current(matched);
   }, [selectedItems, variants, axes]);
 
@@ -309,7 +465,20 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
         const selectedCombo = validAxes
           .map((a) => selectedItems[a.id] ?? a.items[0]?.value)
           .filter(Boolean);
-        const matchedVariant = variants.find((v) => v.name === selectedCombo.join(' / '));
+
+        // バリエーション名は「軸名:値 / 軸名:値」形式の場合があるので両パターンで検索
+        const comboWithPrefix = validAxes
+          .map((a) => {
+            const val = selectedItems[a.id] ?? a.items[0]?.value;
+            return val ? `${a.name}:${val}` : null;
+          })
+          .filter(Boolean)
+          .join(' / ');
+        const comboPlain = selectedCombo.join(' / ');
+
+        const matchedVariant = variants.find(
+          (v) => v.name === comboWithPrefix || v.name === comboPlain
+        );
         const previewImage = matchedVariant?.imageUrl;
 
         const handleHeroImageChange = (file: File) => {
@@ -436,96 +605,56 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
               </button>
             </div>
 
-            {/* スウォッチ一覧（横並びタイル） */}
-            <div className="flex flex-wrap gap-2.5">
-              {axis.items.map((item) => {
-                const isSelected = selectedItems[axis.id] === item.value || (!selectedItems[axis.id] && axis.items[0]?.id === item.id);
-                const hasColor = Boolean(item.color);
-                return (
-                  <div key={item.id} className="group flex flex-col items-center gap-1 relative">
+            {/* スウォッチ一覧（横並びタイル・ドラッグ並び替え対応） */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(e) => handleDragEnd(axis.id, e)}
+            >
+              <SortableContext
+                items={axis.items.map((i) => i.id)}
+                strategy={horizontalListSortingStrategy}
+              >
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  {axis.items.map((item) => {
+                    const isSelected = selectedItems[axis.id] === item.value || (!selectedItems[axis.id] && axis.items[0]?.id === item.id);
+                    return (
+                      <SortableSwatchItem
+                        key={item.id}
+                        item={item}
+                        isSelected={isSelected}
+                        disabled={disabled}
+                        onSelect={() => setSelectedItems((prev) => ({ ...prev, [axis.id]: item.value }))}
+                        onColorChange={(color) => updateItemColor(axis.id, item.id, color)}
+                        onValueChange={(value) => updateItemValue(axis.id, item.id, value)}
+                        onRemove={() => !disabled && removeItem(axis.id, item.id)}
+                      />
+                    );
+                  })}
 
-                    {/* カラー正方形 */}
-                    <div
-                      className={cn(
-                        'relative h-14 w-14 rounded-lg border-2 overflow-hidden transition-all cursor-pointer',
-                        isSelected
-                          ? 'border-slate-800 dark:border-white shadow-md scale-105'
-                          : 'border-slate-200 dark:border-white/20 hover:border-slate-400',
-                        !hasColor && 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800'
-                      )}
-                      style={hasColor ? { backgroundColor: item.color } : undefined}
-                      onClick={() => setSelectedItems((prev) => ({ ...prev, [axis.id]: item.value }))}
-                      title="クリックしてプレビューに反映"
-                    >
-                      {/* 選択チェック */}
-                      {isSelected && (
-                        <span className="absolute inset-0 flex items-center justify-center bg-black/10">
-                          <span className="h-6 w-6 rounded-full bg-white/90 text-slate-800 text-xs flex items-center justify-center font-bold shadow">✓</span>
-                        </span>
-                      )}
-
-                      {/* 色変更ボタン（ホバーで表示） */}
-                      <label
-                        className="absolute bottom-0.5 right-0.5 h-5 w-5 rounded-md bg-white/80 dark:bg-black/60 backdrop-blur-sm border border-white/60 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
-                        title="色を変更"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="color"
-                          value={item.color ?? '#aaaaaa'}
-                          onChange={(e) => updateItemColor(axis.id, item.id, e.target.value)}
-                          disabled={disabled}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        <Palette className="h-2.5 w-2.5 text-slate-600 dark:text-slate-300" />
-                      </label>
+                  {/* 新しい選択肢を追加 */}
+                  <div className="flex flex-col items-center gap-1 pt-2">
+                    <div className="relative h-14 w-14 rounded-lg border-2 border-dashed border-slate-300 dark:border-white/20 flex flex-col items-center justify-center gap-0.5 bg-slate-50/50 dark:bg-slate-800/30">
+                      <Plus className="h-4 w-4 text-slate-400" />
                     </div>
-
-                    {/* 名前入力（下段） */}
                     <input
                       type="text"
-                      value={item.value}
-                      onChange={(e) => updateItemValue(axis.id, item.id, e.target.value)}
+                      placeholder="名前を入力"
+                      value={newItemValues[axis.id] ?? ''}
+                      onChange={(e) => setNewItemValues({ ...newItemValues, [axis.id]: e.target.value })}
                       disabled={disabled}
-                      className="w-14 text-[11px] text-center bg-transparent border-0 border-b border-transparent hover:border-slate-300 dark:hover:border-slate-600 focus:border-sky-400 outline-none py-0.5 transition-colors leading-tight"
-                      title="名前を編集"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(axis.id); } }}
+                      className="w-14 text-[11px] text-center bg-transparent border-0 border-b border-slate-200 dark:border-slate-600 focus:border-sky-400 outline-none py-0.5 placeholder:text-slate-400 transition-colors"
                     />
-
-                    {/* 削除ボタン（ホバーで右上に出現） */}
-                    <button
-                      type="button"
-                      onClick={() => !disabled && removeItem(axis.id, item.id)}
-                      disabled={disabled}
-                      title="削除"
-                      className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-sm flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-300 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <X className="h-2.5 w-2.5" />
-                    </button>
                   </div>
-                );
-              })}
-
-              {/* 新しい選択肢を追加 */}
-              <div className="flex flex-col items-center gap-1">
-                <div className="relative h-14 w-14 rounded-lg border-2 border-dashed border-slate-300 dark:border-white/20 flex flex-col items-center justify-center gap-0.5 bg-slate-50/50 dark:bg-slate-800/30">
-                  <Plus className="h-4 w-4 text-slate-400" />
                 </div>
-                <input
-                  type="text"
-                  placeholder="名前を入力"
-                  value={newItemValues[axis.id] ?? ''}
-                  onChange={(e) => setNewItemValues({ ...newItemValues, [axis.id]: e.target.value })}
-                  disabled={disabled}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(axis.id); } }}
-                  className="w-14 text-[11px] text-center bg-transparent border-0 border-b border-slate-200 dark:border-slate-600 focus:border-sky-400 outline-none py-0.5 placeholder:text-slate-400 transition-colors"
-                />
-              </div>
-            </div>
+              </SortableContext>
+            </DndContext>
 
             {/* 色未設定の注意書き（1つでも未設定があれば表示） */}
             {axis.items.some((i) => !i.color) && (
-              <p className="mt-2 text-[11px] text-muted-foreground/60">
-                スウォッチ右下の <Palette className="inline h-2.5 w-2.5 mx-0.5" /> をクリックして色を設定できます
+              <p className="mt-2 text-[11px] text-muted-foreground/60 flex items-center gap-1">
+                スウォッチにカーソルを合わせて右下の <Palette className="inline h-2.5 w-2.5" /> から色を設定できます
               </p>
             )}
           </div>
