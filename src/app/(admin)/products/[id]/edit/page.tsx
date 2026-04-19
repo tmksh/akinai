@@ -101,7 +101,7 @@ export default function ProductEditPage() {
   const [previewAxes, setPreviewAxes] = useState<MatrixAxis[]>([]);
   const [previewSelectedItems, setPreviewSelectedItems] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(true);
-  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('mobile');
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [previewQuantity, setPreviewQuantity] = useState(1);
   const [previewKey, setPreviewKey] = useState(0);
 
@@ -260,7 +260,7 @@ export default function ProductEditPage() {
             ...customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) })),
             // スウォッチ設定をシステムキーとして保存（UI非表示）
             ...(swatchConfig.length > 0
-              ? [{ key: '_swatch_config', label: '', value: JSON.stringify(swatchConfig.map(a => ({ name: a.name, items: a.items.map(i => ({ value: i.value, color: i.color })) }))), type: 'system' }]
+              ? [{ key: '_swatch_config', label: '', value: JSON.stringify(swatchConfig.map(a => ({ name: a.name, items: a.items.map(i => ({ value: i.value, color: i.color, imageUrl: i.imageUrl })) }))), type: 'system' }]
               : []
             ),
           ],
@@ -374,10 +374,10 @@ export default function ProductEditPage() {
 
       <div className={cn(
         "grid gap-6",
-        showPreview ? "lg:grid-cols-2" : "lg:grid-cols-3"
+        showPreview ? "lg:grid-cols-2" : "grid-cols-1 lg:grid-cols-[1fr_280px]"
       )}>
         {/* メインコンテンツ */}
-        <div className={cn(showPreview ? "" : "lg:col-span-2", "space-y-6")}>
+        <div className="space-y-6">
           {/* 基本情報 */}
           <Card className="card-hover">
             <CardHeader>
@@ -484,23 +484,12 @@ export default function ProductEditPage() {
                     type="button"
                     onClick={() => setVariantInputMode('simple')}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                      variantInputMode === 'simple'
+                      variantInputMode === 'simple' || variantInputMode === 'matrix'
                         ? 'bg-background shadow-sm text-foreground'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     手動で追加
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVariantInputMode('matrix')}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                      variantInputMode === 'matrix'
-                        ? 'bg-background shadow-sm text-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    組み合わせで自動生成
                   </button>
                   <button
                     type="button"
@@ -527,6 +516,8 @@ export default function ProductEditPage() {
                   onSwatchConfigChange={setSwatchConfig}
                   disabled={isPending}
                   showHeroPreview={variantInputMode === 'swatch'}
+                  productImages={productImages}
+                  productId={productId}
                 />
               ) : (
                 <SimpleVariantInput

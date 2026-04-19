@@ -37,6 +37,12 @@ interface Axis {
 
 export type { Axis, AxisItem };
 
+interface ProductImage {
+  id: string;
+  url: string;
+  alt: string | null;
+}
+
 interface MatrixVariantInputProps {
   variants: ProductVariant[];
   onChange: (variants: ProductVariant[]) => void;
@@ -49,6 +55,10 @@ interface MatrixVariantInputProps {
   disabled?: boolean;
   /** ヒーロープレビュー（選択に応じた大きな画像表示）を出すか */
   showHeroPreview?: boolean;
+  /** 商品ギャラリー画像（組み合わせプレビューに紐付け可能） */
+  productImages?: ProductImage[];
+  /** 商品ID（スウォッチ画像アップロード用） */
+  productId?: string;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -60,8 +70,12 @@ interface SortableSwatchItemProps {
   disabled?: boolean;
   onSelect: () => void;
   onColorChange: (color: string) => void;
+  onImageChange: (imageUrl: string) => void;
   onValueChange: (value: string) => void;
   onRemove: () => void;
+  productId?: string;
+  /** この軸で画像アップロードを許可するか（軸内に1つでも画像があればtrue） */
+  allowImages?: boolean;
 }
 
 function SortableSwatchItem({
@@ -70,8 +84,11 @@ function SortableSwatchItem({
   disabled,
   onSelect,
   onColorChange,
+  onImageChange,
   onValueChange,
   onRemove,
+  productId,
+  allowImages = false,
 }: SortableSwatchItemProps) {
   const {
     attributes,
@@ -90,6 +107,26 @@ function SortableSwatchItem({
   };
 
   const hasColor = Boolean(item.color);
+  const hasImage = Boolean(item.imageUrl);
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (file: File) => {
+    if (!productId) {
+      // productId なければ blob URL を一時使用
+      onImageChange(URL.createObjectURL(file));
+      return;
+    }
+    setUploading(true);
+    try {
+      const { uploadProductImage } = await import('@/lib/actions/storage');
+      const fd = new FormData();
+      fd.append('file', file);
+      const result = await uploadProductImage(productId, fd);
+      if (result.data?.url) onImageChange(result.data.url);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div
@@ -114,20 +151,32 @@ function SortableSwatchItem({
           isSelected
             ? 'border-slate-800 dark:border-white shadow-md scale-105'
             : 'border-slate-200 dark:border-white/20 hover:border-slate-400',
-          !hasColor && 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800'
+          !hasColor && !hasImage && 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800'
         )}
-        style={hasColor ? { backgroundColor: item.color } : undefined}
+        style={!hasImage && hasColor ? { backgroundColor: item.color } : undefined}
         onClick={onSelect}
         title="クリックしてプレビューに反映"
       >
+        {/* 画像表示 */}
+        {hasImage && (
+          <img src={item.imageUrl} alt={item.value} className="absolute inset-0 w-full h-full object-cover" />
+        )}
+
+        {/* アップロード中インジケーター */}
+        {uploading && (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+          </span>
+        )}
+
         {/* 選択チェック */}
-        {isSelected && (
+        {isSelected && !uploading && (
           <span className="absolute inset-0 flex items-center justify-center bg-black/10">
             <span className="h-6 w-6 rounded-full bg-white/90 text-slate-800 text-xs flex items-center justify-center font-bold shadow">✓</span>
           </span>
         )}
 
-        {/* 色変更ボタン（ホバーで表示） */}
+        {/* 色変更ボタン（ホバーで表示・右下・元通り） */}
         <label
           className="absolute bottom-0.5 right-0.5 h-5 w-5 rounded-md bg-white/80 dark:bg-black/60 backdrop-blur-sm border border-white/60 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
           title="色を変更"
@@ -142,6 +191,13 @@ function SortableSwatchItem({
           />
           <Palette className="h-2.5 w-2.5 text-slate-600 dark:text-slate-300" />
         </label>
+
+        {/* 画像設定済みバッジ（画像がある時だけ左上に表示） */}
+        {hasImage && (
+          <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded bg-white/80 dark:bg-black/60 flex items-center justify-center">
+            <ImageIcon className="h-2.5 w-2.5 text-sky-500" />
+          </span>
+        )}
       </div>
 
       {/* 名前入力（下段） */}
@@ -153,6 +209,31 @@ function SortableSwatchItem({
         className="w-14 text-[11px] text-center bg-transparent border-0 border-b border-transparent hover:border-slate-300 dark:hover:border-slate-600 focus:border-sky-400 outline-none py-0.5 transition-colors leading-tight"
         title="名前を編集"
       />
+
+      {/* 画像アップロード（名前の下・ホバーで表示・allowImagesの軸のみ） */}
+      {allowImages && (
+        <label
+          className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+          title={hasImage ? '画像を変更' : '画像を設定'}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={disabled || uploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleImageUpload(file);
+              e.target.value = '';
+            }}
+          />
+          <span className="text-[10px] text-muted-foreground hover:text-sky-500 transition-colors flex items-center gap-0.5">
+            <ImageIcon className="h-2.5 w-2.5" />
+            {hasImage ? '変更' : '画像'}
+          </span>
+        </label>
+      )}
 
       {/* 削除ボタン（ホバーで右上に出現） */}
       <button
@@ -175,9 +256,9 @@ function generateSku(parts: string[]): string {
     .join('-');
 }
 
-const AXIS_PRESETS = ['色', 'サイズ', '素材', '外枠カラー', 'マットカラー', 'ベースカラー'];
+const AXIS_PRESETS = ['色', 'サイズ', '素材', '外枠カラー', 'マットカラー', 'ベースカラー'] as const;
 
-export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange, onAxesChange, initialSwatchConfig, onSwatchConfigChange, disabled, showHeroPreview = false }: MatrixVariantInputProps) {
+export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange, onAxesChange, initialSwatchConfig, onSwatchConfigChange, disabled, showHeroPreview = false, productImages = [], productId }: MatrixVariantInputProps) {
   const [axes, setAxes] = useState<Axis[]>([]);
   const [newAxisName, setNewAxisName] = useState('');
   const [showPresets, setShowPresets] = useState(false);
@@ -205,7 +286,42 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
   // variant名パターン: "マット:オフホワイト / ベース:オリーブ / フレーム:ソイル"
   //                  または "オフホワイト / オリーブ / ソイル"
   useEffect(() => {
-    if (hydratedRef.current) return;
+    // ── すでに軸が構築済み → 色だけを後から適用（initialSwatchConfig が遅れて届いた場合）
+    if (hydratedRef.current) {
+      if (!initialSwatchConfig?.length || axes.length === 0) return;
+      setAxes((prev) => {
+        const next = prev.map((axis) => {
+          const savedAxis = initialSwatchConfig.find((a) => a.name === axis.name);
+          if (!savedAxis) return axis;
+          // 色の更新 + savedAxisの順序に並べ替え
+          const existingMap = new Map(axis.items.map((i) => [i.value, i]));
+          // savedAxis の順序で並べ、存在するアイテムのみ採用（色も上書き）
+          const reordered: AxisItem[] = [];
+          for (const savedItem of savedAxis.items) {
+            const existing = existingMap.get(savedItem.value);
+            if (existing) {
+              reordered.push({ ...existing, color: savedItem.color ?? existing.color, imageUrl: savedItem.imageUrl ?? existing.imageUrl });
+            } else {
+              reordered.push({ id: savedItem.id, value: savedItem.value, color: savedItem.color, imageUrl: savedItem.imageUrl });
+            }
+          }
+          // savedAxis にない既存アイテムは末尾に追加
+          for (const item of axis.items) {
+            if (!savedAxis.items.find((i) => i.value === item.value)) {
+              reordered.push(item);
+            }
+          }
+          const changed =
+            reordered.length !== axis.items.length ||
+            reordered.some((item, idx) => item.value !== axis.items[idx]?.value || item.color !== axis.items[idx]?.color || item.imageUrl !== axis.items[idx]?.imageUrl);
+          return changed ? { ...axis, items: reordered } : axis;
+        });
+        const anyChanged = next.some((a, i) => a !== prev[i]);
+        return anyChanged ? next : prev;
+      });
+      return;
+    }
+
     if (variants.length === 0) return;
     if (axes.length > 0) { hydratedRef.current = true; return; }
 
@@ -238,7 +354,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
           itemMap.set(value, {
             id: `i-${axisName}-${value}-${itemMap.size}`,
             value,
-            imageUrl: v.imageUrl,
+            // バリアントの画像はスウォッチには引き継がない（スウォッチ画像はinitialSwatchConfigから取得）
           });
         }
       });
@@ -247,20 +363,37 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
     if (!valid || axisOrder.length === 0) { hydratedRef.current = true; return; }
 
     const restored: Axis[] = axisOrder.map((name, idx) => {
-      // initialSwatchConfig から同名の軸を探して色を引き継ぐ
+      // initialSwatchConfig から同名の軸を探して色・順序を引き継ぐ
       const savedAxis = initialSwatchConfig?.find((a) => a.name === name);
-      return {
-        id: `axis-restored-${idx}`,
-        name,
-        items: Array.from(axisItemsMap.get(name)!.values()).map((item) => {
-          const savedItem = savedAxis?.items.find((i) => i.value === item.value);
-          return { ...item, color: savedItem?.color ?? item.color };
-        }),
-      };
+      const variantItemMap = axisItemsMap.get(name)!;
+      let items: AxisItem[];
+      if (savedAxis?.items?.length) {
+        // savedAxis の順序で並べ替え（色も適用）
+        const ordered: AxisItem[] = [];
+        for (const savedItem of savedAxis.items) {
+          const variantItem = variantItemMap.get(savedItem.value);
+          if (variantItem) {
+            ordered.push({ ...variantItem, color: savedItem.color ?? variantItem.color, imageUrl: savedItem.imageUrl ?? variantItem.imageUrl });
+          } else {
+            ordered.push({ id: savedItem.id, value: savedItem.value, color: savedItem.color, imageUrl: savedItem.imageUrl });
+          }
+        }
+        // savedAxis にないバリアントアイテムは末尾に追加
+        for (const [value, item] of variantItemMap.entries()) {
+          if (!savedAxis.items.find((i) => i.value === value)) {
+            ordered.push(item);
+          }
+        }
+        items = ordered;
+      } else {
+        items = Array.from(variantItemMap.values());
+      }
+      return { id: `axis-restored-${idx}`, name, items };
     });
     setAxes(restored);
     hydratedRef.current = true;
-  }, [variants, axes.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variants, axes.length, initialSwatchConfig]);
 
   // コールバックをrefで保持（依存配列ループを避けるため）
   const onSelectedVariantChangeRef = useRef(onSelectedVariantChange);
@@ -458,9 +591,9 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
   };
 
   return (
-    <div className="space-y-0">
+    <div className={cn(showHeroPreview ? "flex gap-4 items-start" : "space-y-0")}>
 
-      {/* ヒーロープレビュー（スウォッチモード時） */}
+      {/* ヒーロープレビュー（スウォッチモード時・左側固定） */}
       {showHeroPreview && (() => {
         const selectedCombo = validAxes
           .map((a) => selectedItems[a.id] ?? a.items[0]?.value)
@@ -488,7 +621,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
         };
 
         return (
-          <div className="mb-5 rounded-xl overflow-hidden border bg-background">
+          <div className="w-80 shrink-0 sticky top-4 rounded-xl overflow-hidden border bg-background self-start">
             {/* 画像エリア */}
             <div className="aspect-[16/9] flex items-center justify-center relative bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 group/hero">
               {previewImage ? (
@@ -577,9 +710,55 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                 )}
               </div>
             )}
+
+            {/* ギャラリー画像選択（組み合わせへの紐付け） */}
+            {matchedVariant && productImages.length > 0 && (
+              <div className="px-4 py-3 border-t bg-muted/10">
+                <p className="text-[11px] text-muted-foreground mb-2">
+                  商品ギャラリーから画像を選択してこの組み合わせに紐付け：
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {productImages.map((img) => {
+                    const isLinked = matchedVariant.imageUrl === img.url;
+                    return (
+                      <button
+                        key={img.id}
+                        type="button"
+                        title={img.alt ?? img.url}
+                        disabled={disabled}
+                        onClick={() => {
+                          onChange(
+                            variants.map((v) =>
+                              v.id === matchedVariant.id
+                                ? { ...v, imageUrl: isLinked ? undefined : img.url }
+                                : v
+                            )
+                          );
+                        }}
+                        className={cn(
+                          'shrink-0 h-14 w-14 rounded-lg border-2 overflow-hidden transition-all',
+                          isLinked
+                            ? 'border-sky-500 ring-2 ring-sky-300 dark:ring-sky-700 scale-105'
+                            : 'border-slate-200 dark:border-slate-600 hover:border-sky-400'
+                        )}
+                      >
+                        <img
+                          src={img.url}
+                          alt={img.alt ?? ''}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}
+
+      {/* スウォッチ軸コントロール（横並び時は右カラム） */}
+      <div className={cn(showHeroPreview && "flex-1 min-w-0 space-y-0")}>
 
       {/* 各軸（WooCommerce風） */}
       {axes.map((axis, axisIndex) => {
@@ -618,6 +797,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                 <div className="flex flex-wrap gap-2.5 pt-2">
                   {axis.items.map((item) => {
                     const isSelected = selectedItems[axis.id] === item.value || (!selectedItems[axis.id] && axis.items[0]?.id === item.id);
+                    const axisAllowsImages = axis.items.some((i) => i.imageUrl);
                     return (
                       <SortableSwatchItem
                         key={item.id}
@@ -626,8 +806,11 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                         disabled={disabled}
                         onSelect={() => setSelectedItems((prev) => ({ ...prev, [axis.id]: item.value }))}
                         onColorChange={(color) => updateItemColor(axis.id, item.id, color)}
+                        onImageChange={(imageUrl) => updateItemImage(axis.id, item.id, imageUrl)}
                         onValueChange={(value) => updateItemValue(axis.id, item.id, value)}
                         onRemove={() => !disabled && removeItem(axis.id, item.id)}
+                        productId={productId}
+                        allowImages={axisAllowsImages}
                       />
                     );
                   })}
@@ -704,7 +887,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
       </div>
 
       {/* 生成ボタン */}
-      {axes.length > 0 && (
+      {!showHeroPreview && axes.length > 0 && (
         <div className="border-t pt-4">
           <div className="flex items-center justify-between">
             {totalCombinations > 0 ? (
@@ -728,7 +911,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
       )}
 
       {/* バリエーション一覧 */}
-      {variants.length > 0 && (
+      {!showHeroPreview && variants.length > 0 && (
         <div className="border-t pt-4 space-y-3">
           {/* ヘッダー */}
           <div className="flex flex-wrap items-center gap-2 justify-between">
@@ -954,6 +1137,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
           )}
         </div>
       )}
+      </div>{/* /スウォッチ軸コントロール */}
     </div>
   );
 }
