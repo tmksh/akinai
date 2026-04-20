@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import { sendEmail } from '@/lib/email';
-import { buildOrderConfirmationEmail, buildNewOrderNotificationEmail, buildAgentOrderNotificationEmail, type OrderEmailData, type AgentOrderEmailData } from '@/lib/email-templates/order';
+import { triggerOrderEmails } from '@/lib/order-emails';
 
 /**
  * POST /api/shop/checkout
@@ -287,78 +286,8 @@ export async function POST(request: NextRequest) {
     : null;
 
   // 銀行振込・代引きは注文作成時点でメール送信（Stripeイベントがないため）
-  try {
-    const emailData: OrderEmailData = {
-      orderNumber: order.order_number,
-      customerName: body.shipping.name,
-      customerEmail: body.shipping.email,
-      items: body.items.map(item => ({
-        productName: item.name,
-        variantName: item.variantName,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        totalPrice: item.price * item.quantity,
-      })),
-      subtotal,
-      shippingFee,
-      tax,
-      total,
-      paymentMethod: body.paymentMethod,
-      shippingAddress: {
-        postalCode: body.shipping.postalCode,
-        prefecture: body.shipping.prefecture,
-        city: body.shipping.city,
-        line1: body.shipping.line1,
-        line2: body.shipping.line2 || null,
-        phone: body.shipping.phone,
-      },
-      shopName: org.name as string,
-      paymentInstructions,
-    };
-
-    const { subject, html } = buildOrderConfirmationEmail(emailData);
-    await sendEmail({ to: body.shipping.email, subject, html });
-
-    const adminEmail = (org as Record<string, unknown>).email as string | undefined;
-    if (adminEmail) {
-      const { subject: as, html: ah } = buildNewOrderNotificationEmail(emailData);
-      await sendEmail({ to: adminEmail, subject: as, html: ah });
-    }
-
-    // 代理店向け通知（注文に agent_id がある場合）
-    if (order.agent_id) {
-      const { data: agent } = await supabase
-        .from('agents')
-        .select('email, name, company, code, commission_rate')
-        .eq('id', order.agent_id)
-        .single();
-
-      if (agent?.email) {
-        const agentEmailData: AgentOrderEmailData = {
-          orderNumber: order.order_number,
-          customerName: body.shipping.name,
-          agentCode: agent.code,
-          agentName: agent.name,
-          agentCompany: agent.company || '',
-          items: body.items.map(item => ({
-            productName: item.name,
-            variantName: item.variantName,
-            quantity: item.quantity,
-            totalPrice: item.price * item.quantity,
-          })),
-          subtotal,
-          total,
-          commissionRate: Number(agent.commission_rate),
-          commissionAmount: order.agent_commission_amount || 0,
-          shopName: org.name as string,
-        };
-        const { subject: agentSubject, html: agentHtml } = buildAgentOrderNotificationEmail(agentEmailData);
-        await sendEmail({ to: agent.email, subject: agentSubject, html: agentHtml });
-      }
-    }
-  } catch (err) {
-    console.error('[Email] Failed to send order emails:', err);
-  }
+  // akinai 側の内部エンドポイント経由で送信することで、RESEND_API_KEY を一元管理する
+  await triggerOrderEmails(order.id, org.id as string);
 
   return NextResponse.json({
     orderId: order.id,
