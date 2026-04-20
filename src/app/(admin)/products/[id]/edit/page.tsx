@@ -100,7 +100,7 @@ export default function ProductEditPage() {
   const [previewVariantImage, setPreviewVariantImage] = useState<string | null>(null);
   const [previewAxes, setPreviewAxes] = useState<MatrixAxis[]>([]);
   const [previewSelectedItems, setPreviewSelectedItems] = useState<Record<string, string>>({});
-  const [showPreview, setShowPreview] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [previewQuantity, setPreviewQuantity] = useState(1);
   const [previewKey, setPreviewKey] = useState(0);
@@ -375,7 +375,7 @@ export default function ProductEditPage() {
 
       <div className={cn(
         "grid gap-6",
-        showPreview ? "lg:grid-cols-2" : "grid-cols-1 lg:grid-cols-[1fr_280px]"
+        showPreview ? "lg:grid-cols-2" : "grid-cols-1"
       )}>
         {/* メインコンテンツ */}
         <div className="space-y-6">
@@ -452,6 +452,68 @@ export default function ProductEditPage() {
                     />
                   </div>
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                <div className="space-y-2">
+                  <Label>ステータス</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value: 'draft' | 'published' | 'archived') => setFormData({ ...formData, status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="ステータスを選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">下書き</SelectItem>
+                      <SelectItem value="published">公開</SelectItem>
+                      <SelectItem value="archived">アーカイブ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between pt-6">
+                  <div className="space-y-0.5">
+                    <Label>おすすめ商品</Label>
+                    <p className="text-xs text-muted-foreground">トップページに表示</p>
+                  </div>
+                  <Switch
+                    checked={formData.featured}
+                    onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2 pt-2 border-t">
+                <Label>カテゴリー</Label>
+                {categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    カテゴリーがありません。
+                    <Link href="/products/categories" className="text-primary hover:underline ml-1">
+                      作成する
+                    </Link>
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((category) => (
+                      <label
+                        key={category.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded border-input"
+                          checked={selectedCategories.includes(category.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCategories([...selectedCategories, category.id]);
+                            } else {
+                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id));
+                            }
+                          }}
+                        />
+                        <span className="text-sm">{category.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -653,13 +715,13 @@ export default function ProductEditPage() {
                 <div className={cn("p-4 min-h-[500px] overflow-auto", previewMode === 'mobile' ? "text-sm" : "p-6")}>
                   <div className="space-y-4">
                     {/* 商品画像 */}
-                    {(previewVariantImage || variants[0]?.imageUrl || productImages[0]?.url) ? (
+                    {(previewVariantImage || (variantInputMode === 'simple' ? variants[0]?.imageUrl : null) || productImages[0]?.url) ? (
                       <div className={cn(
                         "relative rounded-xl overflow-hidden",
                         previewMode === 'mobile' ? "aspect-square" : "aspect-[4/3]"
                       )}>
                         <img
-                          src={previewVariantImage || variants[0]?.imageUrl || productImages[0].url}
+                          src={previewVariantImage || (variantInputMode === 'simple' ? variants[0]?.imageUrl : null) || productImages[0]?.url}
                           alt="商品画像"
                           className="w-full h-full object-cover transition-all duration-300"
                         />
@@ -838,160 +900,6 @@ export default function ProductEditPage() {
                 </div>
               )}
             </div>
-
-            {/* サイドバー設定（プレビュー表示時） */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">公開設定</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-sm">ステータス</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: 'draft' | 'published' | 'archived') => setFormData({ ...formData, status: value })}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">下書き</SelectItem>
-                      <SelectItem value="published">公開</SelectItem>
-                      <SelectItem value="archived">アーカイブ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm">おすすめ商品</Label>
-                    <p className="text-xs text-muted-foreground">トップページに表示</p>
-                  </div>
-                  <Switch 
-                    checked={formData.featured}
-                    onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">カテゴリー</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {categories.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    カテゴリーがありません。
-                    <Link href="/products/categories" className="text-primary hover:underline ml-1">
-                      作成する
-                    </Link>
-                  </p>
-                ) : (
-                  <div className="space-y-2 max-h-[150px] overflow-auto">
-                    {categories.map((category) => (
-                      <label
-                        key={category.id}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          className="rounded border-input"
-                          checked={selectedCategories.includes(category.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedCategories([...selectedCategories, category.id]);
-                            } else {
-                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id));
-                            }
-                          }}
-                        />
-                        <span className="text-sm">{category.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* サイドバー（プレビュー非表示時） */}
-        {!showPreview && (
-          <div className="space-y-6">
-            {/* 公開設定 */}
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle>公開設定</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>ステータス</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: 'draft' | 'published' | 'archived') => setFormData({ ...formData, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="ステータスを選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">下書き</SelectItem>
-                      <SelectItem value="published">公開</SelectItem>
-                      <SelectItem value="archived">アーカイブ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>おすすめ商品</Label>
-                    <p className="text-xs text-muted-foreground">トップページに表示</p>
-                  </div>
-                  <Switch 
-                    checked={formData.featured}
-                    onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* カテゴリー */}
-            <Card className="card-hover">
-              <CardHeader>
-                <CardTitle>カテゴリー</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {categories.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    カテゴリーがありません。
-                    <Link href="/products/categories" className="text-primary hover:underline ml-1">
-                      作成する
-                    </Link>
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {categories.map((category) => (
-                      <label
-                        key={category.id}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          className="rounded border-input"
-                          checked={selectedCategories.includes(category.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedCategories([...selectedCategories, category.id]);
-                            } else {
-                              setSelectedCategories(selectedCategories.filter((id) => id !== category.id));
-                            }
-                          }}
-                        />
-                        <span className="text-sm">{category.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
         )}
       </div>

@@ -617,6 +617,9 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
         const matchedVariant = variants.find(
           (v) => v.name === comboWithPrefix || v.name === comboPlain
         );
+
+        // おまかせが選択されている場合もマッチしたバリアントの画像を表示（空フレーム画像を設定可能）
+        const hasOmakase = selectedCombo.includes('おまかせ');
         const previewImage = matchedVariant?.imageUrl;
 
         const handleHeroImageChange = async (file: File) => {
@@ -646,18 +649,29 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
             {/* 画像エリア */}
             <div className="aspect-[16/9] flex items-center justify-center relative bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 group/hero">
               {previewImage ? (
-                <img
-                  src={previewImage}
-                  alt="プレビュー"
-                  className="w-full h-full object-contain"
-                />
+                <>
+                  <img
+                    src={previewImage}
+                    alt="プレビュー"
+                    className="w-full h-full object-contain"
+                  />
+                  {hasOmakase && (
+                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+                      style={{ background: 'linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #c77dff)' }}
+                    >
+                      おまかせ
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <ImageIcon className="h-10 w-10 opacity-40" />
                   <p className="text-xs text-center px-4">
-                    {selectedCombo.length > 0
-                      ? '右下の「画像を設定」ボタンからこの組み合わせの画像をアップロードできます'
-                      : 'スウォッチを選択してプレビューを確認'}
+                    {hasOmakase
+                      ? '右下の「画像を設定」からおまかせ用の空フレーム画像をアップロードできます'
+                      : selectedCombo.length > 0
+                        ? '右下の「画像を設定」ボタンからこの組み合わせの画像をアップロードできます'
+                        : 'スウォッチを選択してプレビューを確認'}
                   </p>
                 </div>
               )}
@@ -702,8 +716,8 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                 </label>
               )}
 
-              {/* バリエーション未マッチ時のヒント */}
-              {!matchedVariant && selectedCombo.length === validAxes.length && selectedCombo.length > 0 && (
+              {/* バリエーション未マッチ時のヒント（おまかせ選択中は非表示） */}
+              {!hasOmakase && !matchedVariant && selectedCombo.length === validAxes.length && selectedCombo.length > 0 && (
                 <div className="absolute bottom-3 right-3 text-xs text-muted-foreground/60 bg-white/70 dark:bg-slate-800/70 rounded-md px-2 py-1">
                   この組み合わせのバリエーションが見つかりません
                 </div>
@@ -718,7 +732,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                     <span className="text-muted-foreground">選択中：</span>
                     {selectedCombo.join(' / ')}
                   </p>
-                  {!matchedVariant && (
+                  {!hasOmakase && !matchedVariant && (
                     <p className="text-[11px] text-amber-500 dark:text-amber-400">
                       ※ 対応するバリエーションが存在しません（バリエーション一覧を確認してください）
                     </p>
@@ -1087,10 +1101,25 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                         accept="image/*"
                         className="hidden"
                         disabled={disabled}
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
-                          updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
+                          e.target.value = '';
+                          if (!productId) {
+                            updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
+                            return;
+                          }
+                          try {
+                            const { uploadProductImage } = await import('@/lib/actions/storage');
+                            const fd = new FormData();
+                            fd.append('file', file);
+                            const result = await uploadProductImage(productId, fd);
+                            if (result.data?.url) {
+                              updateVariant(variant.id, 'imageUrl', result.data.url);
+                            }
+                          } catch {
+                            updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
+                          }
                         }}
                       />
                       <div className={cn(
