@@ -294,6 +294,11 @@ export default function OrderDetailPage() {
               <Truck className="mr-2 h-4 w-4" />
               発送する
             </Button>
+            {order.payment_status === 'paid' && (
+              <Button variant="outline" onClick={() => setShowRefundDialog(true)} disabled={isUpdating}>
+                返金処理
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setShowCancelDialog(true)} disabled={isUpdating}>
               <XCircle className="mr-2 h-4 w-4" />
               キャンセル
@@ -302,10 +307,17 @@ export default function OrderDetailPage() {
         );
       case 'processing':
         return (
-          <Button onClick={() => setShowShipDialog(true)} disabled={isUpdating}>
-            <Truck className="mr-2 h-4 w-4" />
-            発送する
-          </Button>
+          <>
+            <Button onClick={() => setShowShipDialog(true)} disabled={isUpdating}>
+              <Truck className="mr-2 h-4 w-4" />
+              発送する
+            </Button>
+            {order.payment_status === 'paid' && (
+              <Button variant="outline" onClick={() => setShowRefundDialog(true)} disabled={isUpdating}>
+                返金処理
+              </Button>
+            )}
+          </>
         );
       case 'shipped':
         return (
