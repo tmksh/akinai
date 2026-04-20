@@ -21,6 +21,7 @@ interface OrderItem {
   productId: string;
   variantId: string;
   quantity: number;
+  customFields?: Record<string, string>; // カスタムフィールド（お名前、記念日など）
 }
 
 // 配送先の型
@@ -41,7 +42,7 @@ interface CreateOrderRequest {
   items: OrderItem[];
   shippingAddress: ShippingAddress;
   billingAddress?: ShippingAddress;
-  paymentMethod: 'credit_card' | 'bank_transfer' | 'cod';
+  paymentMethod: 'credit_card' | 'bank_transfer' | 'cod' | 'none';
   customerId?: string;
   couponCode?: string;
   agentCode?: string;
@@ -92,8 +93,8 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  if (!body.paymentMethod || !['credit_card', 'bank_transfer', 'cod'].includes(body.paymentMethod)) {
-    return apiError('paymentMethod must be one of: credit_card, bank_transfer, cod', 400);
+  if (!body.paymentMethod || !['credit_card', 'bank_transfer', 'cod', 'none'].includes(body.paymentMethod)) {
+    return apiError('paymentMethod must be one of: credit_card, bank_transfer, cod, none', 400);
   }
 
   const supabase = createClient();
@@ -164,6 +165,7 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
         unitPrice: variant.price,
         totalPrice: itemTotal,
+        customFields: item.customFields || undefined,
       });
     }
 
@@ -260,6 +262,7 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
       unit_price: item.unitPrice,
       total_price: item.totalPrice,
+      custom_fields: item.customFields || null,
     }));
 
     const { error: itemsError } = await supabase
@@ -494,8 +497,7 @@ export async function POST(request: NextRequest) {
     
     // クレカ以外（銀行振込・代引き）は注文作成時点でメール送信
     // akinai サーバー上で直接 sendOrderEmails を呼ぶ（自己HTTP呼び出しを避けるため）
-    if (body.paymentMethod !== 'credit_card') {
-      await sendOrderEmails(supabase, order.id, auth.organizationId ?? null);
+    if (body.paymentMethod !== 'credit_card') {      await sendOrderEmails(supabase, order.id, auth.organizationId ?? null);
     } else {
       console.log('[Order Email] Skipping email for credit_card (handled by Stripe webhook)');
     }

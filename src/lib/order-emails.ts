@@ -31,7 +31,7 @@ export async function sendOrderEmails(
 
     const { data: items } = await supabase
       .from('order_items')
-      .select('product_name, variant_name, quantity, unit_price, total_price')
+      .select('product_name, variant_name, quantity, unit_price, total_price, custom_fields')
       .eq('order_id', orderId);
 
     if (!items) return;
@@ -67,6 +67,7 @@ export async function sendOrderEmails(
         quantity: i.quantity,
         unitPrice: i.unit_price,
         totalPrice: i.total_price,
+        customFields: (i.custom_fields as Record<string, string> | null) || undefined,
       })),
       subtotal: order.subtotal,
       shippingFee: order.shipping_cost || 0,

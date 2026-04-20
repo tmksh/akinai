@@ -12,6 +12,7 @@ export interface OrderEmailData {
     quantity: number;
     unitPrice: number;
     totalPrice: number;
+    customFields?: Record<string, string>;
   }[];
   subtotal: number;
   shippingFee: number;
@@ -49,6 +50,7 @@ const paymentMethodLabel: Record<string, string> = {
   credit_card: 'クレジットカード',
   bank_transfer: '銀行振込',
   cod: '代金引換',
+  none: '決済なし（後払い）',
 };
 
 function formatPrice(amount: number): string {
@@ -88,7 +90,7 @@ export function buildOrderConfirmationEmail(
       item => `
       <tr>
         <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#1e293b;">
-          ${item.productName}${item.variantName ? `<br><span style="font-size:12px;color:#64748b;">${item.variantName}</span>` : ''}
+          ${item.productName}${item.variantName ? `<br><span style="font-size:12px;color:#64748b;">${item.variantName}</span>` : ''}${item.customFields && Object.keys(item.customFields).length > 0 ? `<br>${Object.entries(item.customFields).map(([k, v]) => `<span style="font-size:12px;color:#64748b;">${k}: ${v}</span>`).join('<br>')}` : ''}
         </td>
         <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#1e293b;text-align:center;">${item.quantity}</td>
         <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#1e293b;text-align:right;">${formatPrice(item.unitPrice)}</td>
@@ -233,6 +235,7 @@ export interface AgentOrderEmailData {
     variantName?: string;
     quantity: number;
     totalPrice: number;
+    customFields?: Record<string, string>;
   }[];
   subtotal: number;
   total: number;
@@ -271,7 +274,7 @@ export function buildAgentOrderNotificationEmail(
       item => `
       <tr>
         <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#1e293b;">
-          ${item.productName}${item.variantName ? `<br><span style="font-size:12px;color:#64748b;">${item.variantName}</span>` : ''}
+          ${item.productName}${item.variantName ? `<br><span style="font-size:12px;color:#64748b;">${item.variantName}</span>` : ''}${item.customFields && Object.keys(item.customFields).length > 0 ? `<br>${Object.entries(item.customFields).map(([k, v]) => `<span style="font-size:12px;color:#64748b;">${k}: ${v}</span>`).join('<br>')}` : ''}
         </td>
         <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#1e293b;text-align:center;">${item.quantity}</td>
         <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#1e293b;text-align:right;font-weight:600;">${fmt(item.totalPrice)}</td>

@@ -422,6 +422,16 @@ export default function OrderDetailPage() {
                           {item.sku && (
                             <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
                           )}
+                          {/* カスタムフィールド */}
+                          {item.custom_fields && Object.keys(item.custom_fields as Record<string, string>).length > 0 && (
+                            <div className="mt-1 space-y-0.5">
+                              {Object.entries(item.custom_fields as Record<string, string>).map(([key, value]) => (
+                                <p key={key} className="text-xs text-muted-foreground">
+                                  {key}: <span className="text-foreground">{value}</span>
+                                </p>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
@@ -643,7 +653,13 @@ export default function OrderDetailPage() {
               {order.payment_method && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">支払い方法</span>
-                  <span className="font-medium">{order.payment_method}</span>
+                  <span className="font-medium">
+                    {order.payment_method === 'credit_card' ? 'クレジットカード'
+                      : order.payment_method === 'bank_transfer' ? '銀行振込'
+                      : order.payment_method === 'cod' ? '代金引換'
+                      : order.payment_method === 'none' ? '決済なし（後払い）'
+                      : order.payment_method}
+                  </span>
                 </div>
               )}
               <Separator />
@@ -653,6 +669,44 @@ export default function OrderDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* 代理店情報 */}
+          {order.agent_id && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-violet-500" />
+                  代理店情報
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">代理店コード</span>
+                  <span className="font-mono font-medium">{order.agent_code}</span>
+                </div>
+                {order.agent_commission_rate !== null && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">コミッション率</span>
+                    <span className="font-medium">{order.agent_commission_rate}%</span>
+                  </div>
+                )}
+                {order.agent_commission_amount !== null && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">コミッション額</span>
+                    <span className="font-medium">{formatCurrency(order.agent_commission_amount)}</span>
+                  </div>
+                )}
+                <Separator />
+                <Link
+                  href={`/agents/${order.agent_id}`}
+                  className="text-primary hover:underline flex items-center gap-1 text-sm"
+                >
+                  代理店詳細を見る
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
           {/* メモ */}
           <Card>

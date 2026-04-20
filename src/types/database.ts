@@ -466,6 +466,7 @@ export interface Database {
           quantity: number
           unit_price: number
           total_price: number
+          custom_fields: Record<string, string> | null
           created_at: string
         }
         Insert: {
@@ -479,6 +480,7 @@ export interface Database {
           quantity: number
           unit_price: number
           total_price: number
+          custom_fields?: Record<string, string> | null
           created_at?: string
         }
         Update: {
@@ -492,6 +494,7 @@ export interface Database {
           quantity?: number
           unit_price?: number
           total_price?: number
+          custom_fields?: Record<string, string> | null
           created_at?: string
         }
       }
