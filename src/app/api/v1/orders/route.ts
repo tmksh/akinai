@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import { triggerOrderEmails } from '@/lib/order-emails';
+import { triggerOrderEmails, sendOrderEmails } from '@/lib/order-emails';
 import { 
   validateApiKey, 
   apiError, 
@@ -493,9 +493,9 @@ export async function POST(request: NextRequest) {
     });
     
     // クレカ以外（銀行振込・代引き）は注文作成時点でメール送信
-    // akinai 側の内部エンドポイント経由で送信することで、RESEND_API_KEY を一元管理する
+    // akinai サーバー上で直接 sendOrderEmails を呼ぶ（自己HTTP呼び出しを避けるため）
     if (body.paymentMethod !== 'credit_card') {
-      await triggerOrderEmails(order.id, auth.organizationId ?? null);
+      await sendOrderEmails(supabase, order.id, auth.organizationId ?? null);
     } else {
       console.log('[Order Email] Skipping email for credit_card (handled by Stripe webhook)');
     }
