@@ -811,12 +811,28 @@ export default function OrderDetailPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>返金処理</DialogTitle>
-            <DialogDescription>この注文を返金処理しますか？</DialogDescription>
+            <DialogDescription>
+              {(order as unknown as { stripe_payment_intent_id?: string | null }).stripe_payment_intent_id
+                ? 'Stripe で返金処理を実行し、注文ステータスを返金済みに更新します。'
+                : '注文ステータスを返金済みに更新します（銀行振込・現金の場合は手動で返金してください）。'}
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              返金額: <span className="font-bold text-foreground">{formatCurrency(order.total)}</span>
-            </p>
+          <div className="py-4 space-y-3">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <span className="text-sm text-muted-foreground">返金額</span>
+              <span className="font-bold text-lg">{formatCurrency(order.total)}</span>
+            </div>
+            {(order as unknown as { stripe_payment_intent_id?: string | null }).stripe_payment_intent_id ? (
+              <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-lg p-3">
+                <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                Stripe で自動返金されます（代理店のコミッションも自動調整）
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 rounded-lg p-3">
+                <Clock className="h-4 w-4 flex-shrink-0" />
+                クレカ決済ではないため、ステータスのみ更新します
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRefundDialog(false)}>

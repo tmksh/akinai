@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import Stripe from 'stripe';
 
 function getAdminClient() {
   return createServiceClient(
@@ -741,7 +742,33 @@ export async function refundOrder(
       }
     }
 
-    // 3. 注文ステータスを更新
+    // 3. Stripe 返金処理（クレカ決済の場合）
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (stripeSecretKey && order.stripe_payment_intent_id) {
+      // 組織の Stripe Connect アカウントを取得
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('stripe_account_id')
+        .eq('id', order.organization_id)
+        .single();
+
+      if (org?.stripe_account_id) {
+        try {
+          const stripe = new Stripe(stripeSecretKey);
+          await stripe.refunds.create(
+            { payment_intent: order.stripe_payment_intent_id },
+            { stripeAccount: org.stripe_account_id }
+          );
+          console.log(`[refundOrder] Stripe refund created for order ${orderId}`);
+        } catch (stripeErr) {
+          console.error('[refundOrder] Stripe refund failed:', stripeErr);
+          const msg = stripeErr instanceof Error ? stripeErr.message : 'Stripe返金に失敗しました';
+          return { data: null, error: `Stripe返金エラー: ${msg}` };
+        }
+      }
+    }
+
+    // 4. 注文ステータスを更新
     const { data, error } = await supabase
       .from('orders')
       .update({

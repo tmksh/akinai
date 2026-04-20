@@ -342,7 +342,7 @@ export async function POST(request: NextRequest) {
         // payment intent id を注文に保存
         await supabase
           .from('orders')
-          .update({ notes: `${order.notes || ''}\n[stripe_payment_intent:${paymentIntent.id}]`.trim() })
+          .update({ stripe_payment_intent_id: paymentIntent.id })
           .eq('id', order.id);
 
         const response = apiSuccess(

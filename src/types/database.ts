@@ -523,6 +523,7 @@ export interface Database {
           agent_code: string | null
           agent_commission_rate: number | null
           agent_commission_amount: number | null
+          stripe_payment_intent_id: string | null
           created_at: string
           updated_at: string
         }
@@ -550,6 +551,7 @@ export interface Database {
           agent_code?: string | null
           agent_commission_rate?: number | null
           agent_commission_amount?: number | null
+          stripe_payment_intent_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -577,6 +579,7 @@ export interface Database {
           agent_code?: string | null
           agent_commission_rate?: number | null
           agent_commission_amount?: number | null
+          stripe_payment_intent_id?: string | null
           created_at?: string
           updated_at?: string
         }

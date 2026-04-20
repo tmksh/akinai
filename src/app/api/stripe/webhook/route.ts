@@ -277,6 +277,7 @@ async function handlePaymentSuccess(
     .update({
       payment_status: 'paid',
       status: 'confirmed',
+      stripe_payment_intent_id: paymentIntent.id,
       updated_at: new Date().toISOString(),
     })
     .eq('id', orderId);
@@ -347,6 +348,7 @@ async function handleCheckoutComplete(
       .update({
         payment_status: 'paid',
         status: 'confirmed',
+        stripe_payment_intent_id: session.payment_intent as string | null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', orderId);
