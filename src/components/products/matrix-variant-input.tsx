@@ -633,7 +633,8 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
             fd.append('file', file);
             const result = await uploadProductImage(productId, fd);
             if (result.data?.url) {
-              onChange(variants.map((v) => v.id === matchedVariant.id ? { ...v, imageUrl: result.data.url } : v));
+              const url = result.data.url;
+              onChange(variants.map((v) => v.id === matchedVariant.id ? { ...v, imageUrl: url } : v));
             }
           } catch {
             // アップロード失敗時は何もしない
