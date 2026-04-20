@@ -230,6 +230,19 @@ export default function OrderDetailPage() {
     setIsUpdating(false);
   };
 
+  // 支払いステータスを変更
+  const handleUpdatePaymentStatus = async (newStatus: PaymentStatus) => {
+    if (order?.payment_status === newStatus) return;
+    setIsUpdating(true);
+    const { data, error } = await updatePaymentStatus(orderId, newStatus);
+    if (error) {
+      alert('支払いステータスの更新に失敗しました: ' + error);
+    } else if (data) {
+      setOrder({ ...order!, ...data });
+    }
+    setIsUpdating(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -603,9 +616,29 @@ export default function OrderDetailPage() {
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">ステータス</span>
-                <Badge className={cn(paymentConfig.bgColor, paymentConfig.color, "border-0")}>
-                  {paymentConfig.label}
-                </Badge>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1 cursor-pointer" disabled={isUpdating}>
+                      <Badge className={cn(paymentConfig.bgColor, paymentConfig.color, "border-0")}>
+                        {paymentConfig.label}
+                      </Badge>
+                      <Pencil className="h-3 w-3 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {(Object.entries(paymentStatusConfig) as [PaymentStatus, typeof paymentStatusConfig[PaymentStatus]][]).map(([status, config]) => (
+                      <DropdownMenuItem
+                        key={status}
+                        onClick={() => handleUpdatePaymentStatus(status)}
+                        className={cn(order.payment_status === status && 'font-bold')}
+                      >
+                        <span className={cn('mr-2 h-2 w-2 rounded-full inline-block', config.bgColor)} />
+                        {config.label}
+                        {order.payment_status === status && ' ✓'}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               {order.payment_method && (
                 <div className="flex items-center justify-between">

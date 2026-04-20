@@ -1,6 +1,14 @@
 import { NextRequest } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { sendEmail } from '@/lib/email';
+import {
+  buildOrderConfirmationEmail,
+  buildNewOrderNotificationEmail,
+  buildAgentOrderNotificationEmail,
+  type OrderEmailData,
+  type AgentOrderEmailData,
+} from '@/lib/email-templates/order';
 import { 
   validateApiKey, 
   apiError, 
@@ -491,6 +499,94 @@ export async function POST(request: NextRequest) {
       response.headers.set(key, value);
     });
     
+    // クレカ以外（銀行振込・代引き）は注文作成時点でメール送信
+    // クレカはStripe Webhookで送信されるためここでは送らない
+    if (body.paymentMethod !== 'credit_card') {
+      try {
+        const { data: orgRow } = await supabase
+          .from('organizations')
+          .select('name, email, mail_from_address, mail_domain_verified, email_templates')
+          .eq('id', auth.organizationId!)
+          .single();
+
+        const shopName = (orgRow?.name as string) || 'ショップ';
+        const customTemplates = (orgRow?.email_templates as Record<string, unknown>) || {};
+        const confirmCustom = (customTemplates.order_confirmation as Record<string, unknown>) || {};
+        const notifyCustom = (customTemplates.order_notification as Record<string, unknown>) || {};
+        const agentCustom = (customTemplates.agent_order_notification as Record<string, unknown>) || {};
+
+        const emailData: OrderEmailData = {
+          orderNumber: order.order_number,
+          customerName: `${body.shippingAddress.lastName} ${body.shippingAddress.firstName}`,
+          customerEmail: body.shippingAddress.email,
+          items: orderItems.map(i => ({
+            productName: i.product_name,
+            variantName: i.variant_name || undefined,
+            quantity: i.quantity,
+            unitPrice: i.unit_price,
+            totalPrice: i.total_price,
+          })),
+          subtotal,
+          shippingFee,
+          tax,
+          total,
+          paymentMethod: body.paymentMethod,
+          shippingAddress: {
+            postalCode: body.shippingAddress.postalCode,
+            prefecture: body.shippingAddress.prefecture,
+            city: body.shippingAddress.city,
+            line1: body.shippingAddress.address1,
+            line2: body.shippingAddress.address2 || null,
+            phone: body.shippingAddress.phone,
+          },
+          shopName,
+          paymentInstructions: responseData.paymentInstructions,
+        };
+
+        // 顧客向け注文確認メール
+        const { subject, html } = buildOrderConfirmationEmail(
+          emailData,
+          confirmCustom as Parameters<typeof buildOrderConfirmationEmail>[1]
+        );
+        await sendEmail({ to: body.shippingAddress.email, subject, html });
+
+        // 管理者向け新規注文通知
+        const adminEmail = orgRow?.email as string | undefined;
+        if (adminEmail) {
+          const { subject: as, html: ah } = buildNewOrderNotificationEmail(
+            emailData,
+            notifyCustom as Parameters<typeof buildNewOrderNotificationEmail>[1]
+          );
+          await sendEmail({ to: adminEmail, subject: as, html: ah });
+        }
+
+        // 代理店向け通知
+        if (agentCustom.enabled !== false && order.agent_id) {
+          const { data: agent } = await supabase
+            .from('customers')
+            .select('email, name, code')
+            .eq('id', order.agent_id)
+            .single();
+
+          if (agent?.email) {
+            const agentEmailData: AgentOrderEmailData = {
+              ...emailData,
+              agentCode: (agent.code as string) || '',
+              commission: agentCommissionAmount || 0,
+            };
+            const { subject: ags, html: agh } = buildAgentOrderNotificationEmail(
+              agentEmailData,
+              agentCustom as Parameters<typeof buildAgentOrderNotificationEmail>[1]
+            );
+            await sendEmail({ to: agent.email as string, subject: ags, html: agh });
+          }
+        }
+      } catch (emailError) {
+        console.error('Failed to send order emails:', emailError);
+        // メール送信失敗は注文処理には影響させない
+      }
+    }
+
     return response;
 
   } catch (error) {

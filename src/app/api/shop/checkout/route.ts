@@ -79,14 +79,43 @@ export async function POST(request: NextRequest) {
 
   const supabase = createAdminClient();
 
-  // 組織を取得（最初の組織 = このショップのオーナー）
-  const { data: org, error: orgError } = await supabase
-    .from('organizations')
-    .select('id, name, stripe_account_id, settings')
-    .limit(1)
-    .single();
+  // リクエストのホスト名からショップの組織を特定
+  const host = request.headers.get('host') || '';
+  const hostname = host.replace(/:\d+$/, ''); // ポート番号を除去
 
-  if (orgError || !org) {
+  let org = null;
+
+  // 1. ホスト名でfrontend_urlが一致する組織を検索
+  const { data: orgs } = await supabase
+    .from('organizations')
+    .select('id, name, stripe_account_id, settings, frontend_url');
+
+  if (orgs) {
+    org = orgs.find(o => {
+      if (!o.frontend_url) return false;
+      try {
+        const url = new URL(o.frontend_url as string);
+        return url.hostname === hostname;
+      } catch {
+        return false;
+      }
+    }) || null;
+  }
+
+  // 2. 環境変数でフォールバック
+  if (!org) {
+    const envOrgId = process.env.NEXT_PUBLIC_ORGANIZATION_ID;
+    if (envOrgId && orgs) {
+      org = orgs.find(o => o.id === envOrgId) || null;
+    }
+  }
+
+  // 3. 最終フォールバック（先頭の組織）
+  if (!org && orgs && orgs.length > 0) {
+    org = orgs[0];
+  }
+
+  if (!org) {
     return NextResponse.json({ error: 'ショップ情報の取得に失敗しました' }, { status: 500 });
   }
 

@@ -1,6 +1,53 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+
+/**
+ * リクエストのホスト名からショップの組織IDを解決する
+ * 優先順位: frontend_url一致 → NEXT_PUBLIC_ORGANIZATION_ID → 先頭レコード
+ */
+async function resolveOrganizationId(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
+  // ホスト名を取得（Server Actions では next/headers を使用）
+  let hostname = '';
+  try {
+    const headersList = await headers();
+    const host = headersList.get('host') || '';
+    hostname = host.replace(/:\d+$/, '');
+  } catch {
+    // headers() が使えない場合はスキップ
+  }
+
+  const { data: orgs } = await supabase
+    .from('organizations')
+    .select('id, frontend_url');
+
+  if (!orgs || orgs.length === 0) return null;
+
+  // 1. ホスト名でfrontend_urlが一致する組織を検索
+  if (hostname) {
+    const matched = orgs.find(o => {
+      if (!o.frontend_url) return false;
+      try {
+        const url = new URL(o.frontend_url as string);
+        return url.hostname === hostname;
+      } catch {
+        return false;
+      }
+    });
+    if (matched) return matched.id;
+  }
+
+  // 2. 環境変数でフォールバック
+  const envOrgId = process.env.NEXT_PUBLIC_ORGANIZATION_ID;
+  if (envOrgId) {
+    const found = orgs.find(o => o.id === envOrgId);
+    if (found) return found.id;
+  }
+
+  // 3. 先頭レコードで最終フォールバック
+  return orgs[0].id;
+}
 import type { Database } from '@/types/database';
 
 // 型定義
@@ -94,17 +141,10 @@ export async function getShopProducts(options?: {
   try {
     let organizationId = options?.organizationId;
 
-    // 組織IDが指定されていない場合、最初の組織を取得（デモ用）
+    // 組織IDが指定されていない場合、ドメイン/環境変数/先頭の順で解決
     if (!organizationId) {
-      const { data: orgs } = await supabase
-        .from('organizations')
-        .select('id')
-        .limit(1);
-      
-      if (!orgs || orgs.length === 0) {
-        return { data: [], error: null };
-      }
-      organizationId = orgs[0].id;
+      organizationId = await resolveOrganizationId(supabase) ?? undefined;
+      if (!organizationId) return { data: [], error: null };
     }
 
     // 公開中の商品を取得
@@ -389,15 +429,8 @@ export async function getShopCategories(organizationId?: string): Promise<{
     let orgId = organizationId;
 
     if (!orgId) {
-      const { data: orgs } = await supabase
-        .from('organizations')
-        .select('id')
-        .limit(1);
-      
-      if (!orgs || orgs.length === 0) {
-        return { data: [], error: null };
-      }
-      orgId = orgs[0].id;
+      orgId = await resolveOrganizationId(supabase) ?? undefined;
+      if (!orgId) return { data: [], error: null };
     }
 
     const { data: categories, error: catError } = await supabase
@@ -459,15 +492,8 @@ export async function getShopContents(options?: {
     let organizationId = options?.organizationId;
 
     if (!organizationId) {
-      const { data: orgs } = await supabase
-        .from('organizations')
-        .select('id')
-        .limit(1);
-      
-      if (!orgs || orgs.length === 0) {
-        return { data: [], error: null };
-      }
-      organizationId = orgs[0].id;
+      organizationId = await resolveOrganizationId(supabase) ?? undefined;
+      if (!organizationId) return { data: [], error: null };
     }
 
     let query = supabase
