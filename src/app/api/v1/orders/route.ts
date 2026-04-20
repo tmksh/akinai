@@ -563,16 +563,29 @@ export async function POST(request: NextRequest) {
         // 代理店向け通知
         if (agentCustom.enabled !== false && order.agent_id) {
           const { data: agent } = await supabase
-            .from('customers')
-            .select('email, name, code')
+            .from('agents')
+            .select('email, name, company, code, commission_rate')
             .eq('id', order.agent_id)
             .single();
 
           if (agent?.email) {
             const agentEmailData: AgentOrderEmailData = {
-              ...emailData,
+              orderNumber: order.order_number,
+              customerName: `${body.shippingAddress.lastName} ${body.shippingAddress.firstName}`,
               agentCode: (agent.code as string) || '',
-              commission: agentCommissionAmount || 0,
+              agentName: (agent.name as string) || '',
+              agentCompany: (agent.company as string) || '',
+              items: orderItems.map(i => ({
+                productName: i.productName,
+                variantName: i.variantName || undefined,
+                quantity: i.quantity,
+                totalPrice: i.totalPrice,
+              })),
+              subtotal,
+              total,
+              commissionRate: Number(agent.commission_rate) || 0,
+              commissionAmount: agentCommissionAmount || 0,
+              shopName,
             };
             const { subject: ags, html: agh } = buildAgentOrderNotificationEmail(
               agentEmailData,
