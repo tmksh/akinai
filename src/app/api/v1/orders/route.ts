@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. 金額計算
-    const shippingFee = subtotal >= 5500 ? 0 : 500;
+    const shippingFee = 0;
     const codFee = body.paymentMethod === 'cod' ? 330 : 0;
 
     // クーポン処理

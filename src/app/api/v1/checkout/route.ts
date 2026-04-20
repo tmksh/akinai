@@ -192,11 +192,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 送料計算
-    const settings = (org.settings || {}) as Record<string, unknown>;
-    const shippingSettings = (settings.shipping || {}) as Record<string, unknown>;
-    const freeShippingThreshold = Number(shippingSettings.free_shipping_threshold) || 5500;
-    const defaultShippingFee = Number(shippingSettings.default_shipping_fee) || 500;
-    const shippingFee = subtotal >= freeShippingThreshold ? 0 : defaultShippingFee;
+    const shippingFee = 0;
 
     // 税計算
     const taxRate = 0.1;
