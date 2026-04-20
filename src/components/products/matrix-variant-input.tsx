@@ -619,10 +619,25 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
         );
         const previewImage = matchedVariant?.imageUrl;
 
-        const handleHeroImageChange = (file: File) => {
+        const handleHeroImageChange = async (file: File) => {
           if (!matchedVariant) return;
-          const url = URL.createObjectURL(file);
-          onChange(variants.map((v) => v.id === matchedVariant.id ? { ...v, imageUrl: url } : v));
+          if (!productId) {
+            // productId がない場合は blob URL を一時使用（保存時は blob: URL が除外される）
+            const url = URL.createObjectURL(file);
+            onChange(variants.map((v) => v.id === matchedVariant.id ? { ...v, imageUrl: url } : v));
+            return;
+          }
+          try {
+            const { uploadProductImage } = await import('@/lib/actions/storage');
+            const fd = new FormData();
+            fd.append('file', file);
+            const result = await uploadProductImage(productId, fd);
+            if (result.data?.url) {
+              onChange(variants.map((v) => v.id === matchedVariant.id ? { ...v, imageUrl: result.data.url } : v));
+            }
+          } catch {
+            // アップロード失敗時は何もしない
+          }
         };
 
         return (
