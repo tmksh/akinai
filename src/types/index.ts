@@ -216,6 +216,7 @@ export interface Order extends BaseEntity {
   trackingNumber?: string;
   shippedAt?: Timestamp;
   deliveredAt?: Timestamp;
+  agentCode?: string | null;
 }
 
 // ----- 見積管理（B2B） -----

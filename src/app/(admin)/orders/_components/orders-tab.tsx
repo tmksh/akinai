@@ -151,6 +151,11 @@ const OrderRow = memo(function OrderRow({
         <div>
           <p className="font-medium">{order.customerName}</p>
           <p className="text-xs text-muted-foreground">{order.customerEmail}</p>
+          {order.agentCode && (
+            <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+              代理店 {order.agentCode}
+            </span>
+          )}
         </div>
       </TableCell>
       <TableCell>{itemCount}点</TableCell>
@@ -210,6 +215,7 @@ function mapOrderFromApi(row: Record<string, unknown>): Order {
     trackingNumber: row.tracking_number as string | undefined,
     shippedAt: row.shipped_at as string | undefined,
     deliveredAt: row.delivered_at as string | undefined,
+    agentCode: (row.agent_code as string | null) ?? null,
     createdAt: (row.created_at as string) ?? '',
     updatedAt: (row.updated_at as string) ?? '',
   };
