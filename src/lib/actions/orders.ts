@@ -242,14 +242,7 @@ export async function getOrders(
   try {
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
-      .select(`
-        id, order_number, customer_id, customer_name, customer_email,
-        subtotal, shipping_cost, tax, total, status, payment_status,
-        payment_method, shipping_address, notes, tracking_number,
-        agent_code, stripe_payment_intent_id,
-        shipped_at, delivered_at, created_at, updated_at, organization_id,
-        order_items (id, quantity, product_name, variant_name, unit_price, total_price, sku)
-      `)
+      .select('*, order_items (id, quantity, product_name, variant_name, unit_price, total_price, sku)')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
       .limit(limit);
