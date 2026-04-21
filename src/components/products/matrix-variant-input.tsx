@@ -541,6 +541,8 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
   const [bulkPrice, setBulkPrice] = useState<string>('');
   const [bulkStock, setBulkStock] = useState<string>('');
   const [showBulkPanel, setShowBulkPanel] = useState(false);
+  const [variantListView, setVariantListView] = useState<'list' | 'swatch'>('list');
+  const [swatchEditId, setSwatchEditId] = useState<string | null>(null);
 
   const filteredVariants = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -963,7 +965,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
       )}
 
       {/* バリエーション一覧 */}
-      {!showHeroPreview && variants.length > 0 && (
+      {variants.length > 0 && (
         <div className="border-t pt-4 space-y-3">
           {/* ヘッダー */}
           <div className="flex flex-wrap items-center gap-2 justify-between">
@@ -974,6 +976,31 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
               </span>
             </p>
             <div className="flex items-center gap-2">
+              {/* リスト/スウォッチ切り替え */}
+              <div className="flex items-center gap-0.5 border rounded-lg p-0.5 bg-muted/30">
+                <button
+                  type="button"
+                  onClick={() => setVariantListView('list')}
+                  title="リスト表示"
+                  className={cn(
+                    'px-2 py-1 rounded-md text-xs font-medium transition-all',
+                    variantListView === 'list' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  ≡ リスト
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVariantListView('swatch')}
+                  title="スウォッチ表示"
+                  className={cn(
+                    'px-2 py-1 rounded-md text-xs font-medium transition-all',
+                    variantListView === 'swatch' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  ⊞ スウォッチ
+                </button>
+              </div>
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                 <Input
@@ -1069,7 +1096,139 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
             </div>
           )}
 
-          {/* テーブル */}
+          {/* テーブル / スウォッチ切り替え */}
+          {variantListView === 'swatch' ? (
+            /* ---- スウォッチグリッドビュー ---- */
+            <div className="rounded-xl border bg-background p-3">
+              {displayedVariants.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  該当するバリエーションがありません
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {displayedVariants.map((variant) => {
+                    const isEditing = swatchEditId === variant.id;
+                    return (
+                      <div key={variant.id} className="relative">
+                        {/* スウォッチタイル */}
+                        <button
+                          type="button"
+                          onClick={() => setSwatchEditId(isEditing ? null : variant.id)}
+                          className={cn(
+                            'flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all w-[88px]',
+                            isEditing
+                              ? 'border-sky-500 bg-sky-50 dark:bg-sky-950/30 shadow-sm'
+                              : 'border-slate-200 hover:border-sky-300 hover:bg-muted/30 dark:border-slate-700'
+                          )}
+                        >
+                          {/* サムネイル */}
+                          <div className="h-12 w-12 rounded-lg border overflow-hidden flex items-center justify-center bg-muted/40 shrink-0">
+                            {variant.imageUrl ? (
+                              <img src={variant.imageUrl} alt={variant.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground/50">画像なし</span>
+                            )}
+                          </div>
+                          {/* 名前 */}
+                          <span className="text-[10px] leading-tight line-clamp-2 w-full text-center font-medium">
+                            {variant.name || '(名前なし)'}
+                          </span>
+                          {/* 価格 */}
+                          <span className="text-[10px] text-muted-foreground">
+                            {variant.price ? `¥${variant.price.toLocaleString()}` : '-'}
+                          </span>
+                        </button>
+
+                        {/* 編集パネル（クリックで展開） */}
+                        {isEditing && (
+                          <div className="absolute z-20 top-full left-0 mt-1 w-64 rounded-xl border bg-background shadow-xl p-3 space-y-2">
+                            <p className="text-[10px] font-semibold text-muted-foreground truncate">{variant.name}</p>
+                            {/* 画像 */}
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={disabled}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  e.target.value = '';
+                                  if (!productId) {
+                                    updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
+                                    return;
+                                  }
+                                  try {
+                                    const { uploadProductImage } = await import('@/lib/actions/storage');
+                                    const fd = new FormData();
+                                    fd.append('file', file);
+                                    const result = await uploadProductImage(productId, fd);
+                                    if (result.data?.url) updateVariant(variant.id, 'imageUrl', result.data.url);
+                                  } catch {
+                                    updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
+                                  }
+                                }}
+                              />
+                              <div className="h-10 w-10 rounded-lg border flex items-center justify-center overflow-hidden shrink-0 group-hover:border-sky-400 transition-colors">
+                                {variant.imageUrl
+                                  ? <img src={variant.imageUrl} alt="" className="h-full w-full object-cover" />
+                                  : <Upload className="h-3 w-3 text-muted-foreground" />}
+                              </div>
+                              <span className="text-xs text-muted-foreground group-hover:text-sky-500 transition-colors">画像を変更</span>
+                            </label>
+                            {/* SKU */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] text-muted-foreground">SKU</label>
+                              <Input
+                                value={variant.sku}
+                                onChange={(e) => updateVariant(variant.id, 'sku', e.target.value)}
+                                className="h-7 text-xs font-mono"
+                                placeholder="SKU-000"
+                                disabled={disabled}
+                              />
+                            </div>
+                            {/* 価格 */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] text-muted-foreground">価格（税込）</label>
+                              <Input
+                                type="number"
+                                value={variant.price || ''}
+                                onChange={(e) => updateVariant(variant.id, 'price', parseInt(e.target.value) || 0)}
+                                className="h-7 text-xs"
+                                placeholder="0"
+                                disabled={disabled}
+                              />
+                            </div>
+                            {/* 在庫 */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] text-muted-foreground">在庫数</label>
+                              <Input
+                                type="number"
+                                value={variant.stock || ''}
+                                onChange={(e) => updateVariant(variant.id, 'stock', parseInt(e.target.value) || 0)}
+                                className="h-7 text-xs"
+                                placeholder="0"
+                                disabled={disabled}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => onChange(variants.filter((v) => v.id !== variant.id))}
+                              disabled={disabled}
+                              className="text-xs text-destructive/70 hover:text-destructive transition-colors"
+                            >
+                              削除
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+          /* ---- テーブルビュー（既存） ---- */
           <div className="rounded-xl border overflow-hidden bg-background">
             {/* ヘッダー行 */}
             <div className="grid grid-cols-[28px_36px_minmax(0,1fr)_minmax(100px,140px)_minmax(80px,110px)_minmax(60px,80px)_28px] gap-2 px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b bg-muted/30">
@@ -1190,6 +1349,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
               })
             )}
           </div>
+          )} {/* /テーブルビュー */}
 
           {/* ページネーション */}
           {filteredVariants.length > pageSize && (
