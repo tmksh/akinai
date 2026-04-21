@@ -59,6 +59,7 @@
     <a href="#shipping">送料オプション</a>
     <a href="#checkout">チェックアウト</a>
     <a href="#orders">注文作成</a>
+    <a href="#attachments">添付ファイル</a>
     <p class="sidebar-group-title">顧客</p>
     <a href="#customers">顧客一覧</a>
     <p class="sidebar-group-title">共通</p>
@@ -518,6 +519,114 @@ window.location.href = url;</pre>
             <strong>Stripe決済の場合、このAPIは使いません</strong>
             <p>上の checkout API を使って Stripe で決済した場合、注文は自動で作成されます。このAPIを直接呼ぶ必要はありません。</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ 添付ファイル ══ -->
+    <h2 id="attachments" style="font-size:1.2rem;font-weight:800;margin:2rem 0 1rem;padding-top:1.5rem;border-top:1px solid var(--border);scroll-margin-top:72px;">添付ファイル</h2>
+    <p style="font-size:.9rem;color:var(--text-sub);margin-bottom:1rem;">注文に画像・PDF などのファイルを添付するための API です。<br>Supabase の認証情報は一切不要で、<strong>APIキーだけ</strong>で利用できます。</p>
+
+    <div class="callout" style="margin-bottom:1.5rem;">
+      <div>
+        <strong>eiwanext (Netlify Functions) から使う場合</strong>
+        <p>Supabase への直接接続は不要です。このAPIを経由してアップロードするだけで、<code>AKINAI_API_URL</code> と <code>AKINAI_API_KEY</code> のみで完結します。</p>
+      </div>
+    </div>
+
+    <div class="ep-block" style="scroll-margin-top:72px;">
+      <div class="ep-head">
+        <span class="method method-post">POST</span>
+        <span class="ep">/api/v1/orders/{id}/attachments</span>
+        <span class="ep-title">ファイルのアップロード</span>
+      </div>
+      <div class="ep-body">
+        <p>注文にファイルを添付します。<code>multipart/form-data</code> で送信してください。</p>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:.75rem;">
+          <table class="pt">
+            <thead><tr><th>フィールド</th><th>必須</th><th>説明</th></tr></thead>
+            <tbody>
+              <tr><td class="pname">file</td><td>✅</td><td>アップロードするファイル（最大 20MB）</td></tr>
+              <tr><td class="pname">name</td><td>任意</td><td>表示名。省略するとファイル名が使われます</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript — Netlify Function でのアップロード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// upload-order-file.js (Netlify Function)</span>
+<span class="keyword">import</span> FormData <span class="keyword">from</span> <span class="string">'form-data'</span>;
+
+<span class="keyword">const</span> API_URL = process.env.<span class="func">AKINAI_API_URL</span>; <span class="comment">// 例: https://yourshop.akinai.jp</span>
+<span class="keyword">const</span> API_KEY = process.env.<span class="func">AKINAI_API_KEY</span>;
+
+<span class="keyword">const</span> form = <span class="keyword">new</span> <span class="func">FormData</span>();
+form.<span class="func">append</span>(<span class="string">'file'</span>, fileBuffer, { filename: <span class="string">'receipt.pdf'</span>, contentType: <span class="string">'application/pdf'</span> });
+form.<span class="func">append</span>(<span class="string">'name'</span>, <span class="string">'領収書'</span>); <span class="comment">// 省略可</span>
+
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">`${API_URL}/api/v1/orders/${orderId}/attachments`</span>,
+  {
+    method: <span class="string">'POST'</span>,
+    headers: {
+      <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span>,
+      ...form.<span class="func">getHeaders</span>(),
+    },
+    body: form,
+  }
+);
+<span class="keyword">const</span> { data } = <span class="keyword">await</span> res.<span class="func">json</span>();
+<span class="comment">// data.attachment.url — アップロード済みファイルの公開URL</span></pre>
+        </div>
+
+        <p style="font-size:.85rem;color:var(--text-sub);margin-top:.75rem;">レスポンス例：</p>
+        <div class="code-block">
+          <div class="code-block-header">
+            <span class="code-block-lang">JSON</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre>{
+  <span class="string">"data"</span>: {
+    <span class="string">"attachment"</span>: {
+      <span class="string">"id"</span>: <span class="string">"uuid"</span>,
+      <span class="string">"order_id"</span>: <span class="string">"uuid"</span>,
+      <span class="string">"name"</span>: <span class="string">"領収書"</span>,
+      <span class="string">"file_name"</span>: <span class="string">"receipt.pdf"</span>,
+      <span class="string">"file_size"</span>: 204800,
+      <span class="string">"content_type"</span>: <span class="string">"application/pdf"</span>,
+      <span class="string">"url"</span>: <span class="string">"https://...supabase.co/storage/v1/object/public/order-attachments/..."</span>,
+      <span class="string">"created_at"</span>: <span class="string">"2026-04-21T00:00:00Z"</span>
+    }
+  }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="ep-block" style="margin-top:1rem;scroll-margin-top:72px;">
+      <div class="ep-head">
+        <span class="method method-get">GET</span>
+        <span class="ep">/api/v1/orders/{id}/attachments</span>
+        <span class="ep-title">添付ファイル一覧の取得</span>
+      </div>
+      <div class="ep-body">
+        <p>注文に添付されたファイルの一覧を取得します。</p>
+        <div class="code-block" style="margin-top:.75rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript — コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">`${API_URL}/api/v1/orders/${orderId}/attachments`</span>,
+  {
+    headers: { <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span> }
+  }
+);
+<span class="keyword">const</span> { data } = <span class="keyword">await</span> res.<span class="func">json</span>();
+<span class="comment">// data.attachments — 添付ファイルの配列</span></pre>
         </div>
       </div>
     </div>
