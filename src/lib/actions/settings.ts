@@ -47,6 +47,7 @@ export async function updateOrganization(
     address?: string;
     logo?: string;
     frontend_url?: string;
+    shop_subdomain?: string;
   }
 ) {
   const supabase = getAdminClient();

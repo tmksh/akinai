@@ -623,9 +623,15 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
           .join(' / ');
         const comboPlain = selectedCombo.join(' / ');
 
-        const matchedVariant = variants.find(
-          (v) => v.name === comboWithPrefix || v.name === comboPlain
-        );
+        // バリアント名を分解して各軸の値が全て含まれているかで照合（順番・フォーマット違いに対応）
+        const matchedVariant = variants.find((v) => {
+          // まず完全一致を試みる（高速）
+          if (v.name === comboWithPrefix || v.name === comboPlain) return true;
+          // 完全一致しない場合は各選択値がバリアント名に含まれるか確認
+          if (selectedCombo.length === 0) return false;
+          const nameLower = v.name.toLowerCase();
+          return selectedCombo.every((val) => nameLower.includes(val.toLowerCase()));
+        });
 
         // おまかせが選択されている場合もマッチしたバリアントの画像を表示（空フレーム画像を設定可能）
         const hasOmakase = selectedCombo.includes('おまかせ');

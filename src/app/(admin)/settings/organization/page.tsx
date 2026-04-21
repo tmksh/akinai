@@ -24,6 +24,7 @@ export default function OrganizationSettingsPage() {
     website: '',
     address: '',
     frontend_url: '',
+    shop_subdomain: '',
   });
 
   // 組織データを取得
@@ -41,6 +42,7 @@ export default function OrganizationSettingsPage() {
           website: data.website || '',
           address: data.address || '',
           frontend_url: data.frontend_url || '',
+          shop_subdomain: (data as Record<string, unknown>).shop_subdomain as string || '',
         });
       }
       
@@ -167,17 +169,30 @@ export default function OrganizationSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* フロントエンド連携 */}
+        {/* ショップドメイン設定 */}
         <Card>
           <CardHeader>
-            <CardTitle>フロントエンド連携</CardTitle>
+            <CardTitle>ショップドメイン設定</CardTitle>
             <CardDescription>
-              ショップサイトとの連携設定（プレビュー機能に使用）
+              お客様がアクセスするショップの URL を設定します
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="frontend_url">フロントエンドURL</Label>
+              <Label htmlFor="shop_subdomain">独自ドメイン（カスタムドメイン）</Label>
+              <Input
+                id="shop_subdomain"
+                type="text"
+                placeholder="shop.example.com"
+                value={formData.shop_subdomain}
+                onChange={(e) => handleChange('shop_subdomain', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                例: <code className="bg-muted px-1 rounded">shop.eiwanext.com</code> — DNS の CNAME を <code className="bg-muted px-1 rounded">akinai-dx.com</code> に向けてください
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="frontend_url">フロントエンドURL（旧設定・互換用）</Label>
               <Input
                 id="frontend_url"
                 type="url"

@@ -34,6 +34,7 @@ export interface Database {
           address: string | null
           frontend_url: string | null
           frontend_api_key: string | null
+          shop_subdomain: string | null
           plan: PlanType
           plan_started_at: string
           stripe_customer_id: string | null
@@ -60,6 +61,7 @@ export interface Database {
           address?: string | null
           frontend_url?: string | null
           frontend_api_key?: string | null
+          shop_subdomain?: string | null
           plan?: PlanType
           plan_started_at?: string
           stripe_customer_id?: string | null
@@ -86,6 +88,7 @@ export interface Database {
           address?: string | null
           frontend_url?: string | null
           frontend_api_key?: string | null
+          shop_subdomain?: string | null
           plan?: PlanType
           plan_started_at?: string
           stripe_customer_id?: string | null

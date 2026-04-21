@@ -5,14 +5,16 @@ import { createClient } from '@/lib/supabase/server';
 
 /**
  * リクエストのホスト名からショップの組織IDを解決する
- * 優先順位: frontend_url一致 → NEXT_PUBLIC_ORGANIZATION_ID → 先頭レコード
+ * 優先順位: shop_subdomain一致 → frontend_url一致 → NEXT_PUBLIC_ORGANIZATION_ID → 先頭レコード
  */
 async function resolveOrganizationId(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
   // ホスト名を取得（Server Actions では next/headers を使用）
   let hostname = '';
   try {
     const headersList = await headers();
-    const host = headersList.get('host') || '';
+    // middleware が付加した x-shop-hostname を優先（リライト時もオリジナルホスト名を保持）
+    const shopHostname = headersList.get('x-shop-hostname');
+    const host = shopHostname || headersList.get('host') || '';
     hostname = host.replace(/:\d+$/, '');
   } catch {
     // headers() が使えない場合はスキップ
@@ -20,13 +22,17 @@ async function resolveOrganizationId(supabase: Awaited<ReturnType<typeof createC
 
   const { data: orgs } = await supabase
     .from('organizations')
-    .select('id, frontend_url');
+    .select('id, frontend_url, shop_subdomain');
 
   if (!orgs || orgs.length === 0) return null;
 
-  // 1. ホスト名でfrontend_urlが一致する組織を検索
   if (hostname) {
-    const matched = orgs.find(o => {
+    // 1. shop_subdomain（独自ドメイン）で完全一致
+    const bySubdomain = orgs.find(o => o.shop_subdomain && o.shop_subdomain === hostname);
+    if (bySubdomain) return bySubdomain.id;
+
+    // 2. frontend_url のホスト名と一致
+    const byFrontendUrl = orgs.find(o => {
       if (!o.frontend_url) return false;
       try {
         const url = new URL(o.frontend_url as string);
@@ -35,17 +41,29 @@ async function resolveOrganizationId(supabase: Awaited<ReturnType<typeof createC
         return false;
       }
     });
-    if (matched) return matched.id;
+    if (byFrontendUrl) return byFrontendUrl.id;
+
+    // 3. サブドメイン形式（xxx.akinai-dx.com）から slug 部分を抽出して一致
+    const adminDomain = process.env.NEXT_PUBLIC_ADMIN_DOMAIN || 'akinai-dx.com';
+    if (hostname.endsWith(`.${adminDomain}`)) {
+      const subdomain = hostname.replace(`.${adminDomain}`, '');
+      const bySlug = orgs.find(o => {
+        // shop_subdomain が未設定の場合は slug でも検索
+        const orgAny = o as Record<string, unknown>;
+        return orgAny.slug === subdomain;
+      });
+      if (bySlug) return bySlug.id;
+    }
   }
 
-  // 2. 環境変数でフォールバック
+  // 4. 環境変数でフォールバック
   const envOrgId = process.env.NEXT_PUBLIC_ORGANIZATION_ID;
   if (envOrgId) {
     const found = orgs.find(o => o.id === envOrgId);
     if (found) return found.id;
   }
 
-  // 3. 先頭レコードで最終フォールバック
+  // 5. 先頭レコードで最終フォールバック
   return orgs[0].id;
 }
 import type { Database } from '@/types/database';
