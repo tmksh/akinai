@@ -425,10 +425,30 @@ export default function OrderDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {order.items.map((item) => (
+                  {order.items.map((item) => {
+                    const raw = item as unknown as Record<string, unknown>;
+                    const variantImg = (raw.variant_data as { image_url?: string | null } | null)?.image_url;
+                    const productImgs = ((raw.product_data as { product_images?: { url: string; sort_order: number }[] } | null)?.product_images ?? [])
+                      .slice().sort((a, b) => a.sort_order - b.sort_order);
+                    const imgUrl = variantImg || productImgs[0]?.url || null;
+
+                    return (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <div>
+                        <div className="flex items-start gap-3">
+                          {/* 商品画像 */}
+                          {imgUrl ? (
+                            <img
+                              src={imgUrl}
+                              alt={item.product_name}
+                              className="w-12 h-12 rounded-lg object-cover shrink-0 border border-border"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border">
+                              <Package className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div>
                           <p className="font-medium">{item.product_name}</p>
                           <p className="text-sm text-muted-foreground">{item.variant_name}</p>
                           {item.sku && (
@@ -444,13 +464,15 @@ export default function OrderDetailPage() {
                               ))}
                             </div>
                           )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(item.total_price)}</TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
                 <TableFooter>
                   <TableRow>

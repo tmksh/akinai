@@ -286,10 +286,17 @@ export async function getOrder(orderId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    // 注文と明細をJOINで1クエリ取得
+    // 注文と明細をJOINで1クエリ取得（バリエーション画像・商品画像も取得）
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('*, order_items(*)')
+      .select(`
+        *,
+        order_items(
+          *,
+          variant_data:product_variants!variant_id(image_url),
+          product_data:products!product_id(product_images(url, sort_order))
+        )
+      `)
       .eq('id', orderId)
       .single();
 
