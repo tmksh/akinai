@@ -210,11 +210,12 @@ export async function getDashboardData(organizationId: string) {
         id, name, sku, stock, low_stock_threshold,
         product:products!inner ( id, name, organization_id, product_images (url, sort_order) )
       `).eq('product.organization_id', organizationId).order('stock', { ascending: true }).limit(10),
-    // 人気商品用
+    // 人気商品用（前年以降に絞りデータ転送量を削減）
     supabase.from('order_items')
-      .select('product_id, product_name, quantity, orders!inner(status, organization_id)')
+      .select('product_id, product_name, quantity, orders!inner(status, organization_id, created_at)')
       .eq('orders.organization_id', organizationId)
       .in('orders.status', ['confirmed', 'processing', 'shipped', 'delivered'])
+      .gte('orders.created_at', prevYearStart.toISOString())
       .not('product_id', 'is', null),
   ]);
 

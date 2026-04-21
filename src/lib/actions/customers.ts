@@ -35,7 +35,12 @@ export async function getCustomers(
   try {
     const { data: customers, error: customersError } = await supabase
       .from('customers')
-      .select('*, customer_addresses(*)')
+      .select(`
+        id, name, email, phone, avatar, notes, status,
+        total_orders, total_spent, last_order_at,
+        created_at, updated_at, organization_id,
+        customer_addresses (id, postal_code, prefecture, city, line1, line2, is_default)
+      `)
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
       .limit(limit);

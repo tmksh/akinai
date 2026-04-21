@@ -40,7 +40,7 @@ export async function getAgents(organizationId: string): Promise<{
   }
 }
 
-// 代理店の統計情報を取得
+// 代理店の統計情報を取得（SQL COUNTで集約）
 export async function getAgentStats(organizationId: string): Promise<{
   data: AgentStats | null;
   error: string | null;
@@ -48,20 +48,24 @@ export async function getAgentStats(organizationId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    const { data: agents, error } = await supabase
-      .from('agents')
-      .select('status, total_sales, total_commission')
-      .eq('organization_id', organizationId);
+    const [totalRes, activeRes, inactiveRes, pendingRes, sumRes] = await Promise.all([
+      supabase.from('agents').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId),
+      supabase.from('agents').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('status', 'active'),
+      supabase.from('agents').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('status', 'inactive'),
+      supabase.from('agents').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('status', 'pending'),
+      supabase.from('agents').select('total_sales, total_commission').eq('organization_id', organizationId),
+    ]);
 
-    if (error) throw error;
+    if (totalRes.error) throw totalRes.error;
 
+    const agentSums = sumRes.data || [];
     const stats: AgentStats = {
-      total: agents?.length || 0,
-      active: agents?.filter(a => a.status === 'active').length || 0,
-      inactive: agents?.filter(a => a.status === 'inactive').length || 0,
-      pending: agents?.filter(a => a.status === 'pending').length || 0,
-      totalSales: agents?.reduce((sum, a) => sum + (a.total_sales || 0), 0) || 0,
-      totalCommission: agents?.reduce((sum, a) => sum + (a.total_commission || 0), 0) || 0,
+      total: totalRes.count ?? 0,
+      active: activeRes.count ?? 0,
+      inactive: inactiveRes.count ?? 0,
+      pending: pendingRes.count ?? 0,
+      totalSales: agentSums.reduce((sum, a) => sum + (a.total_sales || 0), 0),
+      totalCommission: agentSums.reduce((sum, a) => sum + (a.total_commission || 0), 0),
     };
 
     return { data: stats, error: null };

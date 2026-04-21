@@ -964,8 +964,8 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
         </div>
       )}
 
-      {/* バリエーション一覧 */}
-      {variants.length > 0 && (
+      {/* バリエーション一覧（スウォッチモード時は非表示） */}
+      {!showHeroPreview && variants.length > 0 && (
         <div className="border-t pt-4 space-y-3">
           {/* ヘッダー */}
           <div className="flex flex-wrap items-center gap-2 justify-between">

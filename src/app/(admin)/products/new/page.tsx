@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   ArrowLeft,
   Save,
@@ -50,8 +51,12 @@ import { PageTabs } from '@/components/layout/page-tabs';
 import { CustomFields, type CustomField } from '@/components/products/custom-fields';
 import { FieldLabel } from '@/components/products/field-label';
 import { SimpleVariantInput, type ProductVariant } from '@/components/products/simple-variant-input';
-import { MatrixVariantInput } from '@/components/products/matrix-variant-input';
 import type { Axis as MatrixAxis } from '@/components/products/matrix-variant-input';
+
+const MatrixVariantInput = dynamic(
+  () => import('@/components/products/matrix-variant-input').then(mod => ({ default: mod.MatrixVariantInput })),
+  { loading: () => <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">読み込み中...</div>, ssr: false }
+);
 import { cn } from '@/lib/utils';
 import { getCategories, createProduct, generateUniqueSlug } from '@/lib/actions/products';
 import type { Database } from '@/types/database';
@@ -69,8 +74,9 @@ export default function NewProductPage() {
   const { organization, isLoading: orgLoading } = useOrganization();
   const [isPending, startTransition] = useTransition();
   
-  const defaultVariantMode = (organization?.settings?.variant_input_mode as 'simple' | 'matrix' | 'swatch') ?? 'simple';
-  const [variantInputMode, setVariantInputMode] = useState<'simple' | 'matrix' | 'swatch'>(defaultVariantMode);
+  const rawVariantMode = (organization?.settings?.variant_input_mode as 'simple' | 'matrix' | 'swatch') ?? 'simple';
+  const defaultVariantMode: 'simple' | 'swatch' = rawVariantMode === 'matrix' ? 'swatch' : rawVariantMode === 'swatch' ? 'swatch' : 'simple';
+  const [variantInputMode, setVariantInputMode] = useState<'simple' | 'swatch'>(defaultVariantMode);
   
   const [productName, setProductName] = useState('');
   const [description, setDescription] = useState('');
@@ -427,17 +433,6 @@ export default function NewProductPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setVariantInputMode('matrix')}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                      variantInputMode === 'matrix'
-                        ? 'bg-background shadow-sm text-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    組み合わせで自動生成
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setVariantInputMode('swatch')}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
                       variantInputMode === 'swatch'
@@ -451,7 +446,7 @@ export default function NewProductPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {variantInputMode === 'matrix' || variantInputMode === 'swatch' ? (
+              {variantInputMode === 'swatch' ? (
                 <MatrixVariantInput
                   variants={variants}
                   onChange={setVariants}
@@ -460,7 +455,7 @@ export default function NewProductPage() {
                   initialSwatchConfig={swatchConfig}
                   onSwatchConfigChange={setSwatchConfig}
                   disabled={isPending}
-                  showHeroPreview={variantInputMode === 'swatch'}
+                  showHeroPreview
                 />
               ) : (
                 <SimpleVariantInput
@@ -710,7 +705,7 @@ export default function NewProductPage() {
                       </div>
 
                       {/* バリエーション選択 */}
-                      {(variantInputMode === 'matrix' || variantInputMode === 'swatch') && previewAxes.some(a => a.items.length > 0) ? (
+                      {variantInputMode === 'swatch' && previewAxes.some(a => a.items.length > 0) ? (
                         <div className="space-y-3 rounded-lg border p-3 bg-slate-50/60">
                           {previewAxes.filter(a => a.items.length > 0).map((axis) => {
                             const selectedVal = previewSelectedItems[axis.id] ?? axis.items[0]?.value;

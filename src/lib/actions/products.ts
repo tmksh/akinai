@@ -39,16 +39,16 @@ export async function getProducts(
   const offset = options?.offset ?? 0;
 
   try {
-    // 1クエリで商品＋バリエーション＋画像＋カテゴリをJOIN取得
+    // 1クエリで商品＋バリエーション＋画像＋カテゴリをJOIN取得（一覧表示に必要なカラムのみ）
     let query = supabase
       .from('products')
       .select(`
-        *,
-        product_variants (*),
-        product_images (*),
+        id, name, slug, status, featured, tags, created_at, organization_id,
+        product_variants (id, name, sku, price, compare_at_price, stock),
+        product_images (id, url, alt, sort_order),
         product_categories (
           category_id,
-          categories (*)
+          categories (id, name, slug)
         )
       `, { count: 'exact' })
       .eq('organization_id', organizationId)
