@@ -538,6 +538,13 @@ export async function updateProduct(input: UpdateProductInput): Promise<{
 
     revalidatePath('/products');
     revalidatePath(`/products/${input.id}`);
+
+    // eiwanext の Netlify ビルドをトリガー（fire-and-forget）
+    const buildHookUrl = process.env.NETLIFY_BUILD_HOOK_URL;
+    if (buildHookUrl) {
+      fetch(buildHookUrl, { method: 'POST' }).catch(() => {});
+    }
+
     return { data: product, error: null };
   } catch (error) {
     console.error('Error updating product:', error);

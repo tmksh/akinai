@@ -271,6 +271,15 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
   const [selectedItems, setSelectedItems] = useState<Record<string, string>>({});
   const hydratedRef = useRef(false);
 
+  // バリアント画像のプリロード（選択時にキャッシュ済みで即表示）
+  useEffect(() => {
+    const urls = variants.map((v) => v.imageUrl).filter((u): u is string => !!u && !u.startsWith('blob:'));
+    urls.forEach((url) => {
+      const img = new Image();
+      img.src = url;
+    });
+  }, [variants]);
+
   // ドラッグ&ドロップ
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const handleDragEnd = (axisId: string, event: DragEndEvent) => {
@@ -651,9 +660,11 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
               {previewImage ? (
                 <>
                   <img
+                    key={previewImage}
                     src={previewImage}
                     alt="プレビュー"
                     className="w-full h-full object-contain"
+                    loading="eager"
                   />
                   {hasOmakase && (
                     <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
