@@ -416,12 +416,11 @@ export async function POST(request: NextRequest) {
                   payment_intent_data: {
                     metadata: { order_id: order.id, organization_id: auth.organizationId ?? '' },
                   },
-                  // Stripe Link を非表示にする設定
+                  // Stripe Link の「情報を保存」UIを非表示にする設定
                   ...(stripeLinkDisabled && {
                     consent_collection: {
                       payment_method_reuse_agreement: { position: 'hidden' },
                     },
-                    customer_creation: 'guest',
                   }),
                 },
                 { stripeAccount: stripeAccountId }
