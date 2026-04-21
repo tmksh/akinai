@@ -10,6 +10,13 @@ export interface EmailTemplateSettings {
     bodyText: string;
     footerText: string;
   };
+  bank_transfer_confirmation: {
+    enabled: boolean;
+    subject: string;
+    headerText: string;
+    bodyText: string;
+    footerText: string;
+  };
   order_notification: {
     enabled: boolean;
     subject: string;
@@ -29,6 +36,15 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSettings = {
     headerText: 'ご注文ありがとうございます',
     bodyText:
       'この度はご注文いただき、誠にありがとうございます。\n以下の内容でご注文を承りました。',
+    footerText:
+      'ご不明な点がございましたら、お気軽にお問い合わせください。\n今後ともよろしくお願いいたします。',
+  },
+  bank_transfer_confirmation: {
+    enabled: true,
+    subject: '【{shopName}】ご注文ありがとうございます（注文番号: {orderNumber}）',
+    headerText: 'ご注文ありがとうございます',
+    bodyText:
+      'この度はご注文いただき、誠にありがとうございます。\n以下の内容でご注文を承りました。\n\n下記口座へのお振込みをお願いいたします。',
     footerText:
       'ご不明な点がございましたら、お気軽にお問い合わせください。\n今後ともよろしくお願いいたします。',
   },
@@ -78,6 +94,10 @@ export async function GET() {
     order_confirmation: {
       ...DEFAULT_EMAIL_TEMPLATES.order_confirmation,
       ...(saved.order_confirmation || {}),
+    },
+    bank_transfer_confirmation: {
+      ...DEFAULT_EMAIL_TEMPLATES.bank_transfer_confirmation,
+      ...(saved.bank_transfer_confirmation || {}),
     },
     order_notification: {
       ...DEFAULT_EMAIL_TEMPLATES.order_notification,

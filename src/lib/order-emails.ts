@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/email';
 import {
   buildOrderConfirmationEmail,
+  buildBankTransferConfirmationEmail,
   buildNewOrderNotificationEmail,
   buildAgentOrderNotificationEmail,
   type OrderEmailData,
@@ -46,6 +47,7 @@ export async function sendOrderEmails(
     const shopName = org?.name || 'ショップ';
     const customTemplates = (org?.email_templates as Record<string, unknown>) || {};
     const confirmCustom = (customTemplates.order_confirmation as Record<string, unknown>) || {};
+    const bankTransferCustom = (customTemplates.bank_transfer_confirmation as Record<string, unknown>) || {};
     const notifyCustom = (customTemplates.order_notification as Record<string, unknown>) || {};
 
     // service role で取得済みの org データから from アドレスを組み立てる
@@ -85,7 +87,32 @@ export async function sendOrderEmails(
       shopName,
     };
 
-    if (confirmCustom.enabled !== false) {
+    // 銀行振込の場合は専用テンプレートを使用
+    if (order.payment_method === 'bank_transfer') {
+      const isBankEnabled = bankTransferCustom.enabled !== false;
+      if (isBankEnabled) {
+        // 銀行情報を取得
+        const { data: orgSettings } = await supabase
+          .from('organizations')
+          .select('settings')
+          .eq('id', orgId)
+          .single();
+        const orgSet = (orgSettings?.settings as Record<string, unknown>) || {};
+        const bankData = (orgSet.bank_transfer as {
+          bankName?: string; branchName?: string; accountType?: string;
+          accountNumber?: string; accountHolder?: string; transferDeadlineDays?: number;
+        }) || {};
+        const days = bankData.transferDeadlineDays ?? 7;
+        const deadline = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toLocaleDateString('ja-JP');
+        const { subject, html } = buildBankTransferConfirmationEmail(
+          emailData,
+          { ...bankData, transferDeadline: deadline },
+          bankTransferCustom as Parameters<typeof buildBankTransferConfirmationEmail>[2]
+        );
+        await sendEmail({ to: order.customer_email, subject, html, from: fromAddress });
+        console.log(`[Email] Bank transfer confirmation sent to ${order.customer_email}`);
+      }
+    } else if (confirmCustom.enabled !== false) {
       const { subject, html } = buildOrderConfirmationEmail(
         emailData,
         confirmCustom as Parameters<typeof buildOrderConfirmationEmail>[1]

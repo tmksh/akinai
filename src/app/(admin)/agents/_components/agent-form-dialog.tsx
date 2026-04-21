@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Building2, User, Mail, Phone, MapPin, Percent, Loader2, Plus, X,
+  Building2, User, Mail, Phone, MapPin, Loader2, Plus, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -309,20 +309,6 @@ export function AgentFormDialog({ open, onOpenChange, agent, onSubmit }: AgentFo
             <Label htmlFor="address" className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />住所</Label>
             <Textarea id="address" placeholder="東京都千代田区..." value={formData.address}
               onChange={(e) => handleChange('address', e.target.value)} rows={2} />
-          </div>
-
-          {/* コミッション率 */}
-          <div className="space-y-2">
-            <Label htmlFor="commissionRate" className="flex items-center gap-1"><Percent className="h-3.5 w-3.5" />コミッション率</Label>
-            <div className="flex items-center gap-2">
-              <Input id="commissionRate" type="number" min="0" max="100" step="0.5"
-                value={formData.commissionRate}
-                onChange={(e) => handleChange('commissionRate', parseFloat(e.target.value) || 0)}
-                className={`w-24 ${errors.commissionRate ? 'border-destructive' : ''}`} />
-              <span className="text-muted-foreground">%</span>
-            </div>
-            {errors.commissionRate && <p className="text-xs text-destructive">{errors.commissionRate}</p>}
-            <p className="text-xs text-muted-foreground">売上に対して支払うコミッションの割合</p>
           </div>
 
           {/* カスタムフィールド（スキーマ定義 + 自由追加） */}

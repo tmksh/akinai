@@ -2,9 +2,10 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Building2, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, Building2, RefreshCw, Loader2, LayoutList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import Link from 'next/link';
 import { useOrganization } from '@/components/providers/organization-provider';
 import { toast } from 'sonner';
 import {
@@ -341,6 +342,12 @@ export default function AgentsPage() {
               disabled={isRefreshing}
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/settings/agents-schema">
+                <LayoutList className="h-4 w-4 mr-2" />
+                カスタムフィールド
+              </Link>
             </Button>
             <Button onClick={handleNewAgent} className="bg-sky-500 hover:bg-sky-600">
               <Plus className="h-4 w-4 mr-2" />

@@ -5,7 +5,7 @@ import { useState, useEffect, useTransition } from 'react';
 import {
   ArrowLeft, Building2, Mail, Phone, MapPin, Calendar, TrendingUp,
   DollarSign, ShoppingCart, Percent, Loader2, Edit, Trash2, Sparkles,
-  Plus, X, Check, ToggleLeft, Pencil,
+  Plus, X, Check, ToggleLeft, Pencil, Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -212,6 +212,29 @@ export default function AgentDetailPage() {
     } else {
       toast.error('削除に失敗しました');
     }
+  };
+
+  const handlePromoteToSchema = async (key: string, label: string) => {
+    if (!organization?.id) return;
+    const meta = fieldMeta[key];
+    const fType = (meta?.type as string) || 'text';
+    const fOptions = meta?.options ?? [];
+    const newField = {
+      id: key,
+      key,
+      label,
+      type: fType,
+      ...(fOptions.length > 0 ? { options: fOptions } : {}),
+      required: false,
+    };
+    const updatedSchema = [...agentFieldSchema, newField];
+    const result = await updateAgentFieldSchema(organization.id, updatedSchema);
+    if (result.error) {
+      toast.error('スキーマへの追加に失敗しました');
+      return;
+    }
+    await refetch();
+    toast.success(`「${label}」を全代理店のフィールドに追加しました`);
   };
 
   if (loading) {
@@ -523,22 +546,32 @@ export default function AgentDetailPage() {
                         </div>
                         <p className="font-medium">{value || <span className="text-muted-foreground">—</span>}</p>
                       </div>
-                      <button
-                        type="button"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
-                        onClick={() => {
-                          const meta = fieldMeta[key];
-                          const fType = (meta?.type as typeof editingFieldType) || 'text';
-                          const fOptions = (meta?.options ?? []).join('\n');
-                          setEditingFieldKey(key);
-                          setEditingFieldValue(value || '');
-                          setEditingFieldLabel(displayLabel);
-                          setEditingFieldType(fType);
-                          setEditingFieldOptions(fOptions);
-                        }}
-                      >
-                        <Pencil className="h-3 w-3 text-muted-foreground" />
-                      </button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          title="全代理店に適用"
+                          className="p-1 rounded hover:bg-sky-100 dark:hover:bg-sky-950/30 text-sky-600 dark:text-sky-400"
+                          onClick={() => handlePromoteToSchema(key, displayLabel)}
+                        >
+                          <Users className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          className="p-1 rounded hover:bg-muted"
+                          onClick={() => {
+                            const meta = fieldMeta[key];
+                            const fType = (meta?.type as typeof editingFieldType) || 'text';
+                            const fOptions = (meta?.options ?? []).join('\n');
+                            setEditingFieldKey(key);
+                            setEditingFieldValue(value || '');
+                            setEditingFieldLabel(displayLabel);
+                            setEditingFieldType(fType);
+                            setEditingFieldOptions(fOptions);
+                          }}
+                        >
+                          <Pencil className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
