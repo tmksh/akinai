@@ -36,6 +36,8 @@ import {
   updateBankTransferSettings,
   getEnabledPaymentMethods,
   updateEnabledPaymentMethods,
+  getStripeLinkDisabled,
+  updateStripeLinkDisabled,
   type BankTransferSettings,
 } from '@/lib/actions/settings';
 import { Input } from '@/components/ui/input';
@@ -109,6 +111,8 @@ function PaymentsSettingsContent() {
   const [bankTransfer, setBankTransfer] = useState<BankTransferSettings>(defaultBankTransfer);
   const [bankTransferLoading, setBankTransferLoading] = useState(true);
   const [bankTransferSaving, setBankTransferSaving] = useState(false);
+  const [stripeLinkDisabled, setStripeLinkDisabled] = useState(false);
+  const [stripeLinkSaving, setStripeLinkSaving] = useState(false);
 
   // URL パラメータからのメッセージ処理
   const stripeParam = searchParams.get('stripe');
@@ -142,6 +146,30 @@ function PaymentsSettingsContent() {
       setBankTransferLoading(false);
     })();
   }, [organization?.id]);
+
+  // Stripe Link設定を取得
+  useEffect(() => {
+    if (!organization?.id) return;
+    (async () => {
+      const disabled = await getStripeLinkDisabled(organization.id);
+      setStripeLinkDisabled(disabled);
+    })();
+  }, [organization?.id]);
+
+  const handleStripeLinkToggle = async (checked: boolean) => {
+    if (!organization?.id) return;
+    const newDisabled = !checked;
+    setStripeLinkDisabled(newDisabled);
+    setStripeLinkSaving(true);
+    const { error } = await updateStripeLinkDisabled(organization.id, newDisabled);
+    if (error) {
+      toast.error('設定の保存に失敗しました');
+      setStripeLinkDisabled(!newDisabled);
+    } else {
+      toast.success(`Stripe Link を${newDisabled ? '非表示' : '表示'}に設定しました`);
+    }
+    setStripeLinkSaving(false);
+  };
 
   // 有効な決済方法を取得
   useEffect(() => {
@@ -423,38 +451,64 @@ function PaymentsSettingsContent() {
                 const needsStripe = method.requiresStripe && !isStripeConnected;
                 
                 return (
-                  <div
-                    key={method.id}
-                    className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-lg",
-                        isEnabled && !needsStripe ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-slate-100 dark:bg-slate-800"
-                      )}>
-                        {isEnabled && !needsStripe ? (
-                          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-slate-400" />
+                  <div key={method.id}>
+                    <div
+                      className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "flex h-10 w-10 items-center justify-center rounded-lg",
+                          isEnabled && !needsStripe ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-slate-100 dark:bg-slate-800"
+                        )}>
+                          {isEnabled && !needsStripe ? (
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                          ) : (
+                            <XCircle className="h-5 w-5 text-slate-400" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium">{method.name}</div>
+                          <div className="text-sm text-muted-foreground">{method.description}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {needsStripe && (
+                          <Badge variant="outline" className="text-xs text-sky-600 border-sky-300">
+                            Stripe連携が必要
+                          </Badge>
                         )}
-                      </div>
-                      <div>
-                        <div className="font-medium">{method.name}</div>
-                        <div className="text-sm text-muted-foreground">{method.description}</div>
+                        <Switch
+                          checked={isEnabled && !needsStripe}
+                          onCheckedChange={() => toggleMethod(method.id)}
+                          disabled={needsStripe || paymentMethodsLoading}
+                        />
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      {needsStripe && (
-                        <Badge variant="outline" className="text-xs text-sky-600 border-sky-300">
-                          Stripe連携が必要
-                        </Badge>
-                      )}
-                      <Switch
-                        checked={isEnabled && !needsStripe}
-                        onCheckedChange={() => toggleMethod(method.id)}
-                        disabled={needsStripe || paymentMethodsLoading}
-                      />
-                    </div>
+                    {/* クレジットカードが有効 & Stripe連携済みの場合のみ Stripe Link サブ設定を表示 */}
+                    {method.id === 'credit_card' && isEnabled && !needsStripe && (
+                      <div className="mx-4 mb-3 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 px-4 py-3 flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-medium flex items-center gap-1.5">
+                            Stripe Link
+                            <Badge variant="outline" className="text-[10px] h-4 px-1">任意</Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            決済画面での「Link で支払う」ボタン・保存機能の表示
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {stripeLinkSaving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                          <Switch
+                            checked={!stripeLinkDisabled}
+                            onCheckedChange={handleStripeLinkToggle}
+                            disabled={stripeLinkSaving}
+                          />
+                          <span className="text-xs text-muted-foreground w-8">
+                            {stripeLinkDisabled ? '非表示' : '表示'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

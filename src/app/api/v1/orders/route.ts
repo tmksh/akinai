@@ -374,11 +374,13 @@ export async function POST(request: NextRequest) {
           // 組織の Stripe Connect アカウントを取得
           const { data: orgRow } = await supabase
             .from('organizations')
-            .select('stripe_account_id')
+            .select('stripe_account_id, settings')
             .eq('id', auth.organizationId)
             .single();
 
           const stripeAccountId = orgRow?.stripe_account_id as string | null;
+          const orgSettings = (orgRow?.settings as Record<string, unknown>) || {};
+          const stripeLinkDisabled = orgSettings.stripe_link_disabled === true;
 
           if (stripeAccountId) {
             try {
@@ -414,6 +416,13 @@ export async function POST(request: NextRequest) {
                   payment_intent_data: {
                     metadata: { order_id: order.id, organization_id: auth.organizationId ?? '' },
                   },
+                  // Stripe Link を非表示にする設定
+                  ...(stripeLinkDisabled && {
+                    consent_collection: {
+                      payment_method_reuse_agreement: { position: 'hidden' },
+                    },
+                    customer_creation: 'guest',
+                  }),
                 },
                 { stripeAccount: stripeAccountId }
               );

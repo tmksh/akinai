@@ -647,6 +647,47 @@ export async function updateBankTransferSettings(
 }
 
 // ============================================
+// Stripe Link 表示設定
+// ============================================
+
+export async function getStripeLinkDisabled(organizationId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+  const settings = (data?.settings as Record<string, unknown>) || {};
+  return settings.stripe_link_disabled === true;
+}
+
+export async function updateStripeLinkDisabled(
+  organizationId: string,
+  disabled: boolean
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data: current, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+  if (fetchError) return { error: fetchError.message };
+
+  const currentSettings = (current?.settings as Record<string, unknown>) || {};
+  const { error } = await supabase
+    .from('organizations')
+    .update({
+      settings: { ...currentSettings, stripe_link_disabled: disabled },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organizationId);
+
+  if (error) return { error: error.message };
+  revalidatePath('/settings/payments');
+  return { error: null };
+}
+
+// ============================================
 // 決済方法の有効/無効設定
 // ============================================
 
