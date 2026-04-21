@@ -30,7 +30,6 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@/components/ui/alert';
-import { PageTabs } from '@/components/layout/page-tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
 import {
   getBankTransferSettings,
@@ -44,13 +43,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-
-const settingsTabs = [
-  { label: '基本設定', href: '/settings', exact: true },
-  { label: '組織設定', href: '/settings/organization' },
-  { label: 'ユーザー・権限', href: '/settings/users' },
-  { label: '決済設定', href: '/settings/payments' },
-];
 
 // Stripe接続状態の型
 interface StripeStatus {
@@ -227,9 +219,6 @@ function PaymentsSettingsContent() {
           </p>
         </div>
       </div>
-
-      {/* タブナビゲーション */}
-      <PageTabs tabs={settingsTabs} />
 
       {/* 成功メッセージ */}
       {stripeParam === 'connected' && (

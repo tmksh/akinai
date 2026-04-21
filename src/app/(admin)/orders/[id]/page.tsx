@@ -496,6 +496,61 @@ export default function OrderDetailPage() {
             </CardContent>
           </Card>
 
+          {/* 添付ファイル */}
+          {(() => {
+            const attachments = (order as unknown as Record<string, unknown>).order_attachments as {
+              id: string; name: string; file_name: string; file_size: number;
+              content_type: string; url: string; created_at: string;
+            }[] | null;
+            if (!attachments || attachments.length === 0) return null;
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-violet-500" />
+                    添付ファイル
+                    <span className="text-sm font-normal text-muted-foreground">（{attachments.length}件）</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {attachments.map((att) => {
+                      const isImage = att.content_type.startsWith('image/');
+                      const fileSizeKb = Math.round(att.file_size / 1024);
+                      return (
+                        <a
+                          key={att.id}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex flex-col rounded-lg border border-border overflow-hidden hover:border-violet-400 hover:shadow-sm transition-all"
+                        >
+                          {isImage ? (
+                            <div className="aspect-square bg-muted overflow-hidden">
+                              <img
+                                src={att.url}
+                                alt={att.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              />
+                            </div>
+                          ) : (
+                            <div className="aspect-square bg-muted flex items-center justify-center">
+                              <FileText className="h-10 w-10 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="p-2 bg-background">
+                            <p className="text-xs font-medium truncate">{att.name}</p>
+                            <p className="text-xs text-muted-foreground">{fileSizeKb}KB</p>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* 配送情報 */}
           <Card>
             <CardHeader>
