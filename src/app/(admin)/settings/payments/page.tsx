@@ -32,7 +32,13 @@ import {
 } from '@/components/ui/alert';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
-import { getBankTransferSettings, updateBankTransferSettings, type BankTransferSettings } from '@/lib/actions/settings';
+import {
+  getBankTransferSettings,
+  updateBankTransferSettings,
+  getEnabledPaymentMethods,
+  updateEnabledPaymentMethods,
+  type BankTransferSettings,
+} from '@/lib/actions/settings';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -101,13 +107,13 @@ function PaymentsSettingsContent() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const [testMode, setTestMode] = useState(true);
   const [enabledMethods, setEnabledMethods] = useState<Record<string, boolean>>({
     credit_card: true,
     bank_transfer: true,
     convenience: false,
     cod: true,
   });
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
   const [bankTransfer, setBankTransfer] = useState<BankTransferSettings>(defaultBankTransfer);
   const [bankTransferLoading, setBankTransferLoading] = useState(true);
   const [bankTransferSaving, setBankTransferSaving] = useState(false);
@@ -142,6 +148,17 @@ function PaymentsSettingsContent() {
       const { data } = await getBankTransferSettings(organization.id);
       if (data) setBankTransfer(data);
       setBankTransferLoading(false);
+    })();
+  }, [organization?.id]);
+
+  // 有効な決済方法を取得
+  useEffect(() => {
+    if (!organization?.id) return;
+    (async () => {
+      setPaymentMethodsLoading(true);
+      const { data } = await getEnabledPaymentMethods(organization.id);
+      if (data) setEnabledMethods(data);
+      setPaymentMethodsLoading(false);
     })();
   }, [organization?.id]);
 
@@ -184,8 +201,17 @@ function PaymentsSettingsContent() {
     }
   };
 
-  const toggleMethod = (id: string) => {
-    setEnabledMethods(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleMethod = async (id: string) => {
+    if (!organization?.id) return;
+    const updated = { ...enabledMethods, [id]: !enabledMethods[id] };
+    setEnabledMethods(updated);
+    const { error } = await updateEnabledPaymentMethods(organization.id, updated);
+    if (error) {
+      toast.error('決済方法の保存に失敗しました');
+      setEnabledMethods(enabledMethods);
+    } else {
+      toast.success('決済方法を保存しました');
+    }
   };
 
   const isStripeConnected = stripeStatus?.connected && stripeStatus?.onboardingComplete;
@@ -199,15 +225,6 @@ function PaymentsSettingsContent() {
           <p className="text-muted-foreground">
             決済プロバイダーと決済方法を管理します
           </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">テストモード</span>
-            <Switch
-              checked={testMode}
-              onCheckedChange={setTestMode}
-            />
-          </div>
         </div>
       </div>
 
@@ -235,17 +252,6 @@ function PaymentsSettingsContent() {
             {errorParam === 'expired' && 'セッションの有効期限が切れました。もう一度お試しください。'}
             {errorParam === 'config_error' && 'システム設定エラーが発生しました。管理者にお問い合わせください。'}
             {!['stripe_denied', 'expired', 'config_error'].includes(errorParam) && '予期しないエラーが発生しました。'}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* テストモードの警告 */}
-      {testMode && (
-        <Alert className="border-sky-200 bg-sky-50 dark:bg-sky-950/30 dark:border-sky-800">
-          <AlertCircle className="h-4 w-4 text-sky-600" />
-          <AlertTitle className="text-sky-800 dark:text-sky-200">テストモードが有効です</AlertTitle>
-          <AlertDescription className="text-sky-700 dark:text-sky-300">
-            テスト用の決済情報を使用しています。本番環境に移行する前にテストモードを無効にしてください。
           </AlertDescription>
         </Alert>
       )}
@@ -395,7 +401,7 @@ function PaymentsSettingsContent() {
             { id: 'payjp', name: 'PAY.JP', icon: CreditCard, color: 'from-sky-400 to-sky-500' },
             { id: 'paypay', name: 'PayPay', icon: Wallet, color: 'from-red-500 to-pink-500' },
           ].map((provider) => (
-            <Card key={provider.id} className="opacity-60">
+            <Card key={provider.id} className="opacity-40 grayscale pointer-events-none">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                   <div className={cn(
@@ -457,7 +463,7 @@ function PaymentsSettingsContent() {
                       <Switch
                         checked={isEnabled && !needsStripe}
                         onCheckedChange={() => toggleMethod(method.id)}
-                        disabled={needsStripe}
+                        disabled={needsStripe || paymentMethodsLoading}
                       />
                     </div>
                   </div>

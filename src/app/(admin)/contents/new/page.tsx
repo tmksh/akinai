@@ -74,7 +74,7 @@ export default function NewContentPage() {
   const [allCategories, setAllCategories] = useState<ContentCategory[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
-  const [showPreview, setShowPreview] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();

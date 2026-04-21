@@ -647,6 +647,75 @@ export async function updateBankTransferSettings(
 }
 
 // ============================================
+// 決済方法の有効/無効設定
+// ============================================
+
+const DEFAULT_ENABLED_PAYMENT_METHODS: Record<string, boolean> = {
+  credit_card: true,
+  bank_transfer: true,
+  convenience: false,
+  cod: true,
+};
+
+export async function getEnabledPaymentMethods(organizationId: string): Promise<{
+  data: Record<string, boolean>;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (error) {
+    return { data: DEFAULT_ENABLED_PAYMENT_METHODS, error: error.message };
+  }
+
+  const settings = (data?.settings as Record<string, unknown>) || {};
+  const saved = settings.enabled_payment_methods as Record<string, boolean> | undefined;
+  return {
+    data: { ...DEFAULT_ENABLED_PAYMENT_METHODS, ...saved },
+    error: null,
+  };
+}
+
+export async function updateEnabledPaymentMethods(
+  organizationId: string,
+  methods: Record<string, boolean>
+): Promise<{ data: Record<string, boolean> | null; error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: currentData, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) {
+    return { data: null, error: fetchError.message };
+  }
+
+  const currentSettings = (currentData?.settings as Record<string, unknown>) || {};
+  const newSettings = { ...currentSettings, enabled_payment_methods: methods };
+
+  const { data: updated, error: updateError } = await supabase
+    .from('organizations')
+    .update({ settings: newSettings, updated_at: new Date().toISOString() })
+    .eq('id', organizationId)
+    .select('settings')
+    .single();
+
+  if (updateError) {
+    return { data: null, error: updateError.message };
+  }
+
+  revalidatePath('/settings/payments');
+  const result = (updated?.settings as Record<string, unknown>)?.enabled_payment_methods as Record<string, boolean>;
+  return { data: { ...DEFAULT_ENABLED_PAYMENT_METHODS, ...result }, error: null };
+}
+
+// ============================================
 // お知らせ（コンテンツ）で使うタイプ
 // ============================================
 
