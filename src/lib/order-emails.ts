@@ -87,92 +87,119 @@ export async function sendOrderEmails(
       shopName,
     };
 
-    // 銀行振込の場合は専用テンプレートを使用
-    if (order.payment_method === 'bank_transfer') {
-      const isBankEnabled = bankTransferCustom.enabled !== false;
-      if (isBankEnabled) {
-        // 銀行情報を取得
-        const { data: orgSettings } = await supabase
-          .from('organizations')
-          .select('settings')
-          .eq('id', orgId)
-          .single();
-        const orgSet = (orgSettings?.settings as Record<string, unknown>) || {};
-        const bankData = (orgSet.bank_transfer as {
-          bankName?: string; branchName?: string; accountType?: string;
-          accountNumber?: string; accountHolder?: string; transferDeadlineDays?: number;
-        }) || {};
-        const days = bankData.transferDeadlineDays ?? 7;
-        const deadline = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toLocaleDateString('ja-JP');
-        const { subject, html } = buildBankTransferConfirmationEmail(
+    // --- 顧客向けメール ---
+    try {
+      if (order.payment_method === 'bank_transfer') {
+        const isBankEnabled = bankTransferCustom.enabled !== false;
+        if (isBankEnabled) {
+          const { data: orgSettings } = await supabase
+            .from('organizations')
+            .select('settings')
+            .eq('id', orgId)
+            .single();
+          const orgSet = (orgSettings?.settings as Record<string, unknown>) || {};
+          const bankData = (orgSet.bank_transfer as {
+            bankName?: string; branchName?: string; accountType?: string;
+            accountNumber?: string; accountHolder?: string; transferDeadlineDays?: number;
+          }) || {};
+          const days = bankData.transferDeadlineDays ?? 7;
+          const deadline = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toLocaleDateString('ja-JP');
+          const { subject, html } = buildBankTransferConfirmationEmail(
+            emailData,
+            { ...bankData, transferDeadline: deadline },
+            bankTransferCustom as Parameters<typeof buildBankTransferConfirmationEmail>[2]
+          );
+          await sendEmail({ to: order.customer_email, subject, html, from: fromAddress });
+          console.log(`[Email] Bank transfer confirmation sent to ${order.customer_email}`);
+        }
+      } else if (confirmCustom.enabled !== false) {
+        const { subject, html } = buildOrderConfirmationEmail(
           emailData,
-          { ...bankData, transferDeadline: deadline },
-          bankTransferCustom as Parameters<typeof buildBankTransferConfirmationEmail>[2]
+          confirmCustom as Parameters<typeof buildOrderConfirmationEmail>[1]
         );
         await sendEmail({ to: order.customer_email, subject, html, from: fromAddress });
-        console.log(`[Email] Bank transfer confirmation sent to ${order.customer_email}`);
+        console.log(`[Email] Order confirmation sent to ${order.customer_email}`);
       }
-    } else if (confirmCustom.enabled !== false) {
-      const { subject, html } = buildOrderConfirmationEmail(
-        emailData,
-        confirmCustom as Parameters<typeof buildOrderConfirmationEmail>[1]
-      );
-      await sendEmail({ to: order.customer_email, subject, html, from: fromAddress });
-      console.log(`[Email] Order confirmation sent to ${order.customer_email}`);
+    } catch (err) {
+      console.error('[Email] Customer email failed:', err);
     }
 
-    if (notifyCustom.enabled !== false) {
-      const adminEmail =
-        (notifyCustom.adminEmail as string | undefined) ||
-        org?.email ||
-        org?.mail_from_address;
-      if (adminEmail) {
-        const { subject, html } = buildNewOrderNotificationEmail(
-          emailData,
-          notifyCustom as Parameters<typeof buildNewOrderNotificationEmail>[1]
-        );
-        await sendEmail({ to: adminEmail, subject, html, from: fromAddress });
-        console.log(`[Email] New order notification sent to ${adminEmail}`);
+    // --- 管理者向けメール ---
+    try {
+      if (notifyCustom.enabled !== false) {
+        const adminEmail =
+          (notifyCustom.adminEmail as string | undefined) ||
+          org?.email ||
+          org?.mail_from_address;
+        if (adminEmail) {
+          const { subject, html } = buildNewOrderNotificationEmail(
+            emailData,
+            notifyCustom as Parameters<typeof buildNewOrderNotificationEmail>[1]
+          );
+          await sendEmail({ to: adminEmail, subject, html, from: fromAddress });
+          console.log(`[Email] New order notification sent to ${adminEmail}`);
+        } else {
+          console.log('[Email] Admin notification skipped: no admin email configured');
+        }
+      } else {
+        console.log('[Email] Admin notification skipped: template disabled');
       }
+    } catch (err) {
+      console.error('[Email] Admin notification failed:', err);
     }
 
-    const agentCustom = (customTemplates.agent_notification as Record<string, unknown>) || {};
-    if (agentCustom.enabled !== false && order.agent_id) {
-      const { data: agent } = await supabase
-        .from('agents')
-        .select('email, name, company, code, commission_rate')
-        .eq('id', order.agent_id)
-        .single();
+    // --- 代理店向けメール ---
+    try {
+      const agentCustom = (customTemplates.agent_notification as Record<string, unknown>) || {};
+      console.log(`[Email] Agent check: enabled=${agentCustom.enabled !== false}, order.agent_id=${order.agent_id}`);
+      if (agentCustom.enabled !== false && order.agent_id) {
+        const { data: agent, error: agentErr } = await supabase
+          .from('agents')
+          .select('email, name, company, code, commission_rate')
+          .eq('id', order.agent_id)
+          .single();
 
-      if (agent?.email) {
-        const agentEmailData: AgentOrderEmailData = {
-          orderNumber: order.order_number,
-          customerName: order.customer_name,
-          agentCode: agent.code,
-          agentName: agent.name,
-          agentCompany: agent.company || '',
-          items: items.map(i => ({
-            productName: i.product_name,
-            variantName: i.variant_name || undefined,
-            quantity: i.quantity,
-            totalPrice: i.total_price,
-          })),
-          subtotal: order.subtotal,
-          total: order.total,
-          commissionRate: Number(agent.commission_rate),
-          commissionAmount: order.agent_commission_amount || 0,
-          shopName,
-        };
-        const { subject, html } = buildAgentOrderNotificationEmail(
-          agentEmailData,
-          agentCustom as Parameters<typeof buildAgentOrderNotificationEmail>[1]
-        );
-        await sendEmail({ to: agent.email, subject, html, from: fromAddress });
-        console.log(`[Email] Agent notification sent to ${agent.email}`);
+        if (agentErr) {
+          console.error('[Email] Agent fetch error:', agentErr);
+        }
+        console.log(`[Email] Agent data: ${agent ? JSON.stringify({ email: agent.email, code: agent.code }) : 'null'}`);
+
+        if (agent?.email) {
+          const agentEmailData: AgentOrderEmailData = {
+            orderNumber: order.order_number,
+            customerName: order.customer_name,
+            agentCode: agent.code,
+            agentName: agent.name,
+            agentCompany: agent.company || '',
+            items: items.map(i => ({
+              productName: i.product_name,
+              variantName: i.variant_name || undefined,
+              quantity: i.quantity,
+              totalPrice: i.total_price,
+            })),
+            subtotal: order.subtotal,
+            total: order.total,
+            commissionRate: Number(agent.commission_rate),
+            commissionAmount: order.agent_commission_amount || 0,
+            shopName,
+          };
+          const { subject, html } = buildAgentOrderNotificationEmail(
+            agentEmailData,
+            agentCustom as Parameters<typeof buildAgentOrderNotificationEmail>[1]
+          );
+          const result = await sendEmail({ to: agent.email, subject, html, from: fromAddress });
+          console.log(`[Email] Agent notification sent to ${agent.email}, result: ${JSON.stringify(result)}`);
+        } else {
+          console.log('[Email] Agent notification skipped: agent.email is empty');
+        }
+      } else {
+        console.log('[Email] Agent notification skipped: disabled or no agent_id');
       }
+    } catch (err) {
+      console.error('[Email] Agent notification failed:', err);
     }
   } catch (err) {
-    console.error('[Email] Failed to send order emails:', err);
+    console.error('[Email] Failed to send order emails (outer):', err);
   }
 }
 
