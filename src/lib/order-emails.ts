@@ -67,8 +67,23 @@ export async function sendOrderEmails(
 
     const addr = (order.shipping_address as Record<string, string | null>) || {};
 
+    const orderDateStr = order.created_at
+      ? new Date(order.created_at).toLocaleString('ja-JP', {
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit',
+        })
+      : '';
+
+    const formatAddressForEmail = (a: Record<string, string | null>) => {
+      const postal = a.postalCode ? `〒${a.postalCode} ` : '';
+      const main = `${a.prefecture || ''}${a.city || ''}${a.line1 || ''}`;
+      const line2 = a.line2 ? ` ${a.line2}` : '';
+      return `${postal}${main}${line2}`.trim();
+    };
+
     const emailData: OrderEmailData = {
       orderNumber: order.order_number,
+      orderDate: orderDateStr,
       customerName: order.customer_name,
       customerEmail: order.customer_email,
       items: items.map(i => ({
@@ -182,7 +197,12 @@ export async function sendOrderEmails(
         if (agent?.email) {
           const agentEmailData: AgentOrderEmailData = {
             orderNumber: order.order_number,
+            orderDate: orderDateStr,
             customerName: order.customer_name,
+            customerEmail: order.customer_email,
+            customerPhone: addr.phone || undefined,
+            customerAddress: formatAddressForEmail(addr),
+            paymentMethod: order.payment_method || 'credit_card',
             agentCode: agent.code,
             agentName: agent.name,
             agentCompany: agent.company || '',

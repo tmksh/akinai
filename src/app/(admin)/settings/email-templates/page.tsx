@@ -14,13 +14,24 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import type { EmailTemplateSettings } from '@/app/api/settings/email-templates/route';
 
-const VARIABLES = [
-  { key: '{shopName}', desc: 'ショップ名' },
-  { key: '{orderNumber}', desc: '注文番号' },
-  { key: '{customerName}', desc: '顧客名' },
-  { key: '{total}', desc: '合計金額' },
-  { key: '{agentCode}', desc: '代理店コード（代理店通知のみ）' },
-  { key: '{commission}', desc: 'コミッション金額（代理店通知のみ）' },
+const VARIABLES: { key: string; desc: string; group: '共通' | '代理店通知' }[] = [
+  { key: '{shopName}', desc: 'ショップ名', group: '共通' },
+  { key: '{orderNumber}', desc: '注文番号', group: '共通' },
+  { key: '{orderDate}', desc: '注文日時', group: '共通' },
+  { key: '{paymentMethod}', desc: '支払い方法', group: '共通' },
+  { key: '{customerName}', desc: 'お客様名', group: '共通' },
+  { key: '{customerEmail}', desc: 'お客様メールアドレス', group: '共通' },
+  { key: '{customerPhone}', desc: 'お客様電話番号', group: '共通' },
+  { key: '{customerAddress}', desc: 'お客様住所', group: '共通' },
+  { key: '{subtotal}', desc: '小計', group: '共通' },
+  { key: '{shippingFee}', desc: '送料', group: '共通' },
+  { key: '{tax}', desc: '消費税', group: '共通' },
+  { key: '{total}', desc: '合計金額', group: '共通' },
+  { key: '{agentCode}', desc: '代理店コード', group: '代理店通知' },
+  { key: '{agentName}', desc: '代理店担当者名', group: '代理店通知' },
+  { key: '{agentCompany}', desc: '代理店会社名 / 式場・ホテル名', group: '代理店通知' },
+  { key: '{commissionRate}', desc: 'コミッション率（％）', group: '代理店通知' },
+  { key: '{commission}', desc: 'コミッション金額', group: '代理店通知' },
 ];
 
 const BANK_VARIABLES = [
@@ -68,6 +79,33 @@ export default function EmailTemplatesPage() {
     }
   };
 
+  const previewReplace = (text: string) =>
+    text
+      .replace(/\{shopName\}/g, 'サンプルショップ')
+      .replace(/\{orderNumber\}/g, 'ORD-20260418-0001')
+      .replace(/\{orderDate\}/g, '2026/04/18 14:32')
+      .replace(/\{customerName\}/g, '山田 太郎')
+      .replace(/\{customerEmail\}/g, 'taro@example.com')
+      .replace(/\{customerPhone\}/g, '090-1234-5678')
+      .replace(/\{customerAddress\}/g, '〒150-0001 東京都渋谷区神宮前1-2-3 サンプルビル101')
+      .replace(/\{paymentMethod\}/g, 'クレジットカード')
+      .replace(/\{subtotal\}/g, '¥10,000')
+      .replace(/\{shippingFee\}/g, '¥500')
+      .replace(/\{tax\}/g, '¥1,000')
+      .replace(/\{total\}/g, '¥11,500')
+      .replace(/\{agentCode\}/g, 'AGT-001')
+      .replace(/\{agentName\}/g, '佐藤 花子')
+      .replace(/\{agentCompany\}/g, 'サンプル式場')
+      .replace(/\{commissionRate\}/g, '10%')
+      .replace(/\{commission\}/g, '¥1,100')
+      .replace(/\{bankName\}/g, '〇〇銀行')
+      .replace(/\{branchName\}/g, '本店')
+      .replace(/\{accountType\}/g, '普通')
+      .replace(/\{accountNumber\}/g, '1234567')
+      .replace(/\{accountHolder\}/g, 'カ）サンプルショップ')
+      .replace(/\{transferDeadlineDays\}/g, '7')
+      .replace(/\{transferDeadline\}/g, '2026/04/25');
+
   const update = (
     type: keyof EmailTemplateSettings,
     field: string,
@@ -109,18 +147,25 @@ export default function EmailTemplatesPage() {
 
       {/* 変数一覧 */}
       <Card className="border-sky-200 bg-sky-50/50 dark:bg-sky-950/20">
-        <CardContent className="pt-4 pb-4">
-          <p className="text-xs font-semibold text-sky-700 dark:text-sky-300 mb-2">使用できる変数</p>
-          <div className="flex flex-wrap gap-2">
-            {VARIABLES.map(v => (
-              <div key={v.key} className="flex items-center gap-1.5">
-                <code className="text-xs bg-white dark:bg-slate-800 border border-sky-200 dark:border-sky-700 px-2 py-0.5 rounded font-mono text-sky-700 dark:text-sky-300">
-                  {v.key}
-                </code>
-                <span className="text-xs text-muted-foreground">{v.desc}</span>
+        <CardContent className="pt-4 pb-4 space-y-3">
+          <p className="text-xs font-semibold text-sky-700 dark:text-sky-300">使用できる変数（件名・本文内に記述すると自動で置換されます）</p>
+          {(['共通', '代理店通知'] as const).map(group => (
+            <div key={group}>
+              <p className="text-[11px] font-semibold text-sky-800/70 dark:text-sky-400/70 mb-1.5">
+                {group === '共通' ? '共通変数（すべてのメールで使用可）' : '代理店通知のみで使用可'}
+              </p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                {VARIABLES.filter(v => v.group === group).map(v => (
+                  <div key={v.key} className="flex items-center gap-1.5">
+                    <code className="text-[11px] bg-white dark:bg-slate-800 border border-sky-200 dark:border-sky-700 px-1.5 py-0.5 rounded font-mono text-sky-700 dark:text-sky-300">
+                      {v.key}
+                    </code>
+                    <span className="text-[11px] text-muted-foreground">{v.desc}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -224,15 +269,13 @@ export default function EmailTemplatesPage() {
               <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-2">
                 <p className="font-semibold text-xs text-muted-foreground">件名プレビュー</p>
                 <p className="font-medium">
-                  {templates.order_confirmation.subject
-                    .replace('{shopName}', 'サンプルショップ')
-                    .replace('{orderNumber}', 'ORD-20260418-0001')}
+                  {previewReplace(templates.order_confirmation.subject)}
                 </p>
                 <Separator />
-                <p className="font-bold text-base">{templates.order_confirmation.headerText}</p>
-                <p className="whitespace-pre-line text-muted-foreground">{templates.order_confirmation.bodyText}</p>
+                <p className="font-bold text-base">{previewReplace(templates.order_confirmation.headerText)}</p>
+                <p className="whitespace-pre-line text-muted-foreground">{previewReplace(templates.order_confirmation.bodyText)}</p>
                 <p className="text-xs text-muted-foreground italic">（注文明細・お届け先がここに表示されます）</p>
-                <p className="whitespace-pre-line text-muted-foreground text-xs">{templates.order_confirmation.footerText}</p>
+                <p className="whitespace-pre-line text-muted-foreground text-xs">{previewReplace(templates.order_confirmation.footerText)}</p>
               </div>
             )}
           </CardContent>
@@ -315,13 +358,11 @@ export default function EmailTemplatesPage() {
               <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-2">
                 <p className="font-semibold text-xs text-muted-foreground">件名プレビュー</p>
                 <p className="font-medium">
-                  {templates.bank_transfer_confirmation.subject
-                    .replace('{shopName}', 'サンプルショップ')
-                    .replace('{orderNumber}', 'ORD-20260418-0001')}
+                  {previewReplace(templates.bank_transfer_confirmation.subject)}
                 </p>
                 <Separator />
-                <p className="font-bold text-base">{templates.bank_transfer_confirmation.headerText}</p>
-                <p className="whitespace-pre-line text-muted-foreground">{templates.bank_transfer_confirmation.bodyText}</p>
+                <p className="font-bold text-base">{previewReplace(templates.bank_transfer_confirmation.headerText)}</p>
+                <p className="whitespace-pre-line text-muted-foreground">{previewReplace(templates.bank_transfer_confirmation.bodyText)}</p>
                 <div className="rounded border border-amber-200 bg-amber-50/50 p-3 text-xs space-y-1">
                   <p className="font-semibold text-amber-700">🏦 振込先のご案内（決済設定の口座情報が自動挿入されます）</p>
                   <p className="text-amber-600">銀行名: ○○銀行 ／ 支店名: ○○支店</p>
@@ -329,7 +370,7 @@ export default function EmailTemplatesPage() {
                   <p className="text-amber-600">振込期限: 7日以内</p>
                 </div>
                 <p className="text-xs text-muted-foreground italic">（注文明細・お届け先がここに表示されます）</p>
-                <p className="whitespace-pre-line text-muted-foreground text-xs">{templates.bank_transfer_confirmation.footerText}</p>
+                <p className="whitespace-pre-line text-muted-foreground text-xs">{previewReplace(templates.bank_transfer_confirmation.footerText)}</p>
               </div>
             )}
           </CardContent>
@@ -393,10 +434,7 @@ export default function EmailTemplatesPage() {
             <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-2">
               <p className="font-semibold text-xs text-muted-foreground">件名プレビュー</p>
               <p className="font-medium">
-                {templates.order_notification.subject
-                  .replace('{orderNumber}', 'ORD-20260418-0001')
-                  .replace('{customerName}', '山田 太郎')
-                  .replace('{total}', '¥11,000')}
+                {previewReplace(templates.order_notification.subject)}
               </p>
             </div>
           )}
@@ -473,19 +511,11 @@ export default function EmailTemplatesPage() {
             <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-2">
               <p className="font-semibold text-xs text-muted-foreground">件名プレビュー</p>
               <p className="font-medium">
-                {templates.agent_notification.subject
-                  .replace('{shopName}', 'サンプルショップ')
-                  .replace('{orderNumber}', 'ORD-20260418-0001')}
+                {previewReplace(templates.agent_notification.subject)}
               </p>
               <Separator />
               <p className="whitespace-pre-line text-muted-foreground">
-                {templates.agent_notification.bodyText
-                  .replace('{agentCode}', 'AGT-001')
-                  .replace('{commission}', '¥1,100')
-                  .replace('{orderNumber}', 'ORD-20260418-0001')
-                  .replace('{customerName}', '山田 太郎')
-                  .replace('{total}', '¥11,000')
-                  .replace('{shopName}', 'サンプルショップ')}
+                {previewReplace(templates.agent_notification.bodyText)}
               </p>
               <p className="text-xs text-muted-foreground italic">（注文内容・コミッション詳細がここに表示されます）</p>
             </div>

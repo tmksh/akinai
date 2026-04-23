@@ -4,6 +4,7 @@
 
 export interface OrderEmailData {
   orderNumber: string;
+  orderDate?: string; // 注文日時（整形済み）
   customerName: string;
   customerEmail: string;
   items: {
@@ -57,11 +58,28 @@ function formatPrice(amount: number): string {
   return `¥${amount.toLocaleString('ja-JP')}`;
 }
 
+function formatAddressStr(addr?: OrderEmailData['shippingAddress']): string {
+  if (!addr) return '';
+  const postal = addr.postalCode ? `〒${addr.postalCode} ` : '';
+  const main = `${addr.prefecture || ''}${addr.city || ''}${addr.line1 || ''}`;
+  const line2 = addr.line2 ? ` ${addr.line2}` : '';
+  return `${postal}${main}${line2}`.trim();
+}
+
 function applyVars(text: string, data: OrderEmailData): string {
+  const addr = data.shippingAddress || {};
   return text
     .replace(/\{shopName\}/g, data.shopName)
     .replace(/\{orderNumber\}/g, data.orderNumber)
+    .replace(/\{orderDate\}/g, data.orderDate || '')
     .replace(/\{customerName\}/g, data.customerName)
+    .replace(/\{customerEmail\}/g, data.customerEmail || '')
+    .replace(/\{customerPhone\}/g, addr.phone || '')
+    .replace(/\{customerAddress\}/g, formatAddressStr(addr))
+    .replace(/\{paymentMethod\}/g, paymentMethodLabel[data.paymentMethod] || data.paymentMethod || '')
+    .replace(/\{subtotal\}/g, formatPrice(data.subtotal))
+    .replace(/\{shippingFee\}/g, data.shippingFee === 0 ? '無料' : formatPrice(data.shippingFee))
+    .replace(/\{tax\}/g, formatPrice(data.tax))
     .replace(/\{total\}/g, formatPrice(data.total));
 }
 
@@ -415,7 +433,12 @@ export function buildBankTransferConfirmationEmail(
  */
 export interface AgentOrderEmailData {
   orderNumber: string;
+  orderDate?: string;
   customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  paymentMethod?: string;
   agentCode: string;
   agentName: string;
   agentCompany: string;
@@ -451,9 +474,18 @@ export function buildAgentOrderNotificationEmail(
     text
       .replace(/\{shopName\}/g, data.shopName)
       .replace(/\{orderNumber\}/g, data.orderNumber)
+      .replace(/\{orderDate\}/g, data.orderDate || '')
       .replace(/\{customerName\}/g, data.customerName)
+      .replace(/\{customerEmail\}/g, data.customerEmail || '')
+      .replace(/\{customerPhone\}/g, data.customerPhone || '')
+      .replace(/\{customerAddress\}/g, data.customerAddress || '')
+      .replace(/\{paymentMethod\}/g, paymentMethodLabel[data.paymentMethod || ''] || data.paymentMethod || '')
       .replace(/\{agentCode\}/g, data.agentCode)
+      .replace(/\{agentName\}/g, data.agentName || '')
+      .replace(/\{agentCompany\}/g, data.agentCompany || '')
+      .replace(/\{commissionRate\}/g, `${data.commissionRate}%`)
       .replace(/\{commission\}/g, fmt(data.commissionAmount))
+      .replace(/\{subtotal\}/g, fmt(data.subtotal))
       .replace(/\{total\}/g, fmt(data.total));
 
   const subject = replaceVars(subjectTpl);
