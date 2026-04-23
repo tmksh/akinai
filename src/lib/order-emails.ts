@@ -12,6 +12,10 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAdmin = SupabaseClient<any, 'public', any>;
 
+// Resend の無料プランは 2 req/sec 制限のため、各メール送信の間に遅延を入れる
+const RESEND_DELAY_MS = 600;
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 /**
  * 注文確認メール（顧客）+ 新規注文通知（管理者）+ 代理店通知 を送信する。
  * 銀行振込・代引き・Stripe Webhook 完了時のいずれからも呼び出される共通関数。
@@ -124,6 +128,9 @@ export async function sendOrderEmails(
       console.error('[Email] Customer email failed:', err);
     }
 
+    // Resend のレート制限 (2/sec) 対策
+    await sleep(RESEND_DELAY_MS);
+
     // --- 管理者向けメール ---
     try {
       if (notifyCustom.enabled !== false) {
@@ -147,6 +154,9 @@ export async function sendOrderEmails(
     } catch (err) {
       console.error('[Email] Admin notification failed:', err);
     }
+
+    // Resend のレート制限 (2/sec) 対策
+    await sleep(RESEND_DELAY_MS);
 
     // --- 代理店向けメール ---
     try {
