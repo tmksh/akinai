@@ -53,6 +53,10 @@ export async function sendOrderEmails(
     const confirmCustom = (customTemplates.order_confirmation as Record<string, unknown>) || {};
     const bankTransferCustom = (customTemplates.bank_transfer_confirmation as Record<string, unknown>) || {};
     const notifyCustom = (customTemplates.order_notification as Record<string, unknown>) || {};
+    const agentCustom = (customTemplates.agent_notification as Record<string, unknown>) || {};
+
+    // 代理店経由の注文で、かつ「代理店経由は顧客メールを送信しない」設定が有効なら顧客メールをスキップ
+    const skipCustomerForAgent = !!order.agent_id && agentCustom.skipCustomerEmail === true;
 
     // service role で取得済みの org データから from アドレスを組み立てる
     // （sendEmail 内で匿名クライアントを使って再取得すると RLS でブロックされるため）
@@ -92,7 +96,9 @@ export async function sendOrderEmails(
     };
 
     // --- 顧客向けメール ---
-    try {
+    if (skipCustomerForAgent) {
+      console.log('[Email] Customer email skipped: order has agent_id and skipCustomerEmail=true');
+    } else try {
       if (order.payment_method === 'bank_transfer') {
         const isBankEnabled = bankTransferCustom.enabled !== false;
         if (isBankEnabled) {
@@ -160,7 +166,6 @@ export async function sendOrderEmails(
 
     // --- 代理店向けメール ---
     try {
-      const agentCustom = (customTemplates.agent_notification as Record<string, unknown>) || {};
       console.log(`[Email] Agent check: enabled=${agentCustom.enabled !== false}, order.agent_id=${order.agent_id}`);
       if (agentCustom.enabled !== false && order.agent_id) {
         const { data: agent, error: agentErr } = await supabase

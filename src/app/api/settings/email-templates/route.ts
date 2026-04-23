@@ -26,6 +26,7 @@ export interface EmailTemplateSettings {
     enabled: boolean;
     subject: string;
     bodyText: string;
+    skipCustomerEmail: boolean;
   };
 }
 
@@ -55,9 +56,10 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSettings = {
   },
   agent_notification: {
     enabled: true,
-    subject: '【{shopName}】代理店経由の注文が入りました（{orderNumber}）',
+    subject: '【{shopName}】ご紹介経由の新規注文が入りました（{orderNumber}）',
     bodyText:
-      'お世話になっております。\nあなたの代理店コード（{agentCode}）経由で新しい注文が入りました。\n\nコミッション: {commission}\n\n引き続きよろしくお願いいたします。',
+      'お世話になっております。\nあなたのご紹介コード（{agentCode}）経由で新しい注文が入りました。\n\n引き続きよろしくお願いいたします。',
+    skipCustomerEmail: false,
   },
 };
 

@@ -442,6 +442,23 @@ export default function EmailTemplatesPage() {
               placeholder="お世話になっております。&#10;あなたの代理店コード（{agentCode}）経由で..."
             />
           </div>
+          <div className="rounded-lg border border-amber-200/60 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-950/20 p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 space-y-1">
+                <Label className="text-sm font-semibold">
+                  代理店経由の注文では顧客向けメールを送信しない
+                </Label>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  ONにすると、代理店コード経由の注文の場合、お客様宛の「ご注文確認メール」の送信をスキップします。<br />
+                  （代理店・管理者向けのメールは通常通り送信されます）
+                </p>
+              </div>
+              <Switch
+                checked={templates.agent_notification.skipCustomerEmail ?? false}
+                onCheckedChange={v => update('agent_notification', 'skipCustomerEmail', v)}
+              />
+            </div>
+          </div>
           <div className="flex justify-end">
             <Button
               variant="outline"
