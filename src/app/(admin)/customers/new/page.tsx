@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useOrganization } from '@/components/providers/organization-provider';
-import { CustomFields, type CustomField } from '@/components/products/custom-fields';
+import { CustomerSchemaFields } from '@/components/customers/customer-schema-fields';
 import { createCustomer } from '@/lib/actions/customers';
 import {
   getCustomerRoleLabels,
@@ -55,8 +55,8 @@ export default function NewCustomerPage() {
   const [role, setRole] = useState<CustomerRole>('personal');
   const [status, setStatus] = useState<CustomerStatus>('active');
 
-  // カスタムフィールド（商品管理と同じ方式）
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  // カスタムフィールド（スキーマ駆動・会員種別フィルタリング）
+  const [schemaFieldValues, setSchemaFieldValues] = useState<Record<string, string>>({});
 
   // 基本情報
   const [name, setName] = useState('');
@@ -149,9 +149,7 @@ export default function NewCustomerPage() {
         prefecture: (role === 'supplier' ? supplierPrefecture : undefined) || undefined,
         businessType: (role === 'buyer' ? buyerIndustry : undefined) || undefined,
         password: password || undefined,
-        customFields: customFields.length > 0
-          ? customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) }))
-          : undefined,
+        customFields: Object.keys(schemaFieldValues).length > 0 ? schemaFieldValues : undefined,
         address: addAddress && postalCode && prefecture && city && line1
           ? { postalCode, prefecture, city, line1, line2: line2 || undefined, phone: addressPhone || undefined, isDefault: true }
           : undefined,
@@ -353,8 +351,15 @@ export default function NewCustomerPage() {
             </Card>
           )}
 
-          {/* カスタムフィールド（商品管理と同じ方式） */}
-          <CustomFields fields={customFields} onChange={setCustomFields} />
+          {/* カスタムフィールド（スキーマ駆動・会員種別フィルタリング） */}
+          {organization?.customerFieldSchema && organization.customerFieldSchema.length > 0 && (
+            <CustomerSchemaFields
+              schema={organization.customerFieldSchema}
+              role={role}
+              values={schemaFieldValues}
+              onChange={setSchemaFieldValues}
+            />
+          )}
 
           {/* 住所 */}
           <Card>

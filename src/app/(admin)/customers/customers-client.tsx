@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Search, Filter, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink } from 'lucide-react';
+import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -32,9 +33,15 @@ export default function CustomersClient({
   const [stats] = useState<CustomerStats | null>(initialStats);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithAddresses | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeRole, setActiveRole] = useState<'all' | 'personal' | 'buyer' | 'supplier'>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const roleLabels: CustomerRoleLabels = initialRoleLabels ?? { ...DEFAULT_CUSTOMER_ROLE_LABELS };
 
-  const filteredCustomers = customers.filter(customer => {
+  const getCustomerRole = (customer: CustomerWithAddresses) =>
+    (customer as unknown as { role?: string }).role;
+
+  const searchFilteredCustomers = customers.filter(customer => {
     const query = searchQuery.toLowerCase();
     return (
       customer.name.toLowerCase().includes(query) ||
@@ -43,6 +50,36 @@ export default function CustomersClient({
     );
   });
 
+  const filteredCustomers = searchFilteredCustomers.filter(customer => {
+    if (activeRole !== 'all') {
+      const role = getCustomerRole(customer);
+      if (activeRole === 'personal' && role && role !== 'personal') return false;
+      if (activeRole !== 'personal' && role !== activeRole) return false;
+    }
+    if (dateFrom) {
+      const createdAt = new Date(customer.created_at);
+      const from = new Date(dateFrom);
+      from.setHours(0, 0, 0, 0);
+      if (createdAt < from) return false;
+    }
+    if (dateTo) {
+      const createdAt = new Date(customer.created_at);
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      if (createdAt > to) return false;
+    }
+    return true;
+  });
+
+  const hasDateFilter = dateFrom !== '' || dateTo !== '';
+  const clearDateFilter = () => { setDateFrom(''); setDateTo(''); };
+
+  const roleCounts = {
+    all: searchFilteredCustomers.length,
+    personal: searchFilteredCustomers.filter(c => { const r = getCustomerRole(c); return !r || r === 'personal'; }).length,
+    buyer: searchFilteredCustomers.filter(c => getCustomerRole(c) === 'buyer').length,
+    supplier: searchFilteredCustomers.filter(c => getCustomerRole(c) === 'supplier').length,
+  };
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ja-JP', {
       style: 'currency',
@@ -118,12 +155,45 @@ export default function CustomersClient({
       {/* 顧客一覧 */}
       <Card className="border-0 shadow-sm bg-white dark:bg-slate-900">
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-sm font-medium text-slate-900 dark:text-slate-100">顧客一覧</CardTitle>
-          <CardDescription className="text-xs hidden sm:block">登録されている顧客情報を管理します</CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <CardTitle className="text-sm font-medium text-slate-900 dark:text-slate-100">顧客一覧</CardTitle>
+              <CardDescription className="text-xs hidden sm:block">登録されている顧客情報を管理します</CardDescription>
+            </div>
+            <Tabs value={activeRole} onValueChange={(v) => setActiveRole(v as typeof activeRole)}>
+              <TabsList className="h-8 bg-slate-100 dark:bg-slate-800 p-0.5">
+                <TabsTrigger value="all" className="h-7 px-2.5 text-xs gap-1">
+                  全て
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] font-medium">
+                    {roleCounts.all}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="personal" className="h-7 px-2.5 text-xs gap-1">
+                  {roleLabels.personal}
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] font-medium">
+                    {roleCounts.personal}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="buyer" className="h-7 px-2.5 text-xs gap-1">
+                  {roleLabels.buyer}
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] font-medium">
+                    {roleCounts.buyer}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="supplier" className="h-7 px-2.5 text-xs gap-1">
+                  {roleLabels.supplier}
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] font-medium">
+                    {roleCounts.supplier}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div className="relative flex-1">
+          <div className="space-y-3 mb-4 sm:mb-6">
+            {/* 検索 */}
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="顧客名・メールアドレスで検索..."
@@ -132,19 +202,47 @@ export default function CustomersClient({
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button variant="outline" className="border-slate-200 text-slate-600">
-              <Filter className="mr-2 h-4 w-4" />
-              フィルター
-            </Button>
+            {/* 登録日フィルター */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 shrink-0">
+                <Calendar className="h-3.5 w-3.5" />
+                登録日
+              </div>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="h-8 w-auto text-xs border-slate-200 dark:border-slate-700 px-2"
+              />
+              <span className="text-xs text-slate-400">〜</span>
+              <Input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="h-8 w-auto text-xs border-slate-200 dark:border-slate-700 px-2"
+              />
+              {hasDateFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearDateFilter}
+                  className="h-8 px-2 text-xs text-slate-500 hover:text-slate-900"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  クリア
+                </Button>
+              )}
+            </div>
           </div>
 
           {filteredCustomers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Users className="h-12 w-12 text-muted-foreground/30 mb-4" />
               <p className="text-muted-foreground">
-                {searchQuery ? '該当する顧客がありません' : '顧客がまだ登録されていません'}
+                {searchQuery || activeRole !== 'all' || hasDateFilter ? '該当する顧客がありません' : '顧客がまだ登録されていません'}
               </p>
-              {!searchQuery && (
+              {!searchQuery && activeRole === 'all' && !hasDateFilter && (
                 <Button variant="outline" className="mt-4" asChild>
                   <Link href="/customers/new">
                     <Plus className="mr-2 h-4 w-4" />

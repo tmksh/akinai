@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useOrganization } from '@/components/providers/organization-provider';
-import { CustomFields, type CustomField, type CustomFieldType } from '@/components/products/custom-fields';
+import { CustomerSchemaFields } from '@/components/customers/customer-schema-fields';
 import { getCustomer, updateCustomer } from '@/lib/actions/customers';
 import { getCustomerRoleLabels } from '@/lib/actions/settings';
 import { DEFAULT_CUSTOMER_ROLE_LABELS, DEFAULT_CUSTOMER_ROLE_ENABLED, type CustomerRoleLabels, type CustomerRoleEnabled } from '@/lib/customer-roles';
@@ -57,7 +57,7 @@ export default function CustomerEditPage() {
   const [role, setRole] = useState<CustomerRole>('personal');
   const [status, setStatus] = useState<CustomerStatus>('active');
 
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [schemaFieldValues, setSchemaFieldValues] = useState<Record<string, string>>({});
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -105,30 +105,20 @@ export default function CustomerEditPage() {
         }
       }
 
-      // カスタムフィールドの復元
+      // カスタムフィールドの復元（配列・オブジェクト両形式に対応）
       const rawCF = data.custom_fields;
       if (Array.isArray(rawCF)) {
-        const fields: CustomField[] = (rawCF as { key: string; label?: string; value?: string; type?: string; options?: string[] }[]).map(
-          (f, i) => ({
-            id: `cf-${i}`,
-            key: f.key,
-            label: f.label || f.key,
-            value: f.value ?? '',
-            type: (f.type as CustomFieldType) || 'text',
-            ...(f.options && { options: f.options }),
-          })
-        );
-        setCustomFields(fields);
+        const vals: Record<string, string> = {};
+        (rawCF as { key: string; value?: unknown }[]).forEach((f) => {
+          vals[f.key] = String(f.value ?? '');
+        });
+        setSchemaFieldValues(vals);
       } else if (rawCF && typeof rawCF === 'object') {
-        // 旧形式: {key: value} オブジェクト → 変換
-        const fields: CustomField[] = Object.entries(rawCF as Record<string, unknown>).map(([key, value], i) => ({
-          id: `cf-${i}`,
-          key,
-          label: key,
-          value: String(value ?? ''),
-          type: 'text' as CustomFieldType,
-        }));
-        setCustomFields(fields);
+        const vals: Record<string, string> = {};
+        Object.entries(rawCF as Record<string, unknown>).forEach(([k, v]) => {
+          vals[k] = String(v ?? '');
+        });
+        setSchemaFieldValues(vals);
       }
     });
   }, [customerId]);
@@ -189,9 +179,7 @@ export default function CustomerEditPage() {
         metadata: buildMetadata(),
         prefecture: (role === 'supplier' ? supplierPrefecture : null) ?? null,
         businessType: (role === 'buyer' ? buyerIndustry : null) ?? null,
-        customFields: customFields.length > 0
-          ? customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) }))
-          : [],
+        customFields: Object.keys(schemaFieldValues).length > 0 ? schemaFieldValues : {},
         ...(newPassword ? { password: newPassword } : {}),
       });
       if (error) { toast.error('保存に失敗しました: ' + error); return; }
@@ -396,7 +384,15 @@ export default function CustomerEditPage() {
           )}
 
           {/* カスタムフィールド */}
-          <CustomFields fields={customFields} onChange={setCustomFields} />
+          {/* カスタムフィールド（スキーマ駆動・会員種別フィルタリング） */}
+          {organization?.customerFieldSchema && organization.customerFieldSchema.length > 0 && (
+            <CustomerSchemaFields
+              schema={organization.customerFieldSchema}
+              role={role}
+              values={schemaFieldValues}
+              onChange={setSchemaFieldValues}
+            />
+          )}
 
           {/* 住所セクション（読み取り専用の案内） */}
           <Card>

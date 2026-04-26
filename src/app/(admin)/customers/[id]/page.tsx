@@ -317,35 +317,74 @@ export default function CustomerDetailPage() {
 
         {/* カスタムフィールド + 注文履歴 */}
         <div className="lg:col-span-2 space-y-6">
-          {/* カスタムフィールド */}
-          {Array.isArray(customer.custom_fields) && customer.custom_fields.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Sparkles className="h-4 w-4 text-sky-500" />
-                    カスタムフィールド
-                  </CardTitle>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/customers/${id}/edit`}><Edit className="mr-1.5 h-3.5 w-3.5" />編集</Link>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {(customer.custom_fields as Array<{key: string; label: string; value: string; type: string}>).map((field) => (
-                    <div key={field.key} className="flex items-start gap-2 rounded-lg border bg-muted/30 px-4 py-3">
-                      <Code className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">{field.label || field.key}</p>
-                        <p className="text-sm font-medium break-all">{field.value || '—'}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* カスタムフィールド（スキーマ駆動表示） */}
+          {(() => {
+            const schema = organization?.customerFieldSchema ?? [];
+            const rawCF = customer.custom_fields;
+            const cfValues: Record<string, string> = (() => {
+              if (Array.isArray(rawCF)) {
+                const obj: Record<string, string> = {};
+                (rawCF as { key: string; value?: unknown }[]).forEach(f => { obj[f.key] = String(f.value ?? ''); });
+                return obj;
+              }
+              if (rawCF && typeof rawCF === 'object') {
+                const obj: Record<string, string> = {};
+                Object.entries(rawCF as Record<string, unknown>).forEach(([k, v]) => { obj[k] = String(v ?? ''); });
+                return obj;
+              }
+              return {};
+            })();
+            const customerRole = (customer.role as 'personal' | 'buyer' | 'supplier') || 'personal';
+            const visibleFields = schema.filter(f => {
+              if (!f.roles || f.roles.length === 0) return true;
+              return f.roles.includes(customerRole);
+            }).filter(f => cfValues[f.key] !== undefined && cfValues[f.key] !== '');
+
+            if (visibleFields.length === 0) return null;
+
+            return (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Sparkles className="h-4 w-4 text-sky-500" />
+                      カスタムフィールド
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/customers/${id}/edit`}><Edit className="mr-1.5 h-3.5 w-3.5" />編集</Link>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {visibleFields.map((field) => {
+                      const rawVal = cfValues[field.key];
+                      let displayValue: React.ReactNode = rawVal || '—';
+                      if (field.type === 'boolean') {
+                        displayValue = rawVal === 'true' ? 'はい' : 'いいえ';
+                      } else if (field.type === 'multiselect') {
+                        try {
+                          const arr: string[] = JSON.parse(rawVal);
+                          displayValue = arr.length > 0
+                            ? <div className="flex flex-wrap gap-1">{arr.map(v => <Badge key={v} variant="secondary" className="text-xs">{v}</Badge>)}</div>
+                            : '—';
+                        } catch { displayValue = rawVal || '—'; }
+                      }
+                      return (
+                        <div key={field.key} className="flex items-start gap-2 rounded-lg border bg-muted/30 px-4 py-3">
+                          <Code className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">{field.label}</p>
+                            <div className="text-sm font-medium break-all">{displayValue}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* 注文履歴 */}
           <Card>
