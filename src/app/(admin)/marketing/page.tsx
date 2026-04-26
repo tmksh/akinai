@@ -23,6 +23,7 @@ import {
   sendMessage,
   publishEvent,
   getCustomersForSelect,
+  getProductsForAnalytics,
 } from '@/lib/actions/marketing';
 import { getEmailDomainStatus, type EmailDomainStatus } from '@/lib/actions/email-domain';
 import { toast } from 'sonner';
@@ -77,112 +78,176 @@ function EmailDomainBanner({ status }: { status: EmailDomainStatus | null }) {
 
 function AnalyticsTab({ organizationId }: { organizationId: string }) {
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
-    getAnalyticsOverview(organizationId).then(d => { setData(d); setLoading(false); });
+    getProductsForAnalytics(organizationId).then(setProducts);
   }, [organizationId]);
+
+  useEffect(() => {
+    setLoading(true);
+    getAnalyticsOverview(organizationId, selectedProductId || undefined).then(d => { setData(d); setLoading(false); });
+  }, [organizationId, selectedProductId]);
 
   if (loading) return <LoadingState />;
 
-  const maxViews = Math.max(...(data?.monthly.map(m => m.views) || [1]), 1);
+  const monthly = data?.monthly || [];
+  const maxBar = Math.max(...monthly.flatMap(m => [m.views, m.clicks]), 1);
+  const selectedProductName = products.find(p => p.id === selectedProductId)?.name;
+  const ctrValue = data && data.totalViews > 0 ? `${Math.round((data.totalClicks / data.totalViews) * 1000) / 10}%` : '—';
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { icon: Eye, label: '合計閲覧数（6ヶ月）', value: (data?.totalViews ?? 0).toLocaleString(), color: 'sky' },
-          { icon: MousePointerClick, label: '合計クリック数（6ヶ月）', value: (data?.totalClicks ?? 0).toLocaleString(), color: 'emerald' },
-          { icon: TrendingUp, label: 'クリック率（CTR）', value: data && data.totalViews > 0 ? `${Math.round((data.totalClicks / data.totalViews) * 1000) / 10}%` : '—', color: 'violet' },
-        ].map(({ icon: Icon, label, value, color }) => (
-          <Card key={label}>
-            <CardContent className="pt-5">
-              <div className="flex items-center gap-3">
-                <div className={`flex h-9 w-9 items-center justify-center rounded-xl bg-${color}-100 dark:bg-${color}-900/30`}>
-                  <Icon className={`h-4 w-4 text-${color}-600`} />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                  <p className="text-2xl font-bold">{value}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
+    <div className="space-y-3">
+      {/* ── サマリー＋フィルター（1枚に集約） ── */}
       <Card>
-        <CardHeader><CardTitle className="text-sm">月別 閲覧数 / クリック数</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {(data?.monthly || []).map(m => (
-              <div key={m.month} className="flex items-center gap-3">
-                <span className="w-12 shrink-0 text-xs text-muted-foreground">{m.month.slice(5)}月</span>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 rounded-full bg-sky-400" style={{ width: `${(m.views / maxViews) * 100}%`, minWidth: m.views > 0 ? '4px' : '0' }} />
-                    <span className="text-xs text-muted-foreground">{m.views} 閲覧</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 rounded-full bg-emerald-400" style={{ width: `${(m.clicks / maxViews) * 100}%`, minWidth: m.clicks > 0 ? '4px' : '0' }} />
-                    <span className="text-xs text-muted-foreground">{m.clicks} クリック</span>
-                  </div>
+        <CardContent className="p-4 space-y-4">
+          {/* 上段: フィルター */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-muted-foreground">対象</span>
+            <select
+              className="h-8 rounded-lg border border-input bg-background px-2 text-sm flex-1 min-w-[180px] max-w-xs"
+              value={selectedProductId}
+              onChange={e => setSelectedProductId(e.target.value)}
+            >
+              <option value="">全商品</option>
+              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <span className="text-xs text-muted-foreground">過去6ヶ月</span>
+          </div>
+
+          {/* 下段: 3指標を横並び（カード内分割） */}
+          <div className="grid grid-cols-3 divide-x">
+            <div className="px-3 first:pl-0">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                <Eye className="h-3 w-3 text-sky-500" />閲覧数
+              </div>
+              <p className="text-2xl font-bold tabular-nums">{(data?.totalViews ?? 0).toLocaleString()}</p>
+            </div>
+            <div className="px-3">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                <MousePointerClick className="h-3 w-3 text-emerald-500" />クリック数
+              </div>
+              <p className="text-2xl font-bold tabular-nums">{(data?.totalClicks ?? 0).toLocaleString()}</p>
+            </div>
+            <div className="px-3">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                <TrendingUp className="h-3 w-3 text-violet-500" />CTR
+              </div>
+              <p className="text-2xl font-bold tabular-nums">{ctrValue}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 月別チャート（縦棒グラフ） ── */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-muted-foreground">月別推移</h3>
+            <div className="flex items-center gap-3 text-xs">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-sky-400" />閲覧</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-emerald-400" />クリック</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-6 gap-2 h-32">
+            {monthly.map(m => (
+              <div key={m.month} className="flex flex-col items-center justify-end gap-1.5">
+                <div className="flex items-end gap-1 w-full justify-center h-full">
+                  <div
+                    className="w-1/3 rounded-t bg-sky-400 transition-all"
+                    style={{ height: `${(m.views / maxBar) * 100}%`, minHeight: m.views > 0 ? '2px' : '0' }}
+                    title={`${m.views} 閲覧`}
+                  />
+                  <div
+                    className="w-1/3 rounded-t bg-emerald-400 transition-all"
+                    style={{ height: `${(m.clicks / maxBar) * 100}%`, minHeight: m.clicks > 0 ? '2px' : '0' }}
+                    title={`${m.clicks} クリック`}
+                  />
                 </div>
+                <span className="text-[10px] text-muted-foreground tabular-nums">{m.month.slice(5)}月</span>
+                <span className="text-[10px] tabular-nums leading-none">
+                  <span className="text-sky-600 dark:text-sky-400">{m.views}</span>
+                  <span className="text-muted-foreground mx-0.5">/</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{m.clicks}</span>
+                </span>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {(data?.productRanking || []).length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-sm">商品閲覧ランキング（上位5件）</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {data?.productRanking.map((p, i) => (
-                <div key={p.id} className="flex items-center gap-3">
-                  <span className={`w-5 text-center text-sm font-bold ${i === 0 ? 'text-yellow-500' : i === 1 ? 'text-slate-400' : i === 2 ? 'text-amber-600' : 'text-muted-foreground'}`}>{i + 1}</span>
-                  <span className="flex-1 text-sm">{p.name}</span>
-                  <span className="text-sm text-muted-foreground">{p.views.toLocaleString()} 閲覧</span>
-                </div>
-              ))}
+      {/* ── 商品別テーブル ── */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <h3 className="text-xs font-semibold text-muted-foreground">商品別ランキング（上位10件）</h3>
+          </div>
+          {(data?.productRanking || []).length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-8 px-4">
+              データがありません。<button className="underline hover:text-foreground" onClick={() => setShowGuide(true)}>トラッキングAPIの組み込み方</button>
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[11px] text-muted-foreground bg-muted/30">
+                    <th className="text-left px-4 py-2 font-medium w-8">#</th>
+                    <th className="text-left py-2 pr-3 font-medium">商品名</th>
+                    <th className="text-right py-2 pr-3 font-medium whitespace-nowrap w-20">閲覧</th>
+                    <th className="text-right py-2 pr-3 font-medium whitespace-nowrap w-20">クリック</th>
+                    <th className="text-right px-4 py-2 font-medium w-16">CTR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.productRanking.map((p, i) => {
+                    const ctr = p.views > 0 ? Math.round((p.clicks / p.views) * 1000) / 10 : 0;
+                    return (
+                      <tr key={p.id} className="border-t hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-2">
+                          <span className={`text-xs font-bold ${i === 0 ? 'text-yellow-500' : i === 1 ? 'text-slate-400' : i === 2 ? 'text-amber-600' : 'text-muted-foreground'}`}>{i + 1}</span>
+                        </td>
+                        <td className="py-2 pr-3 max-w-[200px] truncate">{p.name}</td>
+                        <td className="py-2 pr-3 text-right tabular-nums text-sky-600 dark:text-sky-400">{p.views.toLocaleString()}</td>
+                        <td className="py-2 pr-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">{p.clicks.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-right tabular-nums text-xs text-muted-foreground">{ctr > 0 ? `${ctr}%` : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── 実装ガイド（折りたたみ） ── */}
+      <button
+        onClick={() => setShowGuide(s => !s)}
+        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
+      >
+        <ChevronDown className={`h-3 w-3 transition-transform ${showGuide ? 'rotate-180' : ''}`} />
+        フロントエンドへの組み込み方
+      </button>
+      {showGuide && (
+        <Card>
+          <CardContent className="p-4 space-y-2 text-sm">
+            <p className="text-xs text-muted-foreground">商品ページに以下のコードを追加するだけで計測が始まります。</p>
+            <div className="rounded-lg bg-muted/60 p-3 font-mono text-[11px] space-y-1 overflow-x-auto leading-relaxed">
+              <p className="text-slate-400">{'// 商品ページを開いたとき（閲覧）'}</p>
+              <p>{'await fetch("https://your-domain/api/v1/analytics/track", {'}</p>
+              <p className="pl-4">{'method: "POST",'}</p>
+              <p className="pl-4">{'headers: { "Authorization": "Bearer {APIキー}", "Content-Type": "application/json" },'}</p>
+              <p className="pl-4">{'body: JSON.stringify({ type: "view", productId: "商品ID", sessionId: "セッションID" })'}</p>
+              <p>{'});'}</p>
+              <p className="text-slate-400 pt-1">{'// クリック計測: type: "click", clickType: "buy" | "detail" | "inquiry"'}</p>
+            </div>
+            <p className="text-xs text-muted-foreground">APIキーは <span className="font-mono bg-muted px-1 rounded">設定 → API設定</span> で確認できます。</p>
           </CardContent>
         </Card>
       )}
-
-      {data?.totalViews === 0 && (
-        <EmptyState icon={BarChart3} title="データがまだありません" description="フロントエンドからトラッキングAPIを呼ぶとここに反映されます" />
-      )}
-
-      {/* 実装ガイド */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-sky-500" />
-            フロントエンドへの組み込み方
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p className="text-muted-foreground">商品ページに以下のコードを追加するだけで計測が始まります。</p>
-          <div className="rounded-lg bg-muted/60 p-3 font-mono text-xs space-y-2 overflow-x-auto">
-            <p className="text-slate-400">{'// 商品ページを開いたとき（閲覧）'}</p>
-            <p>{'await fetch("https://your-domain/api/v1/analytics/track", {'}</p>
-            <p className="pl-4">{'method: "POST",'}</p>
-            <p className="pl-4">{'headers: { "Authorization": "Bearer {APIキー}", "Content-Type": "application/json" },'}</p>
-            <p className="pl-4">{'body: JSON.stringify({'}</p>
-            <p className="pl-8">{'type: "view",          // "view" | "click"'}</p>
-            <p className="pl-8">{'productId: "商品ID",'}</p>
-            <p className="pl-8">{'sessionId: "セッションID",  // 任意'}</p>
-            <p className="pl-4">{'})'}</p>
-            <p>{'});'}</p>
-            <br />
-            <p className="text-slate-400">{'// カートに追加・詳細ボタンを押したとき（クリック）'}</p>
-            <p>{'// type: "click", clickType: "buy" | "detail" | "inquiry"'}</p>
-          </div>
-          <p className="text-xs text-muted-foreground">APIキーは <span className="font-mono bg-muted px-1 rounded">設定 → API設定</span> で確認できます。</p>
-        </CardContent>
-      </Card>
     </div>
   );
 }

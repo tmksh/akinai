@@ -4,20 +4,43 @@ import { createClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email';
 
 // ─── アナリティクス ───────────────────────────────────────
-export async function getAnalyticsOverview(organizationId: string) {
+export async function getAnalyticsOverview(organizationId: string, productId?: string) {
   const supabase = await createClient();
 
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
   sixMonthsAgo.setDate(1);
   sixMonthsAgo.setHours(0, 0, 0, 0);
+  const since = sixMonthsAgo.toISOString();
 
-  const [{ count: totalViews }, { count: totalClicks }, { data: monthlyViews }, { data: monthlyClicks }, { data: topProducts }] = await Promise.all([
-    supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).gte('viewed_at', sixMonthsAgo.toISOString()),
-    supabase.from('product_clicks').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).gte('clicked_at', sixMonthsAgo.toISOString()),
-    supabase.from('page_views').select('viewed_at').eq('organization_id', organizationId).gte('viewed_at', sixMonthsAgo.toISOString()),
-    supabase.from('product_clicks').select('clicked_at').eq('organization_id', organizationId).gte('clicked_at', sixMonthsAgo.toISOString()),
-    supabase.from('page_views').select('product_id, products!inner(id, name)').eq('organization_id', organizationId).gte('viewed_at', sixMonthsAgo.toISOString()).not('product_id', 'is', null),
+  const buildViewsCount = () => {
+    let q = supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).gte('viewed_at', since);
+    if (productId) q = q.eq('product_id', productId);
+    return q;
+  };
+  const buildClicksCount = () => {
+    let q = supabase.from('product_clicks').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).gte('clicked_at', since);
+    if (productId) q = q.eq('product_id', productId);
+    return q;
+  };
+  const buildMonthlyViews = () => {
+    let q = supabase.from('page_views').select('viewed_at').eq('organization_id', organizationId).gte('viewed_at', since);
+    if (productId) q = q.eq('product_id', productId);
+    return q;
+  };
+  const buildMonthlyClicks = () => {
+    let q = supabase.from('product_clicks').select('clicked_at').eq('organization_id', organizationId).gte('clicked_at', since);
+    if (productId) q = q.eq('product_id', productId);
+    return q;
+  };
+
+  const [{ count: totalViews }, { count: totalClicks }, { data: monthlyViews }, { data: monthlyClicks }, { data: topProducts }, { data: topClicks }] = await Promise.all([
+    buildViewsCount(),
+    buildClicksCount(),
+    buildMonthlyViews(),
+    buildMonthlyClicks(),
+    supabase.from('page_views').select('product_id, products!inner(id, name)').eq('organization_id', organizationId).gte('viewed_at', since).not('product_id', 'is', null),
+    supabase.from('product_clicks').select('product_id, click_type, products!inner(id, name)').eq('organization_id', organizationId).gte('clicked_at', since).not('product_id', 'is', null),
   ]);
 
   // 月別集計
@@ -36,20 +59,29 @@ export async function getAnalyticsOverview(organizationId: string) {
     if (monthMap.has(m)) monthMap.get(m)!.clicks++;
   }
 
-  // 商品ランキング
-  const productMap = new Map<string, { name: string; views: number }>();
+  // 商品ランキング（閲覧）
+  const productMap = new Map<string, { name: string; views: number; clicks: number }>();
   for (const pv of topProducts || []) {
     const pid = pv.product_id as string;
     const product = ((pv as unknown) as { products: { id: string; name: string } }).products;
     if (!product) continue;
     const e = productMap.get(pid);
     if (e) e.views++;
-    else productMap.set(pid, { name: product.name, views: 1 });
+    else productMap.set(pid, { name: product.name, views: 1, clicks: 0 });
+  }
+  // 商品ランキング（クリック）
+  for (const pc of topClicks || []) {
+    const pid = pc.product_id as string;
+    const product = ((pc as unknown) as { products: { id: string; name: string } }).products;
+    if (!product) continue;
+    const e = productMap.get(pid);
+    if (e) e.clicks++;
+    else productMap.set(pid, { name: product.name, views: 0, clicks: 1 });
   }
   const productRanking = Array.from(productMap.entries())
     .map(([id, d]) => ({ id, ...d }))
     .sort((a, b) => b.views - a.views)
-    .slice(0, 5);
+    .slice(0, 10);
 
   return {
     totalViews: totalViews ?? 0,
@@ -292,6 +324,19 @@ export async function publishEvent(organizationId: string, input: {
   await supabase.from('events').update({ notified_count: notifiedCount }).eq('id', event.id);
 
   return { data: { id: event.id, notifiedCount }, error: null };
+}
+
+// ─── アナリティクス用商品一覧 ──────────────────────────────
+export async function getProductsForAnalytics(organizationId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('products')
+    .select('id, name')
+    .eq('organization_id', organizationId)
+    .eq('status', 'active')
+    .order('name')
+    .limit(200);
+  return (data || []) as { id: string; name: string }[];
 }
 
 // ─── 顧客一覧（フォーム選択用） ──────────────────────────
