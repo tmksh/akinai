@@ -154,18 +154,11 @@ function LoginForm() {
         {/* ── ロゴ（中央） ── */}
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center">
           <div className="text-center">
-            <p
-              className="text-5xl font-black tracking-tight mb-1"
-              style={{
-                background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 40%, #67e8f9 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                letterSpacing: '-0.04em',
-              }}
-            >
-              AKINAI
-            </p>
+            <img
+              src="/logo-akinai.png"
+              alt="AKINAI"
+              className="h-14 w-auto mx-auto mb-3"
+            />
             <p className="text-sm font-medium text-blue-300 tracking-wider uppercase">
               EC Commerce
             </p>
@@ -187,18 +180,7 @@ function LoginForm() {
 
         {/* モバイル用ロゴ */}
         <div className="mb-10 flex items-center gap-2 lg:hidden">
-          <span
-            className="text-xl font-black"
-            style={{
-              background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 40%, #67e8f9 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              letterSpacing: '-0.03em',
-            }}
-          >
-            AKINAI
-          </span>
+          <img src="/logo-akinai.png" alt="AKINAI" className="h-10 w-auto" />
         </div>
 
         <div className="w-full max-w-[360px] mx-auto">

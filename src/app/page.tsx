@@ -46,11 +46,8 @@ function Navbar() {
       scrolled ? 'backdrop-blur-xl shadow-sm border-b' : 'bg-transparent'
     }`}
       style={scrolled ? { background: 'rgba(240,246,254,0.95)', borderColor: '#bae6fd' } : {}}>
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <span className="text-xl font-black tracking-tight" style={{
-          background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 50%, #67e8f9 100%)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-        }}>AKINAI</span>
+      <div className="max-w-6xl mx-auto px-6 h-20 py-3 flex items-center justify-between">
+        <img src="/logo-akinai.png" alt="AKINAI" className="h-14 md:h-16 w-auto" />
 
         <div className="hidden md:flex items-center gap-8">
           <a href="#features" className="text-sm transition-colors hover:text-sky-500" style={{ color: '#4a6fa5' }}>機能</a>
@@ -900,11 +897,8 @@ function Footer() {
     <footer className="py-12" style={{ background: '#e8f0f8' }}>
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8 mb-8">
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xl font-black" style={{
-              background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-            }}>AKINAI</span>
+          <div className="flex items-center gap-3 shrink-0">
+            <img src="/logo-akinai.png" alt="AKINAI" className="h-10 w-auto" />
             <span className="text-xs font-medium" style={{ color: '#4a6fa5' }}>B2B向け EC / CMS</span>
           </div>
           <nav className="flex flex-wrap justify-center md:justify-end gap-x-6 gap-y-2 text-sm" style={{ color: '#4a6fa5' }}>
