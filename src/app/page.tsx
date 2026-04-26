@@ -46,7 +46,7 @@ function Navbar() {
       scrolled ? 'backdrop-blur-xl shadow-sm border-b' : 'bg-transparent'
     }`}
       style={scrolled ? { background: 'rgba(240,246,254,0.95)', borderColor: '#bae6fd' } : {}}>
-      <div className="max-w-6xl mx-auto px-6 h-20 py-3 flex items-center justify-between">
+      <div className="w-full px-6 md:px-10 h-20 py-3 flex items-center justify-between">
         <img src="/logo-akinai.png" alt="AKINAI" className="h-14 md:h-16 w-auto" />
 
         <div className="hidden md:flex items-center gap-8">
