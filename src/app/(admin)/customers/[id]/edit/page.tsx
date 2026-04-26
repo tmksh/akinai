@@ -385,14 +385,12 @@ export default function CustomerEditPage() {
 
           {/* カスタムフィールド */}
           {/* カスタムフィールド（スキーマ駆動・会員種別フィルタリング） */}
-          {organization?.customerFieldSchema && organization.customerFieldSchema.length > 0 && (
-            <CustomerSchemaFields
-              schema={organization.customerFieldSchema}
-              role={role}
-              values={schemaFieldValues}
-              onChange={setSchemaFieldValues}
-            />
-          )}
+          <CustomerSchemaFields
+            schema={organization?.customerFieldSchema ?? []}
+            role={role}
+            values={schemaFieldValues}
+            onChange={setSchemaFieldValues}
+          />
 
           {/* 住所セクション（読み取り専用の案内） */}
           <Card>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X } from 'lucide-react';
+import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -97,12 +97,20 @@ export default function CustomersClient({
             顧客情報の管理・分析を行います
           </p>
         </div>
-        <Button className="btn-premium" size="sm" asChild>
-          <Link href="/customers/new">
-            <Plus className="mr-2 h-4 w-4" />
-            顧客を追加
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/settings/customers">
+              <Sparkles className="mr-2 h-4 w-4" />
+              カスタムフィールド
+            </Link>
+          </Button>
+          <Button className="btn-premium" size="sm" asChild>
+            <Link href="/customers/new">
+              <Plus className="mr-2 h-4 w-4" />
+              顧客を追加
+            </Link>
+          </Button>
+        </div>
       </div>
 
             {/* 統計カード - オレンジグラデーション */}
