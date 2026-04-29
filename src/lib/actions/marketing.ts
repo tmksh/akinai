@@ -352,3 +352,198 @@ export async function getCustomersForSelect(organizationId: string, role?: strin
   const { data } = await q;
   return data || [];
 }
+
+// ─── 1対1メッセージ（問い合わせ）スレッド一覧 ──────────────
+// 運営側モニタリング用。組織配下のすべてのスレッドを参照できる。
+export interface InquiryThreadListItem {
+  id: string;
+  subject: string;
+  status: 'open' | 'closed';
+  createdAt: string;
+  updatedAt: string;
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  initiator: { id: string; name: string; role: string } | null;
+  recipient: { id: string; name: string; role: string } | null;
+  product: { id: string; name: string; slug: string } | null;
+  messageCount: number;
+}
+
+export async function getInquiryThreads(
+  organizationId: string,
+  filters?: {
+    status?: 'open' | 'closed';
+    productId?: string;
+    customerId?: string;
+    keyword?: string;
+    limit?: number;
+  }
+): Promise<InquiryThreadListItem[]> {
+  const supabase = await createClient();
+  const limit = Math.min(200, Math.max(1, filters?.limit ?? 100));
+
+  let q = supabase
+    .from('inquiry_threads')
+    .select(
+      'id, subject, status, created_at, updated_at, last_message_at, last_message_preview, ' +
+        'initiator:customers!inquiry_threads_initiator_customer_id_fkey(id, name, role), ' +
+        'recipient:customers!inquiry_threads_recipient_customer_id_fkey(id, name, role), ' +
+        'product:products!inquiry_threads_product_id_fkey(id, name, slug)'
+    )
+    .eq('organization_id', organizationId)
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .limit(limit);
+
+  if (filters?.status) q = q.eq('status', filters.status);
+  if (filters?.productId) q = q.eq('product_id', filters.productId);
+  if (filters?.customerId) {
+    q = q.or(
+      `initiator_customer_id.eq.${filters.customerId},recipient_customer_id.eq.${filters.customerId}`
+    );
+  }
+  if (filters?.keyword?.trim()) {
+    const kw = filters.keyword.trim().replace(/[%]/g, '\\%');
+    q = q.or(`subject.ilike.%${kw}%,last_message_preview.ilike.%${kw}%`);
+  }
+
+  const { data, error } = await q;
+  if (error) {
+    console.error('Failed to fetch inquiry threads:', error);
+    return [];
+  }
+
+  // メッセージ件数を一括取得
+  const threadIds = (data || []).map((row) => (row as unknown as { id: string }).id);
+  let countsMap = new Map<string, number>();
+  if (threadIds.length > 0) {
+    const { data: msgRows } = await supabase
+      .from('inquiry_messages')
+      .select('thread_id')
+      .in('thread_id', threadIds);
+    countsMap = (msgRows || []).reduce<Map<string, number>>((acc, row) => {
+      const tid = (row as unknown as { thread_id: string }).thread_id;
+      acc.set(tid, (acc.get(tid) ?? 0) + 1);
+      return acc;
+    }, new Map());
+  }
+
+  return (data || []).map((row) => {
+    const r = row as unknown as {
+      id: string;
+      subject: string;
+      status: 'open' | 'closed';
+      created_at: string;
+      updated_at: string;
+      last_message_at: string | null;
+      last_message_preview: string | null;
+      initiator: { id: string; name: string; role: string } | null;
+      recipient: { id: string; name: string; role: string } | null;
+      product: { id: string; name: string; slug: string } | null;
+    };
+    return {
+      id: r.id,
+      subject: r.subject,
+      status: r.status,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      lastMessageAt: r.last_message_at,
+      lastMessagePreview: r.last_message_preview,
+      initiator: r.initiator,
+      recipient: r.recipient,
+      product: r.product,
+      messageCount: countsMap.get(r.id) ?? 0,
+    };
+  });
+}
+
+// ─── 1対1メッセージ：スレッド詳細（運営閲覧用） ──────────────
+export interface InquiryMessageItem {
+  id: string;
+  fromCustomerId: string;
+  body: string;
+  attachments: { url: string; name: string; size: number; mimeType: string }[];
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface InquiryThreadDetail {
+  thread: InquiryThreadListItem;
+  messages: InquiryMessageItem[];
+}
+
+export async function getInquiryThreadDetail(
+  organizationId: string,
+  threadId: string
+): Promise<InquiryThreadDetail | null> {
+  const supabase = await createClient();
+
+  const { data: threadRow, error: threadError } = await supabase
+    .from('inquiry_threads')
+    .select(
+      'id, subject, status, created_at, updated_at, last_message_at, last_message_preview, ' +
+        'initiator:customers!inquiry_threads_initiator_customer_id_fkey(id, name, role), ' +
+        'recipient:customers!inquiry_threads_recipient_customer_id_fkey(id, name, role), ' +
+        'product:products!inquiry_threads_product_id_fkey(id, name, slug)'
+    )
+    .eq('id', threadId)
+    .eq('organization_id', organizationId)
+    .single();
+
+  if (threadError || !threadRow) return null;
+  const r = threadRow as unknown as {
+    id: string;
+    subject: string;
+    status: 'open' | 'closed';
+    created_at: string;
+    updated_at: string;
+    last_message_at: string | null;
+    last_message_preview: string | null;
+    initiator: { id: string; name: string; role: string } | null;
+    recipient: { id: string; name: string; role: string } | null;
+    product: { id: string; name: string; slug: string } | null;
+  };
+
+  const { data: messages } = await supabase
+    .from('inquiry_messages')
+    .select('id, from_customer_id, body, attachments, is_read, read_at, created_at')
+    .eq('thread_id', threadId)
+    .eq('organization_id', organizationId)
+    .order('created_at', { ascending: true });
+
+  return {
+    thread: {
+      id: r.id,
+      subject: r.subject,
+      status: r.status,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      lastMessageAt: r.last_message_at,
+      lastMessagePreview: r.last_message_preview,
+      initiator: r.initiator,
+      recipient: r.recipient,
+      product: r.product,
+      messageCount: messages?.length ?? 0,
+    },
+    messages: (messages || []).map((m) => {
+      const msg = m as unknown as {
+        id: string;
+        from_customer_id: string;
+        body: string;
+        attachments: { url: string; name: string; size: number; mimeType: string }[] | null;
+        is_read: boolean;
+        read_at: string | null;
+        created_at: string;
+      };
+      return {
+        id: msg.id,
+        fromCustomerId: msg.from_customer_id,
+        body: msg.body,
+        attachments: Array.isArray(msg.attachments) ? msg.attachments : [],
+        isRead: msg.is_read,
+        readAt: msg.read_at,
+        createdAt: msg.created_at,
+      };
+    }),
+  };
+}

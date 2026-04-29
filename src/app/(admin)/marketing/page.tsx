@@ -5,6 +5,7 @@ import {
   BarChart3, Mail, MessageSquare, Calendar,
   TrendingUp, Eye, MousePointerClick, Loader2,
   Send, Plus, X, CheckCircle2, Users, Megaphone, ChevronDown,
+  Inbox, Package, ArrowRight, Paperclip,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useOrganization } from '@/components/providers/organization-provider';
 import {
   getAnalyticsOverview,
@@ -24,6 +32,10 @@ import {
   publishEvent,
   getCustomersForSelect,
   getProductsForAnalytics,
+  getInquiryThreads,
+  getInquiryThreadDetail,
+  type InquiryThreadListItem,
+  type InquiryThreadDetail,
 } from '@/lib/actions/marketing';
 import { getEmailDomainStatus, type EmailDomainStatus } from '@/lib/actions/email-domain';
 import { toast } from 'sonner';
@@ -668,6 +680,255 @@ function EventsTab({ organizationId }: { organizationId: string }) {
   );
 }
 
+// ─── 問い合わせ（1対1メッセージ）タブ ─────────────────────
+function InquiriesTab({ organizationId }: { organizationId: string }) {
+  const [threads, setThreads] = useState<InquiryThreadListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>('all');
+  const [keyword, setKeyword] = useState('');
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<InquiryThreadDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const refresh = async () => {
+    setLoading(true);
+    const data = await getInquiryThreads(organizationId, {
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      keyword: keyword.trim() || undefined,
+    });
+    setThreads(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizationId, statusFilter]);
+
+  const openDetail = async (threadId: string) => {
+    setSelectedThreadId(threadId);
+    setDetailLoading(true);
+    setDetail(null);
+    const data = await getInquiryThreadDetail(organizationId, threadId);
+    setDetail(data);
+    setDetailLoading(false);
+  };
+
+  const closeDetail = () => {
+    setSelectedThreadId(null);
+    setDetail(null);
+  };
+
+  const handleSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      refresh();
+    }
+  };
+
+  if (loading && threads.length === 0) return <LoadingState />;
+
+  return (
+    <div className="space-y-3">
+      {/* ── フィルター ── */}
+      <Card>
+        <CardContent className="p-3 flex items-center gap-2 flex-wrap">
+          <Inbox className="h-4 w-4 text-muted-foreground ml-1" />
+          <span className="text-xs text-muted-foreground">会員間の問い合わせ履歴を閲覧します</span>
+          <div className="flex-1" />
+          <div className="flex items-center gap-1">
+            {(['all', 'open', 'closed'] as const).map((s) => (
+              <Button
+                key={s}
+                size="sm"
+                variant={statusFilter === s ? 'default' : 'outline'}
+                onClick={() => setStatusFilter(s)}
+              >
+                {s === 'all' ? 'すべて' : s === 'open' ? 'オープン' : 'クローズ'}
+              </Button>
+            ))}
+          </div>
+          <div className="relative">
+            <Input
+              className="h-8 w-56"
+              placeholder="件名・本文で検索"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={handleSearchKey}
+            />
+          </div>
+          <Button size="sm" variant="ghost" onClick={refresh} disabled={loading}>
+            {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : '更新'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* ── スレッド一覧 ── */}
+      {threads.length === 0 ? (
+        <EmptyState icon={Inbox} title="問い合わせがありません" description="会員同士のメッセージ送受信が発生すると、ここに表示されます" />
+      ) : (
+        <div className="space-y-2">
+          {threads.map((t) => (
+            <Card
+              key={t.id}
+              className="cursor-pointer hover:border-sky-300 dark:hover:border-sky-700 transition-colors"
+              onClick={() => openDetail(t.id)}
+            >
+              <CardContent className="py-3 px-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={t.status === 'open' ? 'default' : 'secondary'} className="text-[10px] h-5">
+                        {t.status === 'open' ? 'オープン' : 'クローズ'}
+                      </Badge>
+                      <p className="font-medium text-sm truncate">{t.subject || '（件名なし）'}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap mt-1.5 text-xs text-muted-foreground">
+                      {t.product && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-100/60 dark:bg-amber-950/40 px-1.5 py-0.5 text-amber-800 dark:text-amber-300">
+                          <Package className="h-3 w-3" />
+                          {t.product.name}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span className="font-medium">{t.initiator?.name || '—'}</span>
+                        <span className="text-[10px] uppercase opacity-60">({t.initiator?.role})</span>
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="font-medium">{t.recipient?.name || '—'}</span>
+                        <span className="text-[10px] uppercase opacity-60">({t.recipient?.role})</span>
+                      </span>
+                    </div>
+                    {t.lastMessagePreview && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                        {t.lastMessagePreview}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-[10px] text-muted-foreground block">
+                      {t.lastMessageAt
+                        ? new Date(t.lastMessageAt).toLocaleString('ja-JP', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '—'}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5 mt-0.5">
+                      <MessageSquare className="h-2.5 w-2.5" />
+                      {t.messageCount}件
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* ── 詳細ダイアログ ── */}
+      <Dialog open={!!selectedThreadId} onOpenChange={(open) => !open && closeDetail()}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-base">
+              {detail?.thread.subject || '会話履歴'}
+            </DialogTitle>
+            <DialogDescription className="space-y-1.5">
+              {detail?.thread.product && (
+                <span className="inline-flex items-center gap-1 text-xs">
+                  <Package className="h-3 w-3" />
+                  関連商品：{detail.thread.product.name}
+                </span>
+              )}
+              {detail && (
+                <span className="block text-xs">
+                  <span className="font-medium">{detail.thread.initiator?.name}</span>
+                  <span className="opacity-60"> ({detail.thread.initiator?.role})</span>
+                  <ArrowRight className="inline h-3 w-3 mx-1" />
+                  <span className="font-medium">{detail.thread.recipient?.name}</span>
+                  <span className="opacity-60"> ({detail.thread.recipient?.role})</span>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : detail ? (
+              detail.messages.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">メッセージはありません</p>
+              ) : (
+                detail.messages.map((m) => {
+                  const isInitiator = detail.thread.initiator?.id === m.fromCustomerId;
+                  const sender = isInitiator ? detail.thread.initiator : detail.thread.recipient;
+                  return (
+                    <div
+                      key={m.id}
+                      className={`rounded-lg border px-3 py-2 ${
+                        isInitiator
+                          ? 'bg-sky-50/60 dark:bg-sky-950/20 border-sky-200/60 dark:border-sky-900/40'
+                          : 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="text-xs font-medium">
+                          {sender?.name}
+                          <span className="ml-1 text-[10px] uppercase opacity-60">
+                            ({sender?.role})
+                          </span>
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(m.createdAt).toLocaleString('ja-JP', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                          {m.isRead && (
+                            <span className="ml-2 inline-flex items-center gap-0.5">
+                              <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500" />
+                              既読
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
+                      {m.attachments.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {m.attachments.map((att, i) => (
+                            <a
+                              key={i}
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs rounded-md border bg-white/60 dark:bg-slate-900/60 px-1.5 py-0.5 hover:bg-white"
+                            >
+                              <Paperclip className="h-3 w-3" />
+                              <span className="truncate max-w-[180px]">{att.name}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">スレッドが見つかりません</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ─── 共通コンポーネント ──────────────────────────────────
 function LoadingState() {
   return (
@@ -714,7 +975,7 @@ export default function MarketingPage() {
       </div>
 
       <Tabs defaultValue="analytics">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="analytics" className="flex items-center gap-1.5">
             <BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">アナリティクス</span>
           </TabsTrigger>
@@ -723,6 +984,9 @@ export default function MarketingPage() {
           </TabsTrigger>
           <TabsTrigger value="messages" className="flex items-center gap-1.5">
             <MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">メッセージ</span>
+          </TabsTrigger>
+          <TabsTrigger value="inquiries" className="flex items-center gap-1.5">
+            <Inbox className="h-4 w-4" /><span className="hidden sm:inline">問い合わせ</span>
           </TabsTrigger>
           <TabsTrigger value="events" className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4" /><span className="hidden sm:inline">イベント</span>
@@ -737,6 +1001,9 @@ export default function MarketingPage() {
         </TabsContent>
         <TabsContent value="messages" className="mt-6">
           <MessagesTab organizationId={organization.id} />
+        </TabsContent>
+        <TabsContent value="inquiries" className="mt-6">
+          <InquiriesTab organizationId={organization.id} />
         </TabsContent>
         <TabsContent value="events" className="mt-6">
           <EventsTab organizationId={organization.id} />

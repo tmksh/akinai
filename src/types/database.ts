@@ -1095,6 +1095,97 @@ export interface Database {
         }
       }
       // ============================================
+      // 1対1メッセージ：スレッド (028)
+      // ============================================
+      inquiry_threads: {
+        Row: {
+          id: string
+          organization_id: string
+          product_id: string | null
+          initiator_customer_id: string
+          recipient_customer_id: string
+          subject: string
+          status: 'open' | 'closed'
+          last_message_at: string | null
+          last_message_preview: string | null
+          last_message_from_id: string | null
+          initiator_unread_count: number
+          recipient_unread_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          product_id?: string | null
+          initiator_customer_id: string
+          recipient_customer_id: string
+          subject?: string
+          status?: 'open' | 'closed'
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          last_message_from_id?: string | null
+          initiator_unread_count?: number
+          recipient_unread_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          product_id?: string | null
+          initiator_customer_id?: string
+          recipient_customer_id?: string
+          subject?: string
+          status?: 'open' | 'closed'
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          last_message_from_id?: string | null
+          initiator_unread_count?: number
+          recipient_unread_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      // ============================================
+      // 1対1メッセージ：メッセージ本体 (028)
+      // ============================================
+      inquiry_messages: {
+        Row: {
+          id: string
+          thread_id: string
+          organization_id: string
+          from_customer_id: string
+          body: string
+          attachments: Json
+          is_read: boolean
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          thread_id: string
+          organization_id: string
+          from_customer_id: string
+          body: string
+          attachments?: Json
+          is_read?: boolean
+          read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          thread_id?: string
+          organization_id?: string
+          from_customer_id?: string
+          body?: string
+          attachments?: Json
+          is_read?: boolean
+          read_at?: string | null
+          created_at?: string
+        }
+      }
+      // ============================================
       // 通知BOXテーブル (021)
       // ============================================
       notifications: {
