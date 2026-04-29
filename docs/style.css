@@ -1,26 +1,26 @@
 /* ================================
-   akinai Integration Docs — CSS
+   akinai Docs — CSS
    ================================ */
 
 :root {
-  --sky:          #0ea5e9;
-  --sky-dark:     #0284c7;
-  --sky-deep:     #0369a1;
-  --sky-light:    #f0f9ff;
-  --sky-mid:      #bae6fd;
-  --bg:           #f0f5f9;
-  --white:        #f8fbfd;
-  --text:         #1c1917;
-  --text-sub:     #57534e;
-  --text-muted:   #a8a29e;
-  --border:       #e8e0d8;
-  --border-dark:  #d9cfc4;
+  --sky:          #2563eb;
+  --sky-dark:     #1d4ed8;
+  --sky-deep:     #1e3a8a;
+  --sky-light:    #eff6ff;
+  --sky-mid:      #bfdbfe;
+  --bg:           #e8f0f8;
+  --white:        #f8fbff;
+  --text:         #1e3a5f;
+  --text-sub:     #4a6fa5;
+  --text-muted:   #94a3b8;
+  --border:       #bae6fd;
+  --border-dark:  #93c5fd;
   --success:      #16a34a;
   --sans: 'Noto Sans JP', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --radius: 10px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
-  --shadow:    0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,.10), 0 4px 8px rgba(0,0,0,.05);
+  --shadow-sm: 0 1px 3px rgba(37,99,235,.07), 0 1px 2px rgba(37,99,235,.05);
+  --shadow:    0 4px 12px rgba(37,99,235,.09), 0 2px 4px rgba(37,99,235,.05);
+  --shadow-lg: 0 8px 32px rgba(37,99,235,.11), 0 4px 8px rgba(37,99,235,.05);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -64,7 +64,7 @@ body  {
 
 /* ── Hero ── */
 .hero {
-  background: linear-gradient(140deg, #0c1929 0%, #0c4a6e 50%, #0369a1 100%);
+  background: linear-gradient(140deg, #0c1929 0%, #1e3a8a 50%, #2563eb 100%);
   color: white; padding: 72px 2rem 80px; text-align: center;
   position: relative; overflow: hidden;
 }
@@ -107,7 +107,7 @@ body  {
 .btn-primary { background: var(--sky); color: white; }
 .btn-primary:hover {
   background: var(--sky-dark);
-  box-shadow: 0 6px 20px rgba(14,165,233,.35);
+  box-shadow: 0 6px 20px rgba(37,99,235,.35);
   transform: translateY(-1px);
 }
 .btn-ghost { background: rgba(255,255,255,.12); color: white; border-color: rgba(255,255,255,.3); }
@@ -122,8 +122,9 @@ body  {
 .sh { text-align: center; margin-bottom: 2.5rem; }
 .sh-tag {
   display: inline-block; background: var(--sky-light); color: var(--sky-dark);
-  font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   padding: .28rem .85rem; border-radius: 20px; margin-bottom: .9rem;
+  border: 1px solid var(--sky-mid);
 }
 .sh h2 {
   font-size: clamp(1.4rem, 2.5vw, 1.9rem); font-weight: 800;
@@ -247,9 +248,9 @@ body  {
   display: flex; gap: .85rem; padding: 1rem 1.25rem;
   border-radius: var(--radius); margin: 1.25rem 0; border-left: 3px solid;
 }
-.callout-warn { background: #f0f9ff; border-color: #0ea5e9; color: #0c4a6e; }
-.callout-info { background: var(--sky-light); border-color: var(--sky); color: #0c4a6e; }
-.callout-ok   { background: #f0fdf4; border-color: var(--success); color: #14532d; }
+.callout-warn { background: #fff7ed; border-color: #fb923c; color: #9a3412; }
+.callout-info { background: var(--sky-light); border-color: var(--sky-mid); color: #1e3a8a; }
+.callout-ok   { background: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
 .callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: .1rem; }
 .callout strong { display: block; font-weight: 700; margin-bottom: .2rem; font-size: .9rem; }
 .callout p { font-size: .875rem; margin: 0; }
@@ -342,7 +343,7 @@ body  {
 
 /* ── Page hero (sub pages) ── */
 .page-hero {
-  background: linear-gradient(140deg, #0c1929 0%, #0c4a6e 50%, #0369a1 100%);
+  background: linear-gradient(140deg, #0c1929 0%, #1e3a8a 50%, #2563eb 100%);
   color: white; padding: 52px 2rem;
 }
 .page-hero .tag {
@@ -394,7 +395,7 @@ body  {
 
 /* ── Footer ── */
 .footer {
-  background: #1c1917; color: rgba(255,255,255,.4);
+  background: #0c1929; color: rgba(255,255,255,.4);
   text-align: center; padding: 2.5rem 2rem; font-size: .82rem;
 }
 .footer a { color: rgba(255,255,255,.5); text-decoration: none; }
@@ -485,7 +486,7 @@ body  {
 .faq-q::before {
   content: 'Q'; display: flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 50%;
-  background: var(--sky); color: white;
+  background: linear-gradient(135deg, #2563eb, #38bdf8); color: white;
   font-size: .75rem; font-weight: 800; flex-shrink: 0;
 }
 .faq-q::after {
