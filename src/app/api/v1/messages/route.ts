@@ -114,11 +114,11 @@ export async function POST(request: NextRequest) {
       recipients = [data as typeof recipients[0]];
 
     } else if (target === 'followers') {
-      // サプライヤーを直接フォロー or サプライヤーの商品をお気に入りしたバイヤー
+      // サプライヤーを直接フォロー or サプライヤーの商品をお気に入りしたバイヤー（和集合）
       const followerIds = new Set<string>();
 
-      // ① supplier_favorites（サプライヤー直接フォロー）
       if (fromCustomerId) {
+        // ① supplier_favorites（サプライヤー直接フォロー）
         const { data: supplierFavs } = await supabase
           .from('supplier_favorites')
           .select('customer_id')
@@ -126,25 +126,16 @@ export async function POST(request: NextRequest) {
           .eq('organization_id', auth.organizationId!)
           .not('customer_id', 'is', null);
         (supplierFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
-      }
 
-      // ② product_favorites（サプライヤーの商品お気に入り）
-      if (fromCustomerId) {
-        const { data: supplierProducts } = await supabase
-          .from('products')
-          .select('id')
+        // ② product_favorites.supplier_id で直接検索（migration 030以降）
+        const { data: productFavs } = await supabase
+          .from('product_favorites')
+          .select('customer_id')
           .eq('supplier_id', fromCustomerId)
-          .eq('organization_id', auth.organizationId!);
-        const productIds = (supplierProducts || []).map((p) => p.id as string);
-        if (productIds.length > 0) {
-          const { data: productFavs } = await supabase
-            .from('product_favorites')
-            .select('customer_id')
-            .in('product_id', productIds)
-            .eq('organization_id', auth.organizationId!)
-            .not('customer_id', 'is', null);
-          (productFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
-        }
+          .eq('organization_id', auth.organizationId!)
+          .not('customer_id', 'is', null);
+        (productFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
+
       } else {
         // fromCustomerId 未指定の場合は組織全体のお気に入りバイヤー
         const { data: productFavs } = await supabase

@@ -29,9 +29,10 @@ type FavoriteType = 'product' | 'supplier';
 
 interface FavoriteBody {
   type?: FavoriteType;
-  targetId?: string;   // productId or supplierId
-  customerId?: string; // ログイン済みバイヤー
-  sessionId?: string;  // 非ログインセッション
+  targetId?: string;    // productId or supplierId
+  supplierId?: string;  // type:"product" のとき、その商品を出品しているサプライヤーID（任意）
+  customerId?: string;  // ログイン済みバイヤー
+  sessionId?: string;   // 非ログインセッション
 }
 
 function validateBody(body: FavoriteBody): string | null {
@@ -80,6 +81,8 @@ export async function POST(request: NextRequest) {
           {
             organization_id: auth.organizationId!,
             product_id: targetId!,
+            // supplier_id は呼び出し元が明示する場合のみ設定（リクエストボディの supplierId）
+            supplier_id: body.supplierId || null,
             customer_id: customerId || null,
             session_id: sessionId || null,
           },
@@ -164,10 +167,19 @@ export async function DELETE(request: NextRequest) {
 /**
  * GET /api/v1/favorites
  *
- * Query params:
+ * 2つのモードで使用できます。
+ *
+ * 【順引き】自分がお気に入り登録したものを取得
  *   type        "product" | "supplier"   必須
  *   customerId  string                   ログイン済みバイヤーのID
- *   sessionId   string                   非ログインセッションID
+ *   sessionId   string                   非ログインセッションID（customerId未指定時）
+ *
+ * 【逆引き】自分をお気に入り登録した顧客一覧を取得（案C）
+ *   type        "product" | "supplier"   必須
+ *   targetId    string                   商品IDまたはサプライヤー顧客ID
+ *   （customerId / sessionId は不要）
+ *
+ * 共通 Query params:
  *   page        number  default 1
  *   limit       number  default 20, max 100
  */
@@ -180,6 +192,7 @@ export async function GET(request: NextRequest) {
     const type       = searchParams.get('type') as FavoriteType | null;
     const customerId = searchParams.get('customerId');
     const sessionId  = searchParams.get('sessionId');
+    const targetId   = searchParams.get('targetId');  // 逆引き用
     const page       = Math.max(1, Number(searchParams.get('page')  || 1));
     const limit      = Math.min(100, Math.max(1, Number(searchParams.get('limit') || 20)));
     const offset     = (page - 1) * limit;
@@ -187,8 +200,10 @@ export async function GET(request: NextRequest) {
     if (!type || !['product', 'supplier'].includes(type)) {
       return apiError('type must be "product" or "supplier"', 400);
     }
-    if (!customerId && !sessionId) {
-      return apiError('customerId or sessionId is required', 400);
+
+    const isReverse = !!targetId;
+    if (!isReverse && !customerId && !sessionId) {
+      return apiError('customerId, sessionId, or targetId is required', 400);
     }
 
     const supabase = createClient(
@@ -196,6 +211,48 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // ── 逆引きモード: 「この商品/サプライヤーをお気に入りした顧客」一覧 ──
+    if (isReverse) {
+      if (type === 'product') {
+        const { data, error, count } = await supabase
+          .from('product_favorites')
+          .select(`
+            id,
+            created_at,
+            customer:customers!product_favorites_customer_id_fkey(
+              id, name, email, role, status
+            )
+          `, { count: 'exact' })
+          .eq('product_id', targetId!)
+          .eq('organization_id', auth.organizationId!)
+          .not('customer_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+        if (error) return apiError('Failed to fetch favorites', 500);
+        return apiSuccess({ favoriters: data || [], total: count || 0, page, limit });
+
+      } else {
+        // type === 'supplier': このサプライヤーを直接フォローした顧客
+        const { data, error, count } = await supabase
+          .from('supplier_favorites')
+          .select(`
+            id,
+            created_at,
+            customer:customers!supplier_favorites_customer_id_fkey(
+              id, name, email, role, status
+            )
+          `, { count: 'exact' })
+          .eq('supplier_id', targetId!)
+          .eq('organization_id', auth.organizationId!)
+          .not('customer_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+        if (error) return apiError('Failed to fetch favorites', 500);
+        return apiSuccess({ favoriters: data || [], total: count || 0, page, limit });
+      }
+    }
+
+    // ── 順引きモード: 「自分がお気に入りしたもの」一覧 ──
     if (type === 'product') {
       let query = supabase
         .from('product_favorites')

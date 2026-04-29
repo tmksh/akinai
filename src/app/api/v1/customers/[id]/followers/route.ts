@@ -65,24 +65,16 @@ export async function GET(
     (supplierFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
   }
 
-  // ② このサプライヤーの商品をお気に入りしたバイヤー（product_favorites）
+  // ② このサプライヤーの商品をお気に入りしたバイヤー（product_favorites.supplier_id で直接検索）
+  //    product_favorites.supplier_id は登録時に自動設定される（migration 030以降）
   if (source === 'all' || source === 'product') {
-    const { data: products } = await supabase
-      .from('products')
-      .select('id')
+    const { data: productFavs } = await supabase
+      .from('product_favorites')
+      .select('customer_id')
       .eq('supplier_id', supplierId)
-      .eq('organization_id', auth.organizationId!);
-    const productIds = (products || []).map((p) => p.id as string);
-
-    if (productIds.length > 0) {
-      const { data: productFavs } = await supabase
-        .from('product_favorites')
-        .select('customer_id')
-        .in('product_id', productIds)
-        .eq('organization_id', auth.organizationId!)
-        .not('customer_id', 'is', null);
-      (productFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
-    }
+      .eq('organization_id', auth.organizationId!)
+      .not('customer_id', 'is', null);
+    (productFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
   }
 
   const ids = [...followerIds];
