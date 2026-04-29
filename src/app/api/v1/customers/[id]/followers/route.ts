@@ -1,12 +1,15 @@
 /**
  * GET /api/v1/customers/:id/followers
  *
- * 指定サプライヤー（:id）の商品をお気に入りしているバイヤー一覧を返す。
- * "フォロワー" = product_favorites に記録された顧客（ログイン済み）。
+ * 指定サプライヤー（:id）のフォロワー一覧を返す。
+ * "フォロワー" = 以下の両方を統合した顧客（ログイン済み）:
+ *   1. supplier_favorites でこのサプライヤーを直接フォローしたバイヤー
+ *   2. product_favorites でこのサプライヤーの商品をお気に入りしたバイヤー
  *
  * Query params:
- *   page   number  default 1
- *   limit  number  default 20, max 100
+ *   page    number  default 1
+ *   limit   number  default 20, max 100
+ *   source  string  "supplier" | "product" | "all" (default "all")
  */
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -30,8 +33,9 @@ export async function GET(
 
   const { id: supplierId } = await params;
   const { searchParams } = new URL(request.url);
-  const page  = Math.max(1, Number(searchParams.get('page')  || 1));
-  const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit') || 20)));
+  const page   = Math.max(1, Number(searchParams.get('page')  || 1));
+  const limit  = Math.min(100, Math.max(1, Number(searchParams.get('limit') || 20)));
+  const source = searchParams.get('source') || 'all';
   const offset = (page - 1) * limit;
 
   const supabase = createClient(
@@ -48,23 +52,48 @@ export async function GET(
     .single();
   if (!supplier) return apiError('Customer not found', 404);
 
-  // お気に入り顧客IDを取得（組織単位：商品はorg-scoped）
-  const { data: favorites } = await supabase
-    .from('product_favorites')
-    .select('customer_id')
-    .eq('organization_id', auth.organizationId!)
-    .not('customer_id', 'is', null);
+  const followerIds = new Set<string>();
 
-  const followerIds = [...new Set((favorites || []).map((f) => f.customer_id as string))];
+  // ① サプライヤーを直接フォローしたバイヤー（supplier_favorites）
+  if (source === 'all' || source === 'supplier') {
+    const { data: supplierFavs } = await supabase
+      .from('supplier_favorites')
+      .select('customer_id')
+      .eq('supplier_id', supplierId)
+      .eq('organization_id', auth.organizationId!)
+      .not('customer_id', 'is', null);
+    (supplierFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
+  }
 
-  if (followerIds.length === 0) {
+  // ② このサプライヤーの商品をお気に入りしたバイヤー（product_favorites）
+  if (source === 'all' || source === 'product') {
+    const { data: products } = await supabase
+      .from('products')
+      .select('id')
+      .eq('supplier_id', supplierId)
+      .eq('organization_id', auth.organizationId!);
+    const productIds = (products || []).map((p) => p.id as string);
+
+    if (productIds.length > 0) {
+      const { data: productFavs } = await supabase
+        .from('product_favorites')
+        .select('customer_id')
+        .in('product_id', productIds)
+        .eq('organization_id', auth.organizationId!)
+        .not('customer_id', 'is', null);
+      (productFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
+    }
+  }
+
+  const ids = [...followerIds];
+  if (ids.length === 0) {
     return apiSuccess({ followers: [], total: 0, page, limit });
   }
 
   const { data, error, count } = await supabase
     .from('customers')
     .select('id, name, email, role, status, company, created_at', { count: 'exact' })
-    .in('id', followerIds)
+    .in('id', ids)
     .eq('organization_id', auth.organizationId!)
     .eq('status', 'active')
     .not('email', 'is', null)

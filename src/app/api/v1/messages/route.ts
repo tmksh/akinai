@@ -114,18 +114,53 @@ export async function POST(request: NextRequest) {
       recipients = [data as typeof recipients[0]];
 
     } else if (target === 'followers') {
-      // 自組織の商品をお気に入りしているバイヤー
-      const { data: favorites } = await supabase
-        .from('product_favorites')
-        .select('customer_id')
-        .eq('organization_id', auth.organizationId!)
-        .not('customer_id', 'is', null);
-      const followerIds = [...new Set((favorites || []).map((f) => f.customer_id as string))];
-      if (followerIds.length > 0) {
+      // サプライヤーを直接フォロー or サプライヤーの商品をお気に入りしたバイヤー
+      const followerIds = new Set<string>();
+
+      // ① supplier_favorites（サプライヤー直接フォロー）
+      if (fromCustomerId) {
+        const { data: supplierFavs } = await supabase
+          .from('supplier_favorites')
+          .select('customer_id')
+          .eq('supplier_id', fromCustomerId)
+          .eq('organization_id', auth.organizationId!)
+          .not('customer_id', 'is', null);
+        (supplierFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
+      }
+
+      // ② product_favorites（サプライヤーの商品お気に入り）
+      if (fromCustomerId) {
+        const { data: supplierProducts } = await supabase
+          .from('products')
+          .select('id')
+          .eq('supplier_id', fromCustomerId)
+          .eq('organization_id', auth.organizationId!);
+        const productIds = (supplierProducts || []).map((p) => p.id as string);
+        if (productIds.length > 0) {
+          const { data: productFavs } = await supabase
+            .from('product_favorites')
+            .select('customer_id')
+            .in('product_id', productIds)
+            .eq('organization_id', auth.organizationId!)
+            .not('customer_id', 'is', null);
+          (productFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
+        }
+      } else {
+        // fromCustomerId 未指定の場合は組織全体のお気に入りバイヤー
+        const { data: productFavs } = await supabase
+          .from('product_favorites')
+          .select('customer_id')
+          .eq('organization_id', auth.organizationId!)
+          .not('customer_id', 'is', null);
+        (productFavs || []).forEach((f) => followerIds.add(f.customer_id as string));
+      }
+
+      const ids = [...followerIds];
+      if (ids.length > 0) {
         const { data } = await supabase
           .from('customers')
           .select('id, email, name')
-          .in('id', followerIds)
+          .in('id', ids)
           .eq('organization_id', auth.organizationId!)
           .eq('status', 'active')
           .not('email', 'is', null);
