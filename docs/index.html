@@ -11,7 +11,7 @@
 <body>
 
 <nav class="nav">
-  <a href="index.html" class="nav-logo">akinai <span>Docs</span></a>
+  <a href="index.html" class="nav-logo"><svg class="nav-logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M12 7c-2.485 0-4.5 1.79-4.5 4s2.015 4 4.5 4c.88 0 1.7-.24 2.38-.65L15 17h1.5l-1.13-2.85C16.37 13.32 16.5 12.67 16.5 12c0-2.21-2.015-4-4.5-4zm0 1.5c1.657 0 3 1.12 3 2.5s-1.343 2.5-3 2.5-3-1.12-3-2.5 1.343-2.5 3-2.5z" fill="white"/></svg>akinai <span>Docs</span></a>
   <ul class="nav-links">
     <li><a href="index.html" class="active">はじめに</a></li>
     <li><a href="usage-guide.html">使い方ガイド</a></li>
@@ -359,16 +359,32 @@ console.<span class="func">log</span>(data.products);
             <td class="ep">/api/v1/customers</td>
             <td>顧客の一覧を取得する</td>
           </tr>
+          <tr>
+            <td><span class="method method-get">GET</span></td>
+            <td class="ep">/api/v1/customers/:id</td>
+            <td>ひとりの顧客の詳細を取得する</td>
+          </tr>
+          <tr>
+            <td><span class="method method-delete">DELETE</span></td>
+            <td class="ep">/api/v1/customers/:id</td>
+            <td>顧客を削除する（管理者APIキー専用）</td>
+          </tr>
+          <tr>
+            <td><span class="method method-delete">DELETE</span></td>
+            <td class="ep">/api/v1/products/:id</td>
+            <td>商品を削除する（管理者APIキー専用）</td>
+          </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="tip" style="margin-top:1.5rem;">
+      <div class="tip" style="margin-top:1.5rem;">
       <div>
-        <strong>GET と POST の違い</strong>
+        <strong>メソッドの種類</strong>
         <p>
           <span class="method method-get" style="font-size:.65rem;">GET</span> = データを「もらう」（取得する）ときに使います。<br>
-          <span class="method method-post" style="font-size:.65rem;">POST</span> = データを「送る」（作成・処理する）ときに使います。
+          <span class="method method-post" style="font-size:.65rem;">POST</span> = データを「送る」（作成・処理する）ときに使います。<br>
+          <span class="method" style="font-size:.65rem;background:#fee2e2;color:#dc2626;">DELETE</span> = データを「消す」（削除する）ときに使います。管理者APIキーが必要です。
         </p>
       </div>
     </div>

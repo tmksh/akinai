@@ -11,7 +11,7 @@
 <body>
 
 <nav class="nav">
-  <a href="index.html" class="nav-logo">akinai <span>Docs</span></a>
+  <a href="index.html" class="nav-logo"><svg class="nav-logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M12 7c-2.485 0-4.5 1.79-4.5 4s2.015 4 4.5 4c.88 0 1.7-.24 2.38-.65L15 17h1.5l-1.13-2.85C16.37 13.32 16.5 12.67 16.5 12c0-2.21-2.015-4-4.5-4zm0 1.5c1.657 0 3 1.12 3 2.5s-1.343 2.5-3 2.5-3-1.12-3-2.5 1.343-2.5 3-2.5z" fill="white"/></svg>akinai <span>Docs</span></a>
   <ul class="nav-links">
     <li><a href="index.html">はじめに</a></li>
     <li><a href="usage-guide.html">使い方ガイド</a></li>
@@ -63,6 +63,9 @@
     <a href="#attachments">添付ファイル</a>
     <p class="sidebar-group-title">顧客</p>
     <a href="#customers">顧客一覧</a>
+    <a href="#customers-detail">顧客詳細</a>
+    <a href="#customers-delete">顧客削除</a>
+    <a href="#products-delete">商品削除</a>
     <p class="sidebar-group-title">共通</p>
     <a href="#errors">エラー一覧</a>
   </aside>
@@ -206,6 +209,46 @@
 <span class="comment">//     { "id": "var_2", "name": "M", "stock": 5 }</span>
 <span class="comment">//   ]</span>
 <span class="comment">// }</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 商品削除 -->
+    <div class="ep-block" id="products-delete" style="scroll-margin-top:72px;">
+      <div class="ep-head">
+        <span class="method method-delete">DELETE</span>
+        <span class="ep">/api/v1/products/:id</span>
+        <span class="ep-title">商品の削除</span>
+      </div>
+      <div class="ep-body">
+        <p><code>:id</code> の部分に商品のIDまたはスラッグを入れると、その商品を削除します。関連するバリエーション・画像・カテゴリも同時に削除されます。</p>
+
+        <div class="callout callout-warn" style="margin-top:.75rem;">
+          <div>
+            <strong>管理者APIキーが必要です</strong>
+            <p>このAPIは顧客JWTでは実行できません。管理者用のAPIキーのみ利用可能です。</p>
+          </div>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// 商品を削除する（IDまたはスラッグで指定）</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/products/prod_123'</span>,
+  {
+    method: <span class="string">'DELETE'</span>,
+    headers: {
+      <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span>
+    }
+  }
+);
+<span class="keyword">const</span> data = <span class="keyword">await</span> res.<span class="func">json</span>();
+
+<span class="comment">// 返ってくるデータの例:</span>
+<span class="comment">// { "id": "prod_123", "deleted": true }</span></pre>
         </div>
       </div>
     </div>
@@ -667,6 +710,88 @@ form.<span class="func">append</span>(<span class="string">'name'</span>, <span 
   }
 );
 <span class="keyword">const</span> data = <span class="keyword">await</span> res.<span class="func">json</span>();</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 顧客詳細 -->
+    <div class="ep-block" id="customers-detail" style="scroll-margin-top:72px;">
+      <div class="ep-head">
+        <span class="method method-get">GET</span>
+        <span class="ep">/api/v1/customers/:id</span>
+        <span class="ep-title">顧客詳細の取得</span>
+      </div>
+      <div class="ep-body">
+        <p><code>:id</code> の部分に顧客のIDを入れると、その顧客の詳細データが返ってきます。</p>
+
+        <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+          <table class="pt">
+            <thead><tr><th>返ってくるフィールド</th><th>型</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td class="pname">id</td><td class="ptype">string</td><td>顧客ID</td></tr>
+              <tr><td class="pname">name</td><td class="ptype">string</td><td>氏名</td></tr>
+              <tr><td class="pname">email</td><td class="ptype">string</td><td>メールアドレス</td></tr>
+              <tr><td class="pname">phone</td><td class="ptype">string</td><td>電話番号</td></tr>
+              <tr><td class="pname">addresses</td><td class="ptype">array</td><td>登録済み住所の一覧</td></tr>
+              <tr><td class="pname">created_at</td><td class="ptype">string</td><td>登録日時（ISO 8601）</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// 顧客の詳細を取得する</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/customers/cust_123'</span>,
+  {
+    headers: { <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span> }
+  }
+);
+<span class="keyword">const</span> customer = <span class="keyword">await</span> res.<span class="func">json</span>();
+<span class="comment">// customer.id, customer.name, customer.email など</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 顧客削除 -->
+    <div class="ep-block" id="customers-delete" style="scroll-margin-top:72px;">
+      <div class="ep-head">
+        <span class="method method-delete">DELETE</span>
+        <span class="ep">/api/v1/customers/:id</span>
+        <span class="ep-title">顧客の削除</span>
+      </div>
+      <div class="ep-body">
+        <p><code>:id</code> の部分に顧客のIDを入れると、その顧客を削除します。関連する住所情報も同時に削除されます。</p>
+
+        <div class="callout callout-warn" style="margin-top:.75rem;">
+          <div>
+            <strong>管理者APIキーが必要です</strong>
+            <p>このAPIは顧客JWTでは実行できません。管理者用のAPIキーのみ利用可能です。テスト環境のデータ整理や退会処理・一括クリーンアップなどの用途を想定しています。</p>
+          </div>
+        </div>
+
+        <div class="code-block" style="margin-top:1rem;">
+          <div class="code-block-header">
+            <span class="code-block-lang">JavaScript - コード例</span>
+            <button class="code-block-copy" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').textContent).then(()=>{this.textContent='OK!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+          </div>
+          <pre><span class="comment">// 顧客を削除する</span>
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://yourshop.akinai.jp/api/v1/customers/cust_123'</span>,
+  {
+    method: <span class="string">'DELETE'</span>,
+    headers: {
+      <span class="string">'Authorization'</span>: <span class="string">`Bearer ${API_KEY}`</span>
+    }
+  }
+);
+<span class="keyword">const</span> data = <span class="keyword">await</span> res.<span class="func">json</span>();
+
+<span class="comment">// 返ってくるデータの例:</span>
+<span class="comment">// { "id": "cust_123", "deleted": true }</span></pre>
         </div>
       </div>
     </div>
