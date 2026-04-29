@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
   Plus,
   Pencil,
@@ -10,6 +11,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Tag,
+  Settings2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -276,7 +278,7 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-lg font-semibold">会員サブスクリプション</h2>
           <p className="text-sm text-muted-foreground">
@@ -284,15 +286,23 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Label htmlFor="cs-enabled" className="text-sm text-muted-foreground">
-            機能を有効化
-          </Label>
-          <Switch
-            id="cs-enabled"
-            checked={enabled}
-            disabled={enabledSaving}
-            onCheckedChange={handleEnabledToggle}
-          />
+          <Button asChild size="sm" variant="outline">
+            <Link href="/settings/customer-roles">
+              <Settings2 className="mr-1.5 h-3.5 w-3.5" />
+              会員種別を編集
+            </Link>
+          </Button>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="cs-enabled" className="text-sm text-muted-foreground">
+              機能を有効化
+            </Label>
+            <Switch
+              id="cs-enabled"
+              checked={enabled}
+              disabled={enabledSaving}
+              onCheckedChange={handleEnabledToggle}
+            />
+          </div>
         </div>
       </div>
 
@@ -332,6 +342,17 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
                       <Badge variant="outline" className="text-[10px]">
                         role: {role}
                       </Badge>
+                      <Button
+                        asChild
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                        title="会員種別の名称や有効/無効を編集"
+                      >
+                        <Link href="/settings/customer-roles">
+                          <Pencil className="h-3 w-3" />
+                        </Link>
+                      </Button>
                     </div>
                     <Button
                       size="sm"
