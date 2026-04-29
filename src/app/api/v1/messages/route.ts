@@ -23,10 +23,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null);
     if (!body) return apiError('Invalid JSON body', 400);
 
-    const { fromCustomerId, target = 'all', toCustomerId, subject, html, text } = body as {
+    const {
+      fromCustomerId,
+      target = 'all',
+      toCustomerId,
+      customerIds,
+      subject,
+      html,
+      text,
+    } = body as {
       fromCustomerId?: string;
-      target?: 'all' | 'buyer' | 'customer';
+      target?: 'all' | 'buyer' | 'customer' | 'followers' | 'engaged' | 'custom';
       toCustomerId?: string;
+      customerIds?: string[];
       subject?: string;
       html?: string;
       text?: string;
@@ -34,6 +43,9 @@ export async function POST(request: NextRequest) {
 
     if (!subject || (!html && !text)) {
       return apiError('subject and html (or text) are required', 400);
+    }
+    if (target === 'custom' && (!Array.isArray(customerIds) || customerIds.length === 0)) {
+      return apiError('customerIds (non-empty array) is required when target is "custom"', 400);
     }
 
     const supabase = createClient(
@@ -52,7 +64,7 @@ export async function POST(request: NextRequest) {
       if (!sender) return apiError('Sender not found', 404);
     }
 
-    // ⑤ メッセージ月間送信上限チェック
+    // メッセージ月間送信上限チェック
     const { data: orgData } = await supabase
       .from('organizations')
       .select('features')
@@ -63,7 +75,6 @@ export async function POST(request: NextRequest) {
     if (typeof msgLimit === 'number' && msgLimit > 0) {
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      // 月内にユニーク宛先へ送信した件数（to_customer_id がユニークな社数）
       const { count: sentThisMonth } = await supabase
         .from('messages')
         .select('to_customer_id', { count: 'exact', head: true })
@@ -91,6 +102,7 @@ export async function POST(request: NextRequest) {
         .eq('status', 'active')
         .not('email', 'is', null);
       recipients = (data || []) as typeof recipients;
+
     } else if (target === 'customer' && toCustomerId) {
       const { data } = await supabase
         .from('customers')
@@ -100,6 +112,67 @@ export async function POST(request: NextRequest) {
         .single();
       if (!data) return apiError('Recipient not found', 404);
       recipients = [data as typeof recipients[0]];
+
+    } else if (target === 'followers') {
+      // 自組織の商品をお気に入りしているバイヤー
+      const { data: favorites } = await supabase
+        .from('product_favorites')
+        .select('customer_id')
+        .eq('organization_id', auth.organizationId!)
+        .not('customer_id', 'is', null);
+      const followerIds = [...new Set((favorites || []).map((f) => f.customer_id as string))];
+      if (followerIds.length > 0) {
+        const { data } = await supabase
+          .from('customers')
+          .select('id, email, name')
+          .in('id', followerIds)
+          .eq('organization_id', auth.organizationId!)
+          .eq('status', 'active')
+          .not('email', 'is', null);
+        recipients = (data || []) as typeof recipients;
+      }
+
+    } else if (target === 'engaged') {
+      // 過去に注文またはフォロー先への問い合わせがある顧客
+      const engagedIds = new Set<string>();
+
+      const { data: orderBuyers } = await supabase
+        .from('orders')
+        .select('customer_id')
+        .eq('organization_id', auth.organizationId!)
+        .not('customer_id', 'is', null);
+      (orderBuyers || []).forEach((o) => engagedIds.add(o.customer_id as string));
+
+      if (fromCustomerId) {
+        const { data: threads } = await supabase
+          .from('inquiry_threads')
+          .select('initiator_customer_id')
+          .eq('organization_id', auth.organizationId!)
+          .eq('recipient_customer_id', fromCustomerId);
+        (threads || []).forEach((t) => engagedIds.add(t.initiator_customer_id as string));
+      }
+
+      const ids = [...engagedIds];
+      if (ids.length > 0) {
+        const { data } = await supabase
+          .from('customers')
+          .select('id, email, name')
+          .in('id', ids)
+          .eq('organization_id', auth.organizationId!)
+          .eq('status', 'active')
+          .not('email', 'is', null);
+        recipients = (data || []) as typeof recipients;
+      }
+
+    } else if (target === 'custom' && customerIds && customerIds.length > 0) {
+      const { data } = await supabase
+        .from('customers')
+        .select('id, email, name')
+        .in('id', customerIds)
+        .eq('organization_id', auth.organizationId!)
+        .eq('status', 'active')
+        .not('email', 'is', null);
+      recipients = (data || []) as typeof recipients;
     }
 
     const emailHtml = html || `<p>${(text || '').replace(/\n/g, '<br>')}</p>`;
