@@ -79,7 +79,12 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === 'subscription') {
-          await handleSubscriptionCheckoutComplete(supabase, session);
+          // customer_id メタデータ付きはエンドユーザー向けサブスク
+          if (session.metadata?.customer_id) {
+            await handleCustomerSubscriptionCheckoutComplete(supabase, session);
+          } else {
+            await handleSubscriptionCheckoutComplete(supabase, session);
+          }
         } else {
           await handleCheckoutComplete(supabase, session, connectedAccountId);
         }
@@ -95,13 +100,22 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionUpdated(supabase, subscription);
+        // 顧客向けサブスクは customer_id メタデータで判定
+        if (subscription.metadata?.akinai_customer_id) {
+          await handleCustomerSubscriptionChange(supabase, subscription);
+        } else {
+          await handleSubscriptionUpdated(supabase, subscription);
+        }
         break;
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionDeleted(supabase, subscription);
+        if (subscription.metadata?.akinai_customer_id) {
+          await handleCustomerSubscriptionCanceled(supabase, subscription);
+        } else {
+          await handleSubscriptionDeleted(supabase, subscription);
+        }
         break;
       }
 
@@ -226,6 +240,168 @@ async function handleInvoicePaymentSucceeded(
       updated_at: new Date().toISOString(),
     })
     .eq('id', org.id);
+}
+
+/**
+ * エンドユーザー向けサブスクリプション Checkout 完了時の処理
+ * customers.custom_fields.subscription を更新する
+ */
+async function handleCustomerSubscriptionCheckoutComplete(
+  supabase: SupabaseAdmin,
+  session: Stripe.Checkout.Session
+) {
+  const organizationId = session.metadata?.organization_id;
+  const customerId = session.metadata?.customer_id;
+  const planId = session.metadata?.plan_id;
+
+  if (!organizationId || !customerId || !planId) {
+    console.warn('customer subscription checkout: missing metadata', session.metadata);
+    return;
+  }
+
+  console.log(
+    `[Webhook] customer subscription checkout completed: org=${organizationId}, customer=${customerId}, plan=${planId}`
+  );
+
+  const { data: existing } = await supabase
+    .from('customers')
+    .select('custom_fields, status')
+    .eq('id', customerId)
+    .eq('organization_id', organizationId)
+    .single();
+
+  const currentCustomFields =
+    (existing?.custom_fields as Record<string, unknown> | null) || {};
+
+  const now = new Date().toISOString();
+  const subscription = {
+    planId,
+    stripeSubscriptionId: session.subscription as string,
+    stripeCustomerId: session.customer as string,
+    status: 'active',
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    startedAt: now,
+    updatedAt: now,
+  };
+
+  await supabase
+    .from('customers')
+    .update({
+      // pending → active へ昇格（既に active ならそのまま）
+      status: existing?.status === 'suspended' ? 'suspended' : 'active',
+      custom_fields: { ...currentCustomFields, subscription },
+      updated_at: now,
+    })
+    .eq('id', customerId)
+    .eq('organization_id', organizationId);
+}
+
+/**
+ * 顧客向けサブスクリプションが更新された場合の処理
+ * （customer.subscription.created / customer.subscription.updated）
+ */
+async function handleCustomerSubscriptionChange(
+  supabase: SupabaseAdmin,
+  subscription: Stripe.Subscription
+) {
+  const organizationId = subscription.metadata?.akinai_organization_id;
+  const customerId = subscription.metadata?.akinai_customer_id;
+  const planId = subscription.metadata?.akinai_plan_id;
+
+  if (!organizationId || !customerId) {
+    console.warn('customer subscription change: missing metadata', subscription.metadata);
+    return;
+  }
+
+  console.log(
+    `[Webhook] customer subscription changed: org=${organizationId}, customer=${customerId}, status=${subscription.status}`
+  );
+
+  const { data: existing } = await supabase
+    .from('customers')
+    .select('custom_fields')
+    .eq('id', customerId)
+    .eq('organization_id', organizationId)
+    .single();
+
+  const currentCustomFields =
+    (existing?.custom_fields as Record<string, unknown> | null) || {};
+  const currentSub =
+    (currentCustomFields.subscription as Record<string, unknown> | undefined) || {};
+
+  const now = new Date().toISOString();
+  const updatedSub = {
+    ...currentSub,
+    planId: planId ?? currentSub.planId,
+    stripeSubscriptionId: subscription.id,
+    stripeCustomerId: subscription.customer as string,
+    status: subscription.status,
+    currentPeriodEnd: subscription.current_period_end
+      ? new Date(subscription.current_period_end * 1000).toISOString()
+      : null,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
+    startedAt: currentSub.startedAt ?? now,
+    updatedAt: now,
+  };
+
+  await supabase
+    .from('customers')
+    .update({
+      custom_fields: { ...currentCustomFields, subscription: updatedSub },
+      updated_at: now,
+    })
+    .eq('id', customerId)
+    .eq('organization_id', organizationId);
+}
+
+/**
+ * 顧客向けサブスクリプションが完全に終了したときの処理
+ */
+async function handleCustomerSubscriptionCanceled(
+  supabase: SupabaseAdmin,
+  subscription: Stripe.Subscription
+) {
+  const organizationId = subscription.metadata?.akinai_organization_id;
+  const customerId = subscription.metadata?.akinai_customer_id;
+
+  if (!organizationId || !customerId) {
+    console.warn('customer subscription canceled: missing metadata', subscription.metadata);
+    return;
+  }
+
+  console.log(
+    `[Webhook] customer subscription canceled: org=${organizationId}, customer=${customerId}`
+  );
+
+  const { data: existing } = await supabase
+    .from('customers')
+    .select('custom_fields')
+    .eq('id', customerId)
+    .eq('organization_id', organizationId)
+    .single();
+
+  const currentCustomFields =
+    (existing?.custom_fields as Record<string, unknown> | null) || {};
+  const currentSub =
+    (currentCustomFields.subscription as Record<string, unknown> | undefined) || {};
+
+  const now = new Date().toISOString();
+  const updatedSub = {
+    ...currentSub,
+    status: 'canceled',
+    cancelAtPeriodEnd: false,
+    updatedAt: now,
+  };
+
+  await supabase
+    .from('customers')
+    .update({
+      custom_fields: { ...currentCustomFields, subscription: updatedSub },
+      updated_at: now,
+    })
+    .eq('id', customerId)
+    .eq('organization_id', organizationId);
 }
 
 /**
