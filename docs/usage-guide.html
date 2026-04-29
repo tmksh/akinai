@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>akinai — 全機能 使い方ガイド</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Usage Guide Specific ── */
+    .toc {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem 2rem;
+      box-shadow: var(--shadow-sm); margin: 2rem 0;
+    }
+    .toc h3 { font-size: 1rem; font-weight: 800; margin-bottom: 1rem; color: var(--sky-dark); }
+    .toc-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: .5rem;
+    }
+    .toc a {
+      display: flex; align-items: center; gap: .5rem;
+      text-decoration: none; color: var(--text-sub); font-size: .875rem;
+      padding: .4rem .6rem; border-radius: 6px; transition: all .12s;
+    }
+    .toc a:hover { background: var(--sky-light); color: var(--sky-dark); }
+    .toc .toc-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--sky-light); color: var(--sky-dark);
+      font-size: .7rem; font-weight: 800; flex-shrink: 0;
+    }
+
+    .feature-section {
+      scroll-margin-top: 72px;
+      padding: 3rem 0 2rem;
+      border-top: 1px solid var(--border);
+    }
+    .feature-section:first-of-type { border-top: none; }
+
+    .feature-header {
+      display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--sky-light), var(--sky-mid));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; flex-shrink: 0;
+    }
+    .feature-header h2 {
+      font-size: 1.4rem; font-weight: 800; letter-spacing: -.3px; margin: 0;
+    }
+    .feature-header p { font-size: .9rem; color: var(--text-sub); margin: .2rem 0 0; }
+
+    .screenshot-placeholder {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%);
+      border: 2px dashed var(--sky-mid); border-radius: var(--radius);
+      padding: 3rem 2rem; text-align: center; margin: 1rem 0;
+      color: var(--sky-deep); font-size: .85rem;
+    }
+    .screenshot-placeholder .icon { font-size: 2rem; margin-bottom: .5rem; }
+    .screenshot-placeholder .label { font-weight: 700; margin-bottom: .25rem; }
+    .screenshot-placeholder .hint { font-size: .75rem; color: var(--text-muted); }
+
+    .ui-list {
+      list-style: none; padding: 0; margin: 1rem 0;
+    }
+    .ui-list li {
+      display: flex; align-items: flex-start; gap: .75rem;
+      padding: .6rem 0; border-bottom: 1px solid #f5f5f4;
+      font-size: .9rem; color: var(--text-sub);
+    }
+    .ui-list li:last-child { border-bottom: none; }
+    .ui-list .ui-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 6px;
+      background: var(--sky-light); color: var(--sky-dark);
+      font-size: .7rem; font-weight: 800; flex-shrink: 0; margin-top: .1rem;
+    }
+
+    .workflow {
+      display: flex; align-items: center; justify-content: center;
+      flex-wrap: wrap; gap: 0; margin: 1.5rem 0;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem;
+    }
+    .workflow-step {
+      text-align: center; padding: .75rem 1rem; min-width: 90px;
+    }
+    .workflow-step .num {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--sky); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; font-weight: 800; margin: 0 auto .4rem;
+    }
+    .workflow-step .name { font-size: .8rem; font-weight: 700; }
+    .workflow-step .desc { font-size: .7rem; color: var(--text-muted); }
+    .workflow-arrow { color: var(--border-dark); font-size: 1rem; padding: 0 .25rem; }
+
+    .sub-section {
+      margin: 1.5rem 0; padding: 1.25rem;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .sub-section h4 {
+      font-size: .95rem; font-weight: 700; margin-bottom: .75rem;
+      color: var(--sky-dark);
+    }
+
+    .key-point {
+      display: flex; gap: .6rem; align-items: flex-start;
+      padding: .5rem 0; font-size: .875rem;
+    }
+    .key-point .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--sky); flex-shrink: 0; margin-top: .5rem;
+    }
+
+    .demo-info {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 1px solid #f59e0b;
+      border-radius: var(--radius); padding: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    .demo-info strong { color: #92400e; }
+    .demo-info p { font-size: .875rem; color: #78350f; margin: .25rem 0; }
+
+    .shortcut-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: .75rem; margin: 1rem 0;
+    }
+    .shortcut-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1rem; transition: all .15s;
+    }
+    .shortcut-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+    .shortcut-card h5 { font-size: .85rem; font-weight: 700; margin-bottom: .3rem; }
+    .shortcut-card p { font-size: .78rem; color: var(--text-sub); margin: 0; }
+
+    @media (max-width: 800px) {
+      .workflow { flex-direction: column; }
+      .workflow-arrow { transform: rotate(90deg); }
+      .toc-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">akinai <span>Docs</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">はじめに</a></li>
+    <li><a href="usage-guide.html" class="active">使い方ガイド</a></li>
+    <li><a href="guide.html">連携ガイド</a></li>
+    <li><a href="api.html">API一覧</a></li>
+  </ul>
+  <span class="nav-version">v1.0</span>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-inner">
+    <span class="hero-tag">初めてでも安心 / 全機能マニュアル</span>
+    <h1>
+      <em>akinai</em><br>
+      全機能 使い方ガイド
+    </h1>
+    <p>
+      管理画面のログインからショップ運営まで、<br>
+      すべての機能を画面付きでわかりやすく解説します。
+    </p>
+    <div class="hero-btns">
+      <a href="#login" class="btn btn-primary">ガイドを読む</a>
+      <a href="#demo" class="btn btn-ghost">デモアカウント情報</a>
+    </div>
+  </div>
+</section>
+
+<!-- デモアカウント情報 -->
+<section class="section section-white" id="demo">
+  <div class="container">
+    <div class="sh">
+      <span class="sh-tag">デモ体験</span>
+      <h2>デモアカウントで試してみよう</h2>
+      <p>実際の管理画面を操作して、機能を確認できます。</p>
+    </div>
+    <div class="demo-info" style="max-width:500px;margin:0 auto;">
+      <strong>デモアカウント情報</strong>
+      <p>URL: <a href="https://akinai-dx.com/" target="_blank" style="color:#92400e;">https://akinai-dx.com/</a></p>
+      <p>メール: <code style="background:#fef3c7;color:#92400e;">support@shinjidai.co.jp</code></p>
+      <p>パスワード: <code style="background:#fef3c7;color:#92400e;">Suppor-0418</code></p>
+      <p style="font-size:.78rem;color:#a16207;margin-top:.5rem;">※ デモデータのため、実際の取引には使用できません。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 目次 -->
+<section class="section">
+  <div class="container">
+    <div class="toc">
+      <h3>目次 — 全機能ガイド</h3>
+      <div class="toc-grid">
+        <a href="#login"><span class="toc-num">1</span> ログイン</a>
+        <a href="#onboarding"><span class="toc-num">2</span> 初期設定</a>
+        <a href="#dashboard"><span class="toc-num">3</span> ダッシュボード</a>
+        <a href="#products"><span class="toc-num">4</span> 商品管理</a>
+        <a href="#orders"><span class="toc-num">5</span> 注文管理</a>
+        <a href="#quotes"><span class="toc-num">6</span> 見積管理</a>
+        <a href="#contents"><span class="toc-num">7</span> コンテンツ管理</a>
+        <a href="#customers"><span class="toc-num">8</span> 顧客管理</a>
+        <a href="#marketing"><span class="toc-num">9</span> マーケティング</a>
+        <a href="#agents"><span class="toc-num">10</span> AIエージェント</a>
+        <a href="#settings"><span class="toc-num">11</span> 設定</a>
+        <a href="#shop"><span class="toc-num">12</span> ショップ（顧客向け）</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 1. ログイン ===== -->
+<section class="section section-white">
+  <div class="container">
+    <div id="login" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">🔑</div>
+        <div>
+          <h2>1. ログイン</h2>
+          <p>管理画面にアクセスするための認証方法</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">ログイン画面のスクリーンショット</div>
+        <div class="hint">screenshots/login.png を配置してください</div>
+      </div>
+
+      <h3>ログイン方法は2つ</h3>
+      <ul class="ui-list">
+        <li>
+          <span class="ui-icon">A</span>
+          <div><strong>メール＆パスワードでログイン</strong><br>メールアドレスとパスワードを入力して「ログイン」ボタンをクリック。パスワードは目のアイコンで表示/非表示を切り替えられます。</div>
+        </li>
+        <li>
+          <span class="ui-icon">B</span>
+          <div><strong>Googleアカウントでログイン</strong><br>「Googleでログイン」ボタンをクリックすると、Googleの認証画面に遷移します。既存のGoogleアカウントで簡単にログインできます。</div>
+        </li>
+      </ul>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div>
+          <strong>パスワードを忘れた場合</strong>
+          <p>ログイン画面下部の「パスワードを忘れた方」リンクからパスワードリセットメールを送信できます。</p>
+        </div>
+      </div>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">ℹ️</span>
+        <div>
+          <strong>初回アカウント作成</strong>
+          <p>新規登録は「アカウント作成」リンクから行えます。メール認証後にログインが可能になります。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 2. 初期設定 ===== -->
+    <div id="onboarding" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">🚀</div>
+        <div>
+          <h2>2. 初期設定（オンボーディング）</h2>
+          <p>初回ログイン後の組織セットアップ</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">オンボーディング画面のスクリーンショット</div>
+        <div class="hint">screenshots/onboarding.png を配置してください</div>
+      </div>
+
+      <p style="font-size:.9rem;color:var(--text-sub);margin-bottom:1rem;">
+        初回ログイン時に表示されるセットアップウィザードです。組織の基本情報を入力して、すぐにakinaiを使い始められます。
+      </p>
+
+      <div class="workflow">
+        <div class="workflow-step">
+          <div class="num">1</div>
+          <div class="name">組織名の入力</div>
+          <div class="desc">会社名・屋号</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num">2</div>
+          <div class="name">基本情報</div>
+          <div class="desc">住所・連絡先</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num">3</div>
+          <div class="name">業種設定</div>
+          <div class="desc">取扱商品のジャンル</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num">4</div>
+          <div class="name">完了</div>
+          <div class="desc">ダッシュボードへ</div>
+        </div>
+      </div>
+
+      <div class="callout callout-ok">
+        <span class="callout-icon">✅</span>
+        <div>
+          <strong>セットアップ後にいつでも変更可能</strong>
+          <p>初期設定の内容は「設定 → 組織設定」からいつでも変更できます。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 3. ダッシュボード ===== -->
+    <div id="dashboard" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">📊</div>
+        <div>
+          <h2>3. ダッシュボード</h2>
+          <p>売上・注文・在庫を一目で把握</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">ダッシュボード画面のスクリーンショット</div>
+        <div class="hint">screenshots/dashboard.png を配置してください</div>
+      </div>
+
+      <p style="font-size:.9rem;color:var(--text-sub);margin-bottom:1rem;">
+        ログイン後に最初に表示される画面です。ストアの状況をリアルタイムで確認できます。
+      </p>
+
+      <h3>KPIカード（上部）</h3>
+      <div class="shortcut-grid">
+        <div class="shortcut-card">
+          <h5>💰 売上</h5>
+          <p>期間内の合計売上額。前期比のトレンド（上昇↑/下降↓）も表示。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>📦 注文数</h5>
+          <p>受注件数とステータス別の内訳。未対応の注文がひと目でわかります。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>🏷️ 商品数</h5>
+          <p>登録商品の総数と在庫状況（正常/残りわずか/在庫切れ）。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>👥 顧客数</h5>
+          <p>総顧客数と新規顧客の推移。リピート率も確認できます。</p>
+        </div>
+      </div>
+
+      <h3>売上チャート</h3>
+      <p style="font-size:.9rem;color:var(--text-sub);">
+        月別の売上推移をグラフで表示。売上額と注文件数の二軸グラフで、トレンドを視覚的に把握できます。
+        期間は「月次」「年次」「全期間」から選択可能です。
+      </p>
+
+      <h3>最近の注文・在庫アラート</h3>
+      <ul class="ui-list">
+        <li>
+          <span class="ui-icon">📋</span>
+          <div><strong>最近の注文</strong> — 直近の注文がステータスバッジ付きで一覧表示。クリックで注文詳細へ。</div>
+        </li>
+        <li>
+          <span class="ui-icon">⚠️</span>
+          <div><strong>在庫アラート</strong> — 在庫が少なくなった商品を警告表示。すぐに補充対応ができます。</div>
+        </li>
+        <li>
+          <span class="ui-icon">🏆</span>
+          <div><strong>人気商品</strong> — 閲覧数・クリック数でランキングされた人気商品一覧。</div>
+        </li>
+      </ul>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div>
+          <strong>ウィジェットはドラッグで並び替え可能</strong>
+          <p>ダッシュボードのウィジェットはドラッグ＆ドロップで自由に配置を変更できます。自分に合ったレイアウトにカスタマイズしましょう。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 4. 商品管理 ===== -->
+    <div id="products" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">🏷️</div>
+        <div>
+          <h2>4. 商品管理</h2>
+          <p>商品の登録・編集・在庫管理・カテゴリー管理</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">商品一覧画面のスクリーンショット</div>
+        <div class="hint">screenshots/products-list.png を配置してください</div>
+      </div>
+
+      <!-- 商品一覧 -->
+      <div class="sub-section">
+        <h4>4-1. 商品一覧</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);margin-bottom:.75rem;">
+          登録済みの全商品をグリッド表示で確認できます。
+        </p>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">🔍</span>
+            <div><strong>検索</strong> — 商品名またはSKUで商品を検索。リアルタイムで結果がフィルタリングされます。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🎛️</span>
+            <div><strong>フィルター</strong> — ステータス（公開中/下書き/アーカイブ）やカテゴリーで絞り込み。フィルターボタンで展開/折りたたみ。</div>
+          </li>
+          <li>
+            <span class="ui-icon">➕</span>
+            <div><strong>商品を追加</strong> — 右上の「+ 商品を追加」ボタンで新規商品登録画面へ。</div>
+          </li>
+          <li>
+            <span class="ui-icon">📥</span>
+            <div><strong>CSV一括登録</strong> — CSVファイルから商品を一括インポート。大量商品の登録に便利。</div>
+          </li>
+        </ul>
+
+        <h4 style="margin-top:1rem;">商品カードの見方</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon" style="background:#dcfce7;color:#16a34a;">●</span>
+            <div><strong>緑の丸</strong> = 公開中 / <strong>グレーの丸</strong> = 下書き / <strong>薄いグレー</strong> = アーカイブ</div>
+          </li>
+          <li>
+            <span class="ui-icon" style="background:#fee2e2;color:#dc2626;">!</span>
+            <div><strong>赤い在庫表示</strong> = 在庫切れ / <strong>スカイブルー</strong> = 残りわずか / <strong>グレー</strong> = 在庫十分</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">商品登録画面のスクリーンショット</div>
+        <div class="hint">screenshots/products-new.png を配置してください</div>
+      </div>
+
+      <!-- 商品登録 -->
+      <div class="sub-section">
+        <h4>4-2. 商品の登録・編集</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);margin-bottom:.75rem;">
+          新規商品の登録は、左側のフォームと右側のリアルタイムプレビューの分割画面で行います。
+        </p>
+
+        <h4>入力項目</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">1</span>
+            <div><strong>基本情報</strong> — 商品名（必須）、短い説明、詳細説明を入力。</div>
+          </li>
+          <li>
+            <span class="ui-icon">2</span>
+            <div><strong>メディア</strong> — 商品画像をドラッグ＆ドロップまたはクリックでアップロード。PNG/JPG/WEBP/GIF対応（最大10MB）。</div>
+          </li>
+          <li>
+            <span class="ui-icon">3</span>
+            <div><strong>バリエーション</strong> — サイズ・カラーなどのバリエーションを設定。「手動で追加」と「スウォッチ」の2つのモードがあります。各バリエーションにSKU、価格、在庫数を設定できます。</div>
+          </li>
+          <li>
+            <span class="ui-icon">4</span>
+            <div><strong>カスタムフィールド</strong> — 組織で設定した独自の入力項目（テキスト、数値、リストなど）。</div>
+          </li>
+          <li>
+            <span class="ui-icon">5</span>
+            <div><strong>SEO設定</strong> — SEOタイトルとメタディスクリプションでSEO対策。</div>
+          </li>
+        </ul>
+
+        <h4>右サイドバー</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">👁️</span>
+            <div><strong>リアルタイムプレビュー</strong> — 入力内容がショップでどう表示されるかをリアルタイムで確認。モバイル/デスクトップ表示を切り替え可能。</div>
+          </li>
+          <li>
+            <span class="ui-icon">📋</span>
+            <div><strong>公開設定</strong> — ステータスを「下書き/公開中/アーカイブ」から選択。</div>
+          </li>
+          <li>
+            <span class="ui-icon">📁</span>
+            <div><strong>カテゴリー</strong> — チェックボックスでカテゴリーを選択。複数選択可。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🏷️</span>
+            <div><strong>タグ</strong> — 自由にタグを追加・削除。商品の分類に活用できます。</div>
+          </li>
+        </ul>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">💡</span>
+          <div>
+            <strong>下書き保存と公開</strong>
+            <p>「下書き保存」で途中保存、「公開する」でショップに即座に反映されます。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 在庫管理 -->
+      <div class="sub-section">
+        <h4>4-3. 在庫管理</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);margin-bottom:.75rem;">
+          商品一覧の上部タブから「在庫」タブに切り替えると、在庫専用ビューが表示されます。
+        </p>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">📊</span>
+            <div><strong>在庫一覧</strong> — 全商品の在庫状況を一覧で確認。在庫切れ・残りわずかの商品がハイライト表示。</div>
+          </li>
+          <li>
+            <span class="ui-icon">📈</span>
+            <div><strong>入出庫履歴</strong> — 「入出庫」タブで在庫の増減履歴を時系列で確認。誰がいつ変更したかも記録されます。</div>
+          </li>
+          <li>
+            <span class="ui-icon">📦</span>
+            <div><strong>一括操作</strong> — 複数商品の在庫を一括で更新。大量の入荷処理に便利。</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- カテゴリー管理 -->
+      <div class="sub-section">
+        <h4>4-4. カテゴリー管理</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);">
+          「カテゴリー」タブから商品カテゴリーの作成・編集・削除が行えます。カテゴリーはショップのナビゲーションと商品フィルタリングに使用されます。
+        </p>
+      </div>
+    </div>
+
+    <!-- ===== 5. 注文管理 ===== -->
+    <div id="orders" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">📦</div>
+        <div>
+          <h2>5. 注文管理</h2>
+          <p>受注の確認・ステータス更新・発送管理</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">注文管理画面のスクリーンショット</div>
+        <div class="hint">screenshots/orders.png を配置してください</div>
+      </div>
+
+      <h3>注文ステータスの流れ</h3>
+      <div class="workflow">
+        <div class="workflow-step">
+          <div class="num" style="background:#38bdf8;">1</div>
+          <div class="name">入金待ち</div>
+          <div class="desc">pending</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num" style="background:#3b82f6;">2</div>
+          <div class="name">確認済</div>
+          <div class="desc">confirmed</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num" style="background:#0ea5e9;">3</div>
+          <div class="name">対応中</div>
+          <div class="desc">processing</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num" style="background:#10b981;">4</div>
+          <div class="name">発送済</div>
+          <div class="desc">shipped</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num" style="background:#64748b;">5</div>
+          <div class="name">対応済</div>
+          <div class="desc">delivered</div>
+        </div>
+      </div>
+
+      <ul class="ui-list">
+        <li>
+          <span class="ui-icon">📋</span>
+          <div><strong>注文一覧</strong> — 全注文がテーブル形式で表示。注文番号、顧客名、金額、ステータス、日付が確認できます。</div>
+        </li>
+        <li>
+          <span class="ui-icon">🔍</span>
+          <div><strong>検索・フィルター</strong> — 注文番号や顧客名で検索。ステータスでフィルタリングも可能。</div>
+        </li>
+        <li>
+          <span class="ui-icon">📎</span>
+          <div><strong>ファイル添付</strong> — 注文にファイル（請求書、納品書など）を添付可能。注文詳細画面から操作します。</div>
+        </li>
+        <li>
+          <span class="ui-icon">🔄</span>
+          <div><strong>ステータス更新</strong> — 注文詳細画面でステータスを変更。変更に応じて顧客にメール通知が送信されます。</div>
+        </li>
+      </ul>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">ℹ️</span>
+        <div>
+          <strong>キャンセル・返金について</strong>
+          <p>注文のキャンセルや返金はステータスを「キャンセル」または「返金済」に変更して処理します。Stripe決済の場合はStripe側での返金処理も必要です。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 6. 見積管理 ===== -->
+    <div id="quotes" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">📄</div>
+        <div>
+          <h2>6. 見積管理（B2B機能）</h2>
+          <p>法人向け見積の作成・送付・交渉・受注変換</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">見積管理画面のスクリーンショット</div>
+        <div class="hint">screenshots/quotes.png を配置してください</div>
+      </div>
+
+      <h3>見積ワークフロー</h3>
+      <div class="workflow">
+        <div class="workflow-step">
+          <div class="num">1</div>
+          <div class="name">下書き</div>
+          <div class="desc">draft</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num">2</div>
+          <div class="name">送付済</div>
+          <div class="desc">sent</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num">3</div>
+          <div class="name">交渉中</div>
+          <div class="desc">negotiating</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num">4</div>
+          <div class="name">承認</div>
+          <div class="desc">accepted</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num">5</div>
+          <div class="name">受注化</div>
+          <div class="desc">ordered</div>
+        </div>
+      </div>
+
+      <h3>画面上部の統計カード</h3>
+      <div class="shortcut-grid">
+        <div class="shortcut-card">
+          <h5>📄 見積総数</h5>
+          <p>作成した見積の合計件数。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>⏳ 交渉中</h5>
+          <p>現在進行中の見積件数。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>✅ 承認済</h5>
+          <p>顧客に承認された見積件数。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>💰 総見積額</h5>
+          <p>全見積の合計金額。</p>
+        </div>
+      </div>
+
+      <h3>主な操作</h3>
+      <ul class="ui-list">
+        <li>
+          <span class="ui-icon">➕</span>
+          <div><strong>見積を作成</strong> — 「+ 見積を作成」ボタンから新規見積を作成。顧客情報、商品明細、有効期限を設定。</div>
+        </li>
+        <li>
+          <span class="ui-icon">📧</span>
+          <div><strong>見積を送付</strong> — 作成した見積をメールで顧客に送付。</div>
+        </li>
+        <li>
+          <span class="ui-icon">🔄</span>
+          <div><strong>受注に変換</strong> — 承認された見積を注文に変換。商品情報が自動的に引き継がれます。</div>
+        </li>
+        <li>
+          <span class="ui-icon">📋</span>
+          <div><strong>複製</strong> — 既存の見積をコピーして新しい見積を作成。類似案件の処理が効率化。</div>
+        </li>
+      </ul>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div>
+          <strong>見積の有効期限</strong>
+          <p>有効期限が切れた見積には警告アイコンが表示されます。期限切れの見積は自動的に「期限切れ（expired）」ステータスに変わります。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 7. コンテンツ管理 ===== -->
+    <div id="contents" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">📝</div>
+        <div>
+          <h2>7. コンテンツ管理</h2>
+          <p>ニュース・ブログ・特集記事の作成と管理</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">コンテンツ管理画面のスクリーンショット</div>
+        <div class="hint">screenshots/contents.png を配置してください</div>
+      </div>
+
+      <h3>対応コンテンツタイプ</h3>
+      <div class="shortcut-grid">
+        <div class="shortcut-card">
+          <h5>📰 ニュース</h5>
+          <p>お知らせ、プレスリリース、更新情報など。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>⭐ 特集</h5>
+          <p>商品の特集記事、ピックアップ情報。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>📖 ブログ</h5>
+          <p>ブログ記事、コラム、読み物。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>❓ FAQ</h5>
+          <p>よくある質問とその回答。</p>
+        </div>
+      </div>
+
+      <h3>コンテンツの作成</h3>
+      <ul class="ui-list">
+        <li>
+          <span class="ui-icon">1</span>
+          <div><strong>「+ コンテンツを作成」をクリック</strong> — コンテンツタイプ（ニュース/特集/ブログ等）を選択。</div>
+        </li>
+        <li>
+          <span class="ui-icon">2</span>
+          <div><strong>タイトルと本文を入力</strong> — リッチテキストエディタ（Tiptap）で装飾・画像挿入・リンク設定が可能。文字色、ハイライト、下線、テキスト配置もサポート。</div>
+        </li>
+        <li>
+          <span class="ui-icon">3</span>
+          <div><strong>アイキャッチ画像を設定</strong> — コンテンツの代表画像。一覧表示やSNSシェア時に使われます。</div>
+        </li>
+        <li>
+          <span class="ui-icon">4</span>
+          <div><strong>公開設定</strong> — 下書き保存、レビュー依頼、公開、アーカイブから選択。予約公開も対応。</div>
+        </li>
+      </ul>
+
+      <h3>コンテンツのステータス</h3>
+      <div class="workflow">
+        <div class="workflow-step">
+          <div class="num">1</div>
+          <div class="name">下書き</div>
+          <div class="desc">draft</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num">2</div>
+          <div class="name">レビュー</div>
+          <div class="desc">review</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num">3</div>
+          <div class="name">公開中</div>
+          <div class="desc">published</div>
+        </div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">
+          <div class="num">4</div>
+          <div class="name">アーカイブ</div>
+          <div class="desc">archived</div>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div>
+          <strong>コンテンツの複製</strong>
+          <p>既存のコンテンツをコピーして新しい記事を作成できます。メニュー（⋮）から「複製」を選択してください。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 8. 顧客管理 ===== -->
+    <div id="customers" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">👥</div>
+        <div>
+          <h2>8. 顧客管理</h2>
+          <p>顧客情報の管理・分析・コミュニケーション</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">顧客管理画面のスクリーンショット</div>
+        <div class="hint">screenshots/customers.png を配置してください</div>
+      </div>
+
+      <h3>統計カード</h3>
+      <div class="shortcut-grid">
+        <div class="shortcut-card">
+          <h5>👥 総顧客数</h5>
+          <p>登録されている全顧客の数。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>🆕 今月の新規</h5>
+          <p>今月に新規登録された顧客数。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>🔄 リピート率</h5>
+          <p>リピート購入している顧客の割合。</p>
+        </div>
+        <div class="shortcut-card">
+          <h5>💰 平均注文額</h5>
+          <p>顧客1人あたりの平均購入金額。</p>
+        </div>
+      </div>
+
+      <h3>顧客タイプ（タブフィルター）</h3>
+      <ul class="ui-list">
+        <li>
+          <span class="ui-icon">全</span>
+          <div><strong>すべて</strong> — 全顧客を表示。</div>
+        </li>
+        <li>
+          <span class="ui-icon">個</span>
+          <div><strong>個人</strong> — 個人顧客のみ表示。</div>
+        </li>
+        <li>
+          <span class="ui-icon">買</span>
+          <div><strong>バイヤー</strong> — B2B取引先（購入者）を表示。</div>
+        </li>
+        <li>
+          <span class="ui-icon">卸</span>
+          <div><strong>サプライヤー</strong> — 代理店・卸売先を表示。</div>
+        </li>
+      </ul>
+
+      <h3>主な操作</h3>
+      <ul class="ui-list">
+        <li>
+          <span class="ui-icon">➕</span>
+          <div><strong>顧客を追加</strong> — 氏名、メール、電話番号、会社名、住所などの基本情報を入力して登録。</div>
+        </li>
+        <li>
+          <span class="ui-icon">🔍</span>
+          <div><strong>検索</strong> — 名前、メール、会社名で顧客を検索。日付範囲フィルターも利用可能。</div>
+        </li>
+        <li>
+          <span class="ui-icon">👤</span>
+          <div><strong>顧客詳細</strong> — 顧客名をクリックすると、プロフィール、購入履歴、連絡先情報がモーダルで表示。</div>
+        </li>
+        <li>
+          <span class="ui-icon">📧</span>
+          <div><strong>メッセージ送信</strong> — 顧客に直接メッセージを送信可能。</div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ===== 9. マーケティング ===== -->
+    <div id="marketing" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">📣</div>
+        <div>
+          <h2>9. マーケティング</h2>
+          <p>分析・メルマガ・メッセージ・イベント・問い合わせ管理</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">マーケティング画面のスクリーンショット</div>
+        <div class="hint">screenshots/marketing.png を配置してください</div>
+      </div>
+
+      <p style="font-size:.9rem;color:var(--text-sub);margin-bottom:1rem;">
+        マーケティングページは5つのタブに分かれています。
+      </p>
+
+      <div class="sub-section">
+        <h4>タブ 1: アナリティクス</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);">
+          商品ごとの閲覧数・クリック数・CTR（クリック率）を分析。月別のグラフで推移を確認し、人気商品ランキングも表示されます。
+          商品フィルターで特定の商品に絞った分析も可能です。
+        </p>
+      </div>
+
+      <div class="sub-section">
+        <h4>タブ 2: メルマガ</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);">
+          顧客にメールマガジンを一括送信。件名と本文を入力し、送信先（全員/特定サプライヤーの顧客）を選択して送信します。
+          送信履歴も確認できます。
+        </p>
+        <div class="callout callout-warn">
+          <span class="callout-icon">⚠️</span>
+          <div>
+            <strong>メールドメインの認証が必要</strong>
+            <p>メルマガ送信前に、設定 → メールドメインで送信元ドメインの認証を完了してください。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <h4>タブ 3: メッセージ</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);">
+          個別またはグループへのメッセージ送信機能。サプライヤーを選択して、バイヤーに直接メッセージを送れます。
+        </p>
+      </div>
+
+      <div class="sub-section">
+        <h4>タブ 4: イベント</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);">
+          展示会やセミナーなどのイベント情報を管理。タイトル、日時、場所、説明、ジャンル、地域タグを設定して公開します。
+          バイヤーへの通知機能も搭載。
+        </p>
+      </div>
+
+      <div class="sub-section">
+        <h4>タブ 5: 問い合わせ</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);">
+          顧客からの問い合わせをスレッド形式で管理。ステータス（オープン/クローズ）でフィルタリングし、
+          チャットのようなUIでやり取りを続けられます。既読ステータスやファイル添付にも対応。
+        </p>
+      </div>
+    </div>
+
+    <!-- ===== 10. AIエージェント ===== -->
+    <div id="agents" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">🤖</div>
+        <div>
+          <h2>10. AIエージェント（代理店管理）</h2>
+          <p>代理店の登録と管理</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">エージェント管理画面のスクリーンショット</div>
+        <div class="hint">screenshots/agents.png を配置してください</div>
+      </div>
+
+      <ul class="ui-list">
+        <li>
+          <span class="ui-icon">📋</span>
+          <div><strong>代理店一覧</strong> — 登録済みの代理店（エージェント）を一覧で管理。</div>
+        </li>
+        <li>
+          <span class="ui-icon">➕</span>
+          <div><strong>代理店登録</strong> — 新しい代理店を追加。カスタムフィールドで追加情報も管理可能。</div>
+        </li>
+        <li>
+          <span class="ui-icon">📊</span>
+          <div><strong>実績管理</strong> — 代理店ごとの売上やコミッション情報を追跡。</div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ===== 11. 設定 ===== -->
+    <div id="settings" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">⚙️</div>
+        <div>
+          <h2>11. 設定</h2>
+          <p>システム全体の設定・チーム・連携・請求管理</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">設定画面のスクリーンショット</div>
+        <div class="hint">screenshots/settings.png を配置してください</div>
+      </div>
+
+      <p style="font-size:.9rem;color:var(--text-sub);margin-bottom:1.5rem;">
+        設定画面はカテゴリー別のカードグリッドで構成されています。各カードをクリックすると詳細設定ページに遷移します。
+      </p>
+
+      <div class="sub-section">
+        <h4>ストア設定</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">🏢</span>
+            <div><strong>組織設定</strong> — 会社名、住所、ロゴ、テーマカラーなどの基本情報を設定。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🔧</span>
+            <div><strong>機能設定</strong> — 通知ボックス、紹介コード、利用するコンテンツタイプなどの機能のON/OFFを切り替え。</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sub-section">
+        <h4>チーム＆アカウント</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">👥</span>
+            <div><strong>メンバー管理</strong> — チームメンバーの招待・権限設定。役割（ロール）ベースのアクセス制御。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🔑</span>
+            <div><strong>アカウント設定</strong> — パスワード変更、通知設定、セキュリティ設定。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🛡️</span>
+            <div><strong>ロール管理</strong> — カスタムロールの作成と権限の詳細設定。</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sub-section">
+        <h4>顧客設定</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">👤</span>
+            <div><strong>顧客設定</strong> — 顧客タイプの表示名変更、カスタムフィールドの設定。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🏷️</span>
+            <div><strong>顧客ロール</strong> — バイヤー・サプライヤーなどの顧客ロールを管理。</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sub-section">
+        <h4>メール＆通知</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">📧</span>
+            <div><strong>メールドメイン</strong> — 送信元メールアドレスのドメイン認証設定。DNS設定が必要です。</div>
+          </li>
+          <li>
+            <span class="ui-icon">📄</span>
+            <div><strong>メールテンプレート</strong> — 注文確認、発送通知などの自動メールのテンプレートをカスタマイズ。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🔔</span>
+            <div><strong>通知設定</strong> — メール通知の受信設定。</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sub-section">
+        <h4>連携＆開発</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">🔌</span>
+            <div><strong>API/Webhook</strong> — APIキーの発行・管理。外部サービスとの連携用Webhook URLの設定。APIドキュメントへのリンクも表示されます。</div>
+          </li>
+        </ul>
+        <div class="callout callout-warn">
+          <span class="callout-icon">⚠️</span>
+          <div>
+            <strong>APIキーは厳重に管理</strong>
+            <p>APIキーは公開リポジトリやフロントエンドのコードに含めないでください。サーバーサイドからのみ使用してください。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <h4>請求＆決済</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">💳</span>
+            <div><strong>決済設定</strong> — Stripe連携の設定。クレジットカード決済、銀行振込、代金引換の有効/無効を切り替え。</div>
+          </li>
+          <li>
+            <span class="ui-icon">💰</span>
+            <div><strong>プラン・請求</strong> — 現在のプラン確認、プラン変更、請求履歴の確認。</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sub-section">
+        <h4>ショップ外観</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">🎨</span>
+            <div><strong>ショップテーマ</strong> — ストアフロントのデザイン設定。ヒーロー画像、ブランドカラー、セクションの表示/非表示を設定。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🧭</span>
+            <div><strong>ナビゲーション</strong> — ショップのメニュー項目をカスタマイズ。表示順序の変更も可能。</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ===== 12. ショップ（ストアフロント） ===== -->
+    <div id="shop" class="feature-section">
+      <div class="feature-header">
+        <div class="feature-icon">🛒</div>
+        <div>
+          <h2>12. ショップ（顧客向けストアフロント）</h2>
+          <p>顧客が商品を閲覧・購入するための公開ページ</p>
+        </div>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">ショップトップページのスクリーンショット</div>
+        <div class="hint">screenshots/shop-top.png を配置してください</div>
+      </div>
+
+      <!-- ショップトップ -->
+      <div class="sub-section">
+        <h4>12-1. ショップトップページ</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);margin-bottom:.75rem;">
+          顧客が最初にアクセスするページです。管理画面の「ショップテーマ」設定でセクションの表示/非表示や順序を変更できます。
+        </p>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">🖼️</span>
+            <div><strong>ヒーローバナー</strong> — 大きな画像でブランドの世界観を伝えます。</div>
+          </li>
+          <li>
+            <span class="ui-icon">⭐</span>
+            <div><strong>注目製品</strong> — ピックアップした商品を4列グリッドで表示。</div>
+          </li>
+          <li>
+            <span class="ui-icon">📂</span>
+            <div><strong>カテゴリー</strong> — 商品カテゴリーをビジュアルカードで表示。クリックでフィルタリング。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🔥</span>
+            <div><strong>人気製品</strong> — 売れ筋商品を表示。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🏢</span>
+            <div><strong>法人向けセクション</strong> — B2B顧客向けの案内。法人会員登録や見積依頼のCTA。</div>
+          </li>
+          <li>
+            <span class="ui-icon">📰</span>
+            <div><strong>記事・ニュース</strong> — 最新の記事やお知らせを表示。</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 商品一覧 -->
+      <div class="sub-section">
+        <h4>12-2. 商品一覧ページ</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);">
+          全商品をグリッド表示（モバイル2列、タブレット3列、デスクトップ4列）。カテゴリータブで絞り込み、並び替え（人気順/新着順/価格順）が可能。
+          「FEATURED」「SALE」「SOLD OUT」のバッジで商品状態がひと目でわかります。
+        </p>
+      </div>
+
+      <div class="screenshot-placeholder">
+        <div class="icon">📸</div>
+        <div class="label">商品詳細ページのスクリーンショット</div>
+        <div class="hint">screenshots/shop-product-detail.png を配置してください</div>
+      </div>
+
+      <!-- 商品詳細 -->
+      <div class="sub-section">
+        <h4>12-3. 商品詳細ページ</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">🖼️</span>
+            <div><strong>画像ギャラリー</strong> — メイン画像＋サムネイル。矢印キーまたはサムネイルクリックで画像を切り替え。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🎨</span>
+            <div><strong>バリエーション選択</strong> — サイズ・カラーなどをボタンで選択。在庫切れのバリエーションはグレーアウト。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🔢</span>
+            <div><strong>数量選択</strong> — +/- ボタンで数量を調整。在庫が5個以下の場合「残りX点」の警告表示。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🛒</span>
+            <div><strong>カートに追加</strong> — ボタンクリックでカートに商品を追加。トースト通知で確認。</div>
+          </li>
+          <li>
+            <span class="ui-icon">❤️</span>
+            <div><strong>お気に入り</strong> — ハートアイコンでお気に入りに追加/削除。</div>
+          </li>
+          <li>
+            <span class="ui-icon">📤</span>
+            <div><strong>シェア</strong> — Web Share APIまたはURLコピーで商品を共有。</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- カート -->
+      <div class="sub-section">
+        <h4>12-4. ショッピングカート</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);margin-bottom:.75rem;">
+          カートに追加した商品を確認・数量変更・削除できます。
+        </p>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">📋</span>
+            <div><strong>カート内容</strong> — 商品画像、名前、バリエーション情報、SKU、価格が表示。数量の変更や個別削除が可能。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🚚</span>
+            <div><strong>送料無料プログレスバー</strong> — 5,000円以上で送料無料。現在の進捗をバーで表示。「あと ¥X,XXX で送料無料！」</div>
+          </li>
+          <li>
+            <span class="ui-icon">🏷️</span>
+            <div><strong>クーポン</strong> — クーポンコードを入力して割引を適用。（デモ: WELCOME10 で10%オフ）</div>
+          </li>
+          <li>
+            <span class="ui-icon">💰</span>
+            <div><strong>注文サマリー</strong> — 小計、送料、合計を表示。「レジに進む」ボタンでチェックアウトへ。</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- チェックアウト -->
+      <div class="sub-section">
+        <h4>12-5. チェックアウト（注文手続き）</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);margin-bottom:.75rem;">
+          配送先の入力と決済方法の選択を行います。
+        </p>
+
+        <h4>配送先情報</h4>
+        <ul class="ui-list">
+          <li>
+            <span class="ui-icon">👤</span>
+            <div><strong>お名前・メール・電話番号</strong> — 必須項目。</div>
+          </li>
+          <li>
+            <span class="ui-icon">📮</span>
+            <div><strong>郵便番号</strong> — 7桁入力で都道府県・市区町村が自動補完されます。</div>
+          </li>
+          <li>
+            <span class="ui-icon">🏠</span>
+            <div><strong>住所</strong> — 都道府県（47都道府県のドロップダウン）、市区町村、番地、建物名。</div>
+          </li>
+        </ul>
+
+        <h4>決済方法</h4>
+        <div class="shortcut-grid">
+          <div class="shortcut-card">
+            <h5>💳 クレジットカード</h5>
+            <p>Visa、Mastercard、JCB、AMEX対応。Stripeのセキュア決済。</p>
+          </div>
+          <div class="shortcut-card">
+            <h5>🏦 銀行振込</h5>
+            <p>振込先情報が案内されます。入金確認後に発送。</p>
+          </div>
+          <div class="shortcut-card">
+            <h5>📦 代金引換</h5>
+            <p>手数料 ¥330。商品受取時にお支払い。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ニュース -->
+      <div class="sub-section">
+        <h4>12-6. ニュース＆コラム</h4>
+        <p style="font-size:.875rem;color:var(--text-sub);">
+          公開されたコンテンツ（ニュース、ブログ、特集）を顧客が閲覧するページです。
+          カテゴリーフィルター、キーワード検索、注目記事のピックアップ表示があります。
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- サイドバーナビゲーション説明 -->
+<section class="section">
+  <div class="container">
+    <div class="sh">
+      <span class="sh-tag">ナビゲーション</span>
+      <h2>サイドバーメニューの使い方</h2>
+      <p>管理画面の左サイドバーから全機能にアクセスできます。</p>
+    </div>
+
+    <div class="screenshot-placeholder">
+      <div class="icon">📸</div>
+      <div class="label">サイドバーのスクリーンショット</div>
+      <div class="hint">screenshots/sidebar.png を配置してください</div>
+    </div>
+
+    <div class="card-grid" style="max-width:600px;margin:1.5rem auto 0;">
+      <div class="card">
+        <p class="card-label">メインメニュー</p>
+        <ul style="font-size:.875rem;color:var(--text-sub);list-style:none;padding:0;line-height:2;">
+          <li>📊 ダッシュボード</li>
+          <li>🏷️ 商品管理</li>
+          <li>📝 お知らせ（コンテンツ）</li>
+          <li>📦 注文管理</li>
+          <li>🤖 代理店管理</li>
+          <li>📣 マーケティング</li>
+        </ul>
+      </div>
+      <div class="card">
+        <p class="card-label">システム＆フッター</p>
+        <ul style="font-size:.875rem;color:var(--text-sub);list-style:none;padding:0;line-height:2;">
+          <li>⚙️ 設定</li>
+          <li>🔔 通知ベル（未読バッジ付き）</li>
+          <li>🌓 テーマ切替（ライト/ダーク）</li>
+          <li>👤 プロフィール</li>
+          <li>🚪 ログアウト</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout callout-info" style="max-width:600px;margin:1.5rem auto 0;">
+      <span class="callout-icon">💡</span>
+      <div>
+        <strong>サイドバーは折りたたみ可能</strong>
+        <p>サイドバーはアイコンのみの表示に折りたためます。画面を広く使いたい時に便利です。マウスを乗せるとツールチップでメニュー名が表示されます。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section section-white">
+  <div class="container">
+    <div class="sh">
+      <span class="sh-tag">よくある質問</span>
+      <h2>FAQ</h2>
+    </div>
+
+    <div class="faq" style="max-width:700px;margin:0 auto;">
+      <div class="faq-item">
+        <button class="faq-q">商品の画像は何枚まで登録できますか？</button>
+        <div class="faq-a"><div class="faq-a-inner">1商品あたり複数枚の画像を登録できます。PNG、JPG、WEBP、GIF形式に対応しており、1ファイルあたり最大10MBまでアップロード可能です。</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Stripe以外の決済方法はありますか？</button>
+        <div class="faq-a"><div class="faq-a-inner">はい。クレジットカード決済（Stripe）に加えて、銀行振込と代金引換に対応しています。設定 → 決済設定 から各決済方法の有効/無効を切り替えられます。</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">メンバーの権限を個別に設定できますか？</button>
+        <div class="faq-a"><div class="faq-a-inner">はい。設定 → ロール管理 からカスタムロールを作成し、各機能へのアクセス権限を細かく設定できます。たとえば「コンテンツ編集者」は商品管理にはアクセスできない、といった設定が可能です。</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">見積機能は全プランで使えますか？</button>
+        <div class="faq-a"><div class="faq-a-inner">見積管理はB2B向けの機能です。スタンダードプラン以上でご利用いただけます。ライトプランでは注文管理のみとなります。</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">APIで外部サイトと連携できますか？</button>
+        <div class="faq-a"><div class="faq-a-inner">はい。REST APIとWebhookを提供しています。設定 → API/Webhook からAPIキーを発行し、<a href="api.html">API一覧</a>を参照して連携を進めてください。<a href="guide.html">連携ガイド</a>にステップバイステップの手順もあります。</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">ダークモードはありますか？</button>
+        <div class="faq-a"><div class="faq-a-inner">はい。サイドバー下部のテーマ切替アイコン（☀️/🌙）をクリックすると、ライトモードとダークモードを切り替えられます。</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- フッター -->
+<footer class="footer">
+  <p>akinai — B2B EC を、もっとかんたんに。</p>
+  <p style="margin-top:.5rem;">
+    <a href="index.html">はじめに</a> ・
+    <a href="usage-guide.html">使い方ガイド</a> ・
+    <a href="guide.html">連携ガイド</a> ・
+    <a href="api.html">API一覧</a>
+  </p>
+</footer>
+
+<script>
+// FAQ toggle
+document.querySelectorAll('.faq-q').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const item = btn.closest('.faq-item');
+    item.classList.toggle('open');
+  });
+});
+</script>
+
+</body>
+</html>
