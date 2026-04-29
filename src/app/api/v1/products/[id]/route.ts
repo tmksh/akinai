@@ -294,6 +294,66 @@ export async function PUT(
   });
 }
 
+// DELETE /api/v1/products/[id] - 商品削除（関連データを含む）
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await validateApiKey(request);
+  if (!auth.success) {
+    return apiError(auth.error!, auth.status, auth.rateLimit);
+  }
+
+  return withApiLogging(request, auth, async () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return apiError('Server configuration error', 500);
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { id } = await params;
+
+    // UUID またはスラッグで検索
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    let query = supabase
+      .from('products')
+      .select('id')
+      .eq('organization_id', auth.organizationId);
+    if (isUUID) query = query.eq('id', id);
+    else query = query.eq('slug', id);
+
+    const { data: existing, error: findErr } = await query.single();
+    if (findErr || !existing) {
+      return apiError('Product not found', 404);
+    }
+
+    const productId = existing.id;
+
+    // 関連データを先に削除（FK 制約回避）
+    await Promise.all([
+      supabase.from('product_variants').delete().eq('product_id', productId),
+      supabase.from('product_images').delete().eq('product_id', productId),
+      supabase.from('product_categories').delete().eq('product_id', productId),
+    ]);
+
+    const { error: deleteError } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId)
+      .eq('organization_id', auth.organizationId);
+
+    if (deleteError) {
+      return apiError(`Failed to delete product: ${deleteError.message}`, 500);
+    }
+
+    const response = apiSuccess({ id: productId, deleted: true }, undefined, auth.rateLimit);
+    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
+    return response;
+  });
+}
+
 // OPTIONS /api/v1/products/[id] - CORS preflight
 export async function OPTIONS() {
   return handleOptions();

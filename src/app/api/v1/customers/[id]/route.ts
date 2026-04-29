@@ -1,10 +1,11 @@
 /**
- * GET  /api/v1/customers/:id  — 顧客個別取得
- * PUT  /api/v1/customers/:id  — 顧客情報更新
+ * GET    /api/v1/customers/:id  — 顧客個別取得
+ * PUT    /api/v1/customers/:id  — 顧客情報更新
+ * DELETE /api/v1/customers/:id  — 顧客削除（APIキー専用）
  *
  * 認証方式（どちらか一方を受け付ける）:
  *   A. Authorization: Bearer <shop_api_key>   ← 管理者アクセス（任意の顧客を操作可）
- *   B. Authorization: Bearer <customer_jwt>   ← 顧客本人アクセス（自分のデータのみ）
+ *   B. Authorization: Bearer <customer_jwt>   ← 顧客本人アクセス（自分のデータのみ、DELETE 不可）
  *
  * JWT トークンの場合は sub（customer_id）と URL の :id が一致するか検証する。
  */
@@ -214,6 +215,58 @@ export async function PUT(
   }
 
   const response = apiSuccess(formatCustomer(updated as Record<string, unknown>));
+  Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
+  return response;
+}
+
+// DELETE /api/v1/customers/:id
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  // DELETE は APIキー（管理者）専用。顧客 JWT では実行不可。
+  const apiKeyResult = await validateApiKey(request);
+  if (!apiKeyResult.success) {
+    return apiError(apiKeyResult.error ?? 'Invalid or missing API key', apiKeyResult.status);
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return apiError('Server configuration error', 500);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const organizationId = apiKeyResult.organizationId!;
+
+  // 対象テナントの顧客か確認
+  const { data: existing, error: fetchError } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('id', id)
+    .eq('organization_id', organizationId)
+    .single();
+
+  if (fetchError || !existing) {
+    return apiError('Customer not found', 404);
+  }
+
+  // 関連住所を先に削除（FK 制約がある場合に備えて）
+  await supabase.from('customer_addresses').delete().eq('customer_id', id);
+
+  const { error: deleteError } = await supabase
+    .from('customers')
+    .delete()
+    .eq('id', id)
+    .eq('organization_id', organizationId);
+
+  if (deleteError) {
+    return apiError(`Failed to delete customer: ${deleteError.message}`, 500);
+  }
+
+  const response = apiSuccess({ id, deleted: true });
   Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
   return response;
 }
