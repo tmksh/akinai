@@ -25,10 +25,8 @@ import { useOrganization } from '@/components/providers/organization-provider';
 import {
   getAnalyticsOverview,
   getNewsletterHistory,
-  getSentMessages,
   getEvents,
   sendNewsletter,
-  sendMessage,
   publishEvent,
   getCustomersForSelect,
   getProductsForAnalytics,
@@ -42,7 +40,6 @@ import { toast } from 'sonner';
 
 type AnalyticsData = Awaited<ReturnType<typeof getAnalyticsOverview>>;
 type NewsletterItem = Awaited<ReturnType<typeof getNewsletterHistory>>[number];
-type MessageItem = Awaited<ReturnType<typeof getSentMessages>>[number];
 type EventItem = Awaited<ReturnType<typeof getEvents>>[number];
 type Customer = { id: string; name: string; email: string; role: string };
 
@@ -382,135 +379,6 @@ function NewsletterTab({ organizationId }: { organizationId: string }) {
   );
 }
 
-// ─── メッセージタブ ──────────────────────────────────────
-function MessagesTab({ organizationId }: { organizationId: string }) {
-  const [messages, setMessages] = useState<MessageItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
-  const [suppliers, setSuppliers] = useState<Customer[]>([]);
-  const [emailStatus, setEmailStatus] = useState<EmailDomainStatus | null>(null);
-  const [form, setForm] = useState({ fromCustomerId: '', target: 'all' as 'all' | 'buyer', subject: '', body: '' });
-  const [showForm, setShowForm] = useState(false);
-
-  useEffect(() => {
-    Promise.all([
-      getSentMessages(organizationId),
-      getCustomersForSelect(organizationId, 'supplier'),
-      getEmailDomainStatus(organizationId),
-    ]).then(([m, s, { data: emailData }]) => {
-      setMessages(m);
-      setSuppliers(s);
-      setEmailStatus(emailData);
-      setLoading(false);
-    });
-  }, [organizationId]);
-
-  const handleSend = () => {
-    if (!form.subject || !form.body) { toast.error('件名と本文を入力してください'); return; }
-    startTransition(async () => {
-      const { data, error } = await sendMessage(organizationId, {
-        fromCustomerId: form.fromCustomerId || undefined,
-        target: form.target,
-        subject: form.subject,
-        body: form.body,
-      });
-      if (error) { toast.error(error); return; }
-      toast.success(`${data?.sentCount}件のバイヤーに送信しました`);
-      setForm({ fromCustomerId: '', target: 'all', subject: '', body: '' });
-      setShowForm(false);
-      const m = await getSentMessages(organizationId);
-      setMessages(m);
-    });
-  };
-
-  if (loading) return <LoadingState />;
-
-  return (
-    <div className="space-y-4">
-      <EmailDomainBanner status={emailStatus} />
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">サプライヤーからバイヤー全員へメッセージを送信します</p>
-        {!showForm && (
-          <Button size="sm" onClick={() => setShowForm(true)}>
-            <MessageSquare className="mr-2 h-4 w-4" />メッセージを送る
-          </Button>
-        )}
-      </div>
-
-      {showForm && (
-        <Card>
-          <CardContent className="pt-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>送信者（サプライヤー）任意</Label>
-                <select
-                  className="w-full h-9 rounded-xl border border-input bg-background px-3 text-sm"
-                  value={form.fromCustomerId}
-                  onChange={e => setForm(f => ({ ...f, fromCustomerId: e.target.value }))}
-                >
-                  <option value="">管理者</option>
-                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>送信対象</Label>
-                <select
-                  className="w-full h-9 rounded-xl border border-input bg-background px-3 text-sm"
-                  value={form.target}
-                  onChange={e => setForm(f => ({ ...f, target: e.target.value as 'all' | 'buyer' }))}
-                >
-                  <option value="all">全バイヤー</option>
-                  <option value="buyer">バイヤーのみ</option>
-                </select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>件名 *</Label>
-              <Input placeholder="例: 新商品入荷のお知らせ" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>本文 *</Label>
-              <Textarea rows={5} placeholder="本文を入力..." value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSend} disabled={isPending}>
-                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                送信
-              </Button>
-              <Button variant="ghost" onClick={() => setShowForm(false)}>キャンセル</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {messages.length === 0
-        ? <EmptyState icon={MessageSquare} title="送信履歴がありません" description="メッセージを送信すると履歴が表示されます" />
-        : <div className="space-y-2">
-          {messages.map(msg => (
-            <Card key={msg.id}>
-              <CardContent className="py-4 px-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{msg.subject}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{msg.body}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Users className="h-3 w-3" />全バイヤー
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(msg.created_at as string).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      }
-    </div>
-  );
-}
 
 // ─── イベントタブ ────────────────────────────────────────
 function EventsTab({ organizationId }: { organizationId: string }) {
@@ -970,20 +838,17 @@ export default function MarketingPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold">マーケティング</h1>
-          <p className="text-sm text-muted-foreground">アナリティクス・メルマガ・メッセージ・イベント管理</p>
+          <p className="text-sm text-muted-foreground">アナリティクス・メルマガ・イベント管理</p>
         </div>
       </div>
 
       <Tabs defaultValue="analytics">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="analytics" className="flex items-center gap-1.5">
             <BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">アナリティクス</span>
           </TabsTrigger>
           <TabsTrigger value="newsletter" className="flex items-center gap-1.5">
             <Mail className="h-4 w-4" /><span className="hidden sm:inline">メルマガ</span>
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center gap-1.5">
-            <MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">メッセージ</span>
           </TabsTrigger>
           <TabsTrigger value="inquiries" className="flex items-center gap-1.5">
             <Inbox className="h-4 w-4" /><span className="hidden sm:inline">問い合わせ</span>
@@ -998,9 +863,6 @@ export default function MarketingPage() {
         </TabsContent>
         <TabsContent value="newsletter" className="mt-6">
           <NewsletterTab organizationId={organization.id} />
-        </TabsContent>
-        <TabsContent value="messages" className="mt-6">
-          <MessagesTab organizationId={organization.id} />
         </TabsContent>
         <TabsContent value="inquiries" className="mt-6">
           <InquiriesTab organizationId={organization.id} />
