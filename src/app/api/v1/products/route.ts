@@ -51,7 +51,8 @@ function buildFields(
   fields.push({ key: 'total_stock', label: '在庫合計', value: String(totalStock), type: 'number', system: true });
 
   // --- カスタムフィールド ---
-  for (const cf of customFields) {
+  const safeCustomFields = Array.isArray(customFields) ? customFields : [];
+  for (const cf of safeCustomFields) {
     fields.push({
       key: cf.key,
       label: cf.label,
@@ -163,7 +164,9 @@ export async function GET(request: NextRequest) {
       const pImages = images.filter(i => i.product_id === product.id);
       const pCatIds = productCategories.filter(pc => pc.product_id === product.id).map(pc => pc.category_id);
       const pCats = categories.filter((c: Record<string, unknown>) => pCatIds.includes(c.id as string));
-      const customFields = (product.custom_fields as { key: string; label: string; value: string; type: string; options?: string[] }[]) || [];
+      const rawCf = product.custom_fields;
+      const customFields: { key: string; label: string; value: string; type: string; options?: string[] }[] =
+        Array.isArray(rawCf) ? rawCf : [];
 
       return {
         id: product.id,
