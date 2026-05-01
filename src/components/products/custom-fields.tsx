@@ -552,23 +552,23 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
               return (
                 <div
                   key={field.id}
-                  className="group rounded-lg border bg-background hover:shadow-sm transition-shadow"
+                  className="group rounded-lg border border-slate-200/90 bg-white shadow-sm hover:shadow-md hover:border-sky-300/70 transition-all dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-sky-700/50 dark:hover:bg-white/[0.05]"
                 >
-                  <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+                  <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-slate-100 dark:border-white/[0.06]">
                     <Icon className={`h-4 w-4 shrink-0 ${config.color}`} />
-                    <span className="text-sm font-medium flex-1">{field.label}</span>
-                    <Badge variant="secondary" className="text-[10px] font-mono px-1.5 h-5 bg-muted gap-0.5">
-                      <Code className="h-2.5 w-2.5 opacity-50" />
+                    <span className="text-sm font-semibold flex-1 text-slate-800 dark:text-slate-100">{field.label}</span>
+                    <Badge variant="secondary" className="text-[10px] font-mono px-1.5 h-5 bg-slate-100 text-slate-600 border-slate-200 gap-0.5 dark:bg-white/5 dark:text-slate-300 dark:border-white/10">
+                      <Code className="h-2.5 w-2.5 opacity-60" />
                       {field.key}
                     </Badge>
-                    <Badge variant="outline" className="text-[10px] px-1.5 h-5">
+                    <Badge variant="outline" className="text-[10px] px-1.5 h-5 bg-white/80 dark:bg-white/5">
                       {config.label}
                     </Badge>
                     {allowAdd && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                        className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-opacity"
                         onClick={() => removeField(field.id)}
                         disabled={disabled}
                       >
@@ -576,7 +576,7 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
                       </Button>
                     )}
                   </div>
-                  <div className="px-4 pb-3 pt-1">
+                  <div className="px-4 pb-3 pt-2.5">
                     {renderValueInput(field)}
                   </div>
                 </div>

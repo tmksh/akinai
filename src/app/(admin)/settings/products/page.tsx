@@ -25,7 +25,20 @@ import {
   Phone,
   Info,
   Layers,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -104,6 +117,47 @@ export default function ProductSchemaSettingsPage() {
   const [newKeyManual, setNewKeyManual] = useState(false);
   const [newType, setNewType] = useState<CustomFieldType>('text');
   const [newOptions, setNewOptions] = useState('');
+
+  // 既存フィールド編集用の状態
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState('');
+  const [editType, setEditType] = useState<CustomFieldType>('text');
+  const [editOptions, setEditOptions] = useState('');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const startEdit = (field: ProductFieldSchemaItem) => {
+    setEditingId(field.id);
+    setEditLabel(field.label);
+    setEditType(field.type);
+    setEditOptions((field.options ?? []).join(', '));
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditLabel('');
+    setEditType('text');
+    setEditOptions('');
+  };
+
+  const saveEdit = (id: string) => {
+    if (!editLabel.trim()) {
+      toast.error('表示名を入力してください');
+      return;
+    }
+    if ((editType === 'select' || editType === 'multi_select') && !editOptions.trim()) {
+      toast.error('選択肢をカンマ区切りで入力してください');
+      return;
+    }
+    const options = (editType === 'select' || editType === 'multi_select')
+      ? editOptions.split(',').map(o => o.trim()).filter(Boolean)
+      : undefined;
+
+    setSchema(prev => prev.map(f => f.id === id
+      ? { ...f, label: editLabel.trim(), type: editType, ...(options ? { options } : { options: undefined }) }
+      : f
+    ));
+    cancelEdit();
+  };
 
   const handleLabelChange = (label: string) => {
     setNewLabel(label);
@@ -473,27 +527,132 @@ export default function ProductSchemaSettingsPage() {
               {schema.map((field) => {
                 const config = fieldTypeConfig[field.type];
                 const Icon = config.icon;
+                const isEditing = editingId === field.id;
+
+                if (isEditing) {
+                  const EditIcon = fieldTypeConfig[editType].icon;
+                  return (
+                    <div key={field.id} className="rounded-xl border-2 border-sky-300 dark:border-sky-700 bg-sky-50/50 dark:bg-sky-950/10 p-5 space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-medium text-sky-700 dark:text-sky-400">
+                        <EditIcon className="h-4 w-4" />
+                        フィールドを編集
+                        <Badge variant="secondary" className="text-[10px] font-mono px-1.5 h-5 gap-0.5 ml-auto">
+                          <Code className="h-2.5 w-2.5 opacity-50" />
+                          {field.key}
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">表示名</Label>
+                        <Input
+                          value={editLabel}
+                          onChange={(e) => setEditLabel(e.target.value)}
+                          className="h-9"
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEdit(field.id); } }}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">データ型</Label>
+                        <div className="space-y-3">
+                          {Object.entries(groupedTypes).map(([category, types]) => (
+                            <div key={category}>
+                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1.5">
+                                {categoryLabels[category as keyof typeof categoryLabels]}
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {types.map(([type, conf]) => {
+                                  const TypeIcon = conf.icon;
+                                  const isSelected = editType === type;
+                                  return (
+                                    <button
+                                      key={type}
+                                      type="button"
+                                      onClick={() => setEditType(type as CustomFieldType)}
+                                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs transition-all ${
+                                        isSelected
+                                          ? 'border-sky-400 bg-sky-100 text-sky-800 dark:border-sky-600 dark:bg-sky-950/40 dark:text-sky-300 shadow-sm'
+                                          : 'border-border bg-background text-muted-foreground hover:border-sky-300 hover:text-foreground'
+                                      }`}
+                                    >
+                                      <TypeIcon className={`h-3 w-3 ${isSelected ? conf.color : ''}`} />
+                                      {conf.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {(editType === 'select' || editType === 'multi_select') && (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">選択肢（カンマ区切り）</Label>
+                          <Input
+                            value={editOptions}
+                            onChange={(e) => setEditOptions(e.target.value)}
+                            placeholder={editType === 'multi_select' ? '例: 無添加, オーガニック, グルテンフリー' : '例: S, M, L, XL'}
+                            className="h-9"
+                          />
+                          {editOptions && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {editOptions.split(',').map((o, i) => o.trim() && (
+                                <Badge key={i} variant="secondary" className="text-xs">{o.trim()}</Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <Button size="sm" onClick={() => saveEdit(field.id)} className="btn-premium">
+                          <Check className="mr-1.5 h-3.5 w-3.5" />
+                          変更を反映
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                          <X className="mr-1.5 h-3.5 w-3.5" />
+                          キャンセル
+                        </Button>
+                        <span className="text-[10px] text-muted-foreground ml-auto">
+                          ※ 右上の「保存」を押すまで確定されません
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
-                  <div key={field.id} className="group flex items-center gap-3 rounded-lg border bg-background px-4 py-3 hover:shadow-sm transition-shadow">
+                  <div key={field.id} className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 hover:shadow-sm transition-shadow">
                     <Icon className={`h-4 w-4 shrink-0 ${config.color}`} />
-                    <span className="text-sm font-medium flex-1">{field.label}</span>
-                    <Badge variant="secondary" className="text-[10px] font-mono px-1.5 h-5 gap-0.5">
+                    <span className="text-sm font-medium flex-1 truncate">{field.label}</span>
+                    <Badge variant="secondary" className="text-[10px] font-mono px-1.5 h-5 gap-0.5 hidden sm:inline-flex">
                       <Code className="h-2.5 w-2.5 opacity-50" />
                       {field.key}
                     </Badge>
                     <Badge variant="outline" className="text-[10px] px-1.5 h-5">
                       {config.label}
                     </Badge>
-                    {field.options && (
-                      <span className="text-[10px] text-muted-foreground">
+                    {field.options && field.options.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground hidden md:inline-block max-w-[260px] truncate">
                         {field.options.join(' / ')}
                       </span>
                     )}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-                      onClick={() => removeField(field.id)}
+                      className="h-7 w-7 text-muted-foreground hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30"
+                      onClick={() => startEdit(field)}
+                      title="編集"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setPendingDeleteId(field.id)}
+                      title="削除"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -520,6 +679,43 @@ export default function ProductSchemaSettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={pendingDeleteId !== null} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>このフィールドを削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const target = schema.find(f => f.id === pendingDeleteId);
+                if (!target) return null;
+                return (
+                  <>
+                    <span className="font-medium text-foreground">{target.label}</span>（<code className="font-mono text-xs">{target.key}</code>）を一覧から削除します。<br />
+                    この操作は右上の「保存」を押すまで確定されません。<br />
+                    <span className="text-amber-600 dark:text-amber-500">※ 既存商品のデータ自体は残ります（管理画面の入力欄から非表示になるだけです）。</span>
+                  </>
+                );
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingDeleteId) {
+                  removeField(pendingDeleteId);
+                  if (editingId === pendingDeleteId) cancelEdit();
+                }
+                setPendingDeleteId(null);
+              }}
+            >
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
