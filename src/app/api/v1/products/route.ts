@@ -167,6 +167,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: product.id,
+        customFields,
         fields: buildFields(product, pVariants, customFields),
         variants: pVariants.map(v => {
           const opts = (v.options || {}) as Record<string, unknown>;
@@ -371,6 +372,7 @@ export async function POST(request: NextRequest) {
       slug: product.slug,
       status: product.status,
       approvalStatus: product.approval_status ?? null,
+      customFields: (product.custom_fields as unknown[]) || [],
       variants: (insertedVariants || []).map(v => ({
         id: v.id,
         name: v.name,

@@ -136,6 +136,7 @@ export async function GET(
     // --- レスポンス構築 ---
     const publicProduct = {
       id: product.id,
+      customFields,
       fields: buildFields(product, variants, customFields),
       variants: variants.map(v => {
         const opts = (v.options || {}) as Record<string, unknown>;
@@ -225,6 +226,7 @@ export async function PUT(
       if (body.status === 'published') updateData.published_at = new Date().toISOString();
     }
     if (body.tags !== undefined) updateData.tags = body.tags;
+    if (body.customFields !== undefined) updateData.custom_fields = body.customFields;
 
     if (Object.keys(updateData).length > 0) {
       const { error: updateErr } = await supabase
