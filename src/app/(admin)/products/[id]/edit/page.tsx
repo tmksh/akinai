@@ -145,7 +145,11 @@ export default function ProductEditPage() {
         setSelectedCategories(p.categories.map(c => c.id));
         setTags(p.tags || []);
         // カスタムフィールドを復元（スキーマとマージ）。_swatch_config はシステム用なので除外
-        const rawCustomFields = (p.custom_fields as unknown as { key: string; label?: string; value: string; type: string; options?: string[] }[]) || [];
+        const _cfRaw = p.custom_fields;
+        const rawCustomFields: { key: string; label?: string; value: string; type: string; options?: string[] }[] =
+          Array.isArray(_cfRaw)
+            ? (_cfRaw as unknown as { key: string; label?: string; value: string; type: string; options?: string[] }[])
+            : [];
         // スウォッチ設定を抽出
         const swatchConfigRaw = rawCustomFields.find((f) => f.key === '_swatch_config');
         if (swatchConfigRaw?.value) {

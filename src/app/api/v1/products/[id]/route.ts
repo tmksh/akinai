@@ -9,6 +9,29 @@ import {
   withApiLogging,
 } from '@/lib/api/auth';
 
+type CustomFieldItem = { key: string; label: string; value: string; type: string; options?: string[] };
+
+/**
+ * DB の custom_fields を正規化して配列に変換する。
+ * - 配列形式 [{key, label, value, type}] → そのまま返す
+ * - オブジェクト形式 {"key": "value"} → [{key, label:key, value, type:"text"}] に変換
+ * - それ以外（null/undefined/非対象） → [] を返す
+ */
+function normalizeCustomFields(raw: unknown): CustomFieldItem[] {
+  if (Array.isArray(raw)) {
+    return raw as CustomFieldItem[];
+  }
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    return Object.entries(raw as Record<string, unknown>).map(([key, value]) => ({
+      key,
+      label: key,
+      value: String(value ?? ''),
+      type: 'text',
+    }));
+  }
+  return [];
+}
+
 // 統一フィールド型
 interface UnifiedField {
   key: string;
@@ -50,8 +73,7 @@ function buildFields(
   fields.push({ key: 'total_stock', label: '在庫合計', value: String(totalStock), type: 'number', system: true });
 
   // --- カスタムフィールド ---
-  const safeCustomFields = Array.isArray(customFields) ? customFields : [];
-  for (const cf of safeCustomFields) {
+  for (const cf of customFields) {
     fields.push({
       key: cf.key,
       label: cf.label,
@@ -132,9 +154,7 @@ export async function GET(
     }
 
     // カスタムフィールド
-    const rawCf = product.custom_fields;
-    const customFields: { key: string; label: string; value: string; type: string; options?: string[] }[] =
-      Array.isArray(rawCf) ? rawCf : [];
+    const customFields = normalizeCustomFields(product.custom_fields);
 
     // --- レスポンス構築 ---
     const publicProduct = {
@@ -229,7 +249,7 @@ export async function PUT(
       if (body.status === 'published') updateData.published_at = new Date().toISOString();
     }
     if (body.tags !== undefined) updateData.tags = body.tags;
-    if (body.customFields !== undefined) updateData.custom_fields = body.customFields;
+    if (body.customFields !== undefined) updateData.custom_fields = normalizeCustomFields(body.customFields);
 
     if (Object.keys(updateData).length > 0) {
       const { error: updateErr } = await supabase

@@ -10,6 +10,29 @@ import {
   withApiLogging,
 } from '@/lib/api/auth';
 
+type CustomFieldItem = { key: string; label: string; value: string; type: string; options?: string[] };
+
+/**
+ * DB の custom_fields を正規化して配列に変換する。
+ * - 配列形式 [{key, label, value, type}] → そのまま返す
+ * - オブジェクト形式 {"key": "value"} → [{key, label:key, value, type:"text"}] に変換
+ * - それ以外（null/undefined/非対象） → [] を返す
+ */
+function normalizeCustomFields(raw: unknown): CustomFieldItem[] {
+  if (Array.isArray(raw)) {
+    return raw as CustomFieldItem[];
+  }
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    return Object.entries(raw as Record<string, unknown>).map(([key, value]) => ({
+      key,
+      label: key,
+      value: String(value ?? ''),
+      type: 'text',
+    }));
+  }
+  return [];
+}
+
 // 統一フィールド型
 interface UnifiedField {
   key: string;
@@ -51,8 +74,7 @@ function buildFields(
   fields.push({ key: 'total_stock', label: '在庫合計', value: String(totalStock), type: 'number', system: true });
 
   // --- カスタムフィールド ---
-  const safeCustomFields = Array.isArray(customFields) ? customFields : [];
-  for (const cf of safeCustomFields) {
+  for (const cf of customFields) {
     fields.push({
       key: cf.key,
       label: cf.label,
@@ -164,9 +186,7 @@ export async function GET(request: NextRequest) {
       const pImages = images.filter(i => i.product_id === product.id);
       const pCatIds = productCategories.filter(pc => pc.product_id === product.id).map(pc => pc.category_id);
       const pCats = categories.filter((c: Record<string, unknown>) => pCatIds.includes(c.id as string));
-      const rawCf = product.custom_fields;
-      const customFields: { key: string; label: string; value: string; type: string; options?: string[] }[] =
-        Array.isArray(rawCf) ? rawCf : [];
+      const customFields = normalizeCustomFields(product.custom_fields);
 
       return {
         id: product.id,
@@ -295,7 +315,7 @@ export async function POST(request: NextRequest) {
         seo_title: (body.seoTitle as string) || null,
         seo_description: (body.seoDescription as string) || null,
         featured: (body.featured as boolean) || false,
-        custom_fields: (body.customFields as unknown[]) || [],
+        custom_fields: normalizeCustomFields(body.customFields),
         approval_status: approvalStatus,
         published_at: finalStatus === 'published' ? new Date().toISOString() : null,
       })
@@ -375,7 +395,7 @@ export async function POST(request: NextRequest) {
       slug: product.slug,
       status: product.status,
       approvalStatus: product.approval_status ?? null,
-      customFields: (product.custom_fields as unknown[]) || [],
+      customFields: normalizeCustomFields(product.custom_fields),
       variants: (insertedVariants || []).map(v => ({
         id: v.id,
         name: v.name,

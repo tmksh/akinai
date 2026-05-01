@@ -322,8 +322,10 @@ export async function getProduct(productId: string): Promise<{
       .map(pc => pc.categories)
       .filter((c): c is Category => c !== null && c !== undefined);
 
+    const normalizedCustomFields = Array.isArray(rest.custom_fields) ? rest.custom_fields : [];
+
     return {
-      data: { ...(rest as Product), variants, images, categories },
+      data: { ...(rest as Product), custom_fields: normalizedCustomFields, variants, images, categories },
       error: null,
     };
   } catch (error) {
