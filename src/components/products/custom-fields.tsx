@@ -19,6 +19,7 @@ import {
   ListOrdered,
   Braces,
   ListFilter,
+  ListChecks,
   X,
   Phone,
   Upload,
@@ -61,6 +62,7 @@ export type CustomFieldType =
   | 'image_url'
   | 'list'
   | 'select'
+  | 'multi_select'
   | 'json';
 
 export interface CustomField {
@@ -86,7 +88,8 @@ const fieldTypeConfig: Record<CustomFieldType, FieldTypeInfo> = {
   textarea:  { label: '長文テキスト', icon: AlignLeft,   placeholder: '長い文章を入力',  color: 'text-blue-400',    description: '複数行のテキスト',     category: 'basic' },
   number:    { label: '数値',         icon: Hash,        placeholder: '0',              color: 'text-emerald-500', description: '整数・小数',           category: 'basic' },
   boolean:   { label: '真偽値',       icon: ToggleLeft,  placeholder: '',               color: 'text-violet-500',  description: 'はい/いいえ',         category: 'basic' },
-  select:    { label: '選択肢',       icon: ListFilter,  placeholder: '',               color: 'text-indigo-500',  description: 'ドロップダウン',       category: 'basic' },
+  select:    { label: '選択肢',       icon: ListFilter,  placeholder: '',               color: 'text-indigo-500',  description: 'ドロップダウン（1つ選択）', category: 'basic' },
+  multi_select: { label: '複数選択',   icon: ListChecks,  placeholder: '',               color: 'text-orange-500',  description: 'タグ形式で複数選択',   category: 'basic' },
   date:      { label: '日付',         icon: Calendar,    placeholder: '',               color: 'text-sky-500',   description: '日付選択',             category: 'basic' },
   url:       { label: 'URL',          icon: Link2,       placeholder: 'https://',       color: 'text-cyan-500',    description: 'リンクURL',           category: 'media' },
   email:     { label: 'メール',       icon: Mail,        placeholder: 'example@mail.com', color: 'text-sky-500', description: 'メールアドレス',       category: 'media' },
@@ -172,8 +175,8 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
       return;
     }
 
-    // select 型の場合は選択肢が必要
-    if (newFieldType === 'select' && !newFieldOptions.trim()) {
+    // select / multi_select 型の場合は選択肢が必要
+    if ((newFieldType === 'select' || newFieldType === 'multi_select') && !newFieldOptions.trim()) {
       alert('選択肢をカンマ区切りで入力してください');
       return;
     }
@@ -182,9 +185,10 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
     if (newFieldType === 'boolean') defaultValue = 'false';
     if (newFieldType === 'rating') defaultValue = '0';
     if (newFieldType === 'list') defaultValue = '[]';
+    if (newFieldType === 'multi_select') defaultValue = '[]';
     if (newFieldType === 'json') defaultValue = '{}';
 
-    const options = newFieldType === 'select'
+    const options = (newFieldType === 'select' || newFieldType === 'multi_select')
       ? newFieldOptions.split(',').map(o => o.trim()).filter(Boolean)
       : undefined;
 
@@ -331,6 +335,16 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
               ))}
             </SelectContent>
           </Select>
+        );
+
+      case 'multi_select':
+        return (
+          <MultiSelectChips
+            options={field.options ?? []}
+            value={field.value}
+            onChange={(v) => updateFieldValue(field.id, v)}
+            disabled={disabled}
+          />
         );
 
       case 'list':
@@ -491,14 +505,14 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
                 </div>
               </div>
 
-              {/* select 型の選択肢入力 */}
-              {newFieldType === 'select' && (
+              {/* select / multi_select 型の選択肢入力 */}
+              {(newFieldType === 'select' || newFieldType === 'multi_select') && (
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">選択肢（カンマ区切り）</Label>
                   <Input
                     value={newFieldOptions}
                     onChange={(e) => setNewFieldOptions(e.target.value)}
-                    placeholder="例: S, M, L, XL"
+                    placeholder={newFieldType === 'multi_select' ? '例: 無添加, オーガニック, グルテンフリー' : '例: S, M, L, XL'}
                     className="h-9"
                   />
                   {newFieldOptions && (
@@ -589,6 +603,76 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** 複数選択型のチップUI */
+function MultiSelectChips({
+  options,
+  value,
+  onChange,
+  disabled,
+}: {
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const selected: string[] = (() => {
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  const toggle = (option: string) => {
+    const next = selected.includes(option)
+      ? selected.filter((v) => v !== option)
+      : [...selected, option];
+    onChange(JSON.stringify(next));
+  };
+
+  if (options.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground italic py-2">
+        選択肢が定義されていません
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((opt) => {
+          const isSelected = selected.includes(opt);
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => toggle(opt)}
+              disabled={disabled}
+              className={cn(
+                'inline-flex items-center gap-1 px-3 py-1 rounded-full border text-xs transition-all',
+                isSelected
+                  ? 'border-orange-400 bg-orange-500 text-white shadow-sm dark:border-orange-500 dark:bg-orange-600'
+                  : 'border-border bg-background text-muted-foreground hover:border-orange-300 hover:text-foreground',
+                disabled && 'opacity-60 cursor-not-allowed'
+              )}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+      {selected.length > 0 && (
+        <p className="text-[11px] text-muted-foreground/70">
+          {selected.length} 件選択中
+        </p>
+      )}
+    </div>
   );
 }
 

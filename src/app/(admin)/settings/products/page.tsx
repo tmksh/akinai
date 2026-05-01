@@ -21,6 +21,7 @@ import {
   ListOrdered,
   Braces,
   ListFilter,
+  ListChecks,
   Phone,
   Info,
   Layers,
@@ -43,6 +44,7 @@ const fieldTypeConfig: Record<CustomFieldType, { label: string; icon: React.Elem
   number:    { label: '数値',         icon: Hash,        color: 'text-emerald-500', category: 'basic' },
   boolean:   { label: '真偽値',       icon: ToggleLeft,  color: 'text-violet-500',  category: 'basic' },
   select:    { label: '選択肢',       icon: ListFilter,  color: 'text-indigo-500',  category: 'basic' },
+  multi_select: { label: '複数選択',   icon: ListChecks,  color: 'text-orange-500',  category: 'basic' },
   date:      { label: '日付',         icon: Calendar,    color: 'text-sky-500',   category: 'basic' },
   url:       { label: 'URL',          icon: Link2,       color: 'text-cyan-500',    category: 'media' },
   email:     { label: 'メール',       icon: Mail,        color: 'text-sky-500',     category: 'media' },
@@ -123,11 +125,11 @@ export default function ProductSchemaSettingsPage() {
       toast.error('同じキーIDのフィールドが既に存在します');
       return;
     }
-    if (newType === 'select' && !newOptions.trim()) {
+    if ((newType === 'select' || newType === 'multi_select') && !newOptions.trim()) {
       toast.error('選択肢をカンマ区切りで入力してください');
       return;
     }
-    const options = newType === 'select'
+    const options = (newType === 'select' || newType === 'multi_select')
       ? newOptions.split(',').map(o => o.trim()).filter(Boolean)
       : undefined;
 
@@ -429,13 +431,13 @@ export default function ProductSchemaSettingsPage() {
                 </div>
               </div>
 
-              {newType === 'select' && (
+              {(newType === 'select' || newType === 'multi_select') && (
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">選択肢（カンマ区切り）</Label>
                   <Input
                     value={newOptions}
                     onChange={(e) => setNewOptions(e.target.value)}
-                    placeholder="例: S, M, L, XL"
+                    placeholder={newType === 'multi_select' ? '例: 無添加, オーガニック, グルテンフリー' : '例: S, M, L, XL'}
                     className="h-9"
                   />
                   {newOptions && (

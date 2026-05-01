@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import {
   ArrowLeft, Save, Plus, Trash2, Type, Hash, ToggleLeft, Calendar, Link2,
   Palette, Code, Sparkles, AlignLeft, Mail, Star, ImageIcon, ListOrdered,
-  Braces, ListFilter, Phone, Info, Copy, Download,
+  Braces, ListFilter, ListChecks, Phone, Info, Copy, Download,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ const fieldTypeConfig: Record<CustomFieldType, { label: string; icon: React.Elem
   number:    { label: '数値',         icon: Hash,        color: 'text-emerald-500', category: 'basic' },
   boolean:   { label: '真偽値',       icon: ToggleLeft,  color: 'text-violet-500',  category: 'basic' },
   select:    { label: '選択肢',       icon: ListFilter,  color: 'text-indigo-500',  category: 'basic' },
+  multi_select: { label: '複数選択',   icon: ListChecks,  color: 'text-orange-500',  category: 'basic' },
   date:      { label: '日付',         icon: Calendar,    color: 'text-sky-500',     category: 'basic' },
   url:       { label: 'URL',          icon: Link2,       color: 'text-cyan-500',    category: 'media' },
   email:     { label: 'メール',       icon: Mail,        color: 'text-sky-500',     category: 'media' },
@@ -97,11 +98,11 @@ function FieldEditor({ fields, onChange, productSchema = [] }: FieldEditorProps)
       toast.error('同じキーIDのフィールドが既に存在します');
       return;
     }
-    if (newType === 'select' && !newOptions.trim()) {
+    if ((newType === 'select' || newType === 'multi_select') && !newOptions.trim()) {
       toast.error('選択肢をカンマ区切りで入力してください');
       return;
     }
-    const options = newType === 'select'
+    const options = (newType === 'select' || newType === 'multi_select')
       ? newOptions.split(',').map(o => o.trim()).filter(Boolean)
       : undefined;
 
@@ -236,13 +237,13 @@ function FieldEditor({ fields, onChange, productSchema = [] }: FieldEditorProps)
             </div>
           </div>
 
-          {newType === 'select' && (
+          {(newType === 'select' || newType === 'multi_select') && (
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">選択肢（カンマ区切り）</Label>
               <Input
                 value={newOptions}
                 onChange={(e) => setNewOptions(e.target.value)}
-                placeholder="例: ニュース, お知らせ, 特集"
+                placeholder={newType === 'multi_select' ? '例: 無添加, オーガニック, グルテンフリー' : '例: ニュース, お知らせ, 特集'}
                 className="h-9"
               />
               {newOptions && (

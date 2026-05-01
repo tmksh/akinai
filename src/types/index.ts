@@ -64,6 +64,7 @@ export type CustomFieldType =
   | 'image_url'
   | 'list'
   | 'select'
+  | 'multi_select'
   | 'json';
 
 export interface CustomField {
