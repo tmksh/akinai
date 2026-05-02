@@ -196,6 +196,22 @@ export function ProductImportDialog({
             .map(u => u.trim())
             .filter(u => u.length > 0);
 
+          // カスタムフィールド列を読み込む（ラベル名でマッチ）
+          const customFields = fieldSchema
+            .map((f) => {
+              // ヘッダーに "ラベル※必須" 形式でも対応
+              const colValue = raw[f.label] ?? raw[`${f.label}※必須`] ?? '';
+              if (colValue === '') return null;
+              return {
+                key: f.key,
+                label: f.label,
+                value: colValue.trim(),
+                type: f.type,
+                ...(f.options ? { options: f.options } : {}),
+              };
+            })
+            .filter((f): f is NonNullable<typeof f> => f !== null);
+
           rows.push({
             name: raw['商品名'].trim(),
             slug: raw['slug'].trim(),
@@ -207,6 +223,7 @@ export function ProductImportDialog({
             description: raw['説明']?.trim() || '',
             sortOrder: parseInt(raw['並び順'], 10) || 0,
             imageUrls,
+            customFields: customFields.length > 0 ? customFields : undefined,
           });
         }
 

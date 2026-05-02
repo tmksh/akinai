@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles } from 'lucide-react';
+import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -82,6 +82,68 @@ export default function CustomersClient({
   const hasDateFilter = dateFrom !== '' || dateTo !== '';
   const clearDateFilter = () => { setDateFrom(''); setDateTo(''); };
 
+  const handleExportCsv = () => {
+    function escapeCsv(v: string): string {
+      if (v.includes(',') || v.includes('"') || v.includes('\n')) return `"${v.replace(/"/g, '""')}"`;
+      return v;
+    }
+
+    const headers = [
+      '氏名・会社名', 'メールアドレス', '電話番号', '会社名', 'メモ',
+      'ステータス', '種別', '都道府県', '業種',
+      '郵便番号', '都道府県_住所', '市区町村', '番地等', '建物名',
+      '注文数', '総購入額', 'タグ',
+      ...fieldSchema.map((f) => f.label),
+    ];
+
+    const rows = filteredCustomers.map((c) => {
+      const role = (c as unknown as { role?: string }).role ?? 'personal';
+      const status = (c as unknown as { status?: string }).status ?? 'active';
+      const prefecture = (c as unknown as { prefecture?: string }).prefecture ?? '';
+      const businessType = (c as unknown as { business_type?: string }).business_type ?? '';
+      const addr = c.addresses?.[0];
+      const customFieldValues = fieldSchema.map((f) => {
+        const cf = (c as unknown as { custom_fields?: Record<string, unknown> }).custom_fields;
+        const val = cf?.[f.key];
+        return val !== undefined && val !== null ? String(val) : '';
+      });
+      return [
+        c.name,
+        c.email,
+        c.phone ?? '',
+        c.company ?? '',
+        c.notes ?? '',
+        status,
+        role,
+        prefecture,
+        businessType,
+        addr?.postal_code ?? '',
+        addr?.prefecture ?? '',
+        addr?.city ?? '',
+        addr?.line1 ?? '',
+        addr?.line2 ?? '',
+        String(c.total_orders),
+        String(c.total_spent),
+        (c.tags ?? []).join(';'),
+        ...customFieldValues,
+      ];
+    });
+
+    const lines = [
+      headers.map(escapeCsv).join(','),
+      ...rows.map((r) => r.map(escapeCsv).join(',')),
+    ];
+    const csv = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const suffix = searchQuery || activeRole !== 'all' || hasDateFilter ? '_フィルター適用' : '';
+    a.download = `顧客一覧${suffix}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const roleCounts = {
     all: searchFilteredCustomers.length,
     personal: searchFilteredCustomers.filter(c => { const r = getCustomerRole(c); return !r || r === 'personal'; }).length,
@@ -111,6 +173,10 @@ export default function CustomersClient({
               <Sparkles className="mr-2 h-4 w-4" />
               カスタムフィールド
             </Link>
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCsv}>
+            <Download className="mr-2 h-4 w-4 text-slate-400" />
+            <span className="hidden sm:inline">CSV出力</span>
           </Button>
           <ImportTemplateDialog
             fieldSchema={fieldSchema}

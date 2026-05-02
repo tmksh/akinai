@@ -674,6 +674,7 @@ export interface CsvProductRow {
   description: string;
   sortOrder: number;
   imageUrls: string[];
+  customFields?: { key: string; label: string; value: string; type: string; options?: string[] }[];
 }
 
 export interface ImportResult {
@@ -766,7 +767,7 @@ export async function importProducts(
           status: validStatus,
           tags: [],
           featured: false,
-          custom_fields: [],
+          custom_fields: row.customFields || [],
           published_at: validStatus === 'published' ? new Date().toISOString() : null,
         })
         .select()

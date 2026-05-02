@@ -152,6 +152,54 @@ export default function ProductsClient({
 
   const hasActiveFilter = statusFilter !== 'all' || categoryFilter !== 'all';
 
+  const handleDownloadTemplate = () => {
+    const fieldSchema = organization?.productFieldSchema ?? [];
+
+    function escapeCsv(v: string): string {
+      if (v.includes(',') || v.includes('"') || v.includes('\n')) return `"${v.replace(/"/g, '""')}"`;
+      return v;
+    }
+
+    const headers = [
+      '商品名※必須', 'slug※必須', 'カテゴリ', 'サブカテゴリ', 'サイズ',
+      '価格※必須', 'ステータス', '説明', '並び順', '画像URL',
+      ...fieldSchema.map((f) => f.label),
+    ];
+    const hints = [
+      'サンプル商品 1', 'sample-product-1', '食品', '', 'S / M / L',
+      '1000', 'draft / published / archived', '商品の説明文', '1',
+      'https://example.com/image.jpg（複数は;区切り）',
+      ...fieldSchema.map((f) => {
+        if (f.type === 'select' || f.type === 'multi_select') return f.options?.join(' / ') ?? '';
+        if (f.type === 'boolean') return 'true / false';
+        if (f.type === 'number' || f.type === 'rating') return '数値';
+        if (f.type === 'date') return 'YYYY-MM-DD';
+        if (f.type === 'color') return '#RRGGBB';
+        if (f.type === 'url' || f.type === 'image_url') return 'https://...';
+        return '';
+      }),
+    ];
+    const sampleRows = Array.from({ length: 30 }, (_, i) => [
+      `サンプル商品 ${i + 1}`, `sample-product-${i + 1}`, '', '', '',
+      '1000', 'draft', '', String(i + 1), '',
+      ...fieldSchema.map(() => ''),
+    ]);
+
+    const lines = [
+      headers.map(escapeCsv).join(','),
+      hints.map(escapeCsv).join(','),
+      ...sampleRows.map((r) => r.map(escapeCsv).join(',')),
+    ];
+    const csv = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `商品一括登録テンプレート${fieldSchema.length > 0 ? `_カスタム${fieldSchema.length}項目` : ''}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleExportCsv = () => {
     const fieldSchema = organization?.productFieldSchema ?? [];
 
@@ -231,8 +279,12 @@ export default function ProductsClient({
               <span className="hidden sm:inline">カスタムフィールド</span>
             </Link>
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportCsv}>
+          <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
             <Download className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">テンプレート</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCsv}>
+            <Download className="h-4 w-4 sm:mr-1.5 text-slate-400" />
             <span className="hidden sm:inline">CSV出力</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
