@@ -47,11 +47,17 @@ export interface CustomerSubscriptionPlan {
 export interface CustomerSubscriptionPlansSettings {
   enabled: boolean;
   plans: CustomerSubscriptionPlan[];
+  /** サブスク決済完了時に orders テーブルへ自動記録するか */
+  subscriptionCreatesOrder: boolean;
+  /** サブスク決済完了時に顧客へ確認メールを送信するか */
+  subscriptionSendsEmail: boolean;
 }
 
 export const DEFAULT_CUSTOMER_SUBSCRIPTION_PLANS_SETTINGS: CustomerSubscriptionPlansSettings = {
   enabled: false,
   plans: [],
+  subscriptionCreatesOrder: false,
+  subscriptionSendsEmail: false,
 };
 
 /** customers.custom_fields.subscription に格納する個別契約情報 */
@@ -91,6 +97,8 @@ export function readPlansSettings(
   return {
     enabled: raw.enabled === true,
     plans: Array.isArray(raw.plans) ? raw.plans : [],
+    subscriptionCreatesOrder: raw.subscriptionCreatesOrder === true,
+    subscriptionSendsEmail: raw.subscriptionSendsEmail === true,
   };
 }
 

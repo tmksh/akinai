@@ -100,9 +100,16 @@ const INTERVAL_LABEL: Record<SubscriptionInterval, string> = {
 export function CustomerSubscriptionPlansSection({ isStripeConnected }: CustomerPlansSectionProps) {
   const { organization } = useOrganization();
   const [enabled, setEnabled] = useState(DEFAULT_CUSTOMER_SUBSCRIPTION_PLANS_SETTINGS.enabled);
+  const [subscriptionCreatesOrder, setSubscriptionCreatesOrder] = useState(
+    DEFAULT_CUSTOMER_SUBSCRIPTION_PLANS_SETTINGS.subscriptionCreatesOrder
+  );
+  const [subscriptionSendsEmail, setSubscriptionSendsEmail] = useState(
+    DEFAULT_CUSTOMER_SUBSCRIPTION_PLANS_SETTINGS.subscriptionSendsEmail
+  );
   const [plans, setPlans] = useState<CustomerSubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [enabledSaving, setEnabledSaving] = useState(false);
+  const [optionSaving, setOptionSaving] = useState(false);
 
   const [labels, setLabels] = useState<CustomerRoleLabels>(DEFAULT_CUSTOMER_ROLE_LABELS);
   const [roleEnabled, setRoleEnabled] = useState<CustomerRoleEnabled>(DEFAULT_CUSTOMER_ROLE_ENABLED);
@@ -121,6 +128,8 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       setEnabled(data.enabled ?? false);
+      setSubscriptionCreatesOrder(data.subscriptionCreatesOrder ?? false);
+      setSubscriptionSendsEmail(data.subscriptionSendsEmail ?? false);
       setPlans(Array.isArray(data.plans) ? data.plans : []);
     } catch (e) {
       console.error(e);
@@ -177,6 +186,29 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
       toast.error('保存に失敗しました');
     } finally {
       setEnabledSaving(false);
+    }
+  };
+
+  const handleOptionToggle = async (
+    key: 'subscriptionCreatesOrder' | 'subscriptionSendsEmail',
+    next: boolean
+  ) => {
+    setOptionSaving(true);
+    try {
+      const res = await fetch('/api/stripe/customer-plans', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: next }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      if (key === 'subscriptionCreatesOrder') setSubscriptionCreatesOrder(next);
+      if (key === 'subscriptionSendsEmail') setSubscriptionSendsEmail(next);
+      toast.success('設定を保存しました');
+    } catch (e) {
+      console.error(e);
+      toast.error('保存に失敗しました');
+    } finally {
+      setOptionSaving(false);
     }
   };
 
@@ -305,6 +337,40 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
           </div>
         </div>
       </div>
+
+      {enabled && (
+        <Card>
+          <CardContent className="py-4 space-y-3">
+            <p className="text-sm font-medium">決済完了時の動作</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm">注文管理に自動記録する</p>
+                <p className="text-xs text-muted-foreground">
+                  決済完了時に注文管理画面へ自動で記録します
+                </p>
+              </div>
+              <Switch
+                checked={subscriptionCreatesOrder}
+                disabled={optionSaving}
+                onCheckedChange={(v) => handleOptionToggle('subscriptionCreatesOrder', v)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm">顧客へ確認メールを送信する</p>
+                <p className="text-xs text-muted-foreground">
+                  決済完了時に顧客へ注文確認メールを送信します（注文記録が必要）
+                </p>
+              </div>
+              <Switch
+                checked={subscriptionSendsEmail}
+                disabled={optionSaving || !subscriptionCreatesOrder}
+                onCheckedChange={(v) => handleOptionToggle('subscriptionSendsEmail', v)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {!isStripeConnected && (
         <Card className="border-amber-200 bg-amber-50/60 dark:bg-amber-950/30 dark:border-amber-800">

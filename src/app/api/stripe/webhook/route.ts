@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { sendOrderEmails } from '@/lib/order-emails';
+import { readPlansSettings } from '@/lib/customer-subscription-plans';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAdmin = SupabaseClient<any, 'public', any>;
@@ -242,9 +243,19 @@ async function handleInvoicePaymentSucceeded(
     .eq('id', org.id);
 }
 
+function generateOrderNumber(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  return `ORD-${year}${month}${day}-${random}`;
+}
+
 /**
  * エンドユーザー向けサブスクリプション Checkout 完了時の処理
- * customers.custom_fields.subscription を更新する
+ * customers.custom_fields.subscription を更新する。
+ * 組織設定に応じて orders への記録・確認メール送信も行う。
  */
 async function handleCustomerSubscriptionCheckoutComplete(
   supabase: SupabaseAdmin,
@@ -265,7 +276,7 @@ async function handleCustomerSubscriptionCheckoutComplete(
 
   const { data: existing } = await supabase
     .from('customers')
-    .select('custom_fields, status')
+    .select('custom_fields, status, name, email')
     .eq('id', customerId)
     .eq('organization_id', organizationId)
     .single();
@@ -288,13 +299,83 @@ async function handleCustomerSubscriptionCheckoutComplete(
   await supabase
     .from('customers')
     .update({
-      // pending → active へ昇格（既に active ならそのまま）
       status: existing?.status === 'suspended' ? 'suspended' : 'active',
       custom_fields: { ...currentCustomFields, subscription },
       updated_at: now,
     })
     .eq('id', customerId)
     .eq('organization_id', organizationId);
+
+  // 組織設定を確認して orders 記録・メール送信を条件実行
+  const { data: orgData } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  const plansSettings = readPlansSettings(orgData?.settings as Record<string, unknown> | null);
+
+  if (plansSettings.subscriptionCreatesOrder || plansSettings.subscriptionSendsEmail) {
+    // プラン情報を取得して金額を特定
+    const plan = plansSettings.plans.find((p) => p.id === planId);
+    const amount = plan?.amount ?? (session.amount_total ?? 0);
+    const planName = plan?.name ?? 'サブスクリプション';
+
+    const customerName = (existing?.name as string | null) || '';
+    const customerEmail = (existing?.email as string | null) || '';
+
+    let orderId: string | null = null;
+
+    if (plansSettings.subscriptionCreatesOrder) {
+      const orderNumber = generateOrderNumber();
+      const { data: newOrder, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          organization_id: organizationId,
+          order_number: orderNumber,
+          customer_id: customerId,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          subtotal: amount,
+          shipping_cost: 0,
+          tax: 0,
+          total: amount,
+          status: 'confirmed',
+          payment_status: 'paid',
+          payment_method: 'subscription',
+          notes: `サブスクリプション: ${planName}`,
+          stripe_payment_intent_id: null,
+        })
+        .select('id')
+        .single();
+
+      if (orderError) {
+        console.error('[Webhook] Failed to create subscription order:', orderError);
+      } else {
+        orderId = newOrder?.id ?? null;
+        console.log(`[Webhook] Subscription order created: ${orderId}`);
+
+        // order_items にプランを1行追加
+        if (orderId) {
+          await supabase.from('order_items').insert({
+            order_id: orderId,
+            product_id: null,
+            variant_id: null,
+            product_name: planName,
+            variant_name: null,
+            sku: null,
+            quantity: 1,
+            unit_price: amount,
+            total_price: amount,
+          });
+        }
+      }
+    }
+
+    if (plansSettings.subscriptionSendsEmail && orderId) {
+      await sendOrderEmails(supabase, orderId, organizationId);
+    }
+  }
 }
 
 /**

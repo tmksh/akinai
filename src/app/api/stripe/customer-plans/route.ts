@@ -129,6 +129,8 @@ export async function GET() {
   return NextResponse.json({
     enabled: settings.enabled,
     plans: settings.plans,
+    subscriptionCreatesOrder: settings.subscriptionCreatesOrder,
+    subscriptionSendsEmail: settings.subscriptionSendsEmail,
     stripeConnected: !!ctx.stripeAccountId,
   });
 }
@@ -257,7 +259,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }
 
-  let body: { enabled?: boolean };
+  let body: { enabled?: boolean; subscriptionCreatesOrder?: boolean; subscriptionSendsEmail?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -267,8 +269,18 @@ export async function PATCH(request: NextRequest) {
   const settings = await readSettings(ctx.organizationId);
   const next: CustomerSubscriptionPlansSettings = {
     ...settings,
-    enabled: body.enabled === true,
+    ...(body.enabled !== undefined && { enabled: body.enabled === true }),
+    ...(body.subscriptionCreatesOrder !== undefined && {
+      subscriptionCreatesOrder: body.subscriptionCreatesOrder === true,
+    }),
+    ...(body.subscriptionSendsEmail !== undefined && {
+      subscriptionSendsEmail: body.subscriptionSendsEmail === true,
+    }),
   };
   await writeSettings(ctx.organizationId, next);
-  return NextResponse.json({ enabled: next.enabled });
+  return NextResponse.json({
+    enabled: next.enabled,
+    subscriptionCreatesOrder: next.subscriptionCreatesOrder,
+    subscriptionSendsEmail: next.subscriptionSendsEmail,
+  });
 }
