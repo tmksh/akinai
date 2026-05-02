@@ -242,6 +242,7 @@ export async function POST(request: NextRequest) {
   };
 
   const next: CustomerSubscriptionPlansSettings = {
+    ...settings,
     enabled: body.enabled === true ? true : settings.enabled,
     plans: [...settings.plans, newPlan],
   };
