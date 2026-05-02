@@ -197,10 +197,11 @@ export function ProductImportDialog({
             .filter(u => u.length > 0);
 
           // カスタムフィールド列を読み込む（ラベル名でマッチ）
+          const rawAny = raw as unknown as Record<string, string>;
           const customFields = fieldSchema
             .map((f) => {
               // ヘッダーに "ラベル※必須" 形式でも対応
-              const colValue = raw[f.label] ?? raw[`${f.label}※必須`] ?? '';
+              const colValue = rawAny[f.label] ?? rawAny[`${f.label}※必須`] ?? '';
               if (colValue === '') return null;
               return {
                 key: f.key,
