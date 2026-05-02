@@ -46,6 +46,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { CustomerSubscriptionPlansSection } from './customer-plans-section';
+import { CustomerServicesSection } from './customer-services-section';
 
 // Stripe接続状態の型
 interface StripeStatus {
@@ -617,6 +618,9 @@ function PaymentsSettingsContent() {
 
       {/* 会員サブスクリプションプラン */}
       <CustomerSubscriptionPlansSection isStripeConnected={!!isStripeConnected} />
+
+      {/* 単発サービス */}
+      <CustomerServicesSection isStripeConnected={!!isStripeConnected} />
 
       {/* 決済手数料 */}
       <div className="space-y-4">
