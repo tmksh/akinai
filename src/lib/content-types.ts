@@ -18,6 +18,7 @@ import {
   Building2,
   LayoutTemplate,
   Wrench,
+  MessageSquare,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -44,6 +45,7 @@ export const contentTypeConfig: Record<string, ContentTypeConfig> = {
   company: { label: '企業', icon: Building2, editor: 'text' },
   banner: { label: 'バナー', icon: LayoutTemplate, editor: 'text' },
   service: { label: 'サービス', icon: Wrench, editor: 'text' },
+  'product-review': { label: '商品レビュー', icon: MessageSquare, editor: 'text' },
 };
 
 export const getContentTypeConfig = (type: string): ContentTypeConfig => {
