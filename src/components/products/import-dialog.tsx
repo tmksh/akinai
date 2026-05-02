@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import Papa from 'papaparse';
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2, X, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,12 +16,105 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { importProducts, type CsvProductRow, type ImportResult } from '@/lib/actions/products';
 import { toast } from 'sonner';
+import type { ProductFieldSchemaItem } from '@/components/providers/organization-provider';
+
+const TEMPLATE_SAMPLE_COUNT = 30;
+
+/** CSVとして安全な文字列に変換 */
+function escapeCsv(value: string): string {
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+function buildProductTemplateCsv(fieldSchema: ProductFieldSchemaItem[]): string {
+  const fixedHeaders = [
+    '商品名※必須',
+    'slug※必須',
+    'カテゴリ',
+    'サブカテゴリ',
+    'サイズ',
+    '価格※必須',
+    'ステータス',
+    '説明',
+    '並び順',
+    '画像URL',
+  ];
+  const fixedHints = [
+    'サンプル商品 1',
+    'sample-product-1',
+    '食品',
+    '',
+    'S / M / L',
+    '1000',
+    'draft / published / archived',
+    '商品の説明文',
+    '1',
+    'https://example.com/image.jpg（複数は;区切り）',
+  ];
+
+  const customHeaders = fieldSchema.map((f) =>
+    f.type === 'text' || f.type === 'textarea' || f.type === 'url' || f.type === 'email' || f.type === 'phone'
+      ? f.label
+      : f.label
+  );
+  const customHints = fieldSchema.map((f) => {
+    if (f.type === 'select' || f.type === 'multi_select') return f.options?.join(' / ') ?? '';
+    if (f.type === 'boolean') return 'true / false';
+    if (f.type === 'number' || f.type === 'rating') return '数値';
+    if (f.type === 'date') return 'YYYY-MM-DD';
+    if (f.type === 'color') return '#RRGGBB';
+    if (f.type === 'url' || f.type === 'image_url') return 'https://...';
+    return '';
+  });
+
+  const headers = [...fixedHeaders, ...customHeaders];
+  const hints = [...fixedHints, ...customHints];
+
+  const sampleRows = Array.from({ length: TEMPLATE_SAMPLE_COUNT }, (_, i) => {
+    const n = i + 1;
+    const row = [
+      `サンプル商品 ${n}`,
+      `sample-product-${n}`,
+      '',
+      '',
+      '',
+      '1000',
+      'draft',
+      '',
+      String(n),
+      '',
+      ...fieldSchema.map(() => ''),
+    ];
+    return row;
+  });
+
+  const lines = [
+    headers.map(escapeCsv).join(','),
+    hints.map(escapeCsv).join(','),
+    ...sampleRows.map((row) => row.map(escapeCsv).join(',')),
+  ];
+
+  return '\uFEFF' + lines.join('\r\n');
+}
+
+function downloadCsv(content: string, filename: string) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 interface ProductImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
   onImportComplete: () => void;
+  fieldSchema?: ProductFieldSchemaItem[];
 }
 
 type ImportStep = 'upload' | 'preview' | 'importing' | 'result';
@@ -44,6 +137,7 @@ export function ProductImportDialog({
   onOpenChange,
   organizationId,
   onImportComplete,
+  fieldSchema = [],
 }: ProductImportDialogProps) {
   const [step, setStep] = useState<ImportStep>('upload');
   const [parsedRows, setParsedRows] = useState<CsvProductRow[]>([]);
@@ -183,32 +277,63 @@ export function ProductImportDialog({
         </DialogHeader>
 
         {step === 'upload' && (
-          <div
-            onDrop={handleDrop}
-            onDragOver={e => e.preventDefault()}
-            className="border-2 border-dashed rounded-lg p-10 text-center hover:border-primary/50 transition-colors cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-sm font-medium mb-1">
-              CSVファイルをドラッグ＆ドロップ
-            </p>
-            <p className="text-xs text-muted-foreground mb-3">
-              またはクリックしてファイルを選択
-            </p>
-            <p className="text-xs text-muted-foreground">
-              対応カラム: 商品名, slug, カテゴリ, サブカテゴリ, サイズ, 価格, ステータス, 説明, 並び順, 画像URL
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={e => {
-                const file = e.target.files?.[0];
-                if (file) handleFileSelect(file);
-              }}
-            />
+          <div className="space-y-3">
+            <div
+              onDrop={handleDrop}
+              onDragOver={e => e.preventDefault()}
+              className="border-2 border-dashed rounded-lg p-10 text-center hover:border-primary/50 transition-colors cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm font-medium mb-1">
+                CSVファイルをドラッグ＆ドロップ
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                またはクリックしてファイルを選択
+              </p>
+              <p className="text-xs text-muted-foreground">
+                対応カラム: 商品名, slug, カテゴリ, サブカテゴリ, サイズ, 価格, ステータス, 説明, 並び順, 画像URL
+                {fieldSchema.length > 0 && `、カスタム${fieldSchema.length}項目`}
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
+              <div>
+                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  テンプレートをダウンロード
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {TEMPLATE_SAMPLE_COUNT}行サンプル付き
+                  {fieldSchema.length > 0 && (
+                    <span className="text-sky-500 ml-1">・カスタムフィールド{fieldSchema.length}項目含む</span>
+                  )}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const csv = buildProductTemplateCsv(fieldSchema);
+                  const customCount = fieldSchema.length;
+                  const filename = `商品一括登録テンプレート${customCount > 0 ? `_カスタム${customCount}項目` : ''}.csv`;
+                  downloadCsv(csv, filename);
+                }}
+              >
+                <Download className="h-4 w-4 mr-1.5" />
+                CSV取得
+              </Button>
+            </div>
           </div>
         )}
 

@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   Loader2,
   Upload,
+  Download,
   SlidersHorizontal,
   X,
   Sparkles,
@@ -151,6 +152,69 @@ export default function ProductsClient({
 
   const hasActiveFilter = statusFilter !== 'all' || categoryFilter !== 'all';
 
+  const handleExportCsv = () => {
+    const fieldSchema = organization?.productFieldSchema ?? [];
+
+    function escapeCsv(v: string): string {
+      if (v.includes(',') || v.includes('"') || v.includes('\n')) {
+        return `"${v.replace(/"/g, '""')}"`;
+      }
+      return v;
+    }
+
+    const headers = [
+      '商品名', 'slug', 'カテゴリ', 'サブカテゴリ', 'サイズ',
+      '価格', 'ステータス', '説明', '並び順', '画像URL',
+      '在庫数', 'SKU',
+      ...fieldSchema.map((f) => f.label),
+    ];
+
+    const rows = filteredProducts.map((p, i) => {
+      const variant = p.variants[0];
+      const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
+      const imageUrls = p.images?.map((img: { url: string }) => img.url).join(';') ?? '';
+      const category = p.categories?.[0]?.name ?? '';
+      const subcategory = (variant?.options as Record<string, string> | undefined)?.['サブカテゴリ'] ?? '';
+      const size = (variant?.options as Record<string, string> | undefined)?.['サイズ'] ?? '';
+      const customFields = fieldSchema.map((f) => {
+        const cf = (p as unknown as { custom_fields?: Record<string, unknown> }).custom_fields;
+        const val = cf?.[f.key];
+        return val !== undefined && val !== null ? String(val) : '';
+      });
+      return [
+        p.name,
+        p.slug ?? '',
+        category,
+        subcategory,
+        size,
+        String(variant?.price ?? 0),
+        p.status,
+        p.description ?? '',
+        String(i + 1),
+        imageUrls,
+        String(totalStock),
+        variant?.sku ?? '',
+        ...customFields,
+      ];
+    });
+
+    const lines = [
+      headers.map(escapeCsv).join(','),
+      ...rows.map((r) => r.map(escapeCsv).join(',')),
+    ];
+
+    const csv = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const suffix = hasActiveFilter || debouncedSearch ? '_フィルター適用' : '';
+    a.download = `商品一覧${suffix}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filteredProducts.length}件の商品をエクスポートしました`);
+  };
+
   return (
     <div className="space-y-5 min-w-0">
 
@@ -166,6 +230,10 @@ export default function ProductsClient({
               <Sparkles className="h-4 w-4 sm:mr-1.5 text-sky-500" />
               <span className="hidden sm:inline">カスタムフィールド</span>
             </Link>
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCsv}>
+            <Download className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">CSV出力</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
             <Upload className="h-4 w-4 sm:mr-1.5" />
@@ -476,6 +544,7 @@ export default function ProductsClient({
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         organizationId={organizationId}
+        fieldSchema={organization?.productFieldSchema ?? []}
         onImportComplete={async () => {
           const [p, c] = await Promise.all([getProducts(organizationId), getCategories(organizationId)]);
           if (p.data) setProducts(p.data);

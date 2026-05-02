@@ -16,18 +16,24 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { CustomerWithAddresses, CustomerStats } from '@/lib/actions/customers';
-import { DEFAULT_CUSTOMER_ROLE_LABELS, type CustomerRoleLabels } from '@/lib/customer-roles';
+import type { CustomerFieldSchema } from '@/lib/actions/settings';
+import { DEFAULT_CUSTOMER_ROLE_LABELS, DEFAULT_CUSTOMER_ROLE_ENABLED, type CustomerRoleLabels, type CustomerRoleEnabled } from '@/lib/customer-roles';
+import { ImportTemplateDialog } from '@/components/customers/import-template-dialog';
 
 interface CustomersClientProps {
   initialCustomers: CustomerWithAddresses[];
   initialStats: CustomerStats | null;
   initialRoleLabels?: CustomerRoleLabels;
+  initialRoleEnabled?: CustomerRoleEnabled;
+  initialFieldSchema?: CustomerFieldSchema[];
 }
 
 export default function CustomersClient({
   initialCustomers,
   initialStats,
   initialRoleLabels,
+  initialRoleEnabled,
+  initialFieldSchema,
 }: CustomersClientProps) {
   const [customers] = useState<CustomerWithAddresses[]>(initialCustomers);
   const [stats] = useState<CustomerStats | null>(initialStats);
@@ -37,6 +43,8 @@ export default function CustomersClient({
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const roleLabels: CustomerRoleLabels = initialRoleLabels ?? { ...DEFAULT_CUSTOMER_ROLE_LABELS };
+  const roleEnabled: CustomerRoleEnabled = initialRoleEnabled ?? { ...DEFAULT_CUSTOMER_ROLE_ENABLED };
+  const fieldSchema: CustomerFieldSchema[] = initialFieldSchema ?? [];
 
   const getCustomerRole = (customer: CustomerWithAddresses) =>
     (customer as unknown as { role?: string }).role;
@@ -104,6 +112,11 @@ export default function CustomersClient({
               カスタムフィールド
             </Link>
           </Button>
+          <ImportTemplateDialog
+            fieldSchema={fieldSchema}
+            roleLabels={roleLabels}
+            roleEnabled={roleEnabled}
+          />
           <Button className="btn-premium" size="sm" asChild>
             <Link href="/customers/new">
               <Plus className="mr-2 h-4 w-4" />
