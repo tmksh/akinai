@@ -31,6 +31,7 @@ export default async function CustomersPage() {
       initialRoleLabels={labelsResult.data}
       initialRoleEnabled={labelsResult.enabled}
       initialFieldSchema={schemaResult.data || []}
+      organizationId={organizationId}
     />
   );
 }

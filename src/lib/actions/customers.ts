@@ -597,6 +597,96 @@ export async function getCustomerOrders(customerId: string): Promise<{
   }
 }
 
+// ============================================================
+// 顧客一括インポート
+// ============================================================
 
+export interface CsvCustomerRow {
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  notes?: string;
+  status?: 'active' | 'pending' | 'suspended';
+  role: 'personal' | 'buyer' | 'supplier';
+  prefecture?: string;
+  businessType?: string;
+  address?: {
+    postalCode: string;
+    prefecture: string;
+    city: string;
+    line1: string;
+    line2?: string;
+  };
+  customFields?: { key: string; label: string; value: string; type: string; options?: string[] }[];
+}
 
+export interface CustomerImportResult {
+  total: number;
+  success: number;
+  failed: number;
+  errors: { row: number; name: string; error: string }[];
+}
 
+export async function importCustomers(
+  organizationId: string,
+  rows: CsvCustomerRow[]
+): Promise<CustomerImportResult> {
+  const supabase = getAdminClient();
+  const result: CustomerImportResult = { total: rows.length, success: 0, failed: 0, errors: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const isBusinessRole = row.role === 'buyer' || row.role === 'supplier';
+      const insertData: Record<string, unknown> = {
+        organization_id: organizationId,
+        type: isBusinessRole ? 'business' : 'individual',
+        name: row.name,
+        email: row.email,
+        phone: row.phone || null,
+        company: row.company || null,
+        notes: row.notes || null,
+        tags: [],
+        role: row.role,
+        status: row.status || 'active',
+        metadata: null,
+        prefecture: row.prefecture || null,
+        business_type: row.businessType || null,
+        custom_fields: row.customFields || [],
+      };
+
+      const { data: customer, error: customerError } = await supabase
+        .from('customers')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (customerError) throw customerError;
+
+      if (row.address && (row.address.city || row.address.line1)) {
+        await supabase.from('customer_addresses').insert({
+          customer_id: customer.id,
+          postal_code: row.address.postalCode,
+          prefecture: row.address.prefecture,
+          city: row.address.city,
+          line1: row.address.line1,
+          line2: row.address.line2 || null,
+          is_default: true,
+        });
+      }
+
+      result.success++;
+    } catch (err) {
+      result.failed++;
+      result.errors.push({
+        row: i + 2,
+        name: row.name,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+  }
+
+  revalidatePath('/customers');
+  return result;
+}

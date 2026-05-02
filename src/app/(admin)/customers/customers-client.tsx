@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles, Download } from 'lucide-react';
+import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,9 +16,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { CustomerWithAddresses, CustomerStats } from '@/lib/actions/customers';
+import { getCustomers } from '@/lib/actions/customers';
 import type { CustomerFieldSchema } from '@/lib/actions/settings';
 import { DEFAULT_CUSTOMER_ROLE_LABELS, DEFAULT_CUSTOMER_ROLE_ENABLED, type CustomerRoleLabels, type CustomerRoleEnabled } from '@/lib/customer-roles';
 import { ImportTemplateDialog } from '@/components/customers/import-template-dialog';
+import { CustomerImportDialog } from '@/components/customers/import-dialog';
 
 interface CustomersClientProps {
   initialCustomers: CustomerWithAddresses[];
@@ -26,6 +28,7 @@ interface CustomersClientProps {
   initialRoleLabels?: CustomerRoleLabels;
   initialRoleEnabled?: CustomerRoleEnabled;
   initialFieldSchema?: CustomerFieldSchema[];
+  organizationId: string;
 }
 
 export default function CustomersClient({
@@ -34,8 +37,10 @@ export default function CustomersClient({
   initialRoleLabels,
   initialRoleEnabled,
   initialFieldSchema,
+  organizationId,
 }: CustomersClientProps) {
-  const [customers] = useState<CustomerWithAddresses[]>(initialCustomers);
+  const [customers, setCustomers] = useState<CustomerWithAddresses[]>(initialCustomers);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [stats] = useState<CustomerStats | null>(initialStats);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithAddresses | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -177,6 +182,10 @@ export default function CustomersClient({
           <Button variant="outline" size="sm" onClick={handleExportCsv}>
             <Download className="mr-2 h-4 w-4 text-slate-400" />
             <span className="hidden sm:inline">CSV出力</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">CSVインポート</span>
           </Button>
           <ImportTemplateDialog
             fieldSchema={fieldSchema}
@@ -500,6 +509,19 @@ export default function CustomersClient({
           )}
         </DialogContent>
       </Dialog>
+
+      <CustomerImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        organizationId={organizationId}
+        fieldSchema={fieldSchema}
+        roleLabels={roleLabels}
+        roleEnabled={roleEnabled}
+        onImportComplete={async () => {
+          const result = await getCustomers(organizationId, { limit: 200 });
+          if (result.data) setCustomers(result.data);
+        }}
+      />
     </div>
   );
 }
