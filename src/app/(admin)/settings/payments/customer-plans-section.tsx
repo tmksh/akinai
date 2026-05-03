@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   Tag,
   Settings2,
+  Copy,
+  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +45,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -96,6 +103,32 @@ const INTERVAL_LABEL: Record<SubscriptionInterval, string> = {
   month: '月額',
   year: '年額',
 };
+
+function StripeIdRow({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <span className="shrink-0">{label}:</span>
+      <span className="font-mono truncate max-w-[260px]">{value}</span>
+      <button
+        onClick={copy}
+        className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+        title={`${label}をコピー`}
+      >
+        {copied ? (
+          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+        ) : (
+          <Copy className="h-3 w-3" />
+        )}
+      </button>
+    </div>
+  );
+}
 
 export function CustomerSubscriptionPlansSection({ isStripeConnected }: CustomerPlansSectionProps) {
   const { organization } = useOrganization();
@@ -478,6 +511,25 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
                             </div>
                           </div>
                           <div className="flex items-center gap-1 ml-3">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button size="sm" variant="ghost" title="IDを確認">
+                                  <Hash className="h-3.5 w-3.5" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-3" align="end">
+                                <p className="text-xs font-medium text-muted-foreground mb-2">API連携用ID</p>
+                                <div className="flex flex-col gap-1.5">
+                                  <StripeIdRow label="Plan ID" value={plan.id} />
+                                  {plan.stripePriceId && (
+                                    <StripeIdRow label="Price ID" value={plan.stripePriceId} />
+                                  )}
+                                  {plan.stripeProductId && (
+                                    <StripeIdRow label="Product ID" value={plan.stripeProductId} />
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                             <Button size="sm" variant="ghost" onClick={() => openEdit(plan)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
