@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Tag,
   Copy,
+  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,6 +42,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   type CustomerOneTimeService,
   DEFAULT_CUSTOMER_ONE_TIME_SERVICES_SETTINGS,
@@ -345,17 +351,27 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
                           </span>
                           <span className="text-muted-foreground"> / 単発</span>
                         </div>
-                        <div className="flex flex-col gap-0.5 mt-1.5">
-                          <StripeIdRow label="Service ID" value={service.id} />
-                          {service.stripePriceId && (
-                            <StripeIdRow label="Price ID" value={service.stripePriceId} />
-                          )}
-                          {service.stripeProductId && (
-                            <StripeIdRow label="Product ID" value={service.stripeProductId} />
-                          )}
-                        </div>
                       </div>
                       <div className="flex items-center gap-1 ml-3">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="sm" variant="ghost" title="IDを確認">
+                              <Hash className="h-3.5 w-3.5" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-3" align="end">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">API連携用ID</p>
+                            <div className="flex flex-col gap-1.5">
+                              <StripeIdRow label="Service ID" value={service.id} />
+                              {service.stripePriceId && (
+                                <StripeIdRow label="Price ID" value={service.stripePriceId} />
+                              )}
+                              {service.stripeProductId && (
+                                <StripeIdRow label="Product ID" value={service.stripeProductId} />
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                         <Button size="sm" variant="ghost" onClick={() => openEdit(service)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>

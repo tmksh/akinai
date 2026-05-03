@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
       status: 'pending',
       payment_status: 'pending',
       payment_method: 'credit_card',
+      shipping_address: {},
       notes: `単発サービス: ${service.name}`,
     })
     .select('id')
@@ -123,8 +124,8 @@ export async function POST(request: NextRequest) {
     product_id: null,
     variant_id: null,
     product_name: service.name,
-    variant_name: null,
-    sku: null,
+    variant_name: '',
+    sku: '',
     quantity: 1,
     unit_price: service.amount,
     total_price: service.amount,
