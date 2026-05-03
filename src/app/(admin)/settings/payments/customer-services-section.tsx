@@ -9,6 +9,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Tag,
+  Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -65,6 +66,32 @@ const DEFAULT_FORM: ServiceFormState = {
   features: [''],
   isActive: true,
 };
+
+function StripeIdRow({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <span className="shrink-0">{label}:</span>
+      <span className="font-mono truncate max-w-[260px]">{value}</span>
+      <button
+        onClick={copy}
+        className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+        title={`${label}をコピー`}
+      >
+        {copied ? (
+          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+        ) : (
+          <Copy className="h-3 w-3" />
+        )}
+      </button>
+    </div>
+  );
+}
 
 export function CustomerServicesSection({ isStripeConnected }: CustomerServicesSectionProps) {
   const [enabled, setEnabled] = useState(DEFAULT_CUSTOMER_ONE_TIME_SERVICES_SETTINGS.enabled);
@@ -318,6 +345,14 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
                           </span>
                           <span className="text-muted-foreground"> / 単発</span>
                         </div>
+                        {service.stripePriceId && (
+                          <div className="flex flex-col gap-0.5 mt-1.5">
+                            <StripeIdRow label="Price ID" value={service.stripePriceId} />
+                            {service.stripeProductId && (
+                              <StripeIdRow label="Product ID" value={service.stripeProductId} />
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-1 ml-3">
                         <Button size="sm" variant="ghost" onClick={() => openEdit(service)}>
