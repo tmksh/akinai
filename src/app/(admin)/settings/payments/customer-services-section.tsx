@@ -345,14 +345,15 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
                           </span>
                           <span className="text-muted-foreground"> / 単発</span>
                         </div>
-                        {service.stripePriceId && (
-                          <div className="flex flex-col gap-0.5 mt-1.5">
+                        <div className="flex flex-col gap-0.5 mt-1.5">
+                          <StripeIdRow label="Service ID" value={service.id} />
+                          {service.stripePriceId && (
                             <StripeIdRow label="Price ID" value={service.stripePriceId} />
-                            {service.stripeProductId && (
-                              <StripeIdRow label="Product ID" value={service.stripeProductId} />
-                            )}
-                          </div>
-                        )}
+                          )}
+                          {service.stripeProductId && (
+                            <StripeIdRow label="Product ID" value={service.stripeProductId} />
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1 ml-3">
                         <Button size="sm" variant="ghost" onClick={() => openEdit(service)}>
