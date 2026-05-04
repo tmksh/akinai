@@ -13,12 +13,23 @@ ALTER TABLE product_favorites
   ADD COLUMN IF NOT EXISTS supplier_id UUID REFERENCES customers(id) ON DELETE SET NULL;
 
 -- 既存レコードを products.supplier_id で補完
-UPDATE product_favorites pf
-SET supplier_id = p.supplier_id
-FROM products p
-WHERE pf.product_id = p.id
-  AND pf.supplier_id IS NULL
-  AND p.supplier_id IS NOT NULL;
+-- products に supplier_id カラムが存在する場合のみ実行
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'products'
+      AND column_name = 'supplier_id'
+  ) THEN
+    UPDATE product_favorites pf
+    SET supplier_id = p.supplier_id
+    FROM products p
+    WHERE pf.product_id = p.id
+      AND pf.supplier_id IS NULL
+      AND p.supplier_id IS NOT NULL;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_product_favorites_supplier
   ON product_favorites(supplier_id)
