@@ -24,15 +24,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null);
     if (!body) return apiError('Invalid JSON body', 400);
 
-    const { supplierId, subject, html, text } = body as {
+    const { supplierId, subject, html, text, targetAudience, image, productName } = body as {
       supplierId?: string;
       subject?: string;
       html?: string;
       text?: string;
+      targetAudience?: 'buyer' | 'personal' | 'both';
+      image?: string;
+      productName?: string;
     };
 
     if (!subject || (!html && !text)) {
       return apiError('subject and html (or text) are required', 400);
+    }
+
+    const validAudiences = ['buyer', 'personal', 'both'];
+    if (targetAudience && !validAudiences.includes(targetAudience)) {
+      return apiError('targetAudience must be "buyer", "personal", or "both"', 400);
     }
 
     const supabase = createClient(
@@ -60,7 +68,7 @@ export async function POST(request: NextRequest) {
       .from('product_favorites')
       .select(`
         customer_id,
-        customers!inner(id, email, name, status)
+        customers!inner(id, email, name, status, role)
       `)
       .eq('organization_id', auth.organizationId!);
 
@@ -79,11 +87,15 @@ export async function POST(request: NextRequest) {
 
     const { data: favorites } = await favoritesQuery;
 
-    // 重複排除・有効会員のみ
+    // 重複排除・有効会員のみ・targetAudience による role フィルタ
+    const targetRoles: string[] = !targetAudience || targetAudience === 'both'
+      ? ['buyer', 'personal']
+      : [targetAudience];
+
     const recipientMap = new Map<string, { email: string; name: string }>();
     for (const fav of favorites || []) {
-      const c = ((fav as unknown) as { customers: { id: string; email: string; name: string; status: string } }).customers;
-      if (c?.email && c.status === 'active') {
+      const c = ((fav as unknown) as { customers: { id: string; email: string; name: string; status: string; role: string } }).customers;
+      if (c?.email && c.status === 'active' && targetRoles.includes(c.role)) {
         recipientMap.set(c.id, { email: c.email, name: c.name });
       }
     }
@@ -137,7 +149,15 @@ export async function POST(request: NextRequest) {
     let sentCount = 0;
     const errors: string[] = [];
 
-    const emailHtml = html || `<p>${(text || '').replace(/\n/g, '<br>')}</p>`;
+    // image・productName をHTMLに注入
+    let baseHtml = html || `<p>${(text || '').replace(/\n/g, '<br>')}</p>`;
+    if (productName) {
+      baseHtml = baseHtml.replace(/\{\{productName\}\}/g, productName);
+    }
+    const imageBlock = image
+      ? `<p style="text-align:center;margin:16px 0;"><img src="${image}" alt="${productName ?? ''}" style="max-width:100%;height:auto;border-radius:8px;" /></p>`
+      : '';
+    const emailHtml = imageBlock ? `${imageBlock}${baseHtml}` : baseHtml;
 
     for (const recipient of recipients) {
       const { success, error: emailErr } = await sendEmail({
