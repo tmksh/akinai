@@ -300,6 +300,20 @@ export default function ApiSettingsPage() {
           </div>
 
           <div className="space-y-2">
+            <h4 className="font-medium">メルマガ送信履歴を取得</h4>
+            <code className="block p-3 bg-muted rounded-md text-sm font-mono whitespace-pre-wrap">
+{`curl -X GET \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  "https://your-domain.com/api/v1/newsletters/history?supplierId=xxx&status=sent&page=1&limit=20"`}
+            </code>
+            <div className="text-xs text-muted-foreground space-y-1 pt-1">
+              <p><code className="bg-muted px-1 rounded">supplierId</code>: （任意）サプライヤーIDで絞り込み</p>
+              <p><code className="bg-muted px-1 rounded">status</code>: （任意）<code className="bg-muted px-1 rounded">pending</code> / <code className="bg-muted px-1 rounded">sent</code> / <code className="bg-muted px-1 rounded">partial</code> / <code className="bg-muted px-1 rounded">failed</code></p>
+              <p><code className="bg-muted px-1 rounded">page</code> / <code className="bg-muted px-1 rounded">limit</code>: ページネーション（limit 最大 100）</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <h4 className="font-medium">単発サービスのチェックアウトURLを発行</h4>
             <p className="text-sm text-muted-foreground">
               返却された <code className="bg-muted px-1 rounded">url</code> にリダイレクトすると Stripe 決済画面に遷移します。決済完了後は注文管理に自動記録されます。
@@ -374,6 +388,7 @@ export default function ApiSettingsPage() {
               { method: 'GET',  path: '/api/v1/contents/:id', description: 'コンテンツ詳細を取得' },
               { method: 'POST', path: '/api/v1/cart/validate', description: 'カート内容を検証' },
               { method: 'POST', path: '/api/v1/newsletters/send', description: 'メルマガを配信' },
+              { method: 'GET',  path: '/api/v1/newsletters/history', description: 'メルマガ送信履歴を取得' },
               { method: 'POST', path: '/api/v1/stripe/single-checkout', description: '単発サービスのチェックアウトURLを発行' },
               { method: 'POST', path: '/api/v1/stripe/subscription-checkout', description: 'サブスクリプションのチェックアウトURLを発行' },
             ].map((endpoint) => (
