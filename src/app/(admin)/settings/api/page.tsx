@@ -272,6 +272,79 @@ export default function ApiSettingsPage() {
             </code>
           </div>
 
+          <div className="space-y-2">
+            <h4 className="font-medium">メルマガを配信</h4>
+            <p className="text-sm text-muted-foreground">
+              お気に入り登録者にメールを一斉送信します。
+            </p>
+            <code className="block p-3 bg-muted rounded-md text-sm font-mono whitespace-pre-wrap">
+{`curl -X POST \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "subject": "新商品のご案内",
+    "html": "<p>{{productName}}が入荷しました！</p>",
+    "supplierId": "サプライヤーID（省略可）",
+    "targetAudience": "buyer",
+    "image": "https://example.com/product.jpg",
+    "productName": "まちもぐ特選セット"
+  }' \\
+  https://your-domain.com/api/v1/newsletters/send`}
+            </code>
+            <div className="text-xs text-muted-foreground space-y-1 pt-1">
+              <p><code className="bg-muted px-1 rounded">targetAudience</code>: <code className="bg-muted px-1 rounded">"buyer"</code> / <code className="bg-muted px-1 rounded">"personal"</code> / <code className="bg-muted px-1 rounded">"both"</code>（省略時は both）</p>
+              <p><code className="bg-muted px-1 rounded">supplierId</code>: 指定するとそのサプライヤーの商品お気に入り登録者のみに送信</p>
+              <p><code className="bg-muted px-1 rounded">image</code>: 指定するとメール本文の先頭に画像を挿入</p>
+              <p><code className="bg-muted px-1 rounded">{'{{productName}}'}</code>: html 内のプレースホルダーが productName の値に置換されます</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-medium">単発サービスのチェックアウトURLを発行</h4>
+            <p className="text-sm text-muted-foreground">
+              返却された <code className="bg-muted px-1 rounded">url</code> にリダイレクトすると Stripe 決済画面に遷移します。決済完了後は注文管理に自動記録されます。
+            </p>
+            <code className="block p-3 bg-muted rounded-md text-sm font-mono whitespace-pre-wrap">
+{`curl -X POST \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "serviceId": "管理画面の Service ID",
+    "customerId": "Akinai 顧客ID",
+    "successUrl": "https://example.com/success",
+    "cancelUrl": "https://example.com/cancel",
+    "metadata": { "note": "任意メモ" }
+  }' \\
+  https://your-domain.com/api/v1/stripe/single-checkout`}
+            </code>
+            <p className="text-xs text-muted-foreground pt-1">
+              Service ID は 管理画面 → 設定 → お支払い → 単発サービス一覧 の <strong>#</strong> ボタンから確認できます。
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-medium">サブスクリプションのチェックアウトURLを発行</h4>
+            <p className="text-sm text-muted-foreground">
+              返却された <code className="bg-muted px-1 rounded">url</code> にリダイレクトすると Stripe 決済画面に遷移します。更新・失効・支払い失敗などの継続処理は Akinai が自動対応します。顧客がすでに契約中の場合は 409 エラーが返ります。
+            </p>
+            <code className="block p-3 bg-muted rounded-md text-sm font-mono whitespace-pre-wrap">
+{`curl -X POST \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "planId": "管理画面の Plan ID",
+    "customerId": "Akinai 顧客ID",
+    "successUrl": "https://example.com/mypage?subscription=success",
+    "cancelUrl": "https://example.com/plans",
+    "metadata": { "note": "任意メモ" }
+  }' \\
+  https://your-domain.com/api/v1/stripe/subscription-checkout`}
+            </code>
+            <p className="text-xs text-muted-foreground pt-1">
+              Plan ID は 管理画面 → 設定 → お支払い → サブスクリプションプラン の <strong>#</strong> ボタンから確認できます。
+            </p>
+          </div>
+
           <div className="pt-2">
             <Button variant="outline" size="sm" asChild>
               <Link href="/docs/api" target="_blank">
@@ -291,15 +364,18 @@ export default function ApiSettingsPage() {
         <CardContent>
           <div className="space-y-2">
             {[
-              { method: 'GET', path: '/api/v1/products', description: '商品一覧を取得' },
-              { method: 'GET', path: '/api/v1/products/:id', description: '商品詳細を取得' },
-              { method: 'GET', path: '/api/v1/categories', description: 'カテゴリ一覧を取得' },
+              { method: 'GET',  path: '/api/v1/products', description: '商品一覧を取得' },
+              { method: 'GET',  path: '/api/v1/products/:id', description: '商品詳細を取得' },
+              { method: 'GET',  path: '/api/v1/categories', description: 'カテゴリ一覧を取得' },
               { method: 'POST', path: '/api/v1/orders', description: '注文を作成' },
-              { method: 'GET', path: '/api/v1/agents', description: '代理店一覧を取得' },
-              { method: 'GET', path: '/api/v1/agents?code=AG0001', description: '代理店コードを検証' },
-              { method: 'GET', path: '/api/v1/contents', description: 'コンテンツ一覧を取得' },
-              { method: 'GET', path: '/api/v1/contents/:id', description: 'コンテンツ詳細を取得' },
+              { method: 'GET',  path: '/api/v1/agents', description: '代理店一覧を取得' },
+              { method: 'GET',  path: '/api/v1/agents?code=AG0001', description: '代理店コードを検証' },
+              { method: 'GET',  path: '/api/v1/contents', description: 'コンテンツ一覧を取得' },
+              { method: 'GET',  path: '/api/v1/contents/:id', description: 'コンテンツ詳細を取得' },
               { method: 'POST', path: '/api/v1/cart/validate', description: 'カート内容を検証' },
+              { method: 'POST', path: '/api/v1/newsletters/send', description: 'メルマガを配信' },
+              { method: 'POST', path: '/api/v1/stripe/single-checkout', description: '単発サービスのチェックアウトURLを発行' },
+              { method: 'POST', path: '/api/v1/stripe/subscription-checkout', description: 'サブスクリプションのチェックアウトURLを発行' },
             ].map((endpoint) => (
               <div
                 key={endpoint.path}
