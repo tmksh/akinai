@@ -129,7 +129,8 @@ export default function EditContentPage() {
         setSeoDescription(data.seoDescription || '');
 
         // カスタムフィールドを復元（スキーマとマージ）
-        const rawCf = ((data as unknown as Record<string, unknown>).custom_fields as { key: string; label?: string; value: string; type: string; options?: string[] }[]) || [];
+        const rawCfRaw = (data as unknown as Record<string, unknown>).custom_fields;
+        const rawCf: { key: string; label?: string; value: string; type: string; options?: string[] }[] = Array.isArray(rawCfRaw) ? rawCfRaw : [];
         const contentFields: CustomField[] = rawCf.map((f, i) => ({
           id: `cf-${i}-${Date.now()}`,
           key: f.key,
