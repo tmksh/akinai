@@ -119,9 +119,12 @@ function buildCsv(role: Role, schema: CustomerFieldSchema[]): string {
     return row;
   });
 
+  // フォーマット説明行の先頭に # を付けてパーサーがスキップできるようにする
+  const hintRow = [`#${formatHints[0]}`, ...formatHints.slice(1)].map(escapeCsv).join(',');
+
   const lines = [
     headers.map(escapeCsv).join(','),
-    formatHints.map(escapeCsv).join(','),
+    hintRow,
     ...sampleRows.map((row) => row.map(escapeCsv).join(',')),
   ];
 

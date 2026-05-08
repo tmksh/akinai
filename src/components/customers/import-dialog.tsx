@@ -92,8 +92,8 @@ export function CustomerImportDialog({
 
     for (let i = 0; i < rows.length; i++) {
       const raw = rows[i];
-      const name = raw['氏名・会社名']?.trim() || raw['氏名']?.trim() || raw['name']?.trim() || '';
-      const email = raw['メールアドレス']?.trim() || raw['email']?.trim() || '';
+      const name = raw['氏名・会社名※必須']?.trim() || raw['氏名・会社名']?.trim() || raw['氏名']?.trim() || raw['name']?.trim() || '';
+      const email = raw['メールアドレス※必須']?.trim() || raw['メールアドレス']?.trim() || raw['email']?.trim() || '';
 
       if (!name || !email) {
         errors.push(`行 ${i + 2}: 氏名・会社名またはメールアドレスが空です`);
@@ -155,6 +155,7 @@ export function CustomerImportDialog({
       header: true,
       skipEmptyLines: true,
       encoding: 'UTF-8',
+      comments: '#',
       complete: (results) => {
         const { parsed, errors } = parseRows(results.data, defaultRole);
         if (results.errors.length > 0) {

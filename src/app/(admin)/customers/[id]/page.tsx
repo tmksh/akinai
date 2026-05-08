@@ -21,6 +21,8 @@ import {
   Loader2,
   Sparkles,
   Code,
+  Copy,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -43,6 +45,25 @@ import {
 } from '@/lib/actions/settings';
 import { DEFAULT_CUSTOMER_ROLE_LABELS, type CustomerRoleLabels } from '@/lib/customer-roles';
 import { useOrganization } from '@/components/providers/organization-provider';
+
+function CopyIdButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+      title="IDをコピー"
+    >
+      {copied
+        ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+        : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
 
 type CustomerData = {
   id: string;
@@ -317,6 +338,18 @@ export default function CustomerDetailPage() {
 
         {/* カスタムフィールド + 注文履歴 */}
         <div className="lg:col-span-2 space-y-6">
+          {/* 顧客ID */}
+          <Card>
+            <CardContent className="py-3">
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Code className="h-3.5 w-3.5 shrink-0" />
+                <span className="shrink-0">Customer ID:</span>
+                <span className="font-mono truncate">{customer.id}</span>
+                <CopyIdButton value={customer.id} />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* カスタムフィールド（スキーマ駆動表示） */}
           {(() => {
             const schema = organization?.customerFieldSchema ?? [];
