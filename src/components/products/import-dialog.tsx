@@ -28,6 +28,32 @@ function escapeCsv(value: string): string {
   return value;
 }
 
+/**
+ * Google Drive 共有URL等を <img src> で表示可能な直接URLに正規化する。
+ * - https://drive.google.com/file/d/{ID}/view?... → https://drive.google.com/thumbnail?id={ID}&sz=w1600
+ * - https://drive.google.com/open?id={ID}        → 同上
+ * - https://drive.google.com/uc?id={ID}          → 同上（thumbnail のほうが安定）
+ * - それ以外はそのまま返す
+ */
+function normalizeImageUrl(url: string): string {
+  if (!url) return url;
+  const trimmed = url.trim();
+  if (!trimmed.includes('drive.google.com') && !trimmed.includes('docs.google.com')) {
+    return trimmed;
+  }
+  // /file/d/{ID}/...
+  const fileMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch) {
+    return `https://drive.google.com/thumbnail?id=${fileMatch[1]}&sz=w1600`;
+  }
+  // ?id={ID} (open?id= や uc?id= など)
+  const idMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch) {
+    return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1600`;
+  }
+  return trimmed;
+}
+
 function buildProductTemplateCsv(fieldSchema: ProductFieldSchemaItem[]): string {
   const fixedHeaders = [
     '商品名※必須',
@@ -200,7 +226,7 @@ export function ProductImportDialog({
           const imageUrlStr = get('画像URL');
           const imageUrls = imageUrlStr
             .split(';')
-            .map(u => u.trim())
+            .map(u => normalizeImageUrl(u.trim()))
             .filter(u => u.length > 0);
 
           // カスタムフィールド列を読み込む（ラベル名でマッチ）
