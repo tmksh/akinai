@@ -180,24 +180,30 @@ export function ProductImportDialog({
 
         for (let i = 0; i < results.data.length; i++) {
           const raw = results.data[i];
-          if (!raw['商品名'] || !raw['slug']) {
-            errors.push(`行 ${i + 2}: 商品名またはslugが空です`);
+          const rawAny = raw as unknown as Record<string, string>;
+          // ヘッダーに "列名※必須" 形式が含まれていても拾えるようフォールバック
+          const get = (k: string): string =>
+            (rawAny[k] ?? rawAny[`${k}※必須`] ?? '').toString();
+
+          const name = get('商品名').trim();
+          if (!name) {
+            errors.push(`行 ${i + 2}: 商品名が空です`);
             continue;
           }
-          const price = parseInt(raw['価格'], 10);
+          const priceStr = get('価格');
+          const price = parseInt(priceStr, 10);
           if (isNaN(price)) {
-            errors.push(`行 ${i + 2}: 価格が無効です (${raw['価格']})`);
+            errors.push(`行 ${i + 2}: 価格が無効です (${priceStr})`);
             continue;
           }
 
-          const imageUrlStr = raw['画像URL'] || '';
+          const imageUrlStr = get('画像URL');
           const imageUrls = imageUrlStr
             .split(';')
             .map(u => u.trim())
             .filter(u => u.length > 0);
 
           // カスタムフィールド列を読み込む（ラベル名でマッチ）
-          const rawAny = raw as unknown as Record<string, string>;
           const customFields = fieldSchema
             .map((f) => {
               // ヘッダーに "ラベル※必須" 形式でも対応
@@ -214,15 +220,15 @@ export function ProductImportDialog({
             .filter((f): f is NonNullable<typeof f> => f !== null);
 
           rows.push({
-            name: raw['商品名'].trim(),
-            slug: raw['slug'].trim(),
-            category: raw['カテゴリ']?.trim() || '',
-            subcategory: raw['サブカテゴリ']?.trim() || '',
-            size: raw['サイズ']?.trim() || '',
+            name,
+            slug: get('slug').trim(), // 空でもOK（サーバー側で商品名から自動生成）
+            category: get('カテゴリ').trim(),
+            subcategory: get('サブカテゴリ').trim(),
+            size: get('サイズ').trim(),
             price,
-            status: raw['ステータス']?.trim() || 'draft',
-            description: raw['説明']?.trim() || '',
-            sortOrder: parseInt(raw['並び順'], 10) || 0,
+            status: get('ステータス').trim() || 'draft',
+            description: get('説明').trim(),
+            sortOrder: parseInt(get('並び順'), 10) || 0,
             imageUrls,
             customFields: customFields.length > 0 ? customFields : undefined,
           });

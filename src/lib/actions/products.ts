@@ -744,12 +744,10 @@ export async function importProducts(
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
-      // slugの重複チェック
-      const slugExists = await checkSlugExists(organizationId, row.slug);
-      if (slugExists) {
-        result.errors.push({ row: i + 1, name: row.name, error: 'スラッグが既に存在します' });
-        result.failed++;
-        continue;
+      // slugを決定: 空欄 or 重複している場合は商品名から自動生成
+      let slug = row.slug?.trim() || '';
+      if (!slug || (await checkSlugExists(organizationId, slug))) {
+        slug = await generateUniqueSlug(organizationId, row.name);
       }
 
       const validStatus = ['draft', 'published', 'archived'].includes(row.status)
@@ -762,7 +760,7 @@ export async function importProducts(
         .insert({
           organization_id: organizationId,
           name: row.name,
-          slug: row.slug,
+          slug,
           description: row.description || null,
           status: validStatus,
           tags: [],
@@ -785,7 +783,7 @@ export async function importProducts(
         .insert({
           product_id: product.id,
           name: 'デフォルト',
-          sku: row.slug,
+          sku: slug,
           price: row.price,
           stock: 0,
           options,
