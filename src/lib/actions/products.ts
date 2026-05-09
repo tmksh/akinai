@@ -871,7 +871,7 @@ export async function importProducts(
   }
 
   // ⑦ バリエーション・画像・カテゴリ関連を並列でまとめてINSERT（最大3クエリ）
-  const batchPromises: Array<Promise<unknown>> = [];
+  const batchPromises: Array<PromiseLike<unknown>> = [];
 
   if (variantInserts.length > 0) {
     batchPromises.push(
