@@ -847,7 +847,7 @@ export async function importProducts(
       // SKUはグローバルユニーク制約があるため、組織IDで名前空間を切る
       sku: `${orgSlugPrefix}-${slug}`,
       price: row.price,
-      stock: 0,
+      stock: 1,
       options,
     });
 
