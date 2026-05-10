@@ -55,11 +55,16 @@ export default function CustomersClient({
     (customer as unknown as { role?: string }).role;
 
   const searchFilteredCustomers = customers.filter(customer => {
-    const query = searchQuery.toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    const id = (customer as unknown as { id?: string }).id ?? '';
+    const phone = (customer as unknown as { phone?: string | null }).phone ?? '';
     return (
-      customer.name.toLowerCase().includes(query) ||
-      customer.email.toLowerCase().includes(query) ||
-      (customer.company?.toLowerCase() || '').includes(query)
+      customer.name.toLowerCase().includes(q) ||
+      customer.email.toLowerCase().includes(q) ||
+      (customer.company?.toLowerCase() || '').includes(q) ||
+      id.toLowerCase().includes(q) ||
+      phone.toLowerCase().includes(q)
     );
   });
 
@@ -292,7 +297,7 @@ export default function CustomersClient({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
-                placeholder="顧客名・メールアドレスで検索..."
+                placeholder="顧客名・メール・会社名・電話番号・IDで検索..."
                 className="pl-10 border-slate-200 dark:border-slate-700 text-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
