@@ -106,8 +106,14 @@ export default function ContentsClient({ initialContents, stats, organizationId,
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>('all');
   const [deleteTarget, setDeleteTarget] = useState<ContentData | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // 上部「新規作成」ボタンの遷移先：タブで特定タイプを選択中ならそのタイプを初期値にする
+  const newContentHref = activeTab !== 'all'
+    ? `/contents/new?type=${encodeURIComponent(activeTab)}`
+    : '/contents/new';
 
   // 設定で有効にしたタイプのみ表示（DBに存在しても無効タイプはタブに出さない）
   const allDisplayTypes = enabledContentTypes;
@@ -389,7 +395,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
           </Button>
           {enabledContentTypes.length > 0 && (
             <Button asChild className="btn-premium">
-              <Link href="/contents/new">
+              <Link href={newContentHref}>
                 <Plus className="mr-1.5 h-4 w-4" />
                 新規作成
               </Link>
@@ -402,7 +408,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
       {contentTabs.length > 1 && <PageTabs tabs={contentTabs} />}
 
       {/* フィルタータブ（設定で有効にしたタイプはすべて表示。0件でもタブを出して「このタイプで追加」できる） */}
-      <Tabs defaultValue="all" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">すべて</TabsTrigger>
           {allDisplayTypes.map((type) => {
@@ -493,7 +499,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
                   </p>
                   {enabledContentTypes.length > 0 ? (
                     <Button asChild variant="outline" size="sm">
-                      <Link href="/contents/new">
+                      <Link href={newContentHref}>
                         <Plus className="mr-2 h-4 w-4" />
                         最初のコンテンツを作成
                       </Link>
