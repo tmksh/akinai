@@ -8,6 +8,38 @@ import { readPlansSettings } from '@/lib/customer-subscription-plans';
 type SupabaseAdmin = SupabaseClient<any, 'public', any>;
 
 /**
+ * GET /api/stripe/webhook
+ *
+ * Stripe Webhook の設定状況を確認するための診断エンドポイント。
+ * Webhook が動いていない場合の切り分けに使う。
+ * 認証なしで叩けるが、シークレットそのものは返さず、設定の有無だけ返す。
+ */
+export async function GET() {
+  return NextResponse.json({
+    endpoint: '/api/stripe/webhook',
+    method: 'POST',
+    hasStripeSecretKey: !!process.env.STRIPE_SECRET_KEY,
+    hasAccountWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
+    hasConnectWebhookSecret: !!process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
+    handles: [
+      'payment_intent.succeeded',
+      'payment_intent.payment_failed',
+      'checkout.session.completed (mode=payment / subscription)',
+      'customer.subscription.created',
+      'customer.subscription.updated',
+      'customer.subscription.deleted',
+      'customer.subscription.trial_will_end',
+      'invoice.payment_succeeded',
+    ],
+    notes: [
+      'Connect 経由のサブスク更新は subscription.metadata.akinai_customer_id で判定する',
+      'Account events と Connect events は Stripe Dashboard 上で別々の Endpoint として登録する必要がある',
+      '別 Endpoint の場合は STRIPE_WEBHOOK_SECRET と STRIPE_CONNECT_WEBHOOK_SECRET の両方を環境変数に設定する',
+    ],
+  });
+}
+
+/**
  * POST /api/stripe/webhook
  *
  * Stripe からの Webhook イベントを処理する。
@@ -20,7 +52,13 @@ type SupabaseAdmin = SupabaseClient<any, 'public', any>;
  */
 export async function POST(request: NextRequest) {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  // Account events 用と Connect events 用は Stripe 側で別 Endpoint として登録され、
+  // それぞれ別の署名シークレットになるので両方を読み込む。
+  // Stripe Dashboard で Endpoint を1つしか作っていない場合は、
+  // 同じシークレットを両方の env にセットすればよい。
+  const accountWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const connectWebhookSecret =
+    process.env.STRIPE_CONNECT_WEBHOOK_SECRET || accountWebhookSecret;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -37,20 +75,39 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event;
 
-  // Webhook シークレットが設定されている場合は署名を検証
-  if (webhookSecret) {
+  if (accountWebhookSecret || connectWebhookSecret) {
     const signature = request.headers.get('stripe-signature');
     if (!signature) {
-      console.error('Missing stripe-signature header');
+      console.error('[Webhook] Missing stripe-signature header');
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
     }
 
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err);
+    // Account 用と Connect 用のシークレットを順に試す。
+    // どちらかで検証に成功すればそれを採用する。
+    const candidates = [
+      { name: 'account', secret: accountWebhookSecret },
+      { name: 'connect', secret: connectWebhookSecret },
+    ].filter((c): c is { name: string; secret: string } => !!c.secret);
+
+    let verified: Stripe.Event | null = null;
+    let lastError: unknown = null;
+    for (const c of candidates) {
+      try {
+        verified = stripe.webhooks.constructEvent(body, signature, c.secret);
+        break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!verified) {
+      console.error(
+        '[Webhook] Signature verification failed for all configured secrets:',
+        lastError
+      );
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
+    event = verified;
   } else {
     // 開発環境では署名検証をスキップ
     try {
@@ -62,6 +119,11 @@ export async function POST(request: NextRequest) {
 
   // Connect アカウントの場合は event.account にアカウントIDが入る
   const connectedAccountId = event.account || null;
+
+  // 受信イベントを必ずログに出す（運用調査用）
+  console.log(
+    `[Webhook] received: type=${event.type}, id=${event.id}, account=${connectedAccountId ?? '(platform)'}`
+  );
 
   try {
     switch (event.type) {
