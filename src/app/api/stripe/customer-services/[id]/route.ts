@@ -12,6 +12,8 @@ import Stripe from 'stripe';
 import {
   CustomerOneTimeService,
   CustomerOneTimeServicesSettings,
+  CustomerServiceTargetRole,
+  normalizeTargetRole,
   readOneTimeServicesSettings,
   toStripeUnitAmount,
 } from '@/lib/customer-one-time-services';
@@ -101,6 +103,8 @@ interface UpdateBody {
   sortOrder?: number;
   imageUrl?: string;
   displayOrder?: number;
+  /** '' / null を渡すと「指定なし」にクリアできる */
+  targetRole?: CustomerServiceTargetRole | '' | null;
 }
 
 // =====================================================
@@ -159,6 +163,10 @@ export async function PATCH(
   }
   if (typeof body.displayOrder === 'number' && Number.isFinite(body.displayOrder)) {
     updated.displayOrder = Math.max(0, Math.floor(body.displayOrder));
+  }
+  if (body.targetRole !== undefined) {
+    // '' or null や不正値は「指定なし」(undefined) として保存
+    updated.targetRole = normalizeTargetRole(body.targetRole);
   }
 
   if (Object.keys(productUpdates).length > 0) {

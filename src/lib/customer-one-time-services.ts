@@ -37,10 +37,30 @@ export interface CustomerOneTimeService {
   displayOrder?: number;
   /** サービスのサムネイル画像URL（公開API用） */
   imageUrl?: string;
+  /**
+   * 対象会員種別。
+   * - 'supplier' : サプライヤー向け
+   * - 'buyer'    : バイヤー向け
+   * - 'both'     : 両方
+   * - undefined  : 指定なし（任意項目）
+   */
+  targetRole?: 'supplier' | 'buyer' | 'both';
   /** 作成日時（ISO 8601） */
   createdAt: string;
   /** 更新日時（ISO 8601） */
   updatedAt: string;
+}
+
+/** targetRole として有効な値 */
+export const CUSTOMER_SERVICE_TARGET_ROLES = ['supplier', 'buyer', 'both'] as const;
+export type CustomerServiceTargetRole = (typeof CUSTOMER_SERVICE_TARGET_ROLES)[number];
+
+/** 任意の値を受け取り、有効な targetRole なら返す。それ以外は undefined */
+export function normalizeTargetRole(value: unknown): CustomerServiceTargetRole | undefined {
+  if (typeof value !== 'string') return undefined;
+  return (CUSTOMER_SERVICE_TARGET_ROLES as readonly string[]).includes(value)
+    ? (value as CustomerServiceTargetRole)
+    : undefined;
 }
 
 /** organizations.settings.customer_one_time_services に格納する全体構造 */

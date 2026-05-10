@@ -17,6 +17,8 @@ import { randomUUID } from 'crypto';
 import {
   CustomerOneTimeService,
   CustomerOneTimeServicesSettings,
+  CustomerServiceTargetRole,
+  normalizeTargetRole,
   readOneTimeServicesSettings,
   toStripeUnitAmount,
 } from '@/lib/customer-one-time-services';
@@ -138,6 +140,7 @@ interface CreateBody {
   isActive?: boolean;
   imageUrl?: string;
   displayOrder?: number;
+  targetRole?: CustomerServiceTargetRole | '' | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -214,6 +217,7 @@ export async function POST(request: NextRequest) {
       typeof body.displayOrder === 'number' && Number.isFinite(body.displayOrder)
         ? Math.max(0, Math.floor(body.displayOrder))
         : 0,
+    targetRole: normalizeTargetRole(body.targetRole),
     createdAt: now,
     updatedAt: now,
   };

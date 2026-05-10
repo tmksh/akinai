@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
       imageUrl: s.imageUrl ?? '',
       // 0 または未設定は外部TOP非表示。クライアント側で >0 のものだけソート/表示する
       displayOrder: typeof s.displayOrder === 'number' ? s.displayOrder : 0,
+      // 'supplier' | 'buyer' | 'both' | null（指定なし）
+      targetRole: s.targetRole ?? null,
     }));
 
   const response = apiSuccess(

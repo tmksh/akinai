@@ -25,6 +25,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -49,8 +56,13 @@ import {
 } from '@/components/ui/popover';
 import {
   type CustomerOneTimeService,
+  type CustomerServiceTargetRole,
   DEFAULT_CUSTOMER_ONE_TIME_SERVICES_SETTINGS,
 } from '@/lib/customer-one-time-services';
+
+/** UI上の Select は空文字を扱えないため "none" を「指定なし」のセンチネルとして使う */
+const TARGET_ROLE_NONE = 'none';
+type TargetRoleFormValue = typeof TARGET_ROLE_NONE | CustomerServiceTargetRole;
 import { toast } from 'sonner';
 
 interface CustomerServicesSectionProps {
@@ -65,6 +77,7 @@ interface ServiceFormState {
   isActive: boolean;
   imageUrl: string;
   displayOrder: string;
+  targetRole: TargetRoleFormValue;
 }
 
 const DEFAULT_FORM: ServiceFormState = {
@@ -75,6 +88,7 @@ const DEFAULT_FORM: ServiceFormState = {
   isActive: true,
   imageUrl: '',
   displayOrder: '0',
+  targetRole: TARGET_ROLE_NONE,
 };
 
 function StripeIdRow({ label, value }: { label: string; value: string }) {
@@ -165,6 +179,7 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
       isActive: service.isActive,
       imageUrl: service.imageUrl ?? '',
       displayOrder: String(service.displayOrder ?? 0),
+      targetRole: service.targetRole ?? TARGET_ROLE_NONE,
     });
     setShowDialog(true);
   };
@@ -212,6 +227,8 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
         currency: 'jpy',
         imageUrl: form.imageUrl.trim(),
         displayOrder: Number.isFinite(displayOrderNum) ? Math.max(0, Math.floor(displayOrderNum)) : 0,
+        // 「指定なし」の場合は null を送ることでサーバー側で undefined にクリアされる
+        targetRole: form.targetRole === TARGET_ROLE_NONE ? null : form.targetRole,
       };
 
       const res = await fetch(
@@ -408,7 +425,7 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
 
       {/* 作成・編集ダイアログ */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'サービスを編集' : '新規サービス作成'}</DialogTitle>
             <DialogDescription>
@@ -480,6 +497,29 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
                   小さい数字が優先。0または未設定はTOPに非表示
                 </p>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="svc-target-role">対象会員種別</Label>
+              <Select
+                value={form.targetRole}
+                onValueChange={(v) =>
+                  setForm((p) => ({ ...p, targetRole: v as TargetRoleFormValue }))
+                }
+              >
+                <SelectTrigger id="svc-target-role">
+                  <SelectValue placeholder="指定なし" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TARGET_ROLE_NONE}>指定なし</SelectItem>
+                  <SelectItem value="supplier">サプライヤー向け</SelectItem>
+                  <SelectItem value="buyer">バイヤー向け</SelectItem>
+                  <SelectItem value="both">両方</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                どの会員種別向けのサービスかを設定します（任意）
+              </p>
             </div>
 
             <div className="space-y-2">
