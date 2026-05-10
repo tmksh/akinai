@@ -55,7 +55,9 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
+  CUSTOMER_SERVICE_CATEGORIES,
   type CustomerOneTimeService,
+  type CustomerServiceCategory,
   type CustomerServiceTargetRole,
   DEFAULT_CUSTOMER_ONE_TIME_SERVICES_SETTINGS,
 } from '@/lib/customer-one-time-services';
@@ -63,6 +65,8 @@ import {
 /** UI上の Select は空文字を扱えないため "none" を「指定なし」のセンチネルとして使う */
 const TARGET_ROLE_NONE = 'none';
 type TargetRoleFormValue = typeof TARGET_ROLE_NONE | CustomerServiceTargetRole;
+const CATEGORY_NONE = 'none';
+type CategoryFormValue = typeof CATEGORY_NONE | CustomerServiceCategory;
 import { toast } from 'sonner';
 
 interface CustomerServicesSectionProps {
@@ -78,6 +82,9 @@ interface ServiceFormState {
   imageUrl: string;
   displayOrder: string;
   targetRole: TargetRoleFormValue;
+  category: CategoryFormValue;
+  googleFormUrl: string;
+  buyerGoogleFormUrl: string;
 }
 
 const DEFAULT_FORM: ServiceFormState = {
@@ -89,6 +96,9 @@ const DEFAULT_FORM: ServiceFormState = {
   imageUrl: '',
   displayOrder: '0',
   targetRole: TARGET_ROLE_NONE,
+  category: CATEGORY_NONE,
+  googleFormUrl: '',
+  buyerGoogleFormUrl: '',
 };
 
 function StripeIdRow({ label, value }: { label: string; value: string }) {
@@ -180,6 +190,9 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
       imageUrl: service.imageUrl ?? '',
       displayOrder: String(service.displayOrder ?? 0),
       targetRole: service.targetRole ?? TARGET_ROLE_NONE,
+      category: service.category ?? CATEGORY_NONE,
+      googleFormUrl: service.googleFormUrl ?? '',
+      buyerGoogleFormUrl: service.buyerGoogleFormUrl ?? '',
     });
     setShowDialog(true);
   };
@@ -229,6 +242,9 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
         displayOrder: Number.isFinite(displayOrderNum) ? Math.max(0, Math.floor(displayOrderNum)) : 0,
         // 「指定なし」の場合は null を送ることでサーバー側で undefined にクリアされる
         targetRole: form.targetRole === TARGET_ROLE_NONE ? null : form.targetRole,
+        category: form.category === CATEGORY_NONE ? null : form.category,
+        googleFormUrl: form.googleFormUrl.trim() || null,
+        buyerGoogleFormUrl: form.buyerGoogleFormUrl.trim() || null,
       };
 
       const res = await fetch(
@@ -499,26 +515,87 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
               </div>
             </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="svc-target-role">対象会員種別</Label>
+                <Select
+                  value={form.targetRole}
+                  onValueChange={(v) =>
+                    setForm((p) => ({ ...p, targetRole: v as TargetRoleFormValue }))
+                  }
+                >
+                  <SelectTrigger id="svc-target-role">
+                    <SelectValue placeholder="指定なし" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TARGET_ROLE_NONE}>指定なし</SelectItem>
+                    <SelectItem value="supplier">サプライヤー向け</SelectItem>
+                    <SelectItem value="buyer">バイヤー向け</SelectItem>
+                    <SelectItem value="both">両方</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  どの会員種別向けのサービスかを設定します（任意）
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="svc-category">カテゴリ</Label>
+                <Select
+                  value={form.category}
+                  onValueChange={(v) =>
+                    setForm((p) => ({ ...p, category: v as CategoryFormValue }))
+                  }
+                >
+                  <SelectTrigger id="svc-category">
+                    <SelectValue placeholder="指定なし" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={CATEGORY_NONE}>指定なし</SelectItem>
+                    {CUSTOMER_SERVICE_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  外部TOPでのグルーピング表示などに利用します（任意）
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="svc-target-role">対象会員種別</Label>
-              <Select
-                value={form.targetRole}
-                onValueChange={(v) =>
-                  setForm((p) => ({ ...p, targetRole: v as TargetRoleFormValue }))
-                }
-              >
-                <SelectTrigger id="svc-target-role">
-                  <SelectValue placeholder="指定なし" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TARGET_ROLE_NONE}>指定なし</SelectItem>
-                  <SelectItem value="supplier">サプライヤー向け</SelectItem>
-                  <SelectItem value="buyer">バイヤー向け</SelectItem>
-                  <SelectItem value="both">両方</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="svc-google-form-url">
+                受注後の案内URL（サプライヤー向け）
+              </Label>
+              <Input
+                id="svc-google-form-url"
+                type="url"
+                value={form.googleFormUrl}
+                onChange={(e) => setForm((p) => ({ ...p, googleFormUrl: e.target.value }))}
+                placeholder="https://forms.gle/..."
+              />
               <p className="text-[11px] text-muted-foreground">
-                どの会員種別向けのサービスかを設定します（任意）
+                サプライヤー会員へ決済完了後に案内するフォームURL（任意）。公開API経由で取得できます。
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="svc-buyer-google-form-url">
+                受注後の案内URL（バイヤー向け）
+              </Label>
+              <Input
+                id="svc-buyer-google-form-url"
+                type="url"
+                value={form.buyerGoogleFormUrl}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, buyerGoogleFormUrl: e.target.value }))
+                }
+                placeholder="https://forms.gle/..."
+              />
+              <p className="text-[11px] text-muted-foreground">
+                バイヤー会員向けに別フォームを案内する場合に設定（任意）。
               </p>
             </div>
 

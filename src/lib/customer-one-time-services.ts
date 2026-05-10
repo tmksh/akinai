@@ -45,6 +45,15 @@ export interface CustomerOneTimeService {
    * - undefined  : 指定なし（任意項目）
    */
   targetRole?: 'supplier' | 'buyer' | 'both';
+  /**
+   * 統一カテゴリ。外部TOPでのグルーピング表示などに利用する任意項目。
+   * 値は CUSTOMER_SERVICE_CATEGORIES のいずれか。
+   */
+  category?: CustomerServiceCategory;
+  /** 受注後に顧客へ案内する Google フォーム等のURL（サプライヤー向け、任意） */
+  googleFormUrl?: string;
+  /** バイヤー向けに案内する Google フォーム等のURL（任意） */
+  buyerGoogleFormUrl?: string;
   /** 作成日時（ISO 8601） */
   createdAt: string;
   /** 更新日時（ISO 8601） */
@@ -61,6 +70,37 @@ export function normalizeTargetRole(value: unknown): CustomerServiceTargetRole |
   return (CUSTOMER_SERVICE_TARGET_ROLES as readonly string[]).includes(value)
     ? (value as CustomerServiceTargetRole)
     : undefined;
+}
+
+/** category として有効な値（統一カテゴリ） */
+export const CUSTOMER_SERVICE_CATEGORIES = [
+  '商品の魅力を形にする',
+  '情報を発信する',
+  '販路を開く',
+  'ビジネスの土台をサポート',
+] as const;
+export type CustomerServiceCategory = (typeof CUSTOMER_SERVICE_CATEGORIES)[number];
+
+/** 任意の値を受け取り、有効な category なら返す。それ以外は undefined */
+export function normalizeCategory(value: unknown): CustomerServiceCategory | undefined {
+  if (typeof value !== 'string') return undefined;
+  return (CUSTOMER_SERVICE_CATEGORIES as readonly string[]).includes(value)
+    ? (value as CustomerServiceCategory)
+    : undefined;
+}
+
+/** 任意の値を受け取り、有効な URL 文字列ならトリムして返す。それ以外は undefined */
+export function normalizeGoogleFormUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined;
+    return trimmed;
+  } catch {
+    return undefined;
+  }
 }
 
 /** organizations.settings.customer_one_time_services に格納する全体構造 */

@@ -51,6 +51,12 @@ export async function GET(request: NextRequest) {
       displayOrder: typeof s.displayOrder === 'number' ? s.displayOrder : 0,
       // 'supplier' | 'buyer' | 'both' | null（指定なし）
       targetRole: s.targetRole ?? null,
+      // 統一カテゴリ。null は指定なし
+      category: s.category ?? null,
+      // 受注後に顧客へ案内する Google フォーム等のURL（サプライヤー向け、任意）
+      googleFormUrl: s.googleFormUrl ?? null,
+      // バイヤー向けに案内する Google フォーム等のURL（任意）
+      buyerGoogleFormUrl: s.buyerGoogleFormUrl ?? null,
     }));
 
   const response = apiSuccess(

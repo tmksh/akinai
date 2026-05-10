@@ -12,7 +12,10 @@ import Stripe from 'stripe';
 import {
   CustomerOneTimeService,
   CustomerOneTimeServicesSettings,
+  CustomerServiceCategory,
   CustomerServiceTargetRole,
+  normalizeCategory,
+  normalizeGoogleFormUrl,
   normalizeTargetRole,
   readOneTimeServicesSettings,
   toStripeUnitAmount,
@@ -105,6 +108,12 @@ interface UpdateBody {
   displayOrder?: number;
   /** '' / null を渡すと「指定なし」にクリアできる */
   targetRole?: CustomerServiceTargetRole | '' | null;
+  /** '' / null / 不正値を渡すと「指定なし」にクリアできる */
+  category?: CustomerServiceCategory | '' | null;
+  /** '' / null を渡すとクリア */
+  googleFormUrl?: string | null;
+  /** '' / null を渡すとクリア */
+  buyerGoogleFormUrl?: string | null;
 }
 
 // =====================================================
@@ -167,6 +176,18 @@ export async function PATCH(
   if (body.targetRole !== undefined) {
     // '' or null や不正値は「指定なし」(undefined) として保存
     updated.targetRole = normalizeTargetRole(body.targetRole);
+  }
+  if (body.category !== undefined) {
+    // '' or null や不正値は「指定なし」(undefined) として保存
+    updated.category = normalizeCategory(body.category);
+  }
+  if (body.googleFormUrl !== undefined) {
+    // '' / null / 不正な URL は undefined にクリア
+    updated.googleFormUrl = normalizeGoogleFormUrl(body.googleFormUrl);
+  }
+  if (body.buyerGoogleFormUrl !== undefined) {
+    // '' / null / 不正な URL は undefined にクリア
+    updated.buyerGoogleFormUrl = normalizeGoogleFormUrl(body.buyerGoogleFormUrl);
   }
 
   if (Object.keys(productUpdates).length > 0) {

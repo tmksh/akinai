@@ -17,7 +17,10 @@ import { randomUUID } from 'crypto';
 import {
   CustomerOneTimeService,
   CustomerOneTimeServicesSettings,
+  CustomerServiceCategory,
   CustomerServiceTargetRole,
+  normalizeCategory,
+  normalizeGoogleFormUrl,
   normalizeTargetRole,
   readOneTimeServicesSettings,
   toStripeUnitAmount,
@@ -141,6 +144,9 @@ interface CreateBody {
   imageUrl?: string;
   displayOrder?: number;
   targetRole?: CustomerServiceTargetRole | '' | null;
+  category?: CustomerServiceCategory | '' | null;
+  googleFormUrl?: string | null;
+  buyerGoogleFormUrl?: string | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -218,6 +224,9 @@ export async function POST(request: NextRequest) {
         ? Math.max(0, Math.floor(body.displayOrder))
         : 0,
     targetRole: normalizeTargetRole(body.targetRole),
+    category: normalizeCategory(body.category),
+    googleFormUrl: normalizeGoogleFormUrl(body.googleFormUrl),
+    buyerGoogleFormUrl: normalizeGoogleFormUrl(body.buyerGoogleFormUrl),
     createdAt: now,
     updatedAt: now,
   };

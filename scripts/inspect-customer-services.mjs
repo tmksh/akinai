@@ -71,4 +71,7 @@ for (const s of services) {
   console.log(`    imageUrl: ${s.imageUrl ?? '(未設定)'}`);
   console.log(`    displayOrder: ${s.displayOrder ?? '(未設定)'}`);
   console.log(`    targetRole: ${s.targetRole ?? '(指定なし)'}`);
+  console.log(`    category: ${s.category ?? '(指定なし)'}`);
+  console.log(`    googleFormUrl: ${s.googleFormUrl ?? '(未設定)'}`);
+  console.log(`    buyerGoogleFormUrl: ${s.buyerGoogleFormUrl ?? '(未設定)'}`);
 }
