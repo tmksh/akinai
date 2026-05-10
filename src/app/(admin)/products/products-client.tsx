@@ -269,8 +269,18 @@ export default function ProductsClient({
       {/* ── ヘッダー ── */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">商品管理</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">商品の登録・編集・在庫管理</p>
+          <h1 className="text-xl font-bold tracking-tight">
+            商品管理
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              （全{totalProducts.toLocaleString()}件）
+            </span>
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            商品の登録・編集・在庫管理
+            <span className="ml-2">
+              ・公開中 {stats.published.toLocaleString()}件 / 下書き {stats.draft.toLocaleString()}件
+            </span>
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button asChild variant="outline" size="sm">
@@ -409,11 +419,24 @@ export default function ProductsClient({
       </div>
 
       {/* ── 件数表示 ── */}
-      {(debouncedSearch || hasActiveFilter) && (
-        <p className="text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">{filteredProducts.length}</span> 件の商品
-        </p>
-      )}
+      <p className="text-sm text-muted-foreground">
+        {(debouncedSearch || hasActiveFilter) ? (
+          <>
+            <span className="font-semibold text-foreground">{filteredProducts.length.toLocaleString()}</span>
+            {' / '}
+            {products.length.toLocaleString()} 件を表示中（絞り込み適用）
+          </>
+        ) : (
+          <>
+            全 <span className="font-semibold text-foreground">{products.length.toLocaleString()}</span> 件
+            {totalProducts > products.length && (
+              <span className="ml-1 text-amber-600">
+                （DB上 {totalProducts.toLocaleString()} 件のうち最新 {products.length.toLocaleString()} 件のみ取得）
+              </span>
+            )}
+          </>
+        )}
+      </p>
 
       {/* ── 商品グリッド ── */}
       {filteredProducts.length === 0 ? (
