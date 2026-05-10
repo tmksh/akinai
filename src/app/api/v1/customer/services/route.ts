@@ -46,6 +46,9 @@ export async function GET(request: NextRequest) {
       amount: s.amount,
       currency: s.currency,
       features: s.features,
+      imageUrl: s.imageUrl ?? '',
+      // 0 または未設定は外部TOP非表示。クライアント側で >0 のものだけソート/表示する
+      displayOrder: typeof s.displayOrder === 'number' ? s.displayOrder : 0,
     }));
 
   const response = apiSuccess(

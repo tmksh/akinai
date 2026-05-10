@@ -63,6 +63,8 @@ interface ServiceFormState {
   amount: string;
   features: string[];
   isActive: boolean;
+  imageUrl: string;
+  displayOrder: string;
 }
 
 const DEFAULT_FORM: ServiceFormState = {
@@ -71,6 +73,8 @@ const DEFAULT_FORM: ServiceFormState = {
   amount: '',
   features: [''],
   isActive: true,
+  imageUrl: '',
+  displayOrder: '0',
 };
 
 function StripeIdRow({ label, value }: { label: string; value: string }) {
@@ -159,6 +163,8 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
       amount: String(service.amount),
       features: service.features.length > 0 ? [...service.features] : [''],
       isActive: service.isActive,
+      imageUrl: service.imageUrl ?? '',
+      displayOrder: String(service.displayOrder ?? 0),
     });
     setShowDialog(true);
   };
@@ -196,6 +202,7 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
     setSubmitting(true);
     try {
       const features = form.features.map((f) => f.trim()).filter(Boolean);
+      const displayOrderNum = Number(form.displayOrder);
       const payload = {
         name: form.name.trim(),
         description: form.description.trim(),
@@ -203,6 +210,8 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
         features,
         isActive: form.isActive,
         currency: 'jpy',
+        imageUrl: form.imageUrl.trim(),
+        displayOrder: Number.isFinite(displayOrderNum) ? Math.max(0, Math.floor(displayOrderNum)) : 0,
       };
 
       const res = await fetch(
@@ -439,6 +448,38 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
                 onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))}
                 placeholder="例: 30000"
               />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="svc-image-url">サムネイル画像URL</Label>
+                <Input
+                  id="svc-image-url"
+                  type="url"
+                  value={form.imageUrl}
+                  onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                  placeholder="https://example.com/image.jpg"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  公開API経由で外部サイトに表示する画像URL（任意）
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="svc-display-order">TOP表示の順番</Label>
+                <Input
+                  id="svc-display-order"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={form.displayOrder}
+                  onChange={(e) => setForm((p) => ({ ...p, displayOrder: e.target.value }))}
+                  placeholder="0"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  小さい数字が優先。0または未設定はTOPに非表示
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">

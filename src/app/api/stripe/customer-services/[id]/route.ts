@@ -99,6 +99,8 @@ interface UpdateBody {
   isActive?: boolean;
   amount?: number;
   sortOrder?: number;
+  imageUrl?: string;
+  displayOrder?: number;
 }
 
 // =====================================================
@@ -151,6 +153,12 @@ export async function PATCH(
   }
   if (typeof body.sortOrder === 'number') {
     updated.sortOrder = body.sortOrder;
+  }
+  if (typeof body.imageUrl === 'string') {
+    updated.imageUrl = body.imageUrl.trim();
+  }
+  if (typeof body.displayOrder === 'number' && Number.isFinite(body.displayOrder)) {
+    updated.displayOrder = Math.max(0, Math.floor(body.displayOrder));
   }
 
   if (Object.keys(productUpdates).length > 0) {

@@ -27,8 +27,16 @@ export interface CustomerOneTimeService {
   features: string[];
   /** 有効/無効フラグ */
   isActive: boolean;
-  /** 表示順 */
+  /** 管理画面での表示順（並べ替え用） */
   sortOrder: number;
+  /**
+   * 外部TOP表示の優先度。
+   * - 小さい正の整数ほど優先的に表示される。
+   * - 0 または未設定の場合は外部TOPに非表示。
+   */
+  displayOrder?: number;
+  /** サービスのサムネイル画像URL（公開API用） */
+  imageUrl?: string;
   /** 作成日時（ISO 8601） */
   createdAt: string;
   /** 更新日時（ISO 8601） */

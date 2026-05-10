@@ -136,6 +136,8 @@ interface CreateBody {
   currency?: string;
   features?: string[];
   isActive?: boolean;
+  imageUrl?: string;
+  displayOrder?: number;
 }
 
 export async function POST(request: NextRequest) {
@@ -207,6 +209,11 @@ export async function POST(request: NextRequest) {
     features: Array.isArray(body.features) ? body.features.filter((f) => f?.trim()) : [],
     isActive: body.isActive !== false,
     sortOrder: settings.services.length,
+    imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.trim() : '',
+    displayOrder:
+      typeof body.displayOrder === 'number' && Number.isFinite(body.displayOrder)
+        ? Math.max(0, Math.floor(body.displayOrder))
+        : 0,
     createdAt: now,
     updatedAt: now,
   };
