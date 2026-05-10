@@ -260,10 +260,11 @@ export async function createContent(
     if (Array.isArray(enabledTypes) && enabledTypes.length > 0 && !enabledTypes.includes(input.type)) {
       return { data: null, error: 'このコンテンツタイプは利用できません。設定で有効にしてください。' };
     }
-    
-    // 現在のユーザーを取得
-    const { data: { user } } = await supabase.auth.getUser();
-    
+
+    // 現在のユーザーを取得（service role client にはセッションが無いので Cookie ベースのクライアントで取得）
+    const sessionClient = await createClient();
+    const { data: { user } } = await sessionClient.auth.getUser();
+
     if (!user) {
       return { data: null, error: '認証が必要です' };
     }
@@ -552,8 +553,9 @@ export async function duplicateContent(
     // 新しいスラッグを生成
     const newSlug = `${original.slug}-copy-${Date.now()}`;
 
-    // 現在のユーザーを取得
-    const { data: { user } } = await supabase.auth.getUser();
+    // 現在のユーザーを取得（service role client にはセッションが無いので Cookie ベースのクライアントで取得）
+    const sessionClient = await createClient();
+    const { data: { user } } = await sessionClient.auth.getUser();
 
     // 複製
     const { data, error } = await supabase
