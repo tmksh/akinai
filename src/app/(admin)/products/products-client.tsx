@@ -552,7 +552,7 @@ export default function ProductsClient({
                           const result = await duplicateProduct(product.id);
                           if (result.data) {
                             toast.success('複製しました');
-                            const { data } = await getProducts(organizationId);
+                            const { data } = await getProducts(organizationId, { limit: 1000 });
                             if (data) setProducts(data);
                           } else {
                             toast.error(result.error || '複製に失敗しました');
@@ -598,7 +598,7 @@ export default function ProductsClient({
         organizationId={organizationId}
         fieldSchema={organization?.productFieldSchema ?? []}
         onImportComplete={async () => {
-          const [p, c] = await Promise.all([getProducts(organizationId), getCategories(organizationId)]);
+          const [p, c] = await Promise.all([getProducts(organizationId, { limit: 1000 }), getCategories(organizationId)]);
           if (p.data) setProducts(p.data);
           if (c.data) setCategories(c.data);
           toast.success('インポートが完了しました');
