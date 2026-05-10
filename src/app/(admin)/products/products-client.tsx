@@ -27,6 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +47,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
-import { getProducts, getCategories, deleteProduct, updateProductStatus, duplicateProduct, type ProductWithRelations } from '@/lib/actions/products';
+import { getProducts, getCategories, deleteProduct, deleteProducts, updateProductStatus, duplicateProduct, type ProductWithRelations } from '@/lib/actions/products';
 import { toast } from 'sonner';
 import { ProductImportDialog } from '@/components/products/import-dialog';
 import type { ProductStatus } from '@/types';
@@ -99,6 +100,9 @@ export default function ProductsClient({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<ProductWithRelations | null>(null);
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -134,6 +138,52 @@ export default function ProductsClient({
       }
       setDeleteDialogOpen(false);
       setProductToDelete(null);
+    });
+  };
+
+  const toggleSelect = (productId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
+  const filteredIds = useMemo(() => filteredProducts.map(p => p.id), [filteredProducts]);
+  const selectedCount = selectedIds.size;
+  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every(id => selectedIds.has(id));
+  const someFilteredSelected = !allFilteredSelected && filteredIds.some(id => selectedIds.has(id));
+
+  const toggleSelectAllFiltered = () => {
+    setSelectedIds(prev => {
+      if (allFilteredSelected) {
+        const next = new Set(prev);
+        for (const id of filteredIds) next.delete(id);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const id of filteredIds) next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return;
+    const idsToDelete = Array.from(selectedIds);
+    startTransition(async () => {
+      const result = await deleteProducts(idsToDelete);
+      if (result.success) {
+        const deletedSet = new Set(idsToDelete);
+        setProducts(prev => prev.filter(p => !deletedSet.has(p.id)));
+        clearSelection();
+        toast.success(`${result.deletedCount}件の商品を削除しました`);
+      } else {
+        toast.error('一括削除に失敗しました');
+      }
+      setBulkDeleteDialogOpen(false);
     });
   };
 
@@ -418,25 +468,76 @@ export default function ProductsClient({
         )}
       </div>
 
-      {/* ── 件数表示 ── */}
-      <p className="text-sm text-muted-foreground">
-        {(debouncedSearch || hasActiveFilter) ? (
-          <>
-            <span className="font-semibold text-foreground">{filteredProducts.length.toLocaleString()}</span>
-            {' / '}
-            {products.length.toLocaleString()} 件を表示中（絞り込み適用）
-          </>
-        ) : (
-          <>
-            全 <span className="font-semibold text-foreground">{products.length.toLocaleString()}</span> 件
-            {totalProducts > products.length && (
-              <span className="ml-1 text-amber-600">
-                （DB上 {totalProducts.toLocaleString()} 件のうち最新 {products.length.toLocaleString()} 件のみ取得）
-              </span>
+      {/* ── 件数表示 / 選択バー ── */}
+      {selectedCount > 0 ? (
+        <div
+          className="flex items-center justify-between gap-3 px-3 py-2 rounded-2xl border border-sky-200/60 shadow-sm"
+          style={{ background: 'rgba(224,242,254,0.7)', backdropFilter: 'blur(16px)' }}
+        >
+          <div className="flex items-center gap-3 flex-wrap">
+            <Checkbox
+              checked={allFilteredSelected ? true : someFilteredSelected ? 'indeterminate' : false}
+              onCheckedChange={toggleSelectAllFiltered}
+              aria-label="表示中の商品をすべて選択"
+            />
+            <span className="text-sm font-semibold text-sky-900">
+              {selectedCount.toLocaleString()}件を選択中
+            </span>
+            <button
+              onClick={toggleSelectAllFiltered}
+              className="text-xs text-sky-700 hover:text-sky-900 underline"
+            >
+              {allFilteredSelected ? '表示中の選択を解除' : `表示中の${filteredProducts.length}件をすべて選択`}
+            </button>
+            <button
+              onClick={clearSelection}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >
+              選択をクリア
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setBulkDeleteDialogOpen(true)}
+              disabled={isPending}
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              一括削除
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm text-muted-foreground">
+            {(debouncedSearch || hasActiveFilter) ? (
+              <>
+                <span className="font-semibold text-foreground">{filteredProducts.length.toLocaleString()}</span>
+                {' / '}
+                {products.length.toLocaleString()} 件を表示中（絞り込み適用）
+              </>
+            ) : (
+              <>
+                全 <span className="font-semibold text-foreground">{products.length.toLocaleString()}</span> 件
+                {totalProducts > products.length && (
+                  <span className="ml-1 text-amber-600">
+                    （DB上 {totalProducts.toLocaleString()} 件のうち最新 {products.length.toLocaleString()} 件のみ取得）
+                  </span>
+                )}
+              </>
             )}
-          </>
-        )}
-      </p>
+          </p>
+          {filteredProducts.length > 0 && (
+            <button
+              onClick={toggleSelectAllFiltered}
+              className="text-xs text-sky-700 hover:text-sky-900 underline"
+            >
+              表示中の{filteredProducts.length}件をすべて選択
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── 商品グリッド ── */}
       {filteredProducts.length === 0 ? (
@@ -473,10 +574,14 @@ export default function ProductsClient({
             const status = statusConfig[product.status];
             const isOutOfStock = totalStock === 0;
 
+            const isSelected = selectedIds.has(product.id);
+
             return (
               <div
                 key={product.id}
-                className="group relative rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(100,120,160,0.15)]"
+                className={`group relative rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(100,120,160,0.15)] ${
+                  isSelected ? 'ring-2 ring-sky-400 ring-offset-1' : ''
+                }`}
                 style={{
                   background: 'rgba(255,255,255,0.62)',
                   backdropFilter: 'blur(24px)',
@@ -485,6 +590,20 @@ export default function ProductsClient({
                   boxShadow: '0 2px 20px rgba(100,120,160,0.07), inset 0 1px 0 rgba(255,255,255,0.95)',
                 }}
               >
+                {/* 選択チェックボックス */}
+                <div
+                  className={`absolute top-2 left-2 z-10 transition-opacity ${
+                    isSelected || selectedCount > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}
+                >
+                  <div className="bg-white/95 backdrop-blur-sm rounded-md p-1 shadow-sm border border-white/80">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleSelect(product.id)}
+                      aria-label={`${product.name}を選択`}
+                    />
+                  </div>
+                </div>
                 {/* 画像エリア */}
                 <Link href={`/products/${product.id}`} className="block">
                   <div className="relative aspect-square overflow-hidden rounded-t-2xl"
@@ -627,6 +746,27 @@ export default function ProductsClient({
           toast.success('インポートが完了しました');
         }}
       />
+
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>選択した商品を一括削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              選択中の <span className="font-semibold text-foreground">{selectedCount.toLocaleString()}件</span> の商品を削除します。関連するバリエーション・画像・カテゴリ紐付けも削除され、この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isPending}
+            >
+              {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />削除中...</> : `${selectedCount.toLocaleString()}件を削除する`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

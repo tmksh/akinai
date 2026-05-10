@@ -578,6 +578,35 @@ export async function deleteProduct(productId: string): Promise<{
   }
 }
 
+// 商品を一括削除
+export async function deleteProducts(productIds: string[]): Promise<{
+  success: boolean;
+  deletedCount: number;
+  error: string | null;
+}> {
+  if (!productIds || productIds.length === 0) {
+    return { success: true, deletedCount: 0, error: null };
+  }
+
+  const supabase = await createClient();
+
+  try {
+    // 関連データは CASCADE で自動削除される
+    const { error, count } = await supabase
+      .from('products')
+      .delete({ count: 'exact' })
+      .in('id', productIds);
+
+    if (error) throw error;
+
+    revalidatePath('/products');
+    return { success: true, deletedCount: count ?? productIds.length, error: null };
+  } catch (error) {
+    console.error('Error bulk deleting products:', error);
+    return { success: false, deletedCount: 0, error: 'Failed to delete products' };
+  }
+}
+
 // 商品ステータスを更新
 export async function updateProductStatus(
   productId: string,
