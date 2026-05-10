@@ -184,7 +184,16 @@ export async function POST(request: NextRequest) {
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaymentSucceeded(supabase, invoice);
+        // 顧客サブスクの場合は別ハンドラに委譲（テナント自身のサブスクと区別）
+        const isCustomerInvoice = await routeInvoicePaymentSucceeded(
+          stripe,
+          supabase,
+          invoice,
+          connectedAccountId
+        );
+        if (!isCustomerInvoice) {
+          await handleInvoicePaymentSucceeded(supabase, invoice);
+        }
         break;
       }
 
@@ -278,7 +287,150 @@ async function handleSubscriptionDeleted(
 }
 
 /**
- * 請求書支払い成功時の処理
+ * invoice.payment_succeeded を「顧客サブスク向け」と「テナント自身のサブスク向け」に振り分ける。
+ *
+ * 顧客サブスクの場合、Subscription のメタデータに akinai_customer_id があるので
+ * それを判定材料にする。Connect アカウント経由のイベントなので
+ * Subscription を取り直す際は stripeAccount オプションが必要。
+ *
+ * 戻り値: 顧客サブスクとして処理した場合 true。
+ */
+async function routeInvoicePaymentSucceeded(
+  stripe: Stripe,
+  supabase: SupabaseAdmin,
+  invoice: Stripe.Invoice,
+  connectedAccountId: string | null
+): Promise<boolean> {
+  const subscriptionId = invoice.subscription as string | null;
+  if (!subscriptionId) return false;
+
+  // Connect 経由の場合は stripeAccount を指定して Subscription を取得する
+  let subscription: Stripe.Subscription | null = null;
+  try {
+    subscription = await stripe.subscriptions.retrieve(
+      subscriptionId,
+      connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+    );
+  } catch (err) {
+    console.warn('[Webhook] failed to retrieve subscription for invoice:', err);
+    return false;
+  }
+
+  const organizationId = subscription.metadata?.akinai_organization_id;
+  const customerId = subscription.metadata?.akinai_customer_id;
+  const planId = subscription.metadata?.akinai_plan_id;
+
+  // 顧客サブスクではない（テナント自身のサブスク）
+  if (!organizationId || !customerId) return false;
+
+  console.log(
+    `[Webhook] customer invoice.payment_succeeded: org=${organizationId}, customer=${customerId}, sub=${subscriptionId}, invoice=${invoice.id}`
+  );
+
+  const { data: customer } = await supabase
+    .from('customers')
+    .select('name, email')
+    .eq('id', customerId)
+    .eq('organization_id', organizationId)
+    .single();
+
+  // 同じ invoice.id で重複作成しないようチェック
+  const { data: existingByInvoice } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('customer_id', customerId)
+    .ilike('notes', `%${invoice.id}%`)
+    .limit(1);
+  if (existingByInvoice && existingByInvoice.length > 0) {
+    console.log('[Webhook] invoice already recorded as order, skip');
+    return true;
+  }
+
+  // 同サブスクの orders がまだ無い場合は「初回」扱い → ensureSubscriptionOrder で作る
+  const { data: existingForSub } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('customer_id', customerId)
+    .ilike('notes', `%${subscriptionId}%`)
+    .limit(1);
+
+  if (!existingForSub || existingForSub.length === 0) {
+    await ensureSubscriptionOrder(supabase, {
+      organizationId,
+      customerId,
+      customerName: (customer?.name as string | null) || '',
+      customerEmail: (customer?.email as string | null) || '',
+      planId,
+      stripeSubscriptionId: subscriptionId,
+    });
+    return true;
+  }
+
+  // 継続課金: テナント設定で orders 作成が有効なら新しいレコードを作る
+  const { data: orgData } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+  const plansSettings = readPlansSettings(orgData?.settings as Record<string, unknown> | null);
+  if (!plansSettings.subscriptionCreatesOrder) return true;
+
+  const plan = plansSettings.plans.find((p) => p.id === planId);
+  // invoice の amount_paid を優先する（プラン金額が変わっていても請求実額を記録できるため）
+  const amount = invoice.amount_paid ?? plan?.amount ?? 0;
+  const planName = plan?.name ?? 'サブスクリプション';
+
+  const orderNumber = generateOrderNumber();
+  const { data: newOrder, error: orderError } = await supabase
+    .from('orders')
+    .insert({
+      organization_id: organizationId,
+      order_number: orderNumber,
+      customer_id: customerId,
+      customer_name: (customer?.name as string | null) || '',
+      customer_email: (customer?.email as string | null) || '',
+      subtotal: amount,
+      shipping_cost: 0,
+      tax: 0,
+      total: amount,
+      status: 'confirmed',
+      payment_status: 'paid',
+      payment_method: 'subscription',
+      notes: `サブスクリプション継続課金: ${planName} (${subscriptionId} / ${invoice.id})`,
+      stripe_payment_intent_id: null,
+    })
+    .select('id')
+    .single();
+
+  if (orderError || !newOrder) {
+    console.error('[Webhook] Failed to create renewal order:', orderError);
+    return true;
+  }
+
+  await supabase.from('order_items').insert({
+    order_id: newOrder.id,
+    product_id: null,
+    variant_id: null,
+    product_name: planName,
+    variant_name: null,
+    sku: null,
+    quantity: 1,
+    unit_price: amount,
+    total_price: amount,
+  });
+
+  if (plansSettings.subscriptionSendsEmail) {
+    await sendOrderEmails(supabase, newOrder.id, organizationId);
+  }
+
+  console.log(`[Webhook] Subscription renewal order created: ${newOrder.id}`);
+  return true;
+}
+
+/**
+ * 請求書支払い成功時の処理（テナント自身のサブスク）
  */
 async function handleInvoicePaymentSucceeded(
   supabase: SupabaseAdmin,
@@ -312,6 +464,115 @@ function generateOrderNumber(): string {
   const day = String(now.getDate()).padStart(2, '0');
   const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `ORD-${year}${month}${day}-${random}`;
+}
+
+/**
+ * 顧客サブスク決済の orders レコードを冪等に確保する。
+ *
+ * - 同一 stripeSubscriptionId の orders が既にあれば何もしない（重複防止）
+ * - テナント設定 subscriptionCreatesOrder が false なら何もしない
+ * - 設定 subscriptionSendsEmail が true なら作成後にメール送信
+ *
+ * checkout.session.completed と customer.subscription.updated の両方から
+ * 安全に呼び出せるよう、必ず冪等であることを担保する。
+ */
+async function ensureSubscriptionOrder(
+  supabase: SupabaseAdmin,
+  args: {
+    organizationId: string;
+    customerId: string;
+    customerName: string;
+    customerEmail: string;
+    planId?: string;
+    stripeSubscriptionId: string;
+  }
+): Promise<{ orderId: string | null; created: boolean }> {
+  const {
+    organizationId,
+    customerId,
+    customerName,
+    customerEmail,
+    planId,
+    stripeSubscriptionId,
+  } = args;
+
+  // 既存 order があれば何もしない（冪等性）
+  // notes に stripeSubscriptionId を埋め込むことでフィルタしている
+  const { data: existingOrders } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('customer_id', customerId)
+    .ilike('notes', `%${stripeSubscriptionId}%`)
+    .limit(1);
+
+  if (existingOrders && existingOrders.length > 0) {
+    return { orderId: existingOrders[0].id, created: false };
+  }
+
+  // テナント設定を確認
+  const { data: orgData } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  const plansSettings = readPlansSettings(orgData?.settings as Record<string, unknown> | null);
+  if (!plansSettings.subscriptionCreatesOrder) {
+    return { orderId: null, created: false };
+  }
+
+  const plan = plansSettings.plans.find((p) => p.id === planId);
+  const amount = plan?.amount ?? 0;
+  const planName = plan?.name ?? 'サブスクリプション';
+
+  const orderNumber = generateOrderNumber();
+  const { data: newOrder, error: orderError } = await supabase
+    .from('orders')
+    .insert({
+      organization_id: organizationId,
+      order_number: orderNumber,
+      customer_id: customerId,
+      customer_name: customerName,
+      customer_email: customerEmail,
+      subtotal: amount,
+      shipping_cost: 0,
+      tax: 0,
+      total: amount,
+      status: 'confirmed',
+      payment_status: 'paid',
+      payment_method: 'subscription',
+      // 後段で stripeSubscriptionId 検索できるよう必ずIDを含める
+      notes: `サブスクリプション: ${planName} (${stripeSubscriptionId})`,
+      stripe_payment_intent_id: null,
+    })
+    .select('id')
+    .single();
+
+  if (orderError || !newOrder) {
+    console.error('[Webhook] Failed to create subscription order:', orderError);
+    return { orderId: null, created: false };
+  }
+
+  console.log(`[Webhook] Subscription order created (fallback): ${newOrder.id}`);
+
+  await supabase.from('order_items').insert({
+    order_id: newOrder.id,
+    product_id: null,
+    variant_id: null,
+    product_name: planName,
+    variant_name: null,
+    sku: null,
+    quantity: 1,
+    unit_price: amount,
+    total_price: amount,
+  });
+
+  if (plansSettings.subscriptionSendsEmail) {
+    await sendOrderEmails(supabase, newOrder.id, organizationId);
+  }
+
+  return { orderId: newOrder.id, created: true };
 }
 
 /**
@@ -368,81 +629,26 @@ async function handleCustomerSubscriptionCheckoutComplete(
     .eq('id', customerId)
     .eq('organization_id', organizationId);
 
-  // 組織設定を確認して orders 記録・メール送信を条件実行
-  const { data: orgData } = await supabase
-    .from('organizations')
-    .select('settings')
-    .eq('id', organizationId)
-    .single();
-
-  const plansSettings = readPlansSettings(orgData?.settings as Record<string, unknown> | null);
-
-  if (plansSettings.subscriptionCreatesOrder || plansSettings.subscriptionSendsEmail) {
-    // プラン情報を取得して金額を特定
-    const plan = plansSettings.plans.find((p) => p.id === planId);
-    const amount = plan?.amount ?? (session.amount_total ?? 0);
-    const planName = plan?.name ?? 'サブスクリプション';
-
-    const customerName = (existing?.name as string | null) || '';
-    const customerEmail = (existing?.email as string | null) || '';
-
-    let orderId: string | null = null;
-
-    if (plansSettings.subscriptionCreatesOrder) {
-      const orderNumber = generateOrderNumber();
-      const { data: newOrder, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          organization_id: organizationId,
-          order_number: orderNumber,
-          customer_id: customerId,
-          customer_name: customerName,
-          customer_email: customerEmail,
-          subtotal: amount,
-          shipping_cost: 0,
-          tax: 0,
-          total: amount,
-          status: 'confirmed',
-          payment_status: 'paid',
-          payment_method: 'subscription',
-          notes: `サブスクリプション: ${planName}`,
-          stripe_payment_intent_id: null,
-        })
-        .select('id')
-        .single();
-
-      if (orderError) {
-        console.error('[Webhook] Failed to create subscription order:', orderError);
-      } else {
-        orderId = newOrder?.id ?? null;
-        console.log(`[Webhook] Subscription order created: ${orderId}`);
-
-        // order_items にプランを1行追加
-        if (orderId) {
-          await supabase.from('order_items').insert({
-            order_id: orderId,
-            product_id: null,
-            variant_id: null,
-            product_name: planName,
-            variant_name: null,
-            sku: null,
-            quantity: 1,
-            unit_price: amount,
-            total_price: amount,
-          });
-        }
-      }
-    }
-
-    if (plansSettings.subscriptionSendsEmail && orderId) {
-      await sendOrderEmails(supabase, orderId, organizationId);
-    }
-  }
+  // 共通ヘルパーで冪等に orders を確保（重複作成しない）
+  await ensureSubscriptionOrder(supabase, {
+    organizationId,
+    customerId,
+    customerName: (existing?.name as string | null) || '',
+    customerEmail: (existing?.email as string | null) || '',
+    planId,
+    stripeSubscriptionId: session.subscription as string,
+  });
 }
 
 /**
  * 顧客向けサブスクリプションが更新された場合の処理
  * （customer.subscription.created / customer.subscription.updated）
+ *
+ * 防御策:
+ *  1. すでに active/trialing が入っているのに incomplete 系で上書きしない
+ *     （Stripe からのイベント到着順序による status 劣化を防ぐ）
+ *  2. status が active/trialing になった時点で orders にレコードが無ければ
+ *     フォールバックで作成する（checkout.session.completed が失敗していた場合の救済）
  */
 async function handleCustomerSubscriptionChange(
   supabase: SupabaseAdmin,
@@ -463,7 +669,7 @@ async function handleCustomerSubscriptionChange(
 
   const { data: existing } = await supabase
     .from('customers')
-    .select('custom_fields')
+    .select('custom_fields, name, email')
     .eq('id', customerId)
     .eq('organization_id', organizationId)
     .single();
@@ -473,13 +679,29 @@ async function handleCustomerSubscriptionChange(
   const currentSub =
     (currentCustomFields.subscription as Record<string, unknown> | undefined) || {};
 
+  // ── 防御 1: ステータスの劣化を防ぐ ──
+  // 既に active / trialing が入っている場合、incomplete 系での上書きは無視。
+  // （Stripe では subscription.created (incomplete) が後着するパターンがある）
+  const incompleteStatuses = ['incomplete', 'incomplete_expired'];
+  const currentStatus = currentSub.status as string | undefined;
+  let nextStatus: string = subscription.status;
+  if (
+    (currentStatus === 'active' || currentStatus === 'trialing') &&
+    incompleteStatuses.includes(subscription.status)
+  ) {
+    console.log(
+      `[Webhook] skip subscription status downgrade: keep=${currentStatus}, ignored=${subscription.status}`
+    );
+    nextStatus = currentStatus;
+  }
+
   const now = new Date().toISOString();
   const updatedSub = {
     ...currentSub,
     planId: planId ?? currentSub.planId,
     stripeSubscriptionId: subscription.id,
     stripeCustomerId: subscription.customer as string,
-    status: subscription.status,
+    status: nextStatus,
     currentPeriodEnd: subscription.current_period_end
       ? new Date(subscription.current_period_end * 1000).toISOString()
       : null,
@@ -496,6 +718,19 @@ async function handleCustomerSubscriptionChange(
     })
     .eq('id', customerId)
     .eq('organization_id', organizationId);
+
+  // ── 防御 2: active/trialing になった時点で orders を確保 ──
+  // checkout.session.completed が失敗 or 未着のケースに備えて、ここでも orders を作る。
+  if (nextStatus === 'active' || nextStatus === 'trialing') {
+    await ensureSubscriptionOrder(supabase, {
+      organizationId,
+      customerId,
+      customerName: (existing?.name as string | null) || '',
+      customerEmail: (existing?.email as string | null) || '',
+      planId: (planId ?? currentSub.planId) as string | undefined,
+      stripeSubscriptionId: subscription.id,
+    });
+  }
 }
 
 /**
