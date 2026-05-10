@@ -398,6 +398,8 @@ async function routeInvoicePaymentSucceeded(
       status: 'confirmed',
       payment_status: 'paid',
       payment_method: 'subscription',
+      // orders.shipping_address は NOT NULL なので空オブジェクトを入れる
+      shipping_address: {},
       notes: `サブスクリプション継続課金: ${planName} (${subscriptionId} / ${invoice.id})`,
       stripe_payment_intent_id: null,
     })
@@ -542,6 +544,8 @@ async function ensureSubscriptionOrder(
       status: 'confirmed',
       payment_status: 'paid',
       payment_method: 'subscription',
+      // orders.shipping_address は NOT NULL なので空オブジェクトを入れる
+      shipping_address: {},
       // 後段で stripeSubscriptionId 検索できるよう必ずIDを含める
       notes: `サブスクリプション: ${planName} (${stripeSubscriptionId})`,
       stripe_payment_intent_id: null,

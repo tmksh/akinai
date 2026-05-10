@@ -87,7 +87,9 @@ if (!stripeAccount) {
   process.exit(1);
 }
 const settings = org?.settings ?? {};
-const plansSettings = settings?.plans ?? {};
+// organizations.settings.customer_subscription_plans が正しいキー
+// （src/lib/customer-subscription-plans.ts の readPlansSettings と同じ）
+const plansSettings = settings?.customer_subscription_plans ?? {};
 const plans = Array.isArray(plansSettings?.plans) ? plansSettings.plans : [];
 const subscriptionCreatesOrder = !!plansSettings?.subscriptionCreatesOrder;
 
@@ -197,6 +199,8 @@ for (const c of customers) {
       status: 'confirmed',
       payment_status: 'paid',
       payment_method: 'subscription',
+      // orders.shipping_address は NOT NULL なので空オブジェクトを入れる
+      shipping_address: {},
       notes: `サブスクリプション: ${planName} (${subId}) [backfill]`,
       stripe_payment_intent_id: null,
     })
