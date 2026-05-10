@@ -225,6 +225,9 @@ for (const c of customers) {
     total_price: amount,
   });
 
+  // customers.total_orders / total_spent を orders から再集計
+  await recalcCustomerOrderStats(supabase, orgId, c.id);
+
   console.log(`  ${c.email}: ✓ order_id=${newOrder.id}`);
   created++;
 }
@@ -241,4 +244,26 @@ function generateOrderNumber() {
   const d = String(now.getDate()).padStart(2, '0');
   const r = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `ORD-${y}${m}${d}-${r}`;
+}
+
+async function recalcCustomerOrderStats(supabase, organizationId, customerId) {
+  const { data: rows } = await supabase
+    .from('orders')
+    .select('total, payment_status')
+    .eq('organization_id', organizationId)
+    .eq('customer_id', customerId);
+  const valid = (rows ?? []).filter(
+    (r) => r.payment_status !== 'failed' && r.payment_status !== 'refunded'
+  );
+  const totalOrders = valid.length;
+  const totalSpent = valid.reduce((s, r) => s + (Number(r.total) || 0), 0);
+  await supabase
+    .from('customers')
+    .update({
+      total_orders: totalOrders,
+      total_spent: totalSpent,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', customerId)
+    .eq('organization_id', organizationId);
 }

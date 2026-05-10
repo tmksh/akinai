@@ -423,6 +423,9 @@ async function routeInvoicePaymentSucceeded(
     total_price: amount,
   });
 
+  // customers.total_orders / total_spent を再集計して同期
+  await recalcCustomerOrderStats(supabase, organizationId, customerId);
+
   if (plansSettings.subscriptionSendsEmail) {
     await sendOrderEmails(supabase, newOrder.id, organizationId);
   }
@@ -466,6 +469,60 @@ function generateOrderNumber(): string {
   const day = String(now.getDate()).padStart(2, '0');
   const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `ORD-${year}${month}${day}-${random}`;
+}
+
+/**
+ * planId からプラン名を解決する。見つからなければ null を返す。
+ * 顧客カスタムフィールド `plan` の表示用に使う。
+ */
+function resolvePlanLabel(
+  plansSettings: ReturnType<typeof readPlansSettings>,
+  planId: string | undefined | null
+): string | null {
+  if (!planId) return null;
+  const plan = plansSettings.plans.find((p) => p.id === planId);
+  return plan?.name ?? null;
+}
+
+/**
+ * 顧客の total_orders / total_spent を orders テーブルから再集計して書き戻す。
+ *
+ * orders テーブルには集計トリガーが無いため、order を作る／変える／消すたびに
+ * 呼び出して整合性を保つ用途。
+ *
+ * 集計対象: payment_status が 'failed'/'refunded' 以外の order を「成立」として数える。
+ */
+async function recalcCustomerOrderStats(
+  supabase: SupabaseAdmin,
+  organizationId: string,
+  customerId: string
+) {
+  const { data: rows, error } = await supabase
+    .from('orders')
+    .select('total, payment_status')
+    .eq('organization_id', organizationId)
+    .eq('customer_id', customerId);
+
+  if (error) {
+    console.error('[Webhook] recalcCustomerOrderStats query failed:', error);
+    return;
+  }
+
+  const valid = (rows ?? []).filter(
+    (r) => r.payment_status !== 'failed' && r.payment_status !== 'refunded'
+  );
+  const totalOrders = valid.length;
+  const totalSpent = valid.reduce((sum, r) => sum + (Number(r.total) || 0), 0);
+
+  await supabase
+    .from('customers')
+    .update({
+      total_orders: totalOrders,
+      total_spent: totalSpent,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', customerId)
+    .eq('organization_id', organizationId);
 }
 
 /**
@@ -572,6 +629,9 @@ async function ensureSubscriptionOrder(
     total_price: amount,
   });
 
+  // customers.total_orders / total_spent を再集計して同期
+  await recalcCustomerOrderStats(supabase, organizationId, customerId);
+
   if (plansSettings.subscriptionSendsEmail) {
     await sendOrderEmails(supabase, newOrder.id, organizationId);
   }
@@ -611,6 +671,17 @@ async function handleCustomerSubscriptionCheckoutComplete(
   const currentCustomFields =
     (existing?.custom_fields as Record<string, unknown> | null) || {};
 
+  // プラン名を解決して custom_fields.plan も同時に更新する
+  const { data: orgForPlan } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+  const plansSettingsForLabel = readPlansSettings(
+    orgForPlan?.settings as Record<string, unknown> | null
+  );
+  const planLabel = resolvePlanLabel(plansSettingsForLabel, planId);
+
   const now = new Date().toISOString();
   const subscription = {
     planId,
@@ -627,7 +698,12 @@ async function handleCustomerSubscriptionCheckoutComplete(
     .from('customers')
     .update({
       status: existing?.status === 'suspended' ? 'suspended' : 'active',
-      custom_fields: { ...currentCustomFields, subscription },
+      custom_fields: {
+        ...currentCustomFields,
+        subscription,
+        // プラン名が解決できた場合のみ更新（不明なら従来値を保持）
+        ...(planLabel ? { plan: planLabel } : {}),
+      },
       updated_at: now,
     })
     .eq('id', customerId)
@@ -714,10 +790,31 @@ async function handleCustomerSubscriptionChange(
     updatedAt: now,
   };
 
+  // active / trialing になった場合は custom_fields.plan もプラン名で同期する
+  let planLabel: string | null = null;
+  if (nextStatus === 'active' || nextStatus === 'trialing') {
+    const { data: orgForPlan } = await supabase
+      .from('organizations')
+      .select('settings')
+      .eq('id', organizationId)
+      .single();
+    const plansSettingsForLabel = readPlansSettings(
+      orgForPlan?.settings as Record<string, unknown> | null
+    );
+    planLabel = resolvePlanLabel(
+      plansSettingsForLabel,
+      (planId ?? (currentSub.planId as string | undefined)) || null
+    );
+  }
+
   await supabase
     .from('customers')
     .update({
-      custom_fields: { ...currentCustomFields, subscription: updatedSub },
+      custom_fields: {
+        ...currentCustomFields,
+        subscription: updatedSub,
+        ...(planLabel ? { plan: planLabel } : {}),
+      },
       updated_at: now,
     })
     .eq('id', customerId)
@@ -779,7 +876,12 @@ async function handleCustomerSubscriptionCanceled(
   await supabase
     .from('customers')
     .update({
-      custom_fields: { ...currentCustomFields, subscription: updatedSub },
+      custom_fields: {
+        ...currentCustomFields,
+        subscription: updatedSub,
+        // サブスク終了に伴い plan を free に戻す
+        plan: 'free',
+      },
       updated_at: now,
     })
     .eq('id', customerId)
