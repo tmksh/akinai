@@ -261,7 +261,14 @@ export default function ProductEditPage() {
           seoDescription: formData.seoDescription || undefined,
           featured: formData.featured,
           customFields: [
-            ...customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) })),
+            ...customFields.map(f => ({
+              key: f.key,
+              label: f.label,
+              // blob: URL は一時的なオブジェクトURLのため保存しない
+              value: (f.type === 'image_url' && f.value.startsWith('blob:')) ? '' : f.value,
+              type: f.type,
+              ...(f.options && { options: f.options }),
+            })),
             // スウォッチ設定をシステムキーとして保存（UI非表示）
             ...(swatchConfig.length > 0
               ? [{ key: '_swatch_config', label: '', value: JSON.stringify(swatchConfig.map(a => ({ name: a.name, items: a.items.map(i => ({ value: i.value, color: i.color, imageUrl: i.imageUrl })) }))), type: 'system' }]

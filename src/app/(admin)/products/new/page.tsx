@@ -240,7 +240,13 @@ export default function NewProductPage() {
           seoDescription: seoDescription || undefined,
           categoryIds: selectedCategories.length > 0 ? selectedCategories : undefined,
           customFields: [
-            ...(customFields.length > 0 ? customFields.map(f => ({ key: f.key, label: f.label, value: f.value, type: f.type, ...(f.options && { options: f.options }) })) : []),
+            ...(customFields.length > 0 ? customFields.map(f => ({
+              key: f.key,
+              label: f.label,
+              value: (f.type === 'image_url' && f.value.startsWith('blob:')) ? '' : f.value,
+              type: f.type,
+              ...(f.options && { options: f.options }),
+            })) : []),
             ...(swatchConfig.length > 0
               ? [{ key: '_swatch_config', label: '', value: JSON.stringify(swatchConfig.map(a => ({ name: a.name, items: a.items.map(i => ({ value: i.value, color: i.color })) }))), type: 'system' }]
               : []

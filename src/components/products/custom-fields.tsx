@@ -46,7 +46,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { uploadContentImage } from '@/lib/actions/storage';
+// uploadContentImage の代わりに /api/upload-image ルートを使う（server action の File 送信が不安定なため）
 
 export type CustomFieldType =
   | 'text'
@@ -773,23 +773,21 @@ function ImageUploadField({ value, onChange, disabled, organizationId }: ImageUp
       return;
     }
     setError(null);
-
-    // organizationId がない場合は objectURL でプレビューだけ
-    if (!organizationId) {
-      onChange(URL.createObjectURL(file));
-      return;
-    }
-
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const result = await uploadContentImage(organizationId, formData);
-      if (result.error) {
-        setError(result.error);
-      } else if (result.data?.url) {
-        onChange(result.data.url);
+      formData.append('bucket', 'contents');
+      formData.append('folder', organizationId ? `products/${organizationId}` : 'products');
+      const res = await fetch('/api/upload-image', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'アップロードに失敗しました');
+      } else {
+        onChange(data.url);
       }
+    } catch {
+      setError('アップロードに失敗しました');
     } finally {
       setIsUploading(false);
     }
