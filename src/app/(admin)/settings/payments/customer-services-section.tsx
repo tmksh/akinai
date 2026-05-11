@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Plus,
   Pencil,
@@ -11,6 +11,8 @@ import {
   Tag,
   Copy,
   Hash,
+  ImageUp,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -139,6 +141,8 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadServices = useCallback(async () => {
     setLoading(true);
@@ -214,6 +218,31 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
       ...prev,
       features: prev.features.length > 1 ? prev.features.filter((_, i) => i !== index) : prev.features,
     }));
+  };
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('bucket', 'contents');
+      fd.append('folder', 'services');
+      const res = await fetch('/api/upload-image', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || '画像のアップロードに失敗しました');
+        return;
+      }
+      setForm((p) => ({ ...p, imageUrl: data.url }));
+      toast.success('画像をアップロードしました');
+    } catch {
+      toast.error('画像のアップロードに失敗しました');
+    } finally {
+      setImageUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async () => {
@@ -485,16 +514,75 @@ export function CustomerServicesSection({ isStripeConnected }: CustomerServicesS
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="svc-image-url">サムネイル画像URL</Label>
-                <Input
-                  id="svc-image-url"
-                  type="url"
-                  value={form.imageUrl}
-                  onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
-                  placeholder="https://example.com/image.jpg"
+                <Label htmlFor="svc-image-url">サムネイル画像</Label>
+
+                {/* プレビュー */}
+                {form.imageUrl && (
+                  <div className="relative w-full aspect-video rounded-lg overflow-hidden border bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={form.imageUrl}
+                      alt="プレビュー"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, imageUrl: '' }))}
+                      className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5 transition-colors"
+                      title="画像をクリア"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* ファイル選択ボタン */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleImageFileChange}
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={imageUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {imageUploading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />アップロード中...</>
+                  ) : (
+                    <><ImageUp className="mr-2 h-4 w-4" />画像を選択してアップロード</>
+                  )}
+                </Button>
+
+                {/* URL直接入力 */}
+                <div className="relative">
+                  <Input
+                    id="svc-image-url"
+                    type="url"
+                    value={form.imageUrl}
+                    onChange={(e) => setForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                    placeholder="または画像URLを直接入力 https://..."
+                    className="pr-8 text-xs"
+                  />
+                  {form.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, imageUrl: '' }))}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
                 <p className="text-[11px] text-muted-foreground">
-                  公開API経由で外部サイトに表示する画像URL（任意）
+                  公開API経由で外部サイトに表示される画像（任意）。JPG / PNG / WEBP / GIF・10MB以下
                 </p>
               </div>
 

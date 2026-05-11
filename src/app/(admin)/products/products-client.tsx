@@ -509,34 +509,24 @@ export default function ProductsClient({
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-sm text-muted-foreground">
-            {(debouncedSearch || hasActiveFilter) ? (
-              <>
-                <span className="font-semibold text-foreground">{filteredProducts.length.toLocaleString()}</span>
-                {' / '}
-                {products.length.toLocaleString()} 件を表示中（絞り込み適用）
-              </>
-            ) : (
-              <>
-                全 <span className="font-semibold text-foreground">{products.length.toLocaleString()}</span> 件
-                {totalProducts > products.length && (
-                  <span className="ml-1 text-amber-600">
-                    （DB上 {totalProducts.toLocaleString()} 件のうち最新 {products.length.toLocaleString()} 件のみ取得）
-                  </span>
-                )}
-              </>
-            )}
-          </p>
-          {filteredProducts.length > 0 && (
-            <button
-              onClick={toggleSelectAllFiltered}
-              className="text-xs text-sky-700 hover:text-sky-900 underline"
-            >
-              表示中の{filteredProducts.length}件をすべて選択
-            </button>
+        <p className="text-sm text-muted-foreground">
+          {(debouncedSearch || hasActiveFilter) ? (
+            <>
+              <span className="font-semibold text-foreground">{filteredProducts.length.toLocaleString()}</span>
+              {' / '}
+              {products.length.toLocaleString()} 件を表示中（絞り込み適用）
+            </>
+          ) : (
+            <>
+              全 <span className="font-semibold text-foreground">{products.length.toLocaleString()}</span> 件
+              {totalProducts > products.length && (
+                <span className="ml-1 text-amber-600">
+                  （DB上 {totalProducts.toLocaleString()} 件のうち最新 {products.length.toLocaleString()} 件のみ取得）
+                </span>
+              )}
+            </>
           )}
-        </div>
+        </p>
       )}
 
       {/* ── 商品グリッド ── */}
@@ -593,7 +583,7 @@ export default function ProductsClient({
                 {/* 選択チェックボックス */}
                 <div
                   className={`absolute top-2 left-2 z-10 transition-opacity ${
-                    isSelected || selectedCount > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    isSelected ? 'opacity-100' : 'opacity-30 group-hover:opacity-100'
                   }`}
                 >
                   <div className="bg-white/95 backdrop-blur-sm rounded-md p-1 shadow-sm border border-white/80">
