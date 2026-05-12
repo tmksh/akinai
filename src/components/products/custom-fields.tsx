@@ -230,7 +230,7 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
   };
 
   const renderValueInput = (field: CustomField) => {
-    const config = fieldTypeConfig[field.type];
+    const config = fieldTypeConfig[field.type] ?? fieldTypeConfig['text'];
 
     switch (field.type) {
       case 'boolean':
@@ -547,7 +547,7 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
         {fields.length > 0 ? (
           <div className="space-y-2">
             {fields.map((field) => {
-              const config = fieldTypeConfig[field.type];
+              const config = fieldTypeConfig[field.type] ?? fieldTypeConfig['text'];
               const Icon = config.icon;
               return (
                 <div

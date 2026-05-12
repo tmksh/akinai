@@ -192,7 +192,6 @@ export default function ContentsClient({ initialContents, stats, organizationId,
   const renderContentCard = (content: ContentData) => {
     const typeInfo = getTypeConfig(content.type);
     const TypeIcon = typeInfo.icon;
-    const statusInfo = statusConfig[content.status];
 
     const hasImage = !!content.featuredImage;
 
@@ -270,7 +269,7 @@ export default function ContentsClient({ initialContents, stats, organizationId,
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
           border: '1px solid rgba(255,255,255,0.8)',
-          boxShadow: '0 2px_20px rgba(100,120,160,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
+          boxShadow: '0 2px 20px rgba(100,120,160,0.08), inset 0 1px 0 rgba(255,255,255,0.95)',
         }}
       >
         {/* サムネイル */}

@@ -189,7 +189,7 @@ export default function EditContentPage() {
     };
 
     fetchContent();
-  }, [organization?.id, contentId, router, toast]);
+  }, [organization?.id, contentId, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // プレビュー用のデータ
   const previewData = useMemo(() => {
