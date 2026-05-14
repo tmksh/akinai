@@ -150,6 +150,10 @@ export async function POST(request: NextRequest) {
 
   const extraMetadata = sanitizeMetadata(body.metadata);
 
+  // 同一顧客・同一プランへの重複セッション発行を防ぐ冪等キー
+  // 24時間以内に同じキーで呼ばれた場合、Stripe は既存セッションをそのまま返す
+  const idempotencyKey = `sub-checkout-${organizationId}-${customer.id}-${plan.id}`;
+
   let session: Stripe.Checkout.Session;
   try {
     session = await stripe.checkout.sessions.create(
@@ -173,7 +177,7 @@ export async function POST(request: NextRequest) {
           },
         },
       },
-      { stripeAccount: org.stripe_account_id }
+      { stripeAccount: org.stripe_account_id, idempotencyKey }
     );
   } catch (err) {
     console.error('Failed to create checkout session:', err);

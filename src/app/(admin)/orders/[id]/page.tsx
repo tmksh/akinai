@@ -885,7 +885,7 @@ export default function OrderDetailPage() {
           <DialogHeader>
             <DialogTitle>返金処理</DialogTitle>
             <DialogDescription>
-              {(order as unknown as { stripe_payment_intent_id?: string | null }).stripe_payment_intent_id
+              {((order as unknown as { stripe_payment_intent_id?: string | null }).stripe_payment_intent_id || order.payment_method === 'subscription')
                 ? 'Stripe で返金処理を実行し、注文ステータスを返金済みに更新します。'
                 : '注文ステータスを返金済みに更新します（銀行振込・現金の場合は手動で返金してください）。'}
             </DialogDescription>
@@ -895,7 +895,7 @@ export default function OrderDetailPage() {
               <span className="text-sm text-muted-foreground">返金額</span>
               <span className="font-bold text-lg">{formatCurrency(order.total)}</span>
             </div>
-            {(order as unknown as { stripe_payment_intent_id?: string | null }).stripe_payment_intent_id ? (
+            {((order as unknown as { stripe_payment_intent_id?: string | null }).stripe_payment_intent_id || order.payment_method === 'subscription') ? (
               <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-lg p-3">
                 <CheckCircle className="h-4 w-4 flex-shrink-0" />
                 Stripe で自動返金されます（代理店のコミッションも自動調整）

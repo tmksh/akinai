@@ -337,7 +337,7 @@ export async function POST(request: NextRequest) {
           sku: v.sku,
           price: v.price,
           compare_at_price: v.compareAtPrice || null,
-          stock: v.stock ?? 0,
+          stock: v.stock ?? 1,
           options: v.options || {},
         }))
       )

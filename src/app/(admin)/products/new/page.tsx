@@ -88,7 +88,7 @@ export default function NewProductPage() {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [variants, setVariants] = useState<ProductVariant[]>([
-    { id: '1', name: 'デフォルト', sku: '', price: 0, stock: 0 },
+    { id: '1', name: 'デフォルト', sku: '', price: 0, stock: 1 },
   ]);
   const [swatchConfig, setSwatchConfig] = useState<MatrixAxis[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>(() => {
