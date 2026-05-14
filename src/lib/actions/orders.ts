@@ -800,6 +800,57 @@ export async function refundOrder(
             return { data: null, error: `Stripe返金エラー: ${msg}` };
           }
         }
+
+        // サブスクリプション決済の場合はサブスクも即時キャンセルし、顧客ステータスを更新
+        if (order.payment_method === 'subscription' && order.notes) {
+          const match = order.notes.match(/\(sub_[A-Za-z0-9]+\)/);
+          const subId = match ? match[0].slice(1, -1) : null;
+          if (subId) {
+            // Stripe サブスクを即時キャンセル
+            try {
+              await stripe.subscriptions.cancel(
+                subId,
+                { stripeAccount: org.stripe_account_id }
+              );
+              console.log(`[refundOrder] Stripe subscription canceled: ${subId}`);
+            } catch (err) {
+              // キャンセル失敗はログのみ（すでにキャンセル済みの場合もある）
+              console.warn('[refundOrder] Failed to cancel subscription:', err);
+            }
+
+            // 顧客の subscription.status を canceled・plan を free に更新
+            if (order.customer_id) {
+              const { data: customerData } = await supabase
+                .from('customers')
+                .select('custom_fields')
+                .eq('id', order.customer_id)
+                .single();
+
+              if (customerData) {
+                const currentCf = (customerData.custom_fields as Record<string, unknown>) || {};
+                const currentSub = (currentCf.subscription as Record<string, unknown>) || {};
+                await supabase
+                  .from('customers')
+                  .update({
+                    custom_fields: {
+                      ...currentCf,
+                      subscription: {
+                        ...currentSub,
+                        status: 'canceled',
+                        cancelAtPeriodEnd: false,
+                        updatedAt: new Date().toISOString(),
+                      },
+                      plan: 'free',
+                    },
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', order.customer_id);
+
+                console.log(`[refundOrder] Customer subscription status reset to free: ${order.customer_id}`);
+              }
+            }
+          }
+        }
       }
     }
 
