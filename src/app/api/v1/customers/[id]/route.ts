@@ -268,7 +268,7 @@ export async function DELETE(
 
     if (org?.stripe_account_id) {
       try {
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-04-30.basil' });
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
         const stripeOpts = { stripeAccount: org.stripe_account_id as string };
         // すでにキャンセル済みの場合は無視
         const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId, stripeOpts);
