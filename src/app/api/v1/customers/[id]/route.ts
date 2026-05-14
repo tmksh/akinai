@@ -12,6 +12,7 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import Stripe from 'stripe';
 import { validateApiKey, apiError, apiSuccess, handleOptions, corsHeaders } from '@/lib/api/auth';
 import { verifyCustomerToken } from '@/lib/api/customer-auth';
 
@@ -241,16 +242,44 @@ export async function DELETE(
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   const organizationId = apiKeyResult.organizationId!;
 
-  // 対象テナントの顧客か確認
+  // 対象テナントの顧客か確認（サブスクリプション情報も取得）
   const { data: existing, error: fetchError } = await supabase
     .from('customers')
-    .select('id')
+    .select('id, custom_fields')
     .eq('id', id)
     .eq('organization_id', organizationId)
     .single();
 
   if (fetchError || !existing) {
     return apiError('Customer not found', 404);
+  }
+
+  // Stripe サブスクリプションが存在する場合はキャンセル
+  const cf = (existing.custom_fields as Record<string, unknown>) || {};
+  const sub = cf.subscription as Record<string, unknown> | undefined;
+  const stripeSubscriptionId = sub?.stripeSubscriptionId as string | undefined;
+
+  if (stripeSubscriptionId) {
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('stripe_account_id')
+      .eq('id', organizationId)
+      .single();
+
+    if (org?.stripe_account_id) {
+      try {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-04-30.basil' });
+        const stripeOpts = { stripeAccount: org.stripe_account_id as string };
+        // すでにキャンセル済みの場合は無視
+        const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId, stripeOpts);
+        if (subscription.status !== 'canceled') {
+          await stripe.subscriptions.cancel(stripeSubscriptionId, stripeOpts);
+        }
+      } catch (err) {
+        console.error('Stripe subscription cancel failed on customer delete:', err);
+        // Stripe エラーはログのみ。削除処理は続行する。
+      }
+    }
   }
 
   // 関連住所を先に削除（FK 制約がある場合に備えて）
