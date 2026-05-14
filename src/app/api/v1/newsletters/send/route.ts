@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createHmac } from 'crypto';
 import {
   validateApiKey,
   apiError,
@@ -9,6 +10,19 @@ import {
   withApiLogging,
 } from '@/lib/api/auth';
 import { sendEmail } from '@/lib/email';
+
+/** 受信者ごとのワンクリック解除トークンを生成する */
+function generateUnsubscribeToken(organizationId: string, customerId: string): string {
+  const secret = process.env.UNSUBSCRIBE_TOKEN_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const payload = Buffer.from(`${organizationId}:${customerId}`).toString('base64url');
+  const sig = createHmac('sha256', secret).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
+
+/** アプリのベースURLを取得 */
+function getBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://akinai-dx.com';
+}
 
 export function OPTIONS() {
   return handleOptions();
@@ -97,7 +111,7 @@ export async function POST(request: NextRequest) {
     // 明示除外IDをSetに変換して高速ルックアップ
     const excludeSet = new Set<string>(Array.isArray(excludeCustomerIds) ? excludeCustomerIds : []);
 
-    const recipientMap = new Map<string, { email: string; name: string }>();
+    const recipientMap = new Map<string, { id: string; email: string; name: string }>();
     for (const fav of favorites || []) {
       const c = ((fav as unknown) as { customers: { id: string; email: string; name: string; status: string; role: string; custom_fields?: Record<string, unknown> } }).customers;
       if (!c?.email) continue;
@@ -108,7 +122,7 @@ export async function POST(request: NextRequest) {
       // customFields.newsletter_unsubscribed === true の顧客を除外
       const cf = c.custom_fields as Record<string, unknown> | null | undefined;
       if (cf?.newsletter_unsubscribed === true || cf?.newsletter_unsubscribed === 'true') continue;
-      recipientMap.set(c.id, { email: c.email, name: c.name });
+      recipientMap.set(c.id, { id: c.id, email: c.email, name: c.name });
     }
     const recipients = Array.from(recipientMap.values());
 
@@ -160,7 +174,7 @@ export async function POST(request: NextRequest) {
     let sentCount = 0;
     const errors: string[] = [];
 
-    // image・productName をHTMLに注入
+    // image・productName をHTMLに注入（受信者共通部分）
     let baseHtml = html || `<p>${(text || '').replace(/\n/g, '<br>')}</p>`;
     if (productName) {
       baseHtml = baseHtml.replace(/\{\{productName\}\}/g, productName);
@@ -168,9 +182,19 @@ export async function POST(request: NextRequest) {
     const imageBlock = image
       ? `<p style="text-align:center;margin:16px 0;"><img src="${image}" alt="${productName ?? ''}" style="max-width:100%;height:auto;border-radius:8px;" /></p>`
       : '';
-    const emailHtml = imageBlock ? `${imageBlock}${baseHtml}` : baseHtml;
+    const sharedHtml = imageBlock ? `${imageBlock}${baseHtml}` : baseHtml;
+
+    const baseUrl = getBaseUrl();
 
     for (const recipient of recipients) {
+      // 受信者ごとに {{unsubscribe_url}} / {{name}} を展開
+      const token = generateUnsubscribeToken(auth.organizationId!, recipient.id);
+      const unsubscribeUrl = `${baseUrl}/api/v1/newsletters/unsubscribe?token=${token}`;
+
+      const emailHtml = sharedHtml
+        .replace(/\{\{unsubscribe_url\}\}/g, unsubscribeUrl)
+        .replace(/\{\{name\}\}/g, recipient.name || '');
+
       const { success, error: emailErr } = await sendEmail({
         to: recipient.email,
         subject,
