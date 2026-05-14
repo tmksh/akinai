@@ -6,6 +6,7 @@
  *
  * POST   : Checkout Session を作成（{ planId, successUrl?, cancelUrl? }）
  * GET    : 自分の契約状態を取得
+ * PATCH  : プラン変更（{ planId }）— Stripe 上で即時切り替え・日割り計算あり
  * DELETE : 期間終了時に解約（cancel_at_period_end）
  */
 import { NextRequest, NextResponse } from 'next/server';
@@ -201,6 +202,145 @@ export async function GET(request: NextRequest) {
           targetRole: plan.targetRole,
         }
       : null,
+  });
+}
+
+// =====================================================
+// PATCH — プラン変更（即時切り替え・日割り精算）
+// =====================================================
+export async function PATCH(request: NextRequest) {
+  const verify = await verifyCustomerToken(request);
+  if (!verify.success) return jsonError(verify.error, verify.status);
+
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeSecretKey) return jsonError('Stripe is not configured', 500);
+
+  let body: { planId?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return jsonError('Invalid JSON body', 400);
+  }
+  if (!body.planId) return jsonError('planId is required', 400);
+
+  const supabase = getAdminSupabase();
+
+  // 組織情報とプラン定義を取得
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('id, settings, stripe_account_id')
+    .eq('id', verify.payload.org)
+    .single();
+
+  if (!org) return jsonError('Organization not found', 404);
+  if (!org.stripe_account_id) return jsonError('Stripe is not connected', 400);
+
+  const plansSettings = readPlansSettings(org.settings as Record<string, unknown> | null);
+  if (!plansSettings.enabled) return jsonError('Customer subscriptions are disabled', 400);
+
+  const newPlan = plansSettings.plans.find((p) => p.id === body.planId);
+  if (!newPlan) return jsonError('Plan not found', 404);
+  if (!newPlan.isActive) return jsonError('Plan is not available', 400);
+
+  // 顧客取得
+  const { data: customer } = await supabase
+    .from('customers')
+    .select('id, email, name, role, custom_fields')
+    .eq('id', verify.payload.sub)
+    .eq('organization_id', verify.payload.org)
+    .single();
+
+  if (!customer) return jsonError('Customer not found', 404);
+
+  // role が新プランの targetRole と一致するか確認
+  if (customer.role !== newPlan.targetRole) {
+    return jsonError('Plan is not available for your account type', 403);
+  }
+
+  // 現在の契約を確認
+  const existingSub = readSubscriptionInfo(customer.custom_fields as Record<string, unknown> | null);
+  if (!existingSub?.stripeSubscriptionId) {
+    return jsonError('No active subscription to change', 404);
+  }
+  if (existingSub.status !== 'active' && existingSub.status !== 'trialing') {
+    return jsonError('Subscription is not active', 409);
+  }
+  if (existingSub.planId === body.planId) {
+    return jsonError('Already on this plan', 409);
+  }
+
+  const stripe = new Stripe(stripeSecretKey);
+
+  // 現在の Stripe Subscription を取得して item ID を確認
+  let stripeSub: Stripe.Subscription;
+  try {
+    stripeSub = await stripe.subscriptions.retrieve(
+      existingSub.stripeSubscriptionId,
+      { stripeAccount: org.stripe_account_id }
+    );
+  } catch (err) {
+    console.error('Failed to retrieve subscription:', err);
+    return jsonError('Failed to retrieve current subscription', 500);
+  }
+
+  const currentItemId = stripeSub.items.data[0]?.id;
+  if (!currentItemId) return jsonError('Subscription item not found', 500);
+
+  // Stripe でプランを即時変更（日割り計算あり）
+  let updatedSub: Stripe.Subscription;
+  try {
+    updatedSub = await stripe.subscriptions.update(
+      existingSub.stripeSubscriptionId,
+      {
+        items: [{ id: currentItemId, price: newPlan.stripePriceId }],
+        proration_behavior: 'create_prorations',
+        metadata: {
+          akinai_organization_id: verify.payload.org,
+          akinai_customer_id: customer.id,
+          akinai_plan_id: newPlan.id,
+        },
+      },
+      { stripeAccount: org.stripe_account_id }
+    );
+  } catch (err) {
+    console.error('Failed to update subscription:', err);
+    const msg = err instanceof Error ? err.message : 'Stripe plan change failed';
+    return jsonError(`Failed to change plan: ${msg}`, 500);
+  }
+
+  // Akinai 顧客の custom_fields を新プランで更新
+  const now = new Date().toISOString();
+  const currentCustomFields = (customer.custom_fields as Record<string, unknown>) || {};
+  const updatedSubscription = {
+    ...existingSub,
+    planId: newPlan.id,
+    status: updatedSub.status,
+    updatedAt: now,
+  };
+
+  await supabase
+    .from('customers')
+    .update({
+      custom_fields: {
+        ...currentCustomFields,
+        subscription: updatedSubscription,
+        plan: newPlan.name,
+      },
+      updated_at: now,
+    })
+    .eq('id', customer.id)
+    .eq('organization_id', verify.payload.org);
+
+  console.log(
+    `[subscription PATCH] plan changed: customer=${customer.id}, from=${existingSub.planId}, to=${newPlan.id}`
+  );
+
+  return jsonSuccess({
+    success: true,
+    planId: newPlan.id,
+    planName: newPlan.name,
+    subscriptionId: existingSub.stripeSubscriptionId,
+    status: updatedSub.status,
   });
 }
 
