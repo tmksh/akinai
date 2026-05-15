@@ -334,41 +334,7 @@ async function routeInvoicePaymentSucceeded(
     .eq('organization_id', organizationId)
     .single();
 
-  // 同じ invoice.id で重複作成しないようチェック
-  const { data: existingByInvoice } = await supabase
-    .from('orders')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .eq('customer_id', customerId)
-    .ilike('notes', `%${invoice.id}%`)
-    .limit(1);
-  if (existingByInvoice && existingByInvoice.length > 0) {
-    console.log('[Webhook] invoice already recorded as order, skip');
-    return true;
-  }
-
-  // 同サブスクの orders がまだ無い場合は「初回」扱い → ensureSubscriptionOrder で作る
-  const { data: existingForSub } = await supabase
-    .from('orders')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .eq('customer_id', customerId)
-    .ilike('notes', `%${subscriptionId}%`)
-    .limit(1);
-
-  if (!existingForSub || existingForSub.length === 0) {
-    await ensureSubscriptionOrder(supabase, {
-      organizationId,
-      customerId,
-      customerName: (customer?.name as string | null) || '',
-      customerEmail: (customer?.email as string | null) || '',
-      planId,
-      stripeSubscriptionId: subscriptionId,
-    });
-    return true;
-  }
-
-  // 継続課金: テナント設定で orders 作成が有効なら新しいレコードを作る
+  // テナント設定を確認
   const { data: orgData } = await supabase
     .from('organizations')
     .select('settings')
@@ -377,10 +343,27 @@ async function routeInvoicePaymentSucceeded(
   const plansSettings = readPlansSettings(orgData?.settings as Record<string, unknown> | null);
   if (!plansSettings.subscriptionCreatesOrder) return true;
 
+  // ── 冪等チェック: 同じ invoice.id を notes に含む注文が既にあればスキップ ──
+  // invoice.id は Stripe 上でユニークなので、これで初回・継続どちらも重複防止できる
+  const { data: existingByInvoice } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .ilike('notes', `%${invoice.id}%`)
+    .limit(1);
+  if (existingByInvoice && existingByInvoice.length > 0) {
+    console.log('[Webhook] invoice already recorded as order, skip:', invoice.id);
+    return true;
+  }
+
   const plan = plansSettings.plans.find((p) => p.id === planId);
-  // invoice の amount_paid を優先する（プラン金額が変わっていても請求実額を記録できるため）
+  // invoice.amount_paid を優先（プラン変更・日割り等で実際の請求額が異なる場合に対応）
   const amount = invoice.amount_paid ?? plan?.amount ?? 0;
   const planName = plan?.name ?? 'サブスクリプション';
+
+  // 初回か継続かをノート文言で区別（任意）
+  const isFirstInvoice = !invoice.billing_reason || invoice.billing_reason === 'subscription_create';
+  const notePrefix = isFirstInvoice ? 'サブスクリプション初回' : 'サブスクリプション継続課金';
 
   const orderNumber = generateOrderNumber();
   const { data: newOrder, error: orderError } = await supabase
@@ -398,16 +381,15 @@ async function routeInvoicePaymentSucceeded(
       status: 'confirmed',
       payment_status: 'paid',
       payment_method: 'subscription',
-      // orders.shipping_address は NOT NULL なので空オブジェクトを入れる
       shipping_address: {},
-      notes: `サブスクリプション継続課金: ${planName} (${subscriptionId} / ${invoice.id})`,
+      notes: `${notePrefix}: ${planName} (${subscriptionId} / ${invoice.id})`,
       stripe_payment_intent_id: null,
     })
     .select('id')
     .single();
 
   if (orderError || !newOrder) {
-    console.error('[Webhook] Failed to create renewal order:', orderError);
+    console.error('[Webhook] Failed to create subscription order:', orderError);
     return true;
   }
 
@@ -423,14 +405,13 @@ async function routeInvoicePaymentSucceeded(
     total_price: amount,
   });
 
-  // customers.total_orders / total_spent を再集計して同期
   await recalcCustomerOrderStats(supabase, organizationId, customerId);
 
   if (plansSettings.subscriptionSendsEmail) {
     await sendOrderEmails(supabase, newOrder.id, organizationId);
   }
 
-  console.log(`[Webhook] Subscription renewal order created: ${newOrder.id}`);
+  console.log(`[Webhook] Subscription order created (invoice=${invoice.id}, first=${isFirstInvoice}): ${newOrder.id}`);
   return true;
 }
 
@@ -709,15 +690,7 @@ async function handleCustomerSubscriptionCheckoutComplete(
     .eq('id', customerId)
     .eq('organization_id', organizationId);
 
-  // 共通ヘルパーで冪等に orders を確保（重複作成しない）
-  await ensureSubscriptionOrder(supabase, {
-    organizationId,
-    customerId,
-    customerName: (existing?.name as string | null) || '',
-    customerEmail: (existing?.email as string | null) || '',
-    planId,
-    stripeSubscriptionId: session.subscription as string,
-  });
+  // 注文作成は invoice.payment_succeeded に一本化しているため、ここでは行わない
 }
 
 /**
@@ -820,18 +793,7 @@ async function handleCustomerSubscriptionChange(
     .eq('id', customerId)
     .eq('organization_id', organizationId);
 
-  // ── 防御 2: active/trialing になった時点で orders を確保 ──
-  // checkout.session.completed が失敗 or 未着のケースに備えて、ここでも orders を作る。
-  if (nextStatus === 'active' || nextStatus === 'trialing') {
-    await ensureSubscriptionOrder(supabase, {
-      organizationId,
-      customerId,
-      customerName: (existing?.name as string | null) || '',
-      customerEmail: (existing?.email as string | null) || '',
-      planId: (planId ?? currentSub.planId) as string | undefined,
-      stripeSubscriptionId: subscription.id,
-    });
-  }
+  // 注文作成は invoice.payment_succeeded に一本化しているため、ここでは行わない
 }
 
 /**
