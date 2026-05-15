@@ -59,16 +59,12 @@ import type { ContentData } from '@/lib/actions/contents';
 import { deleteContent, archiveContent, duplicateContent, publishContent } from '@/lib/actions/contents';
 import { toast } from 'sonner';
 import { contentTypeConfig, getContentTypeConfig } from '@/lib/content-types';
+import { useOrganization } from '@/components/providers/organization-provider';
 
 const contentTabs = [
   { label: '一覧', href: '/contents', exact: true },
 ];
 
-// タイプ設定を取得（共通設定から）
-const getTypeConfig = (type: string) => {
-  const config = getContentTypeConfig(type);
-  return { label: config.label, icon: config.icon };
-};
 
 // ステータス設定
 const statusConfig: Record<ContentStatus, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
@@ -102,6 +98,7 @@ interface ContentsClientProps {
 }
 
 export default function ContentsClient({ initialContents, stats, organizationId, enabledContentTypes }: ContentsClientProps) {
+  const { organization } = useOrganization();
   const [contents, setContents] = useState<ContentData[]>(initialContents);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -114,6 +111,13 @@ export default function ContentsClient({ initialContents, stats, organizationId,
   const newContentHref = activeTab !== 'all'
     ? `/contents/new?type=${encodeURIComponent(activeTab)}`
     : '/contents/new';
+
+  // カスタムタイプのラベルを含むタイプ設定取得
+  const getTypeConfig = (type: string) => {
+    const config = getContentTypeConfig(type);
+    const customLabel = organization?.customContentTypes?.find((t) => t.key === type)?.label;
+    return { label: customLabel ?? config.label, icon: config.icon };
+  };
 
   // 設定で有効にしたタイプのみ表示（DBに存在しても無効タイプはタブに出さない）
   const allDisplayTypes = enabledContentTypes;

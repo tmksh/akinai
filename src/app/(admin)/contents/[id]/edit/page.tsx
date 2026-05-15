@@ -394,7 +394,7 @@ export default function EditContentPage() {
                   <SelectContent>
                     {[...new Set([...enabledContentTypes, ...(contentType ? [contentType] : [])])].map((key) => {
                       const config = contentTypeConfig[key];
-                      const label = config?.label ?? organization?.customContentTypes.find((t) => t.key === key)?.label ?? key;
+                      const label = config?.label ?? organization?.customContentTypes?.find((t) => t.key === key)?.label ?? key;
                       return <SelectItem key={key} value={key}>{label}</SelectItem>;
                     })}
                   </SelectContent>
@@ -494,7 +494,7 @@ export default function EditContentPage() {
                     <SelectContent>
                       {[...new Set([...enabledContentTypes, ...(contentType ? [contentType] : [])])].map((key) => {
                         const config = contentTypeConfig[key];
-                        const label = config?.label ?? organization?.customContentTypes.find((t) => t.key === key)?.label ?? key;
+                        const label = config?.label ?? organization?.customContentTypes?.find((t) => t.key === key)?.label ?? key;
                         return <SelectItem key={key} value={key}>{label}</SelectItem>;
                       })}
                     </SelectContent>
@@ -633,7 +633,7 @@ export default function EditContentPage() {
                     <SelectContent>
                       {[...new Set([...enabledContentTypes, ...(contentType ? [contentType] : [])])].map((key) => {
                         const config = contentTypeConfig[key];
-                        const label = config?.label ?? organization?.customContentTypes.find((t) => t.key === key)?.label ?? key;
+                        const label = config?.label ?? organization?.customContentTypes?.find((t) => t.key === key)?.label ?? key;
                         return <SelectItem key={key} value={key}>{label}</SelectItem>;
                       })}
                     </SelectContent>

@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import {
   ArrowLeft, Save, Plus, Trash2, Type, Hash, ToggleLeft, Calendar, Link2,
   Palette, Code, Sparkles, AlignLeft, Mail, Star, ImageIcon, ListOrdered,
-  Braces, ListFilter, ListChecks, Phone, Info, Copy, Download,
+  Braces, ListFilter, ListChecks, Phone, Info, Copy, Download, Puzzle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -331,8 +331,13 @@ export default function ContentSchemaSettingsPage() {
     });
   }, [organization?.id]);
 
-  // 有効なコンテンツタイプのみ表示
-  const contentTypes = Object.entries(contentTypeConfig).filter(([type]) => enabledTypes.includes(type));
+  // 有効なコンテンツタイプ（標準 + カスタム）を表示
+  const standardTypes: [string, { label: string; icon: React.ElementType }][] = Object.entries(contentTypeConfig)
+    .filter(([type]) => enabledTypes.includes(type));
+  const customTypeEntries: [string, { label: string; icon: React.ElementType }][] = (organization?.customContentTypes ?? [])
+    .filter(({ key }) => enabledTypes.includes(key))
+    .map(({ key, label }) => [key, { label, icon: Puzzle }]);
+  const contentTypes = [...standardTypes, ...customTypeEntries];
   const [activeTab, setActiveTab] = useState('');
 
   const handleSave = () => {

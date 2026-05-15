@@ -289,7 +289,7 @@ export default function NewContentPage() {
                   <SelectContent>
                     {enabledContentTypes.map((key) => {
                       const config = contentTypeConfig[key];
-                      const label = config?.label ?? organization?.customContentTypes.find((t) => t.key === key)?.label ?? key;
+                      const label = config?.label ?? organization?.customContentTypes?.find((t) => t.key === key)?.label ?? key;
                       return <SelectItem key={key} value={key}>{label}</SelectItem>;
                     })}
                   </SelectContent>
