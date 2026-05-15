@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
     const tag = searchParams.get('tag');
     const search = searchParams.get('search');
     const type = searchParams.get('type');
+    const slug = searchParams.get('slug');
+    const statusParam = searchParams.get('status'); // 'published' | 'draft' | 'all'
     const sort = searchParams.get('sort') || 'published_at';
     const order = searchParams.get('order') || 'desc';
 
@@ -42,13 +44,23 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('contents')
       .select('*', { count: 'exact' })
-      .eq('organization_id', auth.organizationId)
-      .eq('status', 'published')
-      .not('published_at', 'is', null);
+      .eq('organization_id', auth.organizationId);
+
+    // ステータスフィルター（デフォルトは published のみ）
+    if (!statusParam || statusParam === 'published') {
+      query = query.eq('status', 'published').not('published_at', 'is', null);
+    } else if (statusParam !== 'all') {
+      query = query.eq('status', statusParam);
+    }
 
     // タイプフィルター
     if (type) {
       query = query.eq('type', type);
+    }
+
+    // slug フィルター（完全一致）
+    if (slug) {
+      query = query.eq('slug', slug);
     }
 
     // タグフィルター
@@ -200,6 +212,18 @@ export async function POST(request: NextRequest) {
 
     if (!type || !title || !slug) {
       return apiError('type, title and slug are required', 400);
+    }
+
+    // 有効なタイプか確認（標準タイプ＋カスタムタイプ）
+    const { data: orgForType } = await supabase
+      .from('organizations')
+      .select('settings')
+      .eq('id', auth.organizationId!)
+      .single();
+    const orgSettings = (orgForType?.settings as Record<string, unknown>) || {};
+    const enabledTypes = (orgSettings.enabled_content_types as string[]) || [];
+    if (enabledTypes.length > 0 && !enabledTypes.includes(type)) {
+      return apiError(`Type "${type}" is not enabled for this organization`, 400);
     }
 
     // slug の重複チェック

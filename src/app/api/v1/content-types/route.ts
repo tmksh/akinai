@@ -49,13 +49,13 @@ export async function GET(request: NextRequest) {
 
     const settings = (org.settings as Record<string, unknown>) || {};
     const enabled = (settings.enabled_content_types as string[] | undefined) || [];
+    const customContentTypes = (settings.custom_content_types as { key: string; label: string }[] | undefined) || [];
+    const customTypeMap = Object.fromEntries(customContentTypes.map((t) => [t.key, t.label]));
 
-    const types = enabled
-      .filter((value) => contentTypeConfig[value])
-      .map((value) => ({
-        value,
-        label: contentTypeConfig[value].label,
-      }));
+    const types = enabled.map((value) => ({
+      value,
+      label: contentTypeConfig[value]?.label ?? customTypeMap[value] ?? value,
+    }));
 
     const response = apiSuccess({ types }, undefined, auth.rateLimit);
     Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
