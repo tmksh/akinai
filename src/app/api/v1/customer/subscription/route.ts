@@ -286,14 +286,16 @@ export async function PATCH(request: NextRequest) {
   const currentItemId = stripeSub.items.data[0]?.id;
   if (!currentItemId) return jsonError('Subscription item not found', 500);
 
-  // Stripe でプランを即時変更（日割り計算あり）
+  // Stripe でプランを即時変更し、差額インボイスを即時発行・課金する
+  // always_invoice = 変更と同時にインボイスを作成して即時決済を試みる
   let updatedSub: Stripe.Subscription;
   try {
     updatedSub = await stripe.subscriptions.update(
       existingSub.stripeSubscriptionId,
       {
         items: [{ id: currentItemId, price: newPlan.stripePriceId }],
-        proration_behavior: 'create_prorations',
+        proration_behavior: 'always_invoice',
+        payment_behavior: 'error_if_incomplete',
         metadata: {
           akinai_organization_id: verify.payload.org,
           akinai_customer_id: customer.id,
@@ -304,6 +306,10 @@ export async function PATCH(request: NextRequest) {
     );
   } catch (err) {
     console.error('Failed to update subscription:', err);
+    // Stripe の StripeCardError などは payment failure として返す
+    if (err instanceof Stripe.errors.StripeError && err.type === 'StripeCardError') {
+      return jsonError(`Payment failed: ${err.message}`, 402);
+    }
     const msg = err instanceof Error ? err.message : 'Stripe plan change failed';
     return jsonError(`Failed to change plan: ${msg}`, 500);
   }
@@ -335,12 +341,27 @@ export async function PATCH(request: NextRequest) {
     `[subscription PATCH] plan changed: customer=${customer.id}, from=${existingSub.planId}, to=${newPlan.id}`
   );
 
+  // 最新インボイスの状態を取得して返す（即時課金の確認用）
+  let latestInvoiceStatus: string | null = null;
+  if (updatedSub.latest_invoice) {
+    const invoiceId = typeof updatedSub.latest_invoice === 'string'
+      ? updatedSub.latest_invoice
+      : updatedSub.latest_invoice.id;
+    try {
+      const invoice = await stripe.invoices.retrieve(invoiceId, { stripeAccount: org.stripe_account_id });
+      latestInvoiceStatus = invoice.status;
+    } catch {
+      // インボイス取得失敗はログのみ
+    }
+  }
+
   return jsonSuccess({
     success: true,
     planId: newPlan.id,
     planName: newPlan.name,
     subscriptionId: existingSub.stripeSubscriptionId,
     status: updatedSub.status,
+    latestInvoiceStatus,
   });
 }
 
