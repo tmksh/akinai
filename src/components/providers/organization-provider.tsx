@@ -25,6 +25,12 @@ export interface ContentFieldSchemaItem {
 // タイプ別コンテンツスキーマ（key = コンテンツタイプ名）
 export type ContentFieldSchemaByType = Record<string, ContentFieldSchemaItem[]>;
 
+// カスタムコンテンツタイプ定義
+export interface CustomContentType {
+  key: string;
+  label: string;
+}
+
 // 代理店カスタムフィールドスキーマ
 export interface AgentFieldSchemaItem {
   id: string;
@@ -63,6 +69,7 @@ export interface Organization {
   settings: Record<string, unknown>;
   productFieldSchema: ProductFieldSchemaItem[];
   contentFieldSchema: ContentFieldSchemaByType;
+  customContentTypes: CustomContentType[];
   customerFieldSchema: CustomerFieldSchemaItem[];
   agentFieldSchema: AgentFieldSchemaItem[];
   ownerId: string | null;
@@ -128,6 +135,7 @@ function transformOrganization(row: Record<string, unknown>): Organization {
       }
       return raw as ContentFieldSchemaByType;
     })(),
+    customContentTypes: (settings.custom_content_types as CustomContentType[]) || [],
     customerFieldSchema: (settings.customer_field_schema as CustomerFieldSchemaItem[]) || [],
     agentFieldSchema: (settings.agent_field_schema as AgentFieldSchemaItem[]) || [],
     ownerId: row.owner_id as string | null,

@@ -394,8 +394,8 @@ export default function EditContentPage() {
                   <SelectContent>
                     {[...new Set([...enabledContentTypes, ...(contentType ? [contentType] : [])])].map((key) => {
                       const config = contentTypeConfig[key];
-                      if (!config) return null;
-                      return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
+                      const label = config?.label ?? organization?.customContentTypes.find((t) => t.key === key)?.label ?? key;
+                      return <SelectItem key={key} value={key}>{label}</SelectItem>;
                     })}
                   </SelectContent>
                 </Select>
@@ -494,8 +494,8 @@ export default function EditContentPage() {
                     <SelectContent>
                       {[...new Set([...enabledContentTypes, ...(contentType ? [contentType] : [])])].map((key) => {
                         const config = contentTypeConfig[key];
-                        if (!config) return null;
-                        return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
+                        const label = config?.label ?? organization?.customContentTypes.find((t) => t.key === key)?.label ?? key;
+                        return <SelectItem key={key} value={key}>{label}</SelectItem>;
                       })}
                     </SelectContent>
                   </Select>
@@ -633,8 +633,8 @@ export default function EditContentPage() {
                     <SelectContent>
                       {[...new Set([...enabledContentTypes, ...(contentType ? [contentType] : [])])].map((key) => {
                         const config = contentTypeConfig[key];
-                        if (!config) return null;
-                        return <SelectItem key={key} value={key}>{config.label}</SelectItem>;
+                        const label = config?.label ?? organization?.customContentTypes.find((t) => t.key === key)?.label ?? key;
+                        return <SelectItem key={key} value={key}>{label}</SelectItem>;
                       })}
                     </SelectContent>
                   </Select>

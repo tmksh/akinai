@@ -825,6 +825,86 @@ export async function updateEnabledContentTypes(
 }
 
 // ============================================
+// カスタムコンテンツタイプ（ユーザー定義）
+// ============================================
+
+export interface CustomContentTypeEntry {
+  key: string;
+  label: string;
+}
+
+export async function getCustomContentTypes(organizationId: string): Promise<{
+  data: CustomContentTypeEntry[];
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (error) {
+    return { data: [], error: error.message };
+  }
+
+  const settings = (data?.settings as Record<string, unknown>) || {};
+  const types = settings.custom_content_types as CustomContentTypeEntry[] | undefined;
+  return { data: Array.isArray(types) ? types : [], error: null };
+}
+
+export async function updateCustomContentTypes(
+  organizationId: string,
+  customTypes: CustomContentTypeEntry[]
+): Promise<{ data: CustomContentTypeEntry[] | null; error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: currentData, error: fetchError } = await supabase
+    .from('organizations')
+    .select('settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (fetchError) {
+    return { data: null, error: fetchError.message };
+  }
+
+  const currentSettings = (currentData?.settings as Record<string, unknown>) || {};
+
+  // enabled_content_types にカスタムタイプのキーを追加（重複なし）
+  const currentEnabled = (currentSettings.enabled_content_types as string[]) || [];
+  const customKeys = customTypes.map((t) => t.key);
+  const removedKeys = ((currentSettings.custom_content_types as CustomContentTypeEntry[]) || [])
+    .map((t) => t.key)
+    .filter((k) => !customKeys.includes(k));
+  const newEnabled = [...new Set([...currentEnabled.filter((k) => !removedKeys.includes(k)), ...customKeys])];
+
+  const newSettings = {
+    ...currentSettings,
+    custom_content_types: customTypes,
+    enabled_content_types: newEnabled,
+  };
+
+  const { data: updated, error: updateError } = await supabase
+    .from('organizations')
+    .update({ settings: newSettings, updated_at: new Date().toISOString() })
+    .eq('id', organizationId)
+    .select('settings')
+    .single();
+
+  if (updateError) {
+    return { data: null, error: updateError.message };
+  }
+
+  revalidatePath('/settings/contents');
+  revalidatePath('/contents');
+  revalidatePath('/contents/new');
+
+  const result = (updated?.settings as Record<string, unknown>)?.custom_content_types as CustomContentTypeEntry[];
+  return { data: Array.isArray(result) ? result : customTypes, error: null };
+}
+
+// ============================================
 // ナビゲーション表示設定
 // ============================================
 
