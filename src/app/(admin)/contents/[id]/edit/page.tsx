@@ -175,20 +175,15 @@ export default function EditContentPage() {
     const rawCfRaw = (contentData as unknown as Record<string, unknown>).custom_fields;
     const rawCf: { key: string; label?: string; value: string; type: string; options?: string[] }[] =
       Array.isArray(rawCfRaw) ? rawCfRaw : [];
-    const contentFields: CustomField[] = rawCf.map((f, i) => ({
-      id: `cf-${i}-${f.key}`,
-      key: f.key,
-      label: f.label || f.key,
-      value: f.value,
-      type: f.type as CustomField['type'],
-      ...(f.options && { options: f.options }),
-    }));
+    // key → 保存値 のマップ
+    const savedValueMap = new Map(rawCf.map((f) => [f.key, f.value ?? '']));
 
     const contentSchema = organization.contentFieldSchema[contentData.type] ?? [];
-    const existingKeys = new Set(contentFields.map((f) => f.key));
-    const schemaOnlyFields: CustomField[] = contentSchema
-      .filter((s) => !existingKeys.has(s.key))
-      .map((s) => {
+
+    if (contentSchema.length > 0) {
+      // スキーマ定義がある場合: スキーマ順に並べ、保存値があればそれを使う
+      // スキーマにないフィールドは表示しない（削除されたフィールドを非表示）
+      const merged: CustomField[] = contentSchema.map((s) => {
         let defaultValue = '';
         if (s.type === 'boolean') defaultValue = 'false';
         if (s.type === 'rating') defaultValue = '0';
@@ -198,13 +193,24 @@ export default function EditContentPage() {
           id: `schema-${s.id}`,
           key: s.key,
           label: s.label,
-          value: defaultValue,
+          value: savedValueMap.get(s.key) ?? defaultValue,
           type: s.type as CustomField['type'],
           ...(s.options && { options: s.options }),
         };
       });
-
-    setCustomFields([...schemaOnlyFields, ...contentFields]);
+      setCustomFields(merged);
+    } else {
+      // スキーマ未定義の場合: コンテンツデータのフィールドをすべて表示（後方互換）
+      const contentFields: CustomField[] = rawCf.map((f, i) => ({
+        id: `cf-${i}-${f.key}`,
+        key: f.key,
+        label: f.label || f.key,
+        value: f.value,
+        type: f.type as CustomField['type'],
+        ...(f.options && { options: f.options }),
+      }));
+      setCustomFields(contentFields);
+    }
   }, [contentData, organization?.contentFieldSchema]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // プレビュー用のデータ
