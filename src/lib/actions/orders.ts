@@ -795,9 +795,18 @@ export async function refundOrder(
             );
             console.log(`[refundOrder] Stripe refund created for order ${orderId}`);
           } catch (stripeErr) {
-            console.error('[refundOrder] Stripe refund failed:', stripeErr);
-            const msg = stripeErr instanceof Error ? stripeErr.message : 'Stripe返金に失敗しました';
-            return { data: null, error: `Stripe返金エラー: ${msg}` };
+            // Stripe 側で既に返金済みの場合はエラーとせずDBの状態だけ更新する
+            const isAlreadyRefunded =
+              stripeErr instanceof Error &&
+              (stripeErr.message.includes('already been refunded') ||
+               (stripeErr as { code?: string }).code === 'charge_already_refunded');
+            if (isAlreadyRefunded) {
+              console.log(`[refundOrder] Charge already refunded in Stripe, updating DB status only: ${orderId}`);
+            } else {
+              console.error('[refundOrder] Stripe refund failed:', stripeErr);
+              const msg = stripeErr instanceof Error ? stripeErr.message : 'Stripe返金に失敗しました';
+              return { data: null, error: `Stripe返金エラー: ${msg}` };
+            }
           }
         }
 

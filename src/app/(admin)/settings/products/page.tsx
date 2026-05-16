@@ -28,6 +28,7 @@ import {
   Pencil,
   Check,
   X,
+  FileText,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -52,9 +53,10 @@ import { updateProductFieldSchema, updateVariantInputMode } from '@/lib/actions/
 import { toast } from 'sonner';
 
 const fieldTypeConfig: Record<CustomFieldType, { label: string; icon: React.ElementType; color: string; category: 'basic' | 'media' | 'advanced' }> = {
-  text:      { label: 'テキスト',     icon: Type,        color: 'text-blue-500',    category: 'basic' },
-  textarea:  { label: '長文テキスト', icon: AlignLeft,   color: 'text-blue-400',    category: 'basic' },
-  number:    { label: '数値',         icon: Hash,        color: 'text-emerald-500', category: 'basic' },
+  text:      { label: 'テキスト',       icon: Type,        color: 'text-blue-500',    category: 'basic' },
+  textarea:  { label: '長文テキスト',   icon: AlignLeft,   color: 'text-blue-400',    category: 'basic' },
+  rich_text: { label: 'リッチテキスト', icon: FileText,    color: 'text-purple-500',  category: 'basic' },
+  number:    { label: '数値',           icon: Hash,        color: 'text-emerald-500', category: 'basic' },
   boolean:   { label: '真偽値',       icon: ToggleLeft,  color: 'text-violet-500',  category: 'basic' },
   select:    { label: '選択肢',       icon: ListFilter,  color: 'text-indigo-500',  category: 'basic' },
   multi_select: { label: '複数選択',   icon: ListChecks,  color: 'text-orange-500',  category: 'basic' },
