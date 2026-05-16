@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null);
     if (!body) return apiError('Invalid JSON body', 400);
 
-    const { supplierId, subject, html, text, targetAudience, image, productName, excludeCustomerIds } = body as {
+    const { supplierId, subject, html, text, targetAudience, image, productName, excludeCustomerIds, customerIds } = body as {
       supplierId?: string;
       subject?: string;
       html?: string;
@@ -48,6 +48,8 @@ export async function POST(request: NextRequest) {
       productName?: string;
       /** 明示的に除外する顧客IDリスト */
       excludeCustomerIds?: string[];
+      /** 送信対象を特定顧客IDに限定する（指定時はお気に入りフィルタをスキップ） */
+      customerIds?: string[];
     };
 
     if (!subject || (!html && !text)) {
@@ -79,51 +81,69 @@ export async function POST(request: NextRequest) {
       supplierName = supplier.name;
     }
 
-    // お気に入り登録者（メールアドレスを持つ顧客）を取得
-    let favoritesQuery = supabase
-      .from('product_favorites')
-      .select(`
-        customer_id,
-        customers!inner(id, email, name, status, role, custom_fields)
-      `)
-      .eq('organization_id', auth.organizationId!);
-
-    if (supplierId) {
-      // サプライヤーの商品のみ対象
-      const { data: productIds } = await supabase
-        .from('products')
-        .select('id')
-        .eq('organization_id', auth.organizationId!)
-        .eq('supplier_id', supplierId);
-
-      if (productIds && productIds.length > 0) {
-        favoritesQuery = favoritesQuery.in('product_id', productIds.map(p => p.id));
-      }
-    }
-
-    const { data: favorites } = await favoritesQuery;
-
-    // 重複排除・有効会員のみ・targetAudience による role フィルタ
-    const targetRoles: string[] = !targetAudience || targetAudience === 'both'
-      ? ['buyer', 'personal']
-      : [targetAudience];
-
     // 明示除外IDをSetに変換して高速ルックアップ
     const excludeSet = new Set<string>(Array.isArray(excludeCustomerIds) ? excludeCustomerIds : []);
 
     const recipientMap = new Map<string, { id: string; email: string; name: string }>();
-    for (const fav of favorites || []) {
-      const c = ((fav as unknown) as { customers: { id: string; email: string; name: string; status: string; role: string; custom_fields?: Record<string, unknown> } }).customers;
-      if (!c?.email) continue;
-      if (c.status !== 'active') continue;
-      if (!targetRoles.includes(c.role)) continue;
-      // excludeCustomerIds による除外
-      if (excludeSet.has(c.id)) continue;
-      // customFields.newsletter_unsubscribed === true の顧客を除外
-      const cf = c.custom_fields as Record<string, unknown> | null | undefined;
-      if (cf?.newsletter_unsubscribed === true || cf?.newsletter_unsubscribed === 'true') continue;
-      recipientMap.set(c.id, { id: c.id, email: c.email, name: c.name });
+
+    if (Array.isArray(customerIds) && customerIds.length > 0) {
+      // customerIds 直接指定モード：お気に入りフィルタをスキップして特定顧客に送信
+      const { data: directCustomers } = await supabase
+        .from('customers')
+        .select('id, email, name, status, role, custom_fields')
+        .eq('organization_id', auth.organizationId!)
+        .in('id', customerIds);
+
+      for (const c of directCustomers || []) {
+        if (!c.email) continue;
+        if (c.status !== 'active') continue;
+        if (excludeSet.has(c.id)) continue;
+        const cf = c.custom_fields as Record<string, unknown> | null | undefined;
+        if (cf?.newsletter_unsubscribed === true || cf?.newsletter_unsubscribed === 'true') continue;
+        recipientMap.set(c.id, { id: c.id, email: c.email, name: c.name });
+      }
+    } else {
+      // お気に入り登録者（メールアドレスを持つ顧客）を取得
+      let favoritesQuery = supabase
+        .from('product_favorites')
+        .select(`
+          customer_id,
+          customers!inner(id, email, name, status, role, custom_fields)
+        `)
+        .eq('organization_id', auth.organizationId!);
+
+      if (supplierId) {
+        // サプライヤーの商品のみ対象
+        const { data: productIds } = await supabase
+          .from('products')
+          .select('id')
+          .eq('organization_id', auth.organizationId!)
+          .eq('supplier_id', supplierId);
+
+        if (productIds && productIds.length > 0) {
+          favoritesQuery = favoritesQuery.in('product_id', productIds.map(p => p.id));
+        }
+      }
+
+      const { data: favorites } = await favoritesQuery;
+
+      // 重複排除・有効会員のみ・targetAudience による role フィルタ
+      const targetRoles: string[] = !targetAudience || targetAudience === 'both'
+        ? ['buyer', 'personal']
+        : [targetAudience];
+
+      for (const fav of favorites || []) {
+        const c = ((fav as unknown) as { customers: { id: string; email: string; name: string; status: string; role: string; custom_fields?: Record<string, unknown> } }).customers;
+        if (!c?.email) continue;
+        if (c.status !== 'active') continue;
+        if (!targetRoles.includes(c.role)) continue;
+        if (excludeSet.has(c.id)) continue;
+        const cf = c.custom_fields as Record<string, unknown> | null | undefined;
+        if (cf?.newsletter_unsubscribed === true || cf?.newsletter_unsubscribed === 'true') continue;
+        recipientMap.set(c.id, { id: c.id, email: c.email, name: c.name });
+      }
     }
+
     const recipients = Array.from(recipientMap.values());
 
     // 組織のメールアドレス取得

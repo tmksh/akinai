@@ -635,6 +635,87 @@ export async function trackProductView(
   }
 }
 
+// ─── ショップ お気に入り操作 ────────────────────────────────────────────────
+
+/**
+ * 商品をお気に入り登録する（メルマガ受信者リストへの追加）
+ * - customerId があればログイン顧客として登録（メルマガ送信対象になる）
+ * - sessionId のみの場合は非ログイン扱い（メルマガ対象外）
+ */
+export async function addShopFavorite(
+  productId: string,
+  options?: { customerId?: string | null; sessionId?: string | null }
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const organizationId = await resolveOrganizationId(supabase);
+    if (!organizationId) return;
+
+    const { data: product } = await supabase
+      .from('products')
+      .select('id')
+      .eq('id', productId)
+      .eq('organization_id', organizationId)
+      .single();
+    if (!product) return;
+
+    const customerId = options?.customerId || null;
+    const sessionId = options?.sessionId || null;
+    if (!customerId && !sessionId) return;
+
+    await supabase
+      .from('product_favorites')
+      .upsert(
+        {
+          organization_id: organizationId,
+          product_id: productId,
+          customer_id: customerId,
+          session_id: sessionId,
+        },
+        {
+          onConflict: customerId ? 'product_id,customer_id' : 'product_id,session_id',
+          ignoreDuplicates: true,
+        }
+      );
+  } catch {
+    // サイレント失敗（UI をブロックしない）
+  }
+}
+
+/**
+ * 商品のお気に入りを解除する
+ */
+export async function removeShopFavorite(
+  productId: string,
+  options?: { customerId?: string | null; sessionId?: string | null }
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const organizationId = await resolveOrganizationId(supabase);
+    if (!organizationId) return;
+
+    const customerId = options?.customerId || null;
+    const sessionId = options?.sessionId || null;
+    if (!customerId && !sessionId) return;
+
+    let query = supabase
+      .from('product_favorites')
+      .delete()
+      .eq('organization_id', organizationId)
+      .eq('product_id', productId);
+
+    if (customerId) {
+      query = query.eq('customer_id', customerId);
+    } else {
+      query = query.eq('session_id', sessionId!);
+    }
+
+    await query;
+  } catch {
+    // サイレント失敗
+  }
+}
+
 /** 商品クリック（カートに追加・詳細確認など）を記録 */
 export async function trackProductClick(
   productId: string,
