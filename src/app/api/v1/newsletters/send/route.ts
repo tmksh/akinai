@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null);
     if (!body) return apiError('Invalid JSON body', 400);
 
-    const { supplierId, subject, html, text, targetAudience, image, productName, excludeCustomerIds, customerIds } = body as {
+    const { supplierId, subject, html, text, targetAudience, image, productName, excludeCustomerIds, customerIds, unsubscribeBaseUrl } = body as {
       supplierId?: string;
       subject?: string;
       html?: string;
@@ -50,6 +50,14 @@ export async function POST(request: NextRequest) {
       excludeCustomerIds?: string[];
       /** 送信対象を特定顧客IDに限定する（指定時はお気に入りフィルタをスキップ） */
       customerIds?: string[];
+      /**
+       * 配信停止リンクのベースURL。
+       * 指定した場合、{{unsubscribe_url}} は `${unsubscribeBaseUrl}?token=xxx` に展開される。
+       * 指定しない場合は Akinai デフォルトの /api/v1/newsletters/unsubscribe?token=xxx（ワンクリック停止）。
+       * 2ステップ解除フロー用：外部の確認ページへ誘導し、確認後に Akinai のエンドポイントを呼ぶ構成に使う。
+       * {{unsubscribe_token}} プレースホルダーでトークン単体も取得可能。
+       */
+      unsubscribeBaseUrl?: string;
     };
 
     if (!subject || (!html && !text)) {
@@ -207,12 +215,16 @@ export async function POST(request: NextRequest) {
     const baseUrl = getBaseUrl();
 
     for (const recipient of recipients) {
-      // 受信者ごとに {{unsubscribe_url}} / {{name}} を展開
+      // 受信者ごとに {{unsubscribe_url}} / {{unsubscribe_token}} / {{name}} を展開
       const token = generateUnsubscribeToken(auth.organizationId!, recipient.id);
-      const unsubscribeUrl = `${baseUrl}/api/v1/newsletters/unsubscribe?token=${token}`;
+      // unsubscribeBaseUrl が指定された場合は外部確認ページへ誘導（2ステップ解除フロー）
+      const unsubscribeUrl = unsubscribeBaseUrl
+        ? `${unsubscribeBaseUrl}?token=${token}`
+        : `${baseUrl}/api/v1/newsletters/unsubscribe?token=${token}`;
 
       const emailHtml = sharedHtml
         .replace(/\{\{unsubscribe_url\}\}/g, unsubscribeUrl)
+        .replace(/\{\{unsubscribe_token\}\}/g, token)
         .replace(/\{\{name\}\}/g, recipient.name || '');
 
       const { success, error: emailErr } = await sendEmail({
