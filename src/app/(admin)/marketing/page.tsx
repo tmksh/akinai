@@ -1,18 +1,16 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart3, Mail, MessageSquare, Calendar,
   TrendingUp, Eye, MousePointerClick, Loader2,
-  Send, Plus, X, CheckCircle2, Users, Megaphone, ChevronDown,
+  X, CheckCircle2, Users, Megaphone, ChevronDown,
   Inbox, Package, ArrowRight, Paperclip,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -26,10 +24,7 @@ import {
   getAnalyticsOverview,
   getNewsletterHistory,
   getEvents,
-  sendNewsletter,
-  publishEvent,
-  getCustomersForSelect,
-  getProductsForAnalytics,
+  type AnalyticsPeriod,
   getInquiryThreads,
   getInquiryThreadDetail,
   type InquiryThreadListItem,
@@ -87,44 +82,61 @@ function EmailDomainBanner({ status }: { status: EmailDomainStatus | null }) {
 
 function AnalyticsTab({ organizationId }: { organizationId: string }) {
   const [data, setData] = useState<AnalyticsData | null>(null);
-  const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<string>('');
-  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<AnalyticsPeriod>('month');
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
-    getProductsForAnalytics(organizationId).then(setProducts);
-  }, [organizationId]);
+    // 初回のみフルローディング、以降は控えめなfetchingフラグ
+    if (initialLoading) {
+      getAnalyticsOverview(organizationId, undefined, period).then(d => {
+        setData(d);
+        setInitialLoading(false);
+      });
+    } else {
+      setFetching(true);
+      getAnalyticsOverview(organizationId, undefined, period).then(d => {
+        setData(d);
+        setFetching(false);
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizationId, period]);
 
-  useEffect(() => {
-    setLoading(true);
-    getAnalyticsOverview(organizationId, selectedProductId || undefined).then(d => { setData(d); setLoading(false); });
-  }, [organizationId, selectedProductId]);
+  if (initialLoading) return <LoadingState />;
 
-  if (loading) return <LoadingState />;
-
-  const monthly = data?.monthly || [];
-  const maxBar = Math.max(...monthly.flatMap(m => [m.views, m.clicks]), 1);
-  const selectedProductName = products.find(p => p.id === selectedProductId)?.name;
+  const buckets = (data?.buckets || []).slice().reverse();
+  const maxBar = Math.max(...buckets.flatMap(b => [b.views, b.clicks]), 1);
   const ctrValue = data && data.totalViews > 0 ? `${Math.round((data.totalClicks / data.totalViews) * 1000) / 10}%` : '—';
 
   return (
     <div className="space-y-3">
-      {/* ── サマリー＋フィルター（1枚に集約） ── */}
+      {/* ── サマリー＋切り替え ── */}
       <Card>
         <CardContent className="p-4 space-y-4">
-          {/* 上段: フィルター */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-muted-foreground">対象</span>
-            <select
-              className="h-8 rounded-lg border border-input bg-background px-2 text-sm flex-1 min-w-[180px] max-w-xs"
-              value={selectedProductId}
-              onChange={e => setSelectedProductId(e.target.value)}
-            >
-              <option value="">全商品</option>
-              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <span className="text-xs text-muted-foreground">過去6ヶ月</span>
+          {/* 上段: 週/月/年 切り替え */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground">
+              {period === 'week' ? '直近7日' : period === 'year' ? '直近1年' : '直近6ヶ月'}
+            </span>
+            <div className="flex rounded-lg border border-input overflow-hidden text-xs">
+              {(['week', 'month', 'year'] as const).map((p, i) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={[
+                    'px-2.5 py-1 transition-colors',
+                    i > 0 ? 'border-l border-input' : '',
+                    period === p
+                      ? 'bg-primary text-primary-foreground font-medium'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                  ].join(' ')}
+                >
+                  {p === 'week' ? '週' : p === 'month' ? '月' : '年'}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* 下段: 3指標を横並び（カード内分割） */}
@@ -151,36 +163,41 @@ function AnalyticsTab({ organizationId }: { organizationId: string }) {
         </CardContent>
       </Card>
 
-      {/* ── 月別チャート（縦棒グラフ） ── */}
+      {/* ── チャート（縦棒グラフ・週/月/年切り替え） ── */}
       <Card>
-        <CardContent className="p-4">
+        <CardContent className={`p-4 transition-opacity ${fetching ? 'opacity-50' : 'opacity-100'}`}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold text-muted-foreground">月別推移</h3>
+            <h3 className="text-xs font-semibold text-muted-foreground">
+              {period === 'week' ? '日別推移' : '月別推移'}
+            </h3>
             <div className="flex items-center gap-3 text-xs">
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-sky-400" />閲覧</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-emerald-400" />クリック</span>
             </div>
           </div>
-          <div className="grid grid-cols-6 gap-2 h-32">
-            {monthly.map(m => (
-              <div key={m.month} className="flex flex-col items-center justify-end gap-1.5">
-                <div className="flex items-end gap-1 w-full justify-center h-full">
+          <div
+            className="gap-1 h-32"
+            style={{ display: 'grid', gridTemplateColumns: `repeat(${buckets.length}, minmax(0, 1fr))` }}
+          >
+            {buckets.map(b => (
+              <div key={b.key} className="flex flex-col items-center justify-end gap-1.5">
+                <div className="flex items-end gap-0.5 w-full justify-center h-full">
                   <div
-                    className="w-1/3 rounded-t bg-sky-400 transition-all"
-                    style={{ height: `${(m.views / maxBar) * 100}%`, minHeight: m.views > 0 ? '2px' : '0' }}
-                    title={`${m.views} 閲覧`}
+                    className="w-2/5 rounded-t bg-sky-400 transition-all"
+                    style={{ height: `${(b.views / maxBar) * 100}%`, minHeight: b.views > 0 ? '2px' : '0' }}
+                    title={`${b.views} 閲覧`}
                   />
                   <div
-                    className="w-1/3 rounded-t bg-emerald-400 transition-all"
-                    style={{ height: `${(m.clicks / maxBar) * 100}%`, minHeight: m.clicks > 0 ? '2px' : '0' }}
-                    title={`${m.clicks} クリック`}
+                    className="w-2/5 rounded-t bg-emerald-400 transition-all"
+                    style={{ height: `${(b.clicks / maxBar) * 100}%`, minHeight: b.clicks > 0 ? '2px' : '0' }}
+                    title={`${b.clicks} クリック`}
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground tabular-nums">{m.month.slice(5)}月</span>
+                <span className="text-[10px] text-muted-foreground tabular-nums leading-none">{b.label}</span>
                 <span className="text-[10px] tabular-nums leading-none">
-                  <span className="text-sky-600 dark:text-sky-400">{m.views}</span>
+                  <span className="text-sky-600 dark:text-sky-400">{b.views}</span>
                   <span className="text-muted-foreground mx-0.5">/</span>
-                  <span className="text-emerald-600 dark:text-emerald-400">{m.clicks}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{b.clicks}</span>
                 </span>
               </div>
             ))}
@@ -265,41 +282,18 @@ function AnalyticsTab({ organizationId }: { organizationId: string }) {
 function NewsletterTab({ organizationId }: { organizationId: string }) {
   const [history, setHistory] = useState<NewsletterItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
-  const [suppliers, setSuppliers] = useState<Customer[]>([]);
   const [emailStatus, setEmailStatus] = useState<EmailDomainStatus | null>(null);
-  const [form, setForm] = useState({ supplierId: '', subject: '', body: '' });
-  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     Promise.all([
       getNewsletterHistory(organizationId),
-      getCustomersForSelect(organizationId, 'supplier'),
       getEmailDomainStatus(organizationId),
-    ]).then(([h, s, { data: emailData }]) => {
+    ]).then(([h, { data: emailData }]) => {
       setHistory(h);
-      setSuppliers(s);
       setEmailStatus(emailData);
       setLoading(false);
     });
   }, [organizationId]);
-
-  const handleSend = () => {
-    if (!form.subject || !form.body) { toast.error('件名と本文を入力してください'); return; }
-    startTransition(async () => {
-      const { data, error } = await sendNewsletter(organizationId, {
-        supplierId: form.supplierId || undefined,
-        subject: form.subject,
-        body: form.body,
-      });
-      if (error) { toast.error(error); return; }
-      toast.success(`${data?.sentCount}件送信しました（対象: ${data?.totalRecipients}件）`);
-      setForm({ supplierId: '', subject: '', body: '' });
-      setShowForm(false);
-      const h = await getNewsletterHistory(organizationId);
-      setHistory(h);
-    });
-  };
 
   if (loading) return <LoadingState />;
 
@@ -308,45 +302,7 @@ function NewsletterTab({ organizationId }: { organizationId: string }) {
       <EmailDomainBanner status={emailStatus} />
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">商品お気に入り登録者に一斉メールを送信します</p>
-        {!showForm && (
-          <Button size="sm" onClick={() => setShowForm(true)}>
-            <Send className="mr-2 h-4 w-4" />メルマガを送る
-          </Button>
-        )}
       </div>
-
-      {showForm && (
-        <Card>
-          <CardContent className="pt-5 space-y-4">
-            <div className="space-y-2">
-              <Label>サプライヤー絞り込み（任意）</Label>
-              <select
-                className="w-full h-9 rounded-xl border border-input bg-background px-3 text-sm"
-                value={form.supplierId}
-                onChange={e => setForm(f => ({ ...f, supplierId: e.target.value }))}
-              >
-                <option value="">全商品のお気に入り登録者</option>
-                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label>件名 *</Label>
-              <Input placeholder="例: 新商品のお知らせ" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>本文 *</Label>
-              <Textarea rows={6} placeholder="メール本文を入力..." value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSend} disabled={isPending}>
-                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                送信
-              </Button>
-              <Button variant="ghost" onClick={() => setShowForm(false)}>キャンセル</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {history.length === 0
         ? <EmptyState icon={Mail} title="送信履歴がありません" description="メルマガを送信すると履歴が表示されます" />
@@ -384,55 +340,10 @@ function NewsletterTab({ organizationId }: { organizationId: string }) {
 function EventsTab({ organizationId }: { organizationId: string }) {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
-  const [buyers, setBuyers] = useState<Customer[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [genreInput, setGenreInput] = useState('');
-  const [regionInput, setRegionInput] = useState('');
-  const [form, setForm] = useState({
-    buyerId: '', title: '', event_date: '', venue: '', body: '',
-    genres: [] as string[], regions: [] as string[],
-  });
 
   useEffect(() => {
-    Promise.all([
-      getEvents(organizationId),
-      getCustomersForSelect(organizationId, 'buyer'),
-    ]).then(([e, b]) => { setEvents(e); setBuyers(b); setLoading(false); });
+    getEvents(organizationId).then(e => { setEvents(e); setLoading(false); });
   }, [organizationId]);
-
-  const addTag = (field: 'genres' | 'regions', value: string) => {
-    const v = value.trim();
-    if (!v) return;
-    setForm(f => ({ ...f, [field]: [...f[field], v] }));
-    if (field === 'genres') setGenreInput('');
-    else setRegionInput('');
-  };
-
-  const removeTag = (field: 'genres' | 'regions', idx: number) => {
-    setForm(f => ({ ...f, [field]: f[field].filter((_, i) => i !== idx) }));
-  };
-
-  const handlePublish = () => {
-    if (!form.title) { toast.error('タイトルを入力してください'); return; }
-    startTransition(async () => {
-      const { data, error } = await publishEvent(organizationId, {
-        buyerId: form.buyerId || undefined,
-        title: form.title,
-        event_date: form.event_date || undefined,
-        venue: form.venue || undefined,
-        body: form.body || undefined,
-        genres: form.genres,
-        regions: form.regions,
-      });
-      if (error) { toast.error(error); return; }
-      toast.success(`イベントを公開しました。${data?.notifiedCount}社のサプライヤーに通知しました`);
-      setForm({ buyerId: '', title: '', event_date: '', venue: '', body: '', genres: [], regions: [] });
-      setShowForm(false);
-      const e = await getEvents(organizationId);
-      setEvents(e);
-    });
-  };
 
   if (loading) return <LoadingState />;
 
@@ -440,81 +351,7 @@ function EventsTab({ organizationId }: { organizationId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">バイヤーからサプライヤーへ出展募集を告知します</p>
-        {!showForm && (
-          <Button size="sm" onClick={() => setShowForm(true)}>
-            <Plus className="mr-2 h-4 w-4" />イベントを作成
-          </Button>
-        )}
       </div>
-
-      {showForm && (
-        <Card>
-          <CardContent className="pt-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>バイヤー（任意）</Label>
-                <select
-                  className="w-full h-9 rounded-xl border border-input bg-background px-3 text-sm"
-                  value={form.buyerId}
-                  onChange={e => setForm(f => ({ ...f, buyerId: e.target.value }))}
-                >
-                  <option value="">選択しない</option>
-                  {buyers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>開催日</Label>
-                <Input type="date" value={form.event_date} onChange={e => setForm(f => ({ ...f, event_date: e.target.value }))} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>イベントタイトル *</Label>
-              <Input placeholder="例: 2026年春の商談会" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>会場</Label>
-              <Input placeholder="例: 東京ビッグサイト" value={form.venue} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>内容</Label>
-              <Textarea rows={4} placeholder="イベントの詳細、募集条件など..." value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>対象ジャンル（空=全て）</Label>
-                <div className="flex gap-1 flex-wrap mb-1">
-                  {form.genres.map((g, i) => (
-                    <Badge key={i} variant="secondary" className="gap-1 text-xs">
-                      {g}<button onClick={() => removeTag('genres', i)}><X className="h-3 w-3" /></button>
-                    </Badge>
-                  ))}
-                </div>
-                <Input placeholder="Enterで追加" value={genreInput} onChange={e => setGenreInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag('genres', genreInput))} />
-              </div>
-              <div className="space-y-2">
-                <Label>対象地域（空=全て）</Label>
-                <div className="flex gap-1 flex-wrap mb-1">
-                  {form.regions.map((r, i) => (
-                    <Badge key={i} variant="secondary" className="gap-1 text-xs">
-                      {r}<button onClick={() => removeTag('regions', i)}><X className="h-3 w-3" /></button>
-                    </Badge>
-                  ))}
-                </div>
-                <Input placeholder="Enterで追加（例: 東京）" value={regionInput} onChange={e => setRegionInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag('regions', regionInput))} />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handlePublish} disabled={isPending}>
-                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Megaphone className="mr-2 h-4 w-4" />}
-                公開して通知
-              </Button>
-              <Button variant="ghost" onClick={() => setShowForm(false)}>キャンセル</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {events.length === 0
         ? <EmptyState icon={Calendar} title="イベントがありません" description="イベントを作成するとサプライヤーに通知が届きます" />

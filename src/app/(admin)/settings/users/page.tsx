@@ -13,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PageTabs } from '@/components/layout/page-tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
 import { getOrganizationMembers } from '@/lib/actions/settings';
 import { cn } from '@/lib/utils';
@@ -28,12 +27,6 @@ type MemberRow = {
   avatar?: string | null;
 };
 
-const settingsTabs = [
-  { label: '基本設定', href: '/settings', exact: true },
-  { label: '組織設定', href: '/settings/organization' },
-  { label: 'ユーザー・権限', href: '/settings/users' },
-  { label: '決済設定', href: '/settings/payments' },
-];
 
 type SubTabType = 'users' | 'roles' | 'permissions';
 
@@ -226,9 +219,6 @@ export default function UsersSettingsPage() {
           </Button>
         )}
       </div>
-
-      {/* タブナビゲーション */}
-      <PageTabs tabs={settingsTabs} />
 
       {/* サブタブ */}
       <div className="flex items-center gap-2 border-b">

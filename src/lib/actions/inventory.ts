@@ -184,6 +184,50 @@ export async function adjustStock(input: {
   }
 }
 
+// 在庫一括調整
+export async function bulkAdjustStock(input: {
+  organizationId: string;
+  type: 'in' | 'out' | 'adjustment';
+  reason?: string;
+  items: {
+    variantId: string;
+    productId: string;
+    productName: string;
+    variantName: string;
+    sku: string;
+    quantity: number;
+  }[];
+}): Promise<{ successCount: number; errors: string[] }> {
+  const results = await Promise.allSettled(
+    input.items.map((item) =>
+      adjustStock({
+        organizationId: input.organizationId,
+        variantId: item.variantId,
+        productId: item.productId,
+        productName: item.productName,
+        variantName: item.variantName,
+        sku: item.sku,
+        type: input.type,
+        quantity: item.quantity,
+        reason: input.reason,
+      })
+    )
+  );
+
+  const errors: string[] = [];
+  let successCount = 0;
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled' && r.value.success) {
+      successCount++;
+    } else {
+      const msg = r.status === 'fulfilled' ? r.value.error : String(r.reason);
+      errors.push(`${input.items[i].sku}: ${msg ?? '失敗'}`);
+    }
+  });
+
+  return { successCount, errors };
+}
+
 // 在庫移動履歴を取得
 export async function getStockMovements(
   organizationId: string,

@@ -4,14 +4,62 @@ import { createClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email';
 
 // ─── アナリティクス ───────────────────────────────────────
-export async function getAnalyticsOverview(organizationId: string, productId?: string) {
+export type AnalyticsPeriod = 'week' | 'month' | 'year';
+
+export async function getAnalyticsOverview(
+  organizationId: string,
+  productId?: string,
+  period: AnalyticsPeriod = 'month',
+) {
   const supabase = await createClient();
 
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-  sixMonthsAgo.setDate(1);
-  sixMonthsAgo.setHours(0, 0, 0, 0);
-  const since = sixMonthsAgo.toISOString();
+  const now = new Date();
+
+  // period に応じた集計開始日とバケット生成
+  let since: string;
+  let buckets: { key: string; label: string; views: number; clicks: number }[];
+
+  // toISOString() はUTC変換するためタイムゾーン依存でキーがズレる。
+  // ローカル年月日から直接文字列を生成する。
+  const localYM = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const localYMD = (d: Date) =>
+    `${localYM(d)}-${String(d.getDate()).padStart(2, '0')}`;
+
+  if (period === 'week') {
+    // 直近7日間（今日を含む）
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+    since = new Date(start).toISOString();
+    buckets = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      const key = localYMD(d);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return { key, label: `${mm}/${dd}`, views: 0, clicks: 0 };
+    });
+  } else if (period === 'year') {
+    // 直近12ヶ月（今月を含む）
+    const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    since = new Date(start).toISOString();
+    buckets = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+      const key = localYM(d);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      return { key, label: `${mm}月`, views: 0, clicks: 0 };
+    });
+  } else {
+    // month: 直近6ヶ月（今月を含む）
+    const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    since = new Date(start).toISOString();
+    buckets = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+      const key = localYM(d);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      return { key, label: `${mm}月`, views: 0, clicks: 0 };
+    });
+  }
+
+  const bucketMap = new Map(buckets.map(b => [b.key, b]));
 
   const buildViewsCount = () => {
     let q = supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).gte('viewed_at', since);
@@ -23,43 +71,44 @@ export async function getAnalyticsOverview(organizationId: string, productId?: s
     if (productId) q = q.eq('product_id', productId);
     return q;
   };
-  const buildMonthlyViews = () => {
+  const buildBucketViews = () => {
     let q = supabase.from('page_views').select('viewed_at').eq('organization_id', organizationId).gte('viewed_at', since);
     if (productId) q = q.eq('product_id', productId);
     return q;
   };
-  const buildMonthlyClicks = () => {
+  const buildBucketClicks = () => {
     let q = supabase.from('product_clicks').select('clicked_at').eq('organization_id', organizationId).gte('clicked_at', since);
     if (productId) q = q.eq('product_id', productId);
     return q;
   };
 
-  const [{ count: totalViews }, { count: totalClicks }, { data: monthlyViews }, { data: monthlyClicks }, { data: topProducts }, { data: topClicks }] = await Promise.all([
+  const [{ count: totalViews }, { count: totalClicks }, { data: bucketViews }, { data: bucketClicks }, { data: topProducts }, { data: topClicks }] = await Promise.all([
     buildViewsCount(),
     buildClicksCount(),
-    buildMonthlyViews(),
-    buildMonthlyClicks(),
+    buildBucketViews(),
+    buildBucketClicks(),
     supabase.from('page_views').select('product_id, products!inner(id, name)').eq('organization_id', organizationId).gte('viewed_at', since).not('product_id', 'is', null),
     supabase.from('product_clicks').select('product_id, click_type, products!inner(id, name)').eq('organization_id', organizationId).gte('clicked_at', since).not('product_id', 'is', null),
   ]);
 
-  // 月別集計
-  const monthMap = new Map<string, { views: number; clicks: number }>();
-  const now = new Date();
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    monthMap.set(d.toISOString().slice(0, 7), { views: 0, clicks: 0 });
+  // バケット集計
+  // DBのタイムスタンプ（UTC文字列）をローカル時刻のキーに変換してバケットに集計
+  const utcToLocalKey = (utcStr: string): string => {
+    const d = new Date(utcStr);
+    return period === 'week' ? localYMD(d) : localYM(d);
+  };
+  for (const v of bucketViews || []) {
+    const k = utcToLocalKey(v.viewed_at as string);
+    const b = bucketMap.get(k);
+    if (b) b.views++;
   }
-  for (const v of monthlyViews || []) {
-    const m = (v.viewed_at as string).slice(0, 7);
-    if (monthMap.has(m)) monthMap.get(m)!.views++;
-  }
-  for (const c of monthlyClicks || []) {
-    const m = (c.clicked_at as string).slice(0, 7);
-    if (monthMap.has(m)) monthMap.get(m)!.clicks++;
+  for (const c of bucketClicks || []) {
+    const k = utcToLocalKey(c.clicked_at as string);
+    const b = bucketMap.get(k);
+    if (b) b.clicks++;
   }
 
-  // 商品ランキング（閲覧）
+  // 商品ランキング
   const productMap = new Map<string, { name: string; views: number; clicks: number }>();
   for (const pv of topProducts || []) {
     const pid = pv.product_id as string;
@@ -69,7 +118,6 @@ export async function getAnalyticsOverview(organizationId: string, productId?: s
     if (e) e.views++;
     else productMap.set(pid, { name: product.name, views: 1, clicks: 0 });
   }
-  // 商品ランキング（クリック）
   for (const pc of topClicks || []) {
     const pid = pc.product_id as string;
     const product = ((pc as unknown) as { products: { id: string; name: string } }).products;
@@ -86,7 +134,7 @@ export async function getAnalyticsOverview(organizationId: string, productId?: s
   return {
     totalViews: totalViews ?? 0,
     totalClicks: totalClicks ?? 0,
-    monthly: Array.from(monthMap.entries()).map(([month, d]) => ({ month, ...d })),
+    buckets,
     productRanking,
   };
 }

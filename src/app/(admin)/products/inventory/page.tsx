@@ -13,6 +13,7 @@ import {
   Boxes,
   Loader2,
   Save,
+  Layers,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
-import { getInventorySummary, adjustStock, type InventorySummary } from '@/lib/actions/inventory';
+import { getInventorySummary, adjustStock, bulkAdjustStock, type InventorySummary } from '@/lib/actions/inventory';
 import { cn } from '@/lib/utils';
 
 const productTabs = [
@@ -51,13 +52,54 @@ export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [stockFilter, setStockFilter] = useState<StockFilterType>('all');
 
-  // 在庫調整ダイアログ
+  // 個別在庫調整ダイアログ
   const [adjustDialogOpen, setAdjustDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventorySummary | null>(null);
   const [adjustmentType, setAdjustmentType] = useState<'in' | 'out'>('in');
   const [adjustmentQuantity, setAdjustmentQuantity] = useState('');
   const [adjustmentReason, setAdjustmentReason] = useState('');
   const [adjustError, setAdjustError] = useState<string | null>(null);
+
+  // 一括調整ダイアログ
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkType, setBulkType] = useState<'in' | 'out'>('in');
+  const [bulkReason, setBulkReason] = useState('');
+  const [bulkQuantities, setBulkQuantities] = useState<Record<string, string>>({});
+  const [isBulkPending, startBulkTransition] = useTransition();
+
+  const handleBulkAdjust = () => {
+    if (!organization?.id) return;
+    const items = Object.entries(bulkQuantities)
+      .map(([variantId, qty]) => {
+        const q = parseInt(qty, 10);
+        if (!q || q <= 0) return null;
+        const item = inventory.find((i) => i.variantId === variantId);
+        if (!item) return null;
+        return { variantId, productId: item.productId, productName: item.productName, variantName: item.variantName, sku: item.sku, quantity: q };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+
+    if (items.length === 0) return;
+
+    startBulkTransition(async () => {
+      const { successCount, errors } = await bulkAdjustStock({
+        organizationId: organization.id,
+        type: bulkType,
+        reason: bulkReason || undefined,
+        items,
+      });
+      if (errors.length > 0) {
+        alert(`${successCount}件成功、${errors.length}件失敗:\n${errors.slice(0, 5).join('\n')}`);
+      }
+      if (successCount > 0) {
+        const { data } = await getInventorySummary(organization.id);
+        if (data) setInventory(data);
+        setBulkDialogOpen(false);
+        setBulkQuantities({});
+        setBulkReason('');
+      }
+    });
+  };
 
   useEffect(() => {
     const fetchInventory = async () => {
@@ -179,11 +221,17 @@ export default function InventoryPage() {
             商品の在庫状況を確認・調整します
           </p>
         </div>
-        <div className="hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-50 to-sky-50 dark:from-sky-950/30 dark:to-sky-950/30 border border-sky-100 dark:border-sky-900/30">
-          <Boxes className="h-4 w-4 text-sky-500" />
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-bold text-sky-600">{totalStock.toLocaleString()}</span>
-            <span className="text-xs text-muted-foreground">点</span>
+        <div className="flex items-center gap-3">
+          <Button size="sm" variant="outline" onClick={() => { setBulkDialogOpen(true); setBulkQuantities({}); }}>
+            <Layers className="mr-2 h-4 w-4" />
+            一括調整
+          </Button>
+          <div className="hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-50 to-sky-50 dark:from-sky-950/30 dark:to-sky-950/30 border border-sky-100 dark:border-sky-900/30">
+            <Boxes className="h-4 w-4 text-sky-500" />
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-xl font-bold text-sky-600">{totalStock.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground">点</span>
+            </div>
           </div>
         </div>
       </div>
@@ -349,7 +397,91 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* 在庫調整ダイアログ */}
+      {/* 一括調整ダイアログ */}
+      <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Layers className="h-5 w-5 text-sky-500" />
+              在庫一括調整
+            </DialogTitle>
+            <DialogDescription>
+              数量を入力した商品をまとめて調整します。空欄の商品はスキップされます。
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {/* 調整タイプ＋理由 */}
+            <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2 flex-1">
+                <Button
+                  type="button"
+                  variant={bulkType === 'in' ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(bulkType === 'in' && "bg-emerald-500 hover:bg-emerald-600")}
+                  onClick={() => setBulkType('in')}
+                >
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />入庫
+                </Button>
+                <Button
+                  type="button"
+                  variant={bulkType === 'out' ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(bulkType === 'out' && "bg-sky-500 hover:bg-sky-600")}
+                  onClick={() => setBulkType('out')}
+                >
+                  <Minus className="mr-1.5 h-3.5 w-3.5" />出庫
+                </Button>
+              </div>
+              <Input
+                placeholder="理由（任意）"
+                value={bulkReason}
+                onChange={(e) => setBulkReason(e.target.value)}
+                className="flex-1 text-sm"
+              />
+            </div>
+
+            {/* 全商品一括セット */}
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800">
+              <span className="text-sm text-sky-700 dark:text-sky-300 font-medium whitespace-nowrap">全商品に適用</span>
+              <Input
+                type="number"
+                min="1"
+                placeholder="数量を入力..."
+                className="text-sm text-right w-28"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  setBulkQuantities(
+                    Object.fromEntries(inventory.map((i) => [i.variantId, val]))
+                  );
+                }}
+              />
+              <span className="text-xs text-sky-600 dark:text-sky-400 whitespace-nowrap">
+                → 全 {inventory.length} 件
+              </span>
+            </div>
+
+          </div>
+
+          <DialogFooter className="pt-2">
+            <div className="flex items-center gap-2 mr-auto text-sm text-muted-foreground">
+              {Object.values(bulkQuantities).filter((v) => parseInt(v) > 0).length} 件選択中
+            </div>
+            <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>キャンセル</Button>
+            <Button
+              onClick={handleBulkAdjust}
+              disabled={isBulkPending || Object.values(bulkQuantities).filter((v) => parseInt(v) > 0).length === 0}
+              className="btn-premium"
+            >
+              {isBulkPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              一括調整を実行
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 個別在庫調整ダイアログ */}
       <Dialog open={adjustDialogOpen} onOpenChange={setAdjustDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

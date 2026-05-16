@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Key, Users, Bell, CreditCard, ExternalLink, User, ToggleLeft, Sparkles, Mail } from 'lucide-react';
+import { Building2, Key, Users, CreditCard, ExternalLink, ToggleLeft, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,60 +36,15 @@ const settingsCategories = [
         icon: Users,
         badge: null,
       },
-      {
-        title: 'アカウント設定',
-        description: 'パスワード変更、通知設定、セキュリティ',
-        href: '/account',
-        icon: User,
-        badge: null,
-      },
-    ],
-  },
-  {
-    section: '顧客',
-    items: [
-      {
-        title: '顧客設定',
-        description: '会員種別の表示名・カスタムフィールドを設定',
-        href: '/settings/customers',
-        icon: Sparkles,
-        badge: null,
-      },
-    ],
-  },
-  {
-    section: '代理店',
-    items: [
-      {
-        title: '代理店カスタムフィールド',
-        description: '代理店登録フォームに表示する追加フィールドを設定',
-        href: '/settings/agents-schema',
-        icon: Building2,
-        badge: null,
-      },
     ],
   },
   {
     section: 'メール・通知',
     items: [
       {
-        title: 'メール・通知',
-        description: '送信ドメインの認証・メール通知・アラートの設定',
+        title: 'メール設定',
+        description: 'ドメイン認証・テンプレート・通知アラートをまとめて管理',
         href: '/settings/notifications',
-        icon: Bell,
-        badge: null,
-      },
-      {
-        title: 'メールテンプレート',
-        description: '注文確認・通知メールの件名・本文・送信先を自由に編集',
-        href: '/settings/email-templates',
-        icon: Mail,
-        badge: null,
-      },
-      {
-        title: 'メールドメイン設定',
-        description: '送信元ドメインの認証・独自アドレスの設定',
-        href: '/settings/email-domain',
         icon: Mail,
         badge: null,
       },
@@ -108,19 +63,12 @@ const settingsCategories = [
     ],
   },
   {
-    section: '決済・プラン',
+    section: '決済',
     items: [
       {
         title: '決済設定',
         description: 'Stripe連携・決済方法・銀行振込口座の設定',
         href: '/settings/payments',
-        icon: CreditCard,
-        badge: null,
-      },
-      {
-        title: '請求・プラン',
-        description: 'プランの確認・変更、請求履歴',
-        href: '/settings/billing',
         icon: CreditCard,
         badge: null,
       },
@@ -146,8 +94,10 @@ export default function SettingsPage() {
         {settingsCategories.flatMap((section) =>
           section.items.map((category) => {
             const Icon = category.icon;
+
+            // 通常カード
             return (
-              <Link key={category.href} href={category.href}>
+              <Link key={category.href!} href={category.href!}>
                 <Card className="card-hover h-full cursor-pointer group">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -177,25 +127,6 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* 現在のプラン情報 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">現在のプラン</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium capitalize">{organization?.plan || 'Starter'} プラン</p>
-              <p className="text-sm text-muted-foreground">
-                すべての基本機能が利用可能です
-              </p>
-            </div>
-            <Badge variant="outline" className="capitalize">
-              {organization?.plan || 'starter'}
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -16,7 +16,9 @@ import {
   CheckCircle,
   AlertTriangle,
   ChevronRight,
+  CreditCard,
 } from 'lucide-react';
+import { useOrganization } from '@/components/providers/organization-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,6 +40,7 @@ import {
 import { toast } from 'sonner';
 
 export default function AccountSettingsPage() {
+  const { organization } = useOrganization();
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -86,7 +89,7 @@ export default function AccountSettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       {/* ヘッダー */}
       <div>
         <h1 className="text-2xl font-bold">アカウント設定</h1>
@@ -391,6 +394,35 @@ export default function AccountSettingsPage() {
               </AlertDialogContent>
             </AlertDialog>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* プラン・請求 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-sky-500" />
+            プラン・請求
+          </CardTitle>
+          <CardDescription>現在のプランと請求情報を確認できます</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+            <div>
+              <p className="font-medium capitalize">{organization?.plan || 'Starter'} プラン</p>
+              <p className="text-sm text-muted-foreground">すべての基本機能が利用可能です</p>
+            </div>
+            <Badge variant="outline" className="capitalize">
+              {organization?.plan || 'starter'}
+            </Badge>
+          </div>
+          <Link
+            href="/settings/billing"
+            className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors"
+          >
+            <span className="font-medium">請求・プランの変更</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
         </CardContent>
       </Card>
 

@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { contentTypeConfig } from '@/lib/content-types';
 
 export default function ContentsSettingsPage() {
-  const { organization } = useOrganization();
+  const { organization, refetch } = useOrganization();
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -122,6 +122,7 @@ export default function ContentsSettingsPage() {
       }
 
       toast.success('コンテンツタイプ設定を保存しました');
+      await refetch();
     });
   };
 

@@ -33,7 +33,6 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PageTabs } from '@/components/layout/page-tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
 import { toast } from 'sonner';
 import {
@@ -47,15 +46,6 @@ import {
   DEFAULT_ORGANIZATION_FEATURES,
 } from '@/types/database';
 
-const settingsTabs = [
-  { label: '基本設定', href: '/settings', exact: true },
-  { label: '組織設定', href: '/settings/organization' },
-  { label: 'ユーザー管理', href: '/settings/users' },
-  { label: 'ロール管理', href: '/settings/roles' },
-  { label: '権限マトリクス', href: '/settings/permissions' },
-  { label: '機能設定', href: '/settings/features' },
-  { label: '決済設定', href: '/settings/payments' },
-];
 
 const ALL_NAV_ITEMS: { key: string; title: string; icon: IconType; required?: boolean }[] = [
   { key: 'dashboard',  title: 'ホーム',           icon: IoHome,      required: true },
@@ -76,6 +66,7 @@ interface FeatureRowProps {
   badge?: string;
   checked: boolean;
   onCheckedChange: (v: boolean) => void;
+  disabled?: boolean;
 }
 
 function FeatureToggleRow({
@@ -85,6 +76,7 @@ function FeatureToggleRow({
   badge,
   checked,
   onCheckedChange,
+  disabled,
 }: FeatureRowProps) {
   return (
     <div className="flex items-center justify-between py-3">
@@ -102,7 +94,7 @@ function FeatureToggleRow({
           <p className="text-xs text-muted-foreground">{description}</p>
         </div>
       </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+      <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
     </div>
   );
 }
@@ -214,9 +206,6 @@ export default function FeaturesSettingsPage() {
           )}
         </Button>
       </div>
-
-      {/* タブナビゲーション */}
-      <PageTabs tabs={settingsTabs} />
 
       {/* 会員・通知機能 */}
       <Card>
@@ -339,40 +328,42 @@ export default function FeaturesSettingsPage() {
       </Card>
 
       {/* EC機能 */}
-      <Card>
+      <Card className="opacity-70">
         <CardHeader>
-          <CardTitle>EC機能</CardTitle>
-          <CardDescription>Eコマース関連の機能を設定します</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>EC機能</CardTitle>
+              <CardDescription>Eコマース関連の機能を設定します</CardDescription>
+            </div>
+            <Badge variant="secondary">準備中</Badge>
+          </div>
         </CardHeader>
         <CardContent className="space-y-1">
           <FeatureToggleRow
             icon={<span className="text-sm">🛒</span>}
             title="ゲストチェックアウト"
             description="会員登録なしで購入を許可する"
-            checked={!!(features as unknown as Record<string, unknown>).enableGuestCheckout}
-            onCheckedChange={(v) =>
-              setFeatures((prev) => ({ ...prev, enableGuestCheckout: v } as unknown as OrganizationFeatures))
-            }
+            checked={false}
+            onCheckedChange={() => {}}
+            disabled
           />
           <Separator />
           <FeatureToggleRow
             icon={<span className="text-sm">📋</span>}
             title="見積機能"
             description="見積書の作成・管理機能を有効にする"
-            checked={(features as unknown as Record<string, unknown>).enableEstimates !== false}
-            onCheckedChange={(v) =>
-              setFeatures((prev) => ({ ...prev, enableEstimates: v } as unknown as OrganizationFeatures))
-            }
+            checked={false}
+            onCheckedChange={() => {}}
+            disabled
           />
           <Separator />
           <FeatureToggleRow
             icon={<span className="text-sm">📦</span>}
             title="高度な在庫管理"
             description="複数倉庫・ロット管理などの高度な在庫機能"
-            checked={!!(features as unknown as Record<string, unknown>).enableAdvancedInventory}
-            onCheckedChange={(v) =>
-              setFeatures((prev) => ({ ...prev, enableAdvancedInventory: v } as unknown as OrganizationFeatures))
-            }
+            checked={false}
+            onCheckedChange={() => {}}
+            disabled
           />
         </CardContent>
       </Card>

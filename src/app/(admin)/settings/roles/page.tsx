@@ -36,18 +36,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PageTabs } from '@/components/layout/page-tabs';
 import { cn } from '@/lib/utils';
 
-const settingsTabs = [
-  { label: '基本設定', href: '/settings', exact: true },
-  { label: '組織設定', href: '/settings/organization' },
-  { label: 'ユーザー管理', href: '/settings/users' },
-  { label: 'ロール管理', href: '/settings/roles' },
-  { label: '権限マトリクス', href: '/settings/permissions' },
-  { label: '機能設定', href: '/settings/features' },
-  { label: '決済設定', href: '/settings/payments' },
-];
 
 // モックデータ
 const mockRoles = [
@@ -193,9 +183,6 @@ export default function RolesSettingsPage() {
           </DialogContent>
         </Dialog>
       </div>
-
-      {/* タブナビゲーション */}
-      <PageTabs tabs={settingsTabs} />
 
       {/* 統計カード */}
       <div className="grid gap-4 md:grid-cols-4">

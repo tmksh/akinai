@@ -191,6 +191,7 @@ export default function NewContentPage() {
   };
 
   const editorType = getEditorType(contentType);
+  const isCustomType = !contentTypeConfig[contentType];
 
   if (!enabledTypesLoaded) {
     return (
@@ -312,39 +313,43 @@ export default function NewContentPage() {
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <FieldLabel htmlFor="excerpt" fieldKey="excerpt">概要</FieldLabel>
-                <Textarea
-                  id="excerpt"
-                  placeholder="記事の概要を入力"
-                  className="min-h-[80px]"
-                  value={excerpt}
-                  onChange={(e) => setExcerpt(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <FieldLabel htmlFor="content" fieldKey="blocks">
-                  {editorType === 'qa' ? '質問と回答' : editorType === 'gallery' ? '画像' : '本文'}
-                </FieldLabel>
-                {editorType === 'qa' ? (
-                  <QAEditor pairs={qaPairs} onChange={setQaPairs} disabled={isPending} />
-                ) : editorType === 'gallery' ? (
-                  <GalleryEditor
-                    items={galleryItems}
-                    onChange={setGalleryItems}
-                    organizationId={organization?.id || ''}
-                    disabled={isPending}
+              {!isCustomType && (
+                <div className="space-y-2">
+                  <FieldLabel htmlFor="excerpt" fieldKey="excerpt">概要</FieldLabel>
+                  <Textarea
+                    id="excerpt"
+                    placeholder="記事の概要を入力"
+                    className="min-h-[80px]"
+                    value={excerpt}
+                    onChange={(e) => setExcerpt(e.target.value)}
                   />
-                ) : (
-                  <RichTextEditor
-                    content={content}
-                    onChange={setContent}
-                    placeholder="ここに本文を入力..."
-                    disabled={isPending}
-                    minHeight="300px"
-                  />
-                )}
-              </div>
+                </div>
+              )}
+              {!isCustomType && (
+                <div className="space-y-2">
+                  <FieldLabel htmlFor="content" fieldKey="blocks">
+                    {editorType === 'qa' ? '質問と回答' : editorType === 'gallery' ? '画像' : '本文'}
+                  </FieldLabel>
+                  {editorType === 'qa' ? (
+                    <QAEditor pairs={qaPairs} onChange={setQaPairs} disabled={isPending} />
+                  ) : editorType === 'gallery' ? (
+                    <GalleryEditor
+                      items={galleryItems}
+                      onChange={setGalleryItems}
+                      organizationId={organization?.id || ''}
+                      disabled={isPending}
+                    />
+                  ) : (
+                    <RichTextEditor
+                      content={content}
+                      onChange={setContent}
+                      placeholder="ここに本文を入力..."
+                      disabled={isPending}
+                      minHeight="300px"
+                    />
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
