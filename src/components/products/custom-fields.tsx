@@ -214,11 +214,14 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
   };
 
   // リスト型: アイテム追加
-  const addListItem = (fieldId: string, item: string) => {
+  const addListItem = (fieldId: string, items: string | string[]) => {
     const field = fields.find(f => f.id === fieldId);
-    if (!field || !item.trim()) return;
+    if (!field) return;
     const current: string[] = field.value ? JSON.parse(field.value) : [];
-    updateFieldValue(fieldId, JSON.stringify([...current, item.trim()]));
+    const toAdd = Array.isArray(items) ? items : [items];
+    const newItems = toAdd.map(i => i.trim()).filter(Boolean);
+    if (newItems.length === 0) return;
+    updateFieldValue(fieldId, JSON.stringify([...current, ...newItems]));
   };
 
   const removeListItem = (fieldId: string, index: number) => {
@@ -686,12 +689,24 @@ function ListInput({
 }: {
   fieldId: string;
   value: string;
-  onAdd: (fieldId: string, item: string) => void;
+  onAdd: (fieldId: string, items: string | string[]) => void;
   onRemove: (fieldId: string, index: number) => void;
   disabled?: boolean;
 }) {
   const [input, setInput] = useState('');
+  const [bulkInput, setBulkInput] = useState('');
+  const [showBulk, setShowBulk] = useState(false);
   const items: string[] = value ? JSON.parse(value) : [];
+
+  const handleBulkAdd = () => {
+    const newItems = bulkInput
+      .split(/[\n,]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (newItems.length > 0) onAdd(fieldId, newItems);
+    setBulkInput('');
+    setShowBulk(false);
+  };
 
   return (
     <div className="space-y-2">
@@ -726,7 +741,37 @@ function ListInput({
         >
           追加
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowBulk((v) => !v)}
+          disabled={disabled}
+          className="h-9 shrink-0 text-muted-foreground"
+        >
+          一括
+        </Button>
       </div>
+      {showBulk && (
+        <div className="space-y-2 rounded-lg border border-dashed p-3">
+          <p className="text-xs text-muted-foreground">改行またはカンマ区切りで複数入力</p>
+          <Textarea
+            value={bulkInput}
+            onChange={(e) => setBulkInput(e.target.value)}
+            placeholder={'無添加\nオーガニック\nグルテンフリー'}
+            rows={5}
+            className="text-sm"
+            disabled={disabled}
+          />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleBulkAdd} disabled={!bulkInput.trim() || disabled}>
+              一括追加
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowBulk(false); setBulkInput(''); }}>
+              キャンセル
+            </Button>
+          </div>
+        </div>
+      )}
       {items.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {items.map((item, i) => (

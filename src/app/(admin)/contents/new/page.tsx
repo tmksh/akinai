@@ -79,9 +79,13 @@ export default function NewContentPage() {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { organization } = useOrganization();
+  const { organization, refetch } = useOrganization();
   const frontendUrl = useFrontendUrl();
   const isFrontendConnected = !!frontendUrl;
+
+  useEffect(() => {
+    refetch();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!organization?.id) return;
@@ -103,7 +107,7 @@ export default function NewContentPage() {
     });
   }, [organization?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // コンテンツタイプが変わるたびにカスタムフィールドをスキーマで初期化
+  // コンテンツタイプが変わるたび、または組織のスキーマ定義が更新されたらカスタムフィールドを再初期化
   useEffect(() => {
     if (!organization) return;
     const schema = organization.contentFieldSchema?.[contentType] ?? [];
@@ -115,7 +119,7 @@ export default function NewContentPage() {
       if (s.type === 'json') defaultValue = '{}';
       return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
     }));
-  }, [contentType, organization?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [contentType, organization?.id, organization?.contentFieldSchema]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // プレビュー用データ・URL
   const previewData = useMemo(() => ({ title, content, contentType }), [title, content, contentType]);

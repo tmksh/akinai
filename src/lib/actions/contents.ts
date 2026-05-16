@@ -93,7 +93,7 @@ export async function getContents(
       .from('contents')
       .select(`
         id, type, title, slug, excerpt, status, author_id,
-        featured_image, tags, related_product_ids,
+        featured_image, custom_fields, tags, related_product_ids,
         seo_title, seo_description, published_at, scheduled_at,
         organization_id, created_at, updated_at,
         author:users!author_id (
@@ -473,6 +473,29 @@ export async function deleteContent(
     return { success: true, error: null };
   } catch (err) {
     return { success: false, error: (err as Error).message };
+  }
+}
+
+// タイプ指定で一括削除
+export async function deleteContentsByType(
+  organizationId: string,
+  type: string
+): Promise<{ success: boolean; deletedCount: number; error: string | null }> {
+  try {
+    const supabase = getAdminClient();
+    const { data, error } = await supabase
+      .from('contents')
+      .delete()
+      .eq('organization_id', organizationId)
+      .eq('type', type)
+      .select('id');
+
+    if (error) return { success: false, deletedCount: 0, error: error.message };
+
+    revalidatePath('/contents');
+    return { success: true, deletedCount: data?.length ?? 0, error: null };
+  } catch (err) {
+    return { success: false, deletedCount: 0, error: (err as Error).message };
   }
 }
 

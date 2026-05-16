@@ -56,7 +56,7 @@ import {
 import { PageTabs } from '@/components/layout/page-tabs';
 import type { ContentType, ContentStatus } from '@/types';
 import type { ContentData } from '@/lib/actions/contents';
-import { deleteContent, archiveContent, duplicateContent, publishContent } from '@/lib/actions/contents';
+import { deleteContent, archiveContent, duplicateContent, publishContent, deleteContentsByType } from '@/lib/actions/contents';
 import { toast } from 'sonner';
 import { contentTypeConfig, getContentTypeConfig } from '@/lib/content-types';
 import { useOrganization } from '@/components/providers/organization-provider';
@@ -102,13 +102,13 @@ export default function ContentsClient({ initialContents, stats, organizationId,
   const [contents, setContents] = useState<ContentData[]>(initialContents);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>(enabledContentTypes[0] ?? '');
   const [deleteTarget, setDeleteTarget] = useState<ContentData | null>(null);
+  const [bulkDeleteType, setBulkDeleteType] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // 上部「新規作成」ボタンの遷移先：タブで特定タイプを選択中ならそのタイプを初期値にする
-  const newContentHref = activeTab !== 'all'
+  // 上部「新規作成」ボタンの遷移先：選択中のタイプを初期値にする
+  const newContentHref = activeTab
     ? `/contents/new?type=${encodeURIComponent(activeTab)}`
     : '/contents/new';
 
@@ -122,16 +122,16 @@ export default function ContentsClient({ initialContents, stats, organizationId,
   // 設定で有効にしたタイプのみ表示（DBに存在しても無効タイプはタブに出さない）
   const allDisplayTypes = enabledContentTypes;
 
-  // フィルタリング
-  const filteredContents = contents.filter((content) => {
-    const matchesSearch = content.title
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' || content.status === statusFilter;
-    const matchesType = typeFilter === 'all' || content.type === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
-  });
+  // 検索・ステータスフィルター（タイプは選択中タブで絞り込み）
+  const applyCommonFilters = (list: ContentData[]) =>
+    list.filter((content) => {
+      const matchesSearch = content.title
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesStatus =
+        statusFilter === 'all' || content.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
 
   // 削除処理
   const handleDelete = async () => {
@@ -146,6 +146,21 @@ export default function ContentsClient({ initialContents, stats, organizationId,
         toast.error(error || '削除に失敗しました');
       }
       setDeleteTarget(null);
+    });
+  };
+
+  // タイプ一括削除
+  const handleBulkDeleteByType = async () => {
+    if (!bulkDeleteType) return;
+    startTransition(async () => {
+      const { success, deletedCount, error } = await deleteContentsByType(organizationId, bulkDeleteType);
+      if (success) {
+        setContents(contents.filter(c => c.type !== bulkDeleteType));
+        toast.success(`${deletedCount}件を削除しました`);
+      } else {
+        toast.error(error || '削除に失敗しました');
+      }
+      setBulkDeleteType(null);
     });
   };
 
@@ -197,10 +212,13 @@ export default function ContentsClient({ initialContents, stats, organizationId,
     const typeInfo = getTypeConfig(content.type);
     const TypeIcon = typeInfo.icon;
 
-    const hasImage = !!content.featuredImage;
+    const customImageField = content.custom_fields?.find(
+      (f) => f.type === 'image_url' && f.value
+    );
+    const hasImage = !!content.featuredImage || !!customImageField?.value;
 
-    // Q&A等の画像なしコンテンツ用カード（グリッド・リスト両対応）
-    if (!hasImage && (content.type === 'qa' || content.type === 'faq')) {
+    // 画像なしコンテンツ用カード（アイコン＋テキストのみ）
+    if (!hasImage) {
       return (
         <Link
           key={content.id}
@@ -279,9 +297,9 @@ export default function ContentsClient({ initialContents, stats, organizationId,
         {/* サムネイル */}
         <Link href={`/contents/${content.id}/edit`} className="block">
           <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
-            {content.featuredImage ? (
+            {(content.featuredImage || customImageField?.value) ? (
               <Image
-                src={content.featuredImage}
+                src={content.featuredImage || customImageField!.value}
                 alt={content.title}
                 fill
                 sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
@@ -410,10 +428,9 @@ export default function ContentsClient({ initialContents, stats, organizationId,
       {/* ページタブ（複数タブある場合のみ表示） */}
       {contentTabs.length > 1 && <PageTabs tabs={contentTabs} />}
 
-      {/* フィルタータブ（設定で有効にしたタイプはすべて表示。0件でもタブを出して「このタイプで追加」できる） */}
+      {/* フィルタータブ（設定で有効にしたタイプを表示。0件でもタブを出して「このタイプで追加」できる） */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="all">すべて</TabsTrigger>
           {allDisplayTypes.map((type) => {
             const info = getTypeConfig(type);
             return (
@@ -422,130 +439,97 @@ export default function ContentsClient({ initialContents, stats, organizationId,
           })}
         </TabsList>
 
-        <TabsContent value="all" className="space-y-4">
-          {/* 統計バー */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/40" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(12px)' }}>
-              <FileText className="h-3.5 w-3.5 text-sky-400" />
-              <span className="text-xs text-sky-700">全件</span>
-              <span className="text-sm font-semibold text-sky-900">{stats.total}</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-100">
-              <Eye className="h-3.5 w-3.5 text-sky-500" />
-              <span className="text-xs text-sky-700">公開中</span>
-              <span className="text-sm font-semibold text-sky-800">{stats.published}</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sky-100" style={{ background: '#fefce8' }}>
-              <Edit className="h-3.5 w-3.5 text-sky-500" />
-              <span className="text-xs text-sky-700">下書き</span>
-              <span className="text-sm font-semibold text-sky-800">{stats.draft}</span>
-            </div>
-            {stats.scheduled > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-100 border border-sky-200">
-                <Calendar className="h-3.5 w-3.5 text-sky-600" />
-                <span className="text-xs text-sky-700">予約</span>
-                <span className="text-sm font-semibold text-sky-800">{stats.scheduled}</span>
-              </div>
-            )}
+        {/* 統計バー（全タブ共通） */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/40" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(12px)' }}>
+            <FileText className="h-3.5 w-3.5 text-sky-400" />
+            <span className="text-xs text-sky-700">全件</span>
+            <span className="text-sm font-semibold text-sky-900">{stats.total}</span>
           </div>
-
-          {/* フィルター・検索 */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="タイトルで検索..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="ステータス" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">すべて</SelectItem>
-                  <SelectItem value="published">公開中</SelectItem>
-                  <SelectItem value="draft">下書き</SelectItem>
-                  <SelectItem value="review">レビュー中</SelectItem>
-                  <SelectItem value="archived">アーカイブ</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="タイプ" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">すべて</SelectItem>
-                  {allDisplayTypes.map((key) => {
-                    const info = getTypeConfig(key);
-                    return <SelectItem key={key} value={key}>{info.label}</SelectItem>;
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-100">
+            <Eye className="h-3.5 w-3.5 text-sky-500" />
+            <span className="text-xs text-sky-700">公開中</span>
+            <span className="text-sm font-semibold text-sky-800">{stats.published}</span>
           </div>
-
-          {/* カード一覧 */}
-          {filteredContents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              {contents.length === 0 ? (
-                <>
-                  <FileText className="h-12 w-12 text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground mb-3">
-                    {enabledContentTypes.length === 0
-                      ? 'お知らせで使うタイプを設定すると、ここでコンテンツを作成できます'
-                      : 'コンテンツがまだありません'}
-                  </p>
-                  {enabledContentTypes.length > 0 ? (
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={newContentHref}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        最初のコンテンツを作成
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button asChild variant="outline" size="sm">
-                      <Link href="/settings/contents">
-                        <Plus className="mr-2 h-4 w-4" />
-                        タイプを設定する
-                      </Link>
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Search className="h-10 w-10 text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">該当するコンテンツがありません</p>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
-              {filteredContents.map(renderContentCard)}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sky-100" style={{ background: '#fefce8' }}>
+            <Edit className="h-3.5 w-3.5 text-sky-500" />
+            <span className="text-xs text-sky-700">下書き</span>
+            <span className="text-sm font-semibold text-sky-800">{stats.draft}</span>
+          </div>
+          {stats.scheduled > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-100 border border-sky-200">
+              <Calendar className="h-3.5 w-3.5 text-sky-600" />
+              <span className="text-xs text-sky-700">予約</span>
+              <span className="text-sm font-semibold text-sky-800">{stats.scheduled}</span>
             </div>
           )}
-        </TabsContent>
+        </div>
 
-        {/* タイプごとのタブ（設定で有効 or DBに存在するタイプ） */}
+        {/* 検索・ステータスフィルター（全タブ共通） */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="タイトルで検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex gap-2 items-center">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px]">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="ステータス" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">すべて</SelectItem>
+                <SelectItem value="published">公開中</SelectItem>
+                <SelectItem value="draft">下書き</SelectItem>
+                <SelectItem value="review">レビュー中</SelectItem>
+                <SelectItem value="archived">アーカイブ</SelectItem>
+              </SelectContent>
+            </Select>
+            {activeTab && (() => {
+              const count = contents.filter((c) => c.type === activeTab).length;
+              return count > 0 ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs shrink-0"
+                  onClick={() => setBulkDeleteType(activeTab)}
+                  disabled={isPending}
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                  全件削除（{count}件）
+                </Button>
+              ) : null;
+            })()}
+          </div>
+        </div>
+
+        {/* タイプごとのタブ（設定で有効にしたタイプ） */}
         {allDisplayTypes.map((type) => {
-          const typeContents = contents.filter((c) => c.type === type);
+          const typeContents = applyCommonFilters(contents.filter((c) => c.type === type));
           const typeInfo = getTypeConfig(type);
           return (
             <TabsContent key={type} value={type}>
               {typeContents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <FileText className="h-10 w-10 text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground mb-3">このタイプのコンテンツはまだありません</p>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/contents/new?type=${encodeURIComponent(type)}`}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      {typeInfo.label}を追加
-                    </Link>
-                  </Button>
+                  <p className="text-muted-foreground mb-3">
+                    {searchQuery || statusFilter !== 'all'
+                      ? '該当するコンテンツがありません'
+                      : 'このタイプのコンテンツはまだありません'}
+                  </p>
+                  {!(searchQuery || statusFilter !== 'all') && (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/contents/new?type=${encodeURIComponent(type)}`}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        {typeInfo.label}を追加
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className={type === 'qa' || type === 'faq'
@@ -561,6 +545,22 @@ export default function ContentsClient({ initialContents, stats, organizationId,
         })}
       </Tabs>
 
+      {/* タイプが未設定の場合の案内 */}
+      {allDisplayTypes.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <FileText className="h-12 w-12 text-muted-foreground mb-3" />
+          <p className="text-muted-foreground mb-3">
+            お知らせで使うタイプを設定すると、ここでコンテンツを作成できます
+          </p>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/settings/contents">
+              <Plus className="mr-2 h-4 w-4" />
+              タイプを設定する
+            </Link>
+          </Button>
+        </div>
+      )}
+
       {/* 削除確認ダイアログ */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
@@ -575,6 +575,25 @@ export default function ContentsClient({ initialContents, stats, organizationId,
             <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               削除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* タイプ一括削除確認ダイアログ */}
+      <AlertDialog open={!!bulkDeleteType} onOpenChange={() => setBulkDeleteType(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>全件削除</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{bulkDeleteType ? getTypeConfig(bulkDeleteType).label : ''}」タイプのコンテンツを全件削除しますか？この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDeleteByType} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              全件削除
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
