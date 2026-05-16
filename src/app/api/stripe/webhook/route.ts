@@ -453,8 +453,7 @@ function generateOrderNumber(): string {
 }
 
 /**
- * planId からプラン名を解決する。見つからなければ null を返す。
- * 顧客カスタムフィールド `plan` の表示用に使う。
+ * planId からプラン名を解決する。
  */
 function resolvePlanLabel(
   plansSettings: ReturnType<typeof readPlansSettings>,
@@ -504,120 +503,6 @@ async function recalcCustomerOrderStats(
     })
     .eq('id', customerId)
     .eq('organization_id', organizationId);
-}
-
-/**
- * 顧客サブスク決済の orders レコードを冪等に確保する。
- *
- * - 同一 stripeSubscriptionId の orders が既にあれば何もしない（重複防止）
- * - テナント設定 subscriptionCreatesOrder が false なら何もしない
- * - 設定 subscriptionSendsEmail が true なら作成後にメール送信
- *
- * checkout.session.completed と customer.subscription.updated の両方から
- * 安全に呼び出せるよう、必ず冪等であることを担保する。
- */
-async function ensureSubscriptionOrder(
-  supabase: SupabaseAdmin,
-  args: {
-    organizationId: string;
-    customerId: string;
-    customerName: string;
-    customerEmail: string;
-    planId?: string;
-    stripeSubscriptionId: string;
-  }
-): Promise<{ orderId: string | null; created: boolean }> {
-  const {
-    organizationId,
-    customerId,
-    customerName,
-    customerEmail,
-    planId,
-    stripeSubscriptionId,
-  } = args;
-
-  // 既存 order があれば何もしない（冪等性）
-  // notes に stripeSubscriptionId を埋め込むことでフィルタしている
-  const { data: existingOrders } = await supabase
-    .from('orders')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .eq('customer_id', customerId)
-    .ilike('notes', `%${stripeSubscriptionId}%`)
-    .limit(1);
-
-  if (existingOrders && existingOrders.length > 0) {
-    return { orderId: existingOrders[0].id, created: false };
-  }
-
-  // テナント設定を確認
-  const { data: orgData } = await supabase
-    .from('organizations')
-    .select('settings')
-    .eq('id', organizationId)
-    .single();
-
-  const plansSettings = readPlansSettings(orgData?.settings as Record<string, unknown> | null);
-  if (!plansSettings.subscriptionCreatesOrder) {
-    return { orderId: null, created: false };
-  }
-
-  const plan = plansSettings.plans.find((p) => p.id === planId);
-  const amount = plan?.amount ?? 0;
-  const planName = plan?.name ?? 'サブスクリプション';
-
-  const orderNumber = generateOrderNumber();
-  const { data: newOrder, error: orderError } = await supabase
-    .from('orders')
-    .insert({
-      organization_id: organizationId,
-      order_number: orderNumber,
-      customer_id: customerId,
-      customer_name: customerName,
-      customer_email: customerEmail,
-      subtotal: amount,
-      shipping_cost: 0,
-      tax: 0,
-      total: amount,
-      status: 'confirmed',
-      payment_status: 'paid',
-      payment_method: 'subscription',
-      // orders.shipping_address は NOT NULL なので空オブジェクトを入れる
-      shipping_address: {},
-      // 後段で stripeSubscriptionId 検索できるよう必ずIDを含める
-      notes: `サブスクリプション: ${planName} (${stripeSubscriptionId})`,
-      stripe_payment_intent_id: null,
-    })
-    .select('id')
-    .single();
-
-  if (orderError || !newOrder) {
-    console.error('[Webhook] Failed to create subscription order:', orderError);
-    return { orderId: null, created: false };
-  }
-
-  console.log(`[Webhook] Subscription order created (fallback): ${newOrder.id}`);
-
-  await supabase.from('order_items').insert({
-    order_id: newOrder.id,
-    product_id: null,
-    variant_id: null,
-    product_name: planName,
-    variant_name: null,
-    sku: null,
-    quantity: 1,
-    unit_price: amount,
-    total_price: amount,
-  });
-
-  // customers.total_orders / total_spent を再集計して同期
-  await recalcCustomerOrderStats(supabase, organizationId, customerId);
-
-  if (plansSettings.subscriptionSendsEmail) {
-    await sendOrderEmails(supabase, newOrder.id, organizationId);
-  }
-
-  return { orderId: newOrder.id, created: true };
 }
 
 /**
