@@ -18,7 +18,7 @@ export default async function ContentsPage() {
   }
 
   const [c, s, t] = await Promise.all([
-    getContents(organizationId, { limit: 1000 }),
+    getContents(organizationId, { limit: 5000 }),
     getContentStats(organizationId),
     getEnabledContentTypes(organizationId),
   ]);

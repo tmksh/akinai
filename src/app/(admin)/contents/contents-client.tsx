@@ -105,7 +105,13 @@ export default function ContentsClient({ initialContents, stats, organizationId,
   const [activeTab, setActiveTab] = useState<string>(enabledContentTypes[0] ?? '');
   const [deleteTarget, setDeleteTarget] = useState<ContentData | null>(null);
   const [bulkDeleteType, setBulkDeleteType] = useState<string | null>(null);
+  const [displayLimit, setDisplayLimit] = useState<Record<string, number>>({});
   const [isPending, startTransition] = useTransition();
+
+  const PAGE_SIZE = 100;
+  const getDisplayLimit = (type: string) => displayLimit[type] ?? PAGE_SIZE;
+  const loadMore = (type: string, total: number) =>
+    setDisplayLimit((prev) => ({ ...prev, [type]: Math.min((prev[type] ?? PAGE_SIZE) + PAGE_SIZE, total) }));
 
   // 上部「新規作成」ボタンの遷移先：選択中のタイプを初期値にする
   const newContentHref = activeTab
@@ -532,13 +538,31 @@ export default function ContentsClient({ initialContents, stats, organizationId,
                   )}
                 </div>
               ) : (
-                <div className={type === 'qa' || type === 'faq'
-                  ? 'space-y-2'
-                  : 'grid gap-3'
-                }
-                style={type !== 'qa' && type !== 'faq' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' } : {}}>
-                  {typeContents.map(renderContentCard)}
-                </div>
+                <>
+                  <div className={type === 'qa' || type === 'faq'
+                    ? 'space-y-2'
+                    : 'grid gap-3'
+                  }
+                  style={type !== 'qa' && type !== 'faq' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' } : {}}>
+                    {typeContents.slice(0, getDisplayLimit(type)).map(renderContentCard)}
+                  </div>
+                  {typeContents.length > getDisplayLimit(type) && (
+                    <div className="mt-4 flex flex-col items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadMore(type, typeContents.length)}
+                      >
+                        さらに表示（残り {typeContents.length - getDisplayLimit(type)} 件）
+                      </Button>
+                    </div>
+                  )}
+                  {typeContents.length > PAGE_SIZE && (
+                    <p className="text-center text-xs text-muted-foreground mt-2">
+                      {Math.min(getDisplayLimit(type), typeContents.length)} / {typeContents.length} 件表示
+                    </p>
+                  )}
+                </>
               )}
             </TabsContent>
           );
