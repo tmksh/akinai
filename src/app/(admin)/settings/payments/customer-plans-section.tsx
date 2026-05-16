@@ -437,21 +437,25 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <CardTitle className="text-base">{labels[role]}</CardTitle>
-                      <Badge variant="outline" className="text-[10px]">
-                        role: {role}
-                      </Badge>
-                      <Button
-                        asChild
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                        title="会員種別の名称や有効/無効を編集"
-                      >
-                        <Link href="/settings/customer-roles">
-                          <Pencil className="h-3 w-3" />
-                        </Link>
-                      </Button>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <CardTitle className="text-base">{labels[role]}</CardTitle>
+                          <Button
+                            asChild
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                            title="会員種別の名称や有効/無効を編集"
+                          >
+                            <Link href="/settings/customer-roles">
+                              <Pencil className="h-3 w-3" />
+                            </Link>
+                          </Button>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] mt-0.5">
+                          role: {role}
+                        </Badge>
+                      </div>
                     </div>
                     <Button
                       size="sm"
