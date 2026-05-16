@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import {
   ArrowLeft, Save, Plus, Trash2, Type, Hash, ToggleLeft, Calendar, Link2,
   Palette, Code, Sparkles, AlignLeft, Mail, Star, ImageIcon, ListOrdered,
-  Braces, ListFilter, ListChecks, Phone, Info, Copy, Download, Puzzle,
+  Braces, ListFilter, ListChecks, Phone, Info, Copy, Download, Puzzle, FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -21,8 +21,9 @@ import { contentTypeConfig } from '@/lib/content-types';
 import { toast } from 'sonner';
 
 const fieldTypeConfig: Record<CustomFieldType, { label: string; icon: React.ElementType; color: string; category: 'basic' | 'media' | 'advanced' }> = {
-  text:      { label: 'テキスト',     icon: Type,        color: 'text-blue-500',    category: 'basic' },
-  textarea:  { label: '長文テキスト', icon: AlignLeft,   color: 'text-blue-400',    category: 'basic' },
+  text:      { label: 'テキスト',       icon: Type,        color: 'text-blue-500',    category: 'basic' },
+  textarea:  { label: '長文テキスト',   icon: AlignLeft,   color: 'text-blue-400',    category: 'basic' },
+  rich_text: { label: 'リッチテキスト', icon: FileText,    color: 'text-purple-500',  category: 'basic' },
   number:    { label: '数値',         icon: Hash,        color: 'text-emerald-500', category: 'basic' },
   boolean:   { label: '真偽値',       icon: ToggleLeft,  color: 'text-violet-500',  category: 'basic' },
   select:    { label: '選択肢',       icon: ListFilter,  color: 'text-indigo-500',  category: 'basic' },

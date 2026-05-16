@@ -343,14 +343,23 @@ async function routeInvoicePaymentSucceeded(
   const plansSettings = readPlansSettings(orgData?.settings as Record<string, unknown> | null);
   if (!plansSettings.subscriptionCreatesOrder) return true;
 
+  // 初回か継続/アップグレードかを判定
+  const isFirstInvoice = !invoice.billing_reason || invoice.billing_reason === 'subscription_create';
+
   // ── 冪等チェック ──
-  // invoice.id または subscriptionId を notes に含む注文が既にあればスキップ。
-  // checkout.session.completed 経由の ensureSubscriptionOrder が先に動いた場合も重複しない。
+  // 初回: checkout.session.completed 経由の ensureSubscriptionOrder と重複しないよう
+  //   invoice.id OR subscriptionId の両方で確認する。
+  // 継続・アップグレード: subscriptionId は過去の注文にも含まれるため invoice.id のみで確認する。
+  //   （同一 subscriptionId でも別 invoice = 別課金として新規注文を作成する）
+  const idempotencyFilter = isFirstInvoice
+    ? `notes.ilike.%${invoice.id}%,notes.ilike.%${subscriptionId}%`
+    : `notes.ilike.%${invoice.id}%`;
+
   const { data: existingByInvoice } = await supabase
     .from('orders')
     .select('id')
     .eq('organization_id', organizationId)
-    .or(`notes.ilike.%${invoice.id}%,notes.ilike.%${subscriptionId}%`)
+    .or(idempotencyFilter)
     .limit(1);
   if (existingByInvoice && existingByInvoice.length > 0) {
     console.log('[Webhook] order already exists for this invoice/subscription, skip:', invoice.id);
@@ -361,10 +370,11 @@ async function routeInvoicePaymentSucceeded(
   // invoice.amount_paid を優先（プラン変更・日割り等で実際の請求額が異なる場合に対応）
   const amount = invoice.amount_paid ?? plan?.amount ?? 0;
   const planName = plan?.name ?? 'サブスクリプション';
-
-  // 初回か継続かをノート文言で区別（任意）
-  const isFirstInvoice = !invoice.billing_reason || invoice.billing_reason === 'subscription_create';
-  const notePrefix = isFirstInvoice ? 'サブスクリプション初回' : 'サブスクリプション継続課金';
+  const notePrefix = isFirstInvoice
+    ? 'サブスクリプション初回'
+    : invoice.billing_reason === 'subscription_update'
+    ? 'サブスクリプションアップグレード'
+    : 'サブスクリプション継続課金';
 
   const orderNumber = generateOrderNumber();
   const { data: newOrder, error: orderError } = await supabase
@@ -399,8 +409,8 @@ async function routeInvoicePaymentSucceeded(
     product_id: null,
     variant_id: null,
     product_name: planName,
-    variant_name: null,
-    sku: null,
+    variant_name: "",
+    sku: "",
     quantity: 1,
     unit_price: amount,
     total_price: amount,
@@ -580,8 +590,8 @@ async function ensureSubscriptionOrder(
     product_id: null,
     variant_id: null,
     product_name: planName,
-    variant_name: null,
-    sku: null,
+    variant_name: "",
+    sku: "",
     quantity: 1,
     unit_price: amount,
     total_price: amount,

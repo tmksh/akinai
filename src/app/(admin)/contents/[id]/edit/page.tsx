@@ -127,31 +127,6 @@ export default function EditContentPage() {
         setTags(data.tags.join(', '));
         setSeoTitle(data.seoTitle || '');
         setSeoDescription(data.seoDescription || '');
-
-        // カスタムフィールドを復元（スキーマとマージ）
-        const rawCfRaw = (data as unknown as Record<string, unknown>).custom_fields;
-        const rawCf: { key: string; label?: string; value: string; type: string; options?: string[] }[] = Array.isArray(rawCfRaw) ? rawCfRaw : [];
-        const contentFields: CustomField[] = rawCf.map((f, i) => ({
-          id: `cf-${i}-${Date.now()}`,
-          key: f.key,
-          label: f.label || f.key,
-          value: f.value,
-          type: f.type as CustomField['type'],
-          ...(f.options && { options: f.options }),
-        }));
-        const contentSchema = organization?.contentFieldSchema?.[data.type] ?? [];
-        const existingKeys = new Set(contentFields.map(f => f.key));
-        const schemaOnlyFields: CustomField[] = contentSchema
-          .filter(s => !existingKeys.has(s.key))
-          .map(s => {
-            let defaultValue = '';
-            if (s.type === 'boolean') defaultValue = 'false';
-            if (s.type === 'rating') defaultValue = '0';
-            if (s.type === 'list') defaultValue = '[]';
-            if (s.type === 'json') defaultValue = '{}';
-            return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
-          });
-        setCustomFields([...schemaOnlyFields, ...contentFields]);
         
         // ブロックをタイプに応じて復元
         if (data.blocks && Array.isArray(data.blocks)) {
@@ -190,6 +165,47 @@ export default function EditContentPage() {
 
     fetchContent();
   }, [organization?.id, contentId, router]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // contentData と スキーマ が揃ったタイミングでカスタムフィールドをマージ
+  // organization.contentFieldSchema は非同期で後からロードされることがあるため
+  // 専用の useEffect で監視する
+  useEffect(() => {
+    if (!contentData || !organization?.contentFieldSchema) return;
+
+    const rawCfRaw = (contentData as unknown as Record<string, unknown>).custom_fields;
+    const rawCf: { key: string; label?: string; value: string; type: string; options?: string[] }[] =
+      Array.isArray(rawCfRaw) ? rawCfRaw : [];
+    const contentFields: CustomField[] = rawCf.map((f, i) => ({
+      id: `cf-${i}-${f.key}`,
+      key: f.key,
+      label: f.label || f.key,
+      value: f.value,
+      type: f.type as CustomField['type'],
+      ...(f.options && { options: f.options }),
+    }));
+
+    const contentSchema = organization.contentFieldSchema[contentData.type] ?? [];
+    const existingKeys = new Set(contentFields.map((f) => f.key));
+    const schemaOnlyFields: CustomField[] = contentSchema
+      .filter((s) => !existingKeys.has(s.key))
+      .map((s) => {
+        let defaultValue = '';
+        if (s.type === 'boolean') defaultValue = 'false';
+        if (s.type === 'rating') defaultValue = '0';
+        if (s.type === 'list') defaultValue = '[]';
+        if (s.type === 'json') defaultValue = '{}';
+        return {
+          id: `schema-${s.id}`,
+          key: s.key,
+          label: s.label,
+          value: defaultValue,
+          type: s.type as CustomField['type'],
+          ...(s.options && { options: s.options }),
+        };
+      });
+
+    setCustomFields([...schemaOnlyFields, ...contentFields]);
+  }, [contentData, organization?.contentFieldSchema]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // プレビュー用のデータ
   const previewData = useMemo(() => {
@@ -417,43 +433,48 @@ export default function EditContentPage() {
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <FieldLabel htmlFor="excerpt" fieldKey="excerpt">概要</FieldLabel>
-                <Textarea
-                  id="excerpt"
-                  placeholder="記事の概要を入力"
-                  className="min-h-[80px]"
-                  value={excerpt}
-                  onChange={(e) => setExcerpt(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <FieldLabel htmlFor="content" fieldKey="blocks">
-                  {getEditorType(contentType) === 'qa' ? '質問と回答' : getEditorType(contentType) === 'gallery' ? '画像' : '本文'}
-                </FieldLabel>
-                {getEditorType(contentType) === 'qa' ? (
-                  <QAEditor
-                    pairs={qaPairs}
-                    onChange={setQaPairs}
-                    disabled={isPending}
+              {!contentTypeConfig[contentType] && null}
+              {contentTypeConfig[contentType] && (
+                <div className="space-y-2">
+                  <FieldLabel htmlFor="excerpt" fieldKey="excerpt">概要</FieldLabel>
+                  <Textarea
+                    id="excerpt"
+                    placeholder="記事の概要を入力"
+                    className="min-h-[80px]"
+                    value={excerpt}
+                    onChange={(e) => setExcerpt(e.target.value)}
                   />
-                ) : getEditorType(contentType) === 'gallery' ? (
-                  <GalleryEditor
-                    items={galleryItems}
-                    onChange={setGalleryItems}
-                    organizationId={organization?.id || ''}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <RichTextEditor
-                    content={content}
-                    onChange={setContent}
-                    placeholder="ここに本文を入力..."
-                    disabled={isPending}
-                    minHeight="300px"
-                  />
-                )}
-              </div>
+                </div>
+              )}
+              {contentTypeConfig[contentType] && (
+                <div className="space-y-2">
+                  <FieldLabel htmlFor="content" fieldKey="blocks">
+                    {getEditorType(contentType) === 'qa' ? '質問と回答' : getEditorType(contentType) === 'gallery' ? '画像' : '本文'}
+                  </FieldLabel>
+                  {getEditorType(contentType) === 'qa' ? (
+                    <QAEditor
+                      pairs={qaPairs}
+                      onChange={setQaPairs}
+                      disabled={isPending}
+                    />
+                  ) : getEditorType(contentType) === 'gallery' ? (
+                    <GalleryEditor
+                      items={galleryItems}
+                      onChange={setGalleryItems}
+                      organizationId={organization?.id || ''}
+                      disabled={isPending}
+                    />
+                  ) : (
+                    <RichTextEditor
+                      content={content}
+                      onChange={setContent}
+                      placeholder="ここに本文を入力..."
+                      disabled={isPending}
+                      minHeight="300px"
+                    />
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

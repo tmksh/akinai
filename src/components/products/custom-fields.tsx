@@ -24,7 +24,14 @@ import {
   Phone,
   Upload,
   Loader2,
+  FileText,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(
+  () => import('@/components/editor/rich-text-editor').then(m => m.RichTextEditor),
+  { ssr: false, loading: () => <div className="h-40 animate-pulse bg-muted rounded-md" /> }
+);
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,6 +58,7 @@ import { cn } from '@/lib/utils';
 export type CustomFieldType =
   | 'text'
   | 'textarea'
+  | 'rich_text'
   | 'number'
   | 'boolean'
   | 'date'
@@ -84,8 +92,9 @@ interface FieldTypeInfo {
 }
 
 const fieldTypeConfig: Record<CustomFieldType, FieldTypeInfo> = {
-  text:      { label: 'テキスト',     icon: Type,        placeholder: '値を入力',       color: 'text-blue-500',    description: '短いテキスト',         category: 'basic' },
-  textarea:  { label: '長文テキスト', icon: AlignLeft,   placeholder: '長い文章を入力',  color: 'text-blue-400',    description: '複数行のテキスト',     category: 'basic' },
+  text:      { label: 'テキスト',         icon: Type,        placeholder: '値を入力',       color: 'text-blue-500',    description: '短いテキスト',             category: 'basic' },
+  textarea:  { label: '長文テキスト',     icon: AlignLeft,   placeholder: '長い文章を入力',  color: 'text-blue-400',    description: '複数行のテキスト',         category: 'basic' },
+  rich_text: { label: 'リッチテキスト',   icon: FileText,    placeholder: '',               color: 'text-purple-500',  description: 'ビジュアルHTMLエディタ',  category: 'basic' },
   number:    { label: '数値',         icon: Hash,        placeholder: '0',              color: 'text-emerald-500', description: '整数・小数',           category: 'basic' },
   boolean:   { label: '真偽値',       icon: ToggleLeft,  placeholder: '',               color: 'text-violet-500',  description: 'はい/いいえ',         category: 'basic' },
   select:    { label: '選択肢',       icon: ListFilter,  placeholder: '',               color: 'text-indigo-500',  description: 'ドロップダウン（1つ選択）', category: 'basic' },
@@ -261,6 +270,17 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
             disabled={disabled}
             rows={3}
             className="text-sm"
+          />
+        );
+
+      case 'rich_text':
+        return (
+          <RichTextEditor
+            content={field.value}
+            onChange={(html) => updateFieldValue(field.id, html)}
+            disabled={disabled}
+            minHeight="200px"
+            placeholder="ここに内容を入力..."
           />
         );
 
