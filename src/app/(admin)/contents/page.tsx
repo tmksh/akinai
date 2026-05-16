@@ -17,18 +17,25 @@ export default async function ContentsPage() {
     redirect('/contents');
   }
 
-  const [c, s, t] = await Promise.all([
-    getContents(organizationId, { limit: 5000 }),
+  const [s, t] = await Promise.all([
     getContentStats(organizationId),
     getEnabledContentTypes(organizationId),
   ]);
 
+  const enabledTypes = t.data || [];
+
+  // タイプ別に独立してフェッチ（全件一括だと Supabase の 1000 行上限で他タイプが消える）
+  const perTypeResults = await Promise.all(
+    enabledTypes.map((type) => getContents(organizationId, { type, limit: 2000 }))
+  );
+  const allContents = perTypeResults.flatMap((r) => r.data || []);
+
   return (
     <ContentsClient
-      initialContents={c.data || []}
+      initialContents={allContents}
       stats={s || { total: 0, published: 0, draft: 0, scheduled: 0 }}
       organizationId={organizationId}
-      enabledContentTypes={t.data || []}
+      enabledContentTypes={enabledTypes}
     />
   );
 }

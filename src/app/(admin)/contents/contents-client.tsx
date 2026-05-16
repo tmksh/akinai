@@ -218,9 +218,9 @@ export default function ContentsClient({ initialContents, stats, organizationId,
     const typeInfo = getTypeConfig(content.type);
     const TypeIcon = typeInfo.icon;
 
-    const customImageField = content.custom_fields?.find(
-      (f) => f.type === 'image_url' && f.value
-    );
+    const customImageField = Array.isArray(content.custom_fields)
+      ? content.custom_fields.find((f) => f.type === 'image_url' && f.value)
+      : undefined;
     const hasImage = !!content.featuredImage || !!customImageField?.value;
 
     // 画像なしコンテンツ用カード（アイコン＋テキストのみ）

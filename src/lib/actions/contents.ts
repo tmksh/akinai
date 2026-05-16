@@ -171,20 +171,21 @@ export async function getContentStats(
   try {
     const supabase = await createClient();
 
-    // status と scheduled_at だけ取得して JS で集計
-    const { data, error } = await supabase
-      .from('contents')
-      .select('status, scheduled_at')
-      .eq('organization_id', organizationId);
+    // count=exact でカウントのみ取得（データ行は最小限にして 1000行制限を回避）
+    const [totalRes, publishedRes, draftRes, scheduledRes] = await Promise.all([
+      supabase.from('contents').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId),
+      supabase.from('contents').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('status', 'published'),
+      supabase.from('contents').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('status', 'draft'),
+      supabase.from('contents').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).not('scheduled_at', 'is', null),
+    ]);
 
-    if (error) throw error;
+    if (totalRes.error) throw totalRes.error;
 
-    const items = data || [];
     return {
-      total: items.length,
-      published: items.filter(i => i.status === 'published').length,
-      draft: items.filter(i => i.status === 'draft').length,
-      scheduled: items.filter(i => i.scheduled_at !== null).length,
+      total: totalRes.count ?? 0,
+      published: publishedRes.count ?? 0,
+      draft: draftRes.count ?? 0,
+      scheduled: scheduledRes.count ?? 0,
     };
   } catch (err) {
     console.error('Error:', err);

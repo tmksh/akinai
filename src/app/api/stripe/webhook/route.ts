@@ -343,16 +343,17 @@ async function routeInvoicePaymentSucceeded(
   const plansSettings = readPlansSettings(orgData?.settings as Record<string, unknown> | null);
   if (!plansSettings.subscriptionCreatesOrder) return true;
 
-  // ── 冪等チェック: 同じ invoice.id を notes に含む注文が既にあればスキップ ──
-  // invoice.id は Stripe 上でユニークなので、これで初回・継続どちらも重複防止できる
+  // ── 冪等チェック ──
+  // invoice.id または subscriptionId を notes に含む注文が既にあればスキップ。
+  // checkout.session.completed 経由の ensureSubscriptionOrder が先に動いた場合も重複しない。
   const { data: existingByInvoice } = await supabase
     .from('orders')
     .select('id')
     .eq('organization_id', organizationId)
-    .ilike('notes', `%${invoice.id}%`)
+    .or(`notes.ilike.%${invoice.id}%,notes.ilike.%${subscriptionId}%`)
     .limit(1);
   if (existingByInvoice && existingByInvoice.length > 0) {
-    console.log('[Webhook] invoice already recorded as order, skip:', invoice.id);
+    console.log('[Webhook] order already exists for this invoice/subscription, skip:', invoice.id);
     return true;
   }
 
@@ -506,6 +507,96 @@ async function recalcCustomerOrderStats(
 }
 
 /**
+ * サブスクリプション注文を冪等に確保するヘルパー。
+ *
+ * - 同一 stripeSubscriptionId の注文が既にあれば何もしない（重複防止）
+ * - plansSettings.subscriptionCreatesOrder が false なら何もしない
+ * - checkout.session.completed と invoice.payment_succeeded の両方から安全に呼べる
+ */
+async function ensureSubscriptionOrder(
+  supabase: SupabaseAdmin,
+  args: {
+    organizationId: string;
+    customerId: string;
+    customerName: string;
+    customerEmail: string;
+    planId?: string;
+    stripeSubscriptionId: string;
+    plansSettings: ReturnType<typeof readPlansSettings>;
+  }
+): Promise<void> {
+  const { organizationId, customerId, customerName, customerEmail, planId, stripeSubscriptionId, plansSettings } = args;
+
+  if (!plansSettings.subscriptionCreatesOrder) return;
+
+  // 同一サブスクの注文が既にあればスキップ
+  const { data: existing } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('customer_id', customerId)
+    .ilike('notes', `%${stripeSubscriptionId}%`)
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    console.log('[Webhook] subscription order already exists, skip:', stripeSubscriptionId);
+    return;
+  }
+
+  const plan = plansSettings.plans.find((p) => p.id === planId);
+  const amount = plan?.amount ?? 0;
+  const planName = plan?.name ?? 'サブスクリプション';
+
+  const orderNumber = generateOrderNumber();
+  const { data: newOrder, error: orderError } = await supabase
+    .from('orders')
+    .insert({
+      organization_id: organizationId,
+      order_number: orderNumber,
+      customer_id: customerId,
+      customer_name: customerName,
+      customer_email: customerEmail,
+      subtotal: amount,
+      shipping_cost: 0,
+      tax: 0,
+      total: amount,
+      status: 'confirmed',
+      payment_status: 'paid',
+      payment_method: 'subscription',
+      shipping_address: {},
+      notes: `サブスクリプション初回: ${planName} (${stripeSubscriptionId})`,
+      stripe_payment_intent_id: null,
+    })
+    .select('id')
+    .single();
+
+  if (orderError || !newOrder) {
+    console.error('[Webhook] ensureSubscriptionOrder: Failed to create order:', orderError);
+    return;
+  }
+
+  await supabase.from('order_items').insert({
+    order_id: newOrder.id,
+    product_id: null,
+    variant_id: null,
+    product_name: planName,
+    variant_name: null,
+    sku: null,
+    quantity: 1,
+    unit_price: amount,
+    total_price: amount,
+  });
+
+  await recalcCustomerOrderStats(supabase, organizationId, customerId);
+
+  if (plansSettings.subscriptionSendsEmail) {
+    await sendOrderEmails(supabase, newOrder.id, organizationId);
+  }
+
+  console.log(`[Webhook] ensureSubscriptionOrder: order created: ${newOrder.id}`);
+}
+
+/**
  * エンドユーザー向けサブスクリプション Checkout 完了時の処理
  * customers.custom_fields.subscription を更新する。
  * 組織設定に応じて orders への記録・確認メール送信も行う。
@@ -575,7 +666,19 @@ async function handleCustomerSubscriptionCheckoutComplete(
     .eq('id', customerId)
     .eq('organization_id', organizationId);
 
-  // 注文作成は invoice.payment_succeeded に一本化しているため、ここでは行わない
+  // ── 注文作成（冪等） ──
+  // invoice.payment_succeeded でも作成するが、そのイベントが届かないケースへの保険として
+  // checkout.session.completed でも作成する。stripeSubscriptionId でのチェックにより
+  // 両方届いても重複しない。
+  await ensureSubscriptionOrder(supabase, {
+    organizationId,
+    customerId,
+    customerName: (existing?.name as string | null) || '',
+    customerEmail: (existing?.email as string | null) || '',
+    planId,
+    stripeSubscriptionId: session.subscription as string,
+    plansSettings: plansSettingsForLabel,
+  });
 }
 
 /**
