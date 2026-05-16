@@ -18,6 +18,7 @@ import {
   readPlansSettings,
   readSubscriptionInfo,
 } from '@/lib/customer-subscription-plans';
+import { sendOrderEmails } from '@/lib/order-emails';
 
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -341,7 +342,7 @@ export async function PATCH(request: NextRequest) {
     `[subscription PATCH] plan changed: customer=${customer.id}, from=${existingSub.planId}, to=${newPlan.id}`
   );
 
-  // 最新インボイスの状態を取得して返す（即時課金の確認用）
+  // 最新インボイスの状態を取得し、支払い済みなら注文を作成する
   let latestInvoiceStatus: string | null = null;
   if (updatedSub.latest_invoice) {
     const invoiceId = typeof updatedSub.latest_invoice === 'string'
@@ -350,8 +351,86 @@ export async function PATCH(request: NextRequest) {
     try {
       const invoice = await stripe.invoices.retrieve(invoiceId, { stripeAccount: org.stripe_account_id });
       latestInvoiceStatus = invoice.status;
-    } catch {
-      // インボイス取得失敗はログのみ
+
+      // 支払い成功 & subscriptionCreatesOrder が有効なら注文を作成
+      if (invoice.status === 'paid' && plansSettings.subscriptionCreatesOrder) {
+        // 冪等チェック: 同じインボイスの注文が既にあればスキップ
+        const { data: existingOrder } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('organization_id', verify.payload.org)
+          .ilike('notes', `%${invoiceId}%`)
+          .limit(1);
+
+        if (!existingOrder || existingOrder.length === 0) {
+          const amount = invoice.amount_paid ?? newPlan.amount ?? 0;
+          const orderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 9000) + 1000}`;
+
+          const { data: newOrder } = await supabase
+            .from('orders')
+            .insert({
+              organization_id: verify.payload.org,
+              order_number: orderNumber,
+              customer_id: customer.id,
+              customer_name: (customer.name as string) || '',
+              customer_email: (customer.email as string) || '',
+              subtotal: amount,
+              shipping_cost: 0,
+              tax: 0,
+              total: amount,
+              status: 'confirmed',
+              payment_status: 'paid',
+              payment_method: 'subscription',
+              shipping_address: {},
+              notes: `サブスクリプションアップグレード: ${newPlan.name} (${existingSub.stripeSubscriptionId} / ${invoiceId})`,
+              stripe_payment_intent_id: null,
+            })
+            .select('id')
+            .single();
+
+          if (newOrder) {
+            await supabase.from('order_items').insert({
+              order_id: newOrder.id,
+              product_id: null,
+              variant_id: null,
+              product_name: newPlan.name,
+              variant_name: '',
+              sku: '',
+              quantity: 1,
+              unit_price: amount,
+              total_price: amount,
+            });
+
+            // 顧客統計を再集計
+            const { data: allOrders } = await supabase
+              .from('orders')
+              .select('total, payment_status')
+              .eq('organization_id', verify.payload.org)
+              .eq('customer_id', customer.id);
+            const validOrders = (allOrders ?? []).filter(
+              (o) => o.payment_status !== 'failed' && o.payment_status !== 'refunded'
+            );
+            await supabase
+              .from('customers')
+              .update({
+                total_orders: validOrders.length,
+                total_spent: validOrders.reduce((s, o) => s + Number(o.total), 0),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', customer.id)
+              .eq('organization_id', verify.payload.org);
+
+            if (plansSettings.subscriptionSendsEmail) {
+              await sendOrderEmails(supabase, newOrder.id, verify.payload.org);
+            }
+
+            console.log(`[subscription PATCH] upgrade order created: ${newOrder.id}`);
+          }
+        }
+      }
+    } catch (err) {
+      // インボイス取得・注文作成失敗はログのみ（本体のレスポンスには影響させない）
+      console.error('[subscription PATCH] invoice/order handling failed:', err);
     }
   }
 
