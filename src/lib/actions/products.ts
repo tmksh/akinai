@@ -403,7 +403,11 @@ export async function createProduct(input: CreateProductInput): Promise<{
           }))
         );
 
-      if (variantsError) throw variantsError;
+      if (variantsError) {
+        // バリアント挿入失敗時は孤立した商品を削除してロールバック
+        await supabase.from('products').delete().eq('id', product.id);
+        throw variantsError;
+      }
     }
 
     // カテゴリ関連を作成
@@ -424,7 +428,12 @@ export async function createProduct(input: CreateProductInput): Promise<{
     return { data: product, error: null };
   } catch (error) {
     console.error('Error creating product:', error);
-    return { data: null, error: 'Failed to create product' };
+    const message = error instanceof Error ? error.message : String(error);
+    // SKUの重複エラーを分かりやすく変換
+    if (message.includes('duplicate') && message.includes('sku')) {
+      return { data: null, error: 'このSKUはすでに使用されています。別のSKUを入力してください。' };
+    }
+    return { data: null, error: `商品の作成に失敗しました: ${message}` };
   }
 }
 
@@ -550,7 +559,11 @@ export async function updateProduct(input: UpdateProductInput): Promise<{
     return { data: product, error: null };
   } catch (error) {
     console.error('Error updating product:', error);
-    return { data: null, error: 'Failed to update product' };
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('duplicate') && message.includes('sku')) {
+      return { data: null, error: 'このSKUはすでに使用されています。別のSKUを入力してください。' };
+    }
+    return { data: null, error: `商品の更新に失敗しました: ${message}` };
   }
 }
 

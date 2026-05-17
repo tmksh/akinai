@@ -289,14 +289,15 @@ export default function ProductEditPage() {
 
         if (result.error) {
           console.error('Error updating product:', result.error);
-          alert('商品の更新に失敗しました');
+          alert(result.error);
           return;
         }
 
         router.push(`/products/${productId}`);
       } catch (error) {
         console.error('Error updating product:', error);
-        alert('商品の更新に失敗しました');
+        const message = error instanceof Error ? error.message : String(error);
+        alert(`商品の更新に失敗しました: ${message}`);
       }
     });
   };

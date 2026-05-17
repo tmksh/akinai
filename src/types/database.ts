@@ -631,6 +631,7 @@ export interface Database {
         Row: {
           id: string
           product_id: string
+          organization_id: string | null
           name: string
           sku: string
           price: number
@@ -645,6 +646,7 @@ export interface Database {
         Insert: {
           id?: string
           product_id: string
+          organization_id?: string | null
           name: string
           sku: string
           price: number
@@ -659,6 +661,7 @@ export interface Database {
         Update: {
           id?: string
           product_id?: string
+          organization_id?: string | null
           name?: string
           sku?: string
           price?: number

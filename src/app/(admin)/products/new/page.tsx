@@ -264,14 +264,15 @@ export default function NewProductPage() {
 
         if (result.error) {
           console.error('Error creating product:', result.error);
-          alert('商品の作成に失敗しました');
+          alert(result.error);
           return;
         }
 
         router.push('/products');
       } catch (error) {
         console.error('Error creating product:', error);
-        alert('商品の作成に失敗しました');
+        const message = error instanceof Error ? error.message : String(error);
+        alert(`商品の作成に失敗しました: ${message}`);
       }
     });
   };
