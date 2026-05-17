@@ -151,6 +151,20 @@ export async function getNewsletterHistory(organizationId: string) {
   return data || [];
 }
 
+export async function deleteNewsletterSend(
+  organizationId: string,
+  newsletterId: string
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('newsletter_sends')
+    .delete()
+    .eq('id', newsletterId)
+    .eq('organization_id', organizationId);
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
 // ─── メッセージ ───────────────────────────────────────────
 export async function getSentMessages(organizationId: string) {
   const supabase = await createClient();

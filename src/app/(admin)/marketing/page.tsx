@@ -5,7 +5,7 @@ import {
   BarChart3, Mail, MessageSquare, Calendar,
   TrendingUp, Eye, MousePointerClick, Loader2,
   X, CheckCircle2, Users, Megaphone, ChevronDown,
-  Inbox, Package, ArrowRight, Paperclip,
+  Inbox, Package, ArrowRight, Paperclip, Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import {
   getAnalyticsOverview,
   getNewsletterHistory,
   getEvents,
+  deleteNewsletterSend,
   type AnalyticsPeriod,
   getInquiryThreads,
   getInquiryThreadDetail,
@@ -283,6 +284,8 @@ function NewsletterTab({ organizationId }: { organizationId: string }) {
   const [history, setHistory] = useState<NewsletterItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [emailStatus, setEmailStatus] = useState<EmailDomainStatus | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -294,6 +297,19 @@ function NewsletterTab({ organizationId }: { organizationId: string }) {
       setLoading(false);
     });
   }, [organizationId]);
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    const { error } = await deleteNewsletterSend(organizationId, id);
+    if (error) {
+      toast.error('削除に失敗しました');
+    } else {
+      setHistory(prev => prev.filter(h => h.id !== id));
+      toast.success('送信履歴を削除しました');
+    }
+    setDeletingId(null);
+    setConfirmId(null);
+  };
 
   if (loading) return <LoadingState />;
 
@@ -309,6 +325,8 @@ function NewsletterTab({ organizationId }: { organizationId: string }) {
         : <div className="space-y-2">
           {history.map(item => {
             const s = STATUS_BADGE[item.status] || STATUS_BADGE.pending;
+            const isConfirming = confirmId === item.id;
+            const isDeleting = deletingId === item.id;
             return (
               <Card key={item.id}>
                 <CardContent className="py-4 px-5">
@@ -323,6 +341,37 @@ function NewsletterTab({ organizationId }: { organizationId: string }) {
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs text-muted-foreground">{item.sent_count}件</span>
                       <Badge variant={s.variant} className="text-xs">{s.label}</Badge>
+                      {isConfirming ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-7 px-2 text-xs"
+                            disabled={isDeleting}
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : '削除する'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs"
+                            disabled={isDeleting}
+                            onClick={() => setConfirmId(null)}
+                          >
+                            キャンセル
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => setConfirmId(item.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
