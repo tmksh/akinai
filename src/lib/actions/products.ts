@@ -43,7 +43,7 @@ export async function getProducts(
     let query = supabase
       .from('products')
       .select(`
-        id, name, slug, status, featured, tags, created_at, organization_id,
+        id, name, slug, status, featured, tags, description, custom_fields, created_at, organization_id,
         product_variants (id, name, sku, price, compare_at_price, stock),
         product_images (id, url, alt, sort_order),
         product_categories (
