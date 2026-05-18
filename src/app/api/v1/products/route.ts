@@ -10,27 +10,64 @@ import {
   withApiLogging,
 } from '@/lib/api/auth';
 
-type CustomFieldItem = { key: string; label: string; value: string; type: string; options?: string[] };
+type CustomFieldItem = { key: string; label: string; value: string; type: string; options?: string[]; urls?: string[] };
+
+/**
+ * 画像フィールドの値を URL 配列にパースする。
+ * - 空 → []
+ * - JSON 配列文字列 → そのまま
+ * - 単一 URL 文字列 → [url]
+ */
+function parseImageUrls(value: string | null | undefined): string[] {
+  if (!value) return [];
+  const trimmed = String(value).trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === 'string' && v.length > 0);
+    } catch {
+      /* fall through */
+    }
+  }
+  return [trimmed];
+}
+
+/**
+ * 画像フィールド (image_url / image_url_list) の値を消費しやすい形に変換。
+ * - value: 先頭 URL（単一 URL を期待する旧クライアント向け後方互換）
+ * - urls : 全 URL の配列
+ */
+function normalizeImageField(item: CustomFieldItem): CustomFieldItem {
+  if (item.type !== 'image_url' && item.type !== 'image_url_list') return item;
+  const urls = parseImageUrls(item.value);
+  return {
+    ...item,
+    value: urls[0] ?? '',
+    urls,
+  };
+}
 
 /**
  * DB の custom_fields を正規化して配列に変換する。
  * - 配列形式 [{key, label, value, type}] → そのまま返す
  * - オブジェクト形式 {"key": "value"} → [{key, label:key, value, type:"text"}] に変換
  * - それ以外（null/undefined/非対象） → [] を返す
+ * 画像フィールドは urls 配列を補完する。
  */
 function normalizeCustomFields(raw: unknown): CustomFieldItem[] {
+  let items: CustomFieldItem[] = [];
   if (Array.isArray(raw)) {
-    return raw as CustomFieldItem[];
-  }
-  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-    return Object.entries(raw as Record<string, unknown>).map(([key, value]) => ({
+    items = raw as CustomFieldItem[];
+  } else if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    items = Object.entries(raw as Record<string, unknown>).map(([key, value]) => ({
       key,
       label: key,
       value: String(value ?? ''),
       type: 'text',
     }));
   }
-  return [];
+  return items.map(normalizeImageField);
 }
 
 // 統一フィールド型
@@ -41,13 +78,14 @@ interface UnifiedField {
   type: string;
   system: boolean;
   options?: string[];
+  urls?: string[];
 }
 
 // 商品データを統一フィールド形式に変換
 function buildFields(
   product: Record<string, unknown>,
   variants: Record<string, unknown>[],
-  customFields: { key: string; label: string; value: string; type: string; options?: string[] }[]
+  customFields: CustomFieldItem[]
 ): UnifiedField[] {
   const fields: UnifiedField[] = [];
 
@@ -82,6 +120,7 @@ function buildFields(
       type: cf.type,
       system: false,
       ...(cf.options && { options: cf.options }),
+      ...(cf.urls && { urls: cf.urls }),
     });
   }
 
