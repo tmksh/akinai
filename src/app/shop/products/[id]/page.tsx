@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { getShopProduct, getShopProducts, type ShopProduct } from '@/lib/actions/shop';
+import { parseImageUrls } from '@/components/products/custom-fields';
 import ProductClient from './product-client';
 
 // 関連商品コンポーネント
@@ -111,6 +112,54 @@ export default async function ProductDetailPage({
           </div>
         </section>
       )}
+
+      {/* カスタムフィールド画像表示 */}
+      {(() => {
+        const imageFields = product.customFields.filter(
+          f => (f.type === 'image_url' || f.type === 'image_url_list') && f.value
+        );
+        if (imageFields.length === 0) return null;
+
+        return (
+          <section className="py-16 border-t border-slate-100 bg-slate-50/50">
+            <div className="max-w-4xl mx-auto px-6">
+              {imageFields.map((field, idx) => {
+                const urls = parseImageUrls(field.value);
+                if (urls.length === 0) return null;
+
+                return (
+                  <div key={idx} className={idx > 0 ? 'mt-12' : ''}>
+                    {field.label && (
+                      <h2 className="text-xl font-light tracking-wide text-slate-800 mb-6">
+                        {field.label}
+                      </h2>
+                    )}
+                    <div className={cn(
+                      'grid gap-4',
+                      urls.length === 1 ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3'
+                    )}>
+                      {urls.map((url, i) => (
+                        <div
+                          key={i}
+                          className="relative aspect-square overflow-hidden rounded-lg bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <Image
+                            src={url}
+                            alt={`${field.label || '商品画像'} ${i + 1}`}
+                            fill
+                            sizes="(max-width: 768px) 50vw, 33vw"
+                            className="object-contain p-2"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* 配送・返品情報 */}
       <section className="py-12 bg-slate-50">

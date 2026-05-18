@@ -68,6 +68,7 @@ export type CustomFieldType =
   | 'color'
   | 'rating'
   | 'image_url'
+  | 'image_url_list'
   | 'list'
   | 'select'
   | 'multi_select'
@@ -80,6 +81,39 @@ export interface CustomField {
   value: string;
   type: CustomFieldType;
   options?: string[]; // select 型の選択肢
+}
+
+// image_url / image_url_list 共用：値を URL 配列にパースする
+// - 空 → []
+// - JSON 配列文字列 → そのまま
+// - 単一 URL 文字列 → [url]
+export function parseImageUrls(value: string | null | undefined): string[] {
+  if (!value) return [];
+  const trimmed = String(value).trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === 'string' && v.length > 0);
+    } catch {
+      /* fallthrough */
+    }
+  }
+  return [trimmed];
+}
+
+// image_url 用のシリアライズ：1枚はプレーン URL、2枚以上は JSON 配列文字列（後方互換）
+export function serializeImageUrl(urls: string[]): string {
+  const cleaned = urls.filter(u => typeof u === 'string' && u.length > 0);
+  if (cleaned.length === 0) return '';
+  if (cleaned.length === 1) return cleaned[0];
+  return JSON.stringify(cleaned);
+}
+
+// image_url の値から「先頭の URL」だけ取り出す（次画像表示用ヘルパー）
+export function firstImageUrl(value: string | null | undefined): string {
+  const list = parseImageUrls(value);
+  return list[0] ?? '';
 }
 
 interface FieldTypeInfo {
@@ -103,7 +137,8 @@ const fieldTypeConfig: Record<CustomFieldType, FieldTypeInfo> = {
   url:       { label: 'URL',          icon: Link2,       placeholder: 'https://',       color: 'text-cyan-500',    description: 'リンクURL',           category: 'media' },
   email:     { label: 'メール',       icon: Mail,        placeholder: 'example@mail.com', color: 'text-sky-500', description: 'メールアドレス',       category: 'media' },
   phone:     { label: '電話番号',     icon: Phone,       placeholder: '03-1234-5678',   color: 'text-teal-500',    description: '電話番号',             category: 'media' },
-  image_url: { label: '画像',      icon: ImageIcon,   placeholder: 'https://...',    color: 'text-sky-500',  description: '画像アップロード',   category: 'media' },
+  image_url: { label: '画像',          icon: ImageIcon,   placeholder: 'https://...',    color: 'text-sky-500',  description: '画像アップロード（1枚）', category: 'media' },
+  image_url_list: { label: '複数画像', icon: ImageIcon,   placeholder: 'https://...',    color: 'text-violet-500', description: '複数画像アップロード',  category: 'media' },
   color:     { label: 'カラー',       icon: Palette,     placeholder: '#000000',        color: 'text-pink-500',    description: 'カラーピッカー',       category: 'media' },
   rating:    { label: '評価',         icon: Star,        placeholder: '',               color: 'text-sky-500',  description: '1〜5の星評価',        category: 'advanced' },
   list:      { label: 'リスト',       icon: ListOrdered, placeholder: '項目を追加',      color: 'text-rose-500',    description: 'タグ形式のリスト',     category: 'advanced' },
@@ -335,6 +370,16 @@ export function CustomFields({ fields, onChange, disabled = false, allowAdd = tr
           <ImageUploadField
             value={field.value}
             onChange={(url) => updateFieldValue(field.id, url)}
+            disabled={disabled}
+            organizationId={organizationId}
+          />
+        );
+
+      case 'image_url_list':
+        return (
+          <ImageUrlListField
+            value={field.value}
+            onChange={(v) => updateFieldValue(field.id, v)}
             disabled={disabled}
             organizationId={organizationId}
           />
@@ -828,45 +873,53 @@ function ImageUploadField({ value, onChange, disabled, organizationId }: ImageUp
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFile = useCallback(async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      setError('画像ファイルを選択してください');
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setError('10MB 以下のファイルを選択してください');
-      return;
-    }
+  const urls = parseImageUrls(value);
+  const setUrls = (next: string[]) => onChange(serializeImageUrl(next));
+
+  const uploadOne = async (file: File): Promise<string | null> => {
+    if (!file.type.startsWith('image/')) { setError('画像ファイルを選択してください'); return null; }
+    if (file.size > 10 * 1024 * 1024) { setError('10MB 以下のファイルを選択してください'); return null; }
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'contents');
+    formData.append('folder', organizationId ? `products/${organizationId}` : 'products');
+    const res = await fetch('/api/upload-image', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) { setError(data.error || 'アップロードに失敗しました'); return null; }
+    return data.url as string;
+  };
+
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
+    const arr = Array.from(files);
+    if (arr.length === 0) return;
     setError(null);
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('bucket', 'contents');
-      formData.append('folder', organizationId ? `products/${organizationId}` : 'products');
-      const res = await fetch('/api/upload-image', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'アップロードに失敗しました');
-      } else {
-        onChange(data.url);
+      const uploaded: string[] = [];
+      for (const f of arr) {
+        const url = await uploadOne(f);
+        if (url) uploaded.push(url);
+      }
+      if (uploaded.length > 0) {
+        setUrls([...urls, ...uploaded]);
       }
     } catch {
       setError('アップロードに失敗しました');
     } finally {
       setIsUploading(false);
     }
-  }, [organizationId, onChange]);
+  }, [organizationId, urls]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
-  }, [handleFile]);
+    if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
+  }, [handleFiles]);
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = () => setIsDragging(false);
+
+  const removeAt = (i: number) => setUrls(urls.filter((_, idx) => idx !== i));
 
   return (
     <div className="space-y-2">
@@ -878,7 +931,7 @@ function ImageUploadField({ value, onChange, disabled, organizationId }: ImageUp
             ? 'border-sky-400 bg-sky-50/60 dark:bg-sky-950/20 scale-[1.01]'
             : 'border-border hover:border-sky-300 hover:bg-muted/20',
           disabled && 'opacity-50 cursor-not-allowed',
-          value ? 'p-2' : 'p-6'
+          urls.length > 0 ? 'p-2' : 'p-6'
         )}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -887,31 +940,79 @@ function ImageUploadField({ value, onChange, disabled, organizationId }: ImageUp
         <input
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
           disabled={disabled || isUploading}
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+          onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}
         />
 
-        {value ? (
-          /* プレビュー表示 */
+        {urls.length === 1 ? (
+          /* ── 1枚のときは大きなプレビュー ── */
           <div className="relative group/preview w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={value}
+              src={urls[0]}
               alt="プレビュー"
               className="max-h-48 w-full object-contain rounded-lg"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
-            {/* 変更オーバーレイ */}
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg opacity-0 group-hover/preview:opacity-100 transition-opacity">
               <div className="flex flex-col items-center gap-1 text-white">
                 <Upload className="h-6 w-6" />
-                <span className="text-xs font-medium">クリックまたはドラッグで変更</span>
+                <span className="text-xs font-medium">クリックまたはドラッグで追加・変更</span>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeAt(0); }}
+              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-md flex items-center justify-center bg-black/60 text-white opacity-0 group-hover/preview:opacity-100 hover:bg-destructive transition-all"
+              title="この画像を削除"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : urls.length > 1 ? (
+          /* ── 複数枚のときはサムネイルグリッド ── */
+          <div className="w-full">
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-1.5">
+              {urls.map((u, i) => (
+                <div
+                  key={i}
+                  className="relative group/thumb aspect-square rounded-lg overflow-hidden border border-border bg-muted"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={u}
+                    alt={`画像${i + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeAt(i); }}
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity"
+                    title="この画像を削除"
+                  >
+                    <X className="h-4 w-4 text-white" />
+                  </button>
+                  <span className="absolute top-0.5 left-0.5 text-[9px] text-white/90 bg-black/50 rounded px-1 leading-tight">
+                    {i + 1}
+                  </span>
+                </div>
+              ))}
+              {/* 追加スロット */}
+              <div className="aspect-square rounded-lg border-2 border-dashed border-input bg-background/60 hover:border-sky-300 hover:bg-muted/30 flex flex-col items-center justify-center gap-0.5 text-muted-foreground transition-colors">
+                <Plus className="h-4 w-4" />
+                <span className="text-[10px]">追加</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground/70 mt-1.5 text-center">
+              {urls.length}枚 ・ ドラッグ&ドロップで追加
+            </p>
           </div>
         ) : (
-          /* 空状態 */
+          /* ── 空状態 ── */
           <div className="flex flex-col items-center gap-2 text-muted-foreground pointer-events-none">
             {isUploading ? (
               <>
@@ -923,7 +1024,7 @@ function ImageUploadField({ value, onChange, disabled, organizationId }: ImageUp
                 <ImageIcon className={cn('h-8 w-8', isDragging ? 'text-sky-500' : 'opacity-30')} />
                 <div className="text-center">
                   <p className="text-xs font-medium">クリックして画像を選択</p>
-                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">またはここにドラッグ&ドロップ</p>
+                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">またはここにドラッグ&ドロップ（複数 OK）</p>
                   <p className="text-[10px] text-muted-foreground/40 mt-1">JPG / PNG / WEBP / GIF・10MB 以下</p>
                 </div>
               </>
@@ -931,8 +1032,8 @@ function ImageUploadField({ value, onChange, disabled, organizationId }: ImageUp
           </div>
         )}
 
-        {/* アップロード中スピナー（プレビューあり時） */}
-        {isUploading && value && (
+        {/* アップロード中オーバーレイ */}
+        {isUploading && urls.length > 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-xl">
             <Loader2 className="h-7 w-7 animate-spin text-white" />
           </div>
@@ -942,27 +1043,59 @@ function ImageUploadField({ value, onChange, disabled, organizationId }: ImageUp
       {/* URL 直接入力（折りたたみ） */}
       <details className="group">
         <summary className="cursor-pointer text-[11px] text-muted-foreground/60 hover:text-muted-foreground list-none flex items-center gap-1">
-          <span className="group-open:hidden">▶ URLを直接入力</span>
+          <span className="group-open:hidden">▶ URLを直接入力{urls.length > 1 ? `（${urls.length}枚）` : ''}</span>
           <span className="hidden group-open:inline">▼ URLを直接入力</span>
         </summary>
-        <div className="mt-1.5 flex gap-2">
-          <Input
-            type="url"
-            value={value}
-            onChange={(e) => { onChange(e.target.value); setError(null); }}
-            placeholder="https://example.com/image.jpg"
-            disabled={disabled}
-            className="h-8 text-xs"
-          />
-          {value && (
+        <div className="mt-1.5 space-y-1.5">
+          {urls.length === 0 ? (
+            <Input
+              type="url"
+              value=""
+              onChange={(e) => { setUrls(e.target.value ? [e.target.value] : []); setError(null); }}
+              placeholder="https://example.com/image.jpg"
+              disabled={disabled}
+              className="h-8 text-xs"
+            />
+          ) : (
+            urls.map((u, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <span className="text-[10px] text-muted-foreground w-5 shrink-0">{i + 1}</span>
+                <Input
+                  type="url"
+                  value={u}
+                  onChange={(e) => {
+                    const next = [...urls];
+                    next[i] = e.target.value;
+                    setUrls(next);
+                    setError(null);
+                  }}
+                  placeholder="https://example.com/image.jpg"
+                  disabled={disabled}
+                  className="h-8 text-xs flex-1 min-w-0"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeAt(i)}
+                  className="h-8 px-2 text-muted-foreground hover:text-destructive shrink-0"
+                  title="削除"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))
+          )}
+          {urls.length > 0 && (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => { onChange(''); setError(null); }}
-              className="h-8 px-2 text-muted-foreground hover:text-destructive shrink-0"
+              onClick={() => setUrls([...urls, ''])}
+              className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
             >
-              <X className="h-3.5 w-3.5" />
+              <Plus className="h-3 w-3 mr-1" />
+              URL を追加
             </Button>
           )}
         </div>
@@ -970,6 +1103,204 @@ function ImageUploadField({ value, onChange, disabled, organizationId }: ImageUp
 
       {/* エラー */}
       {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 複数画像フィールド（image_url_list 型）
+// value は JSON 配列文字列: ["url1", "url2", ...]
+// ─────────────────────────────────────────────────────────────────────────────
+interface ImageUrlListFieldProps {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  organizationId?: string;
+}
+
+function ImageUrlListField({ value, onChange, disabled, organizationId }: ImageUrlListFieldProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const urls: string[] = (() => {
+    if (!value) return [];
+    try { const p = JSON.parse(value); return Array.isArray(p) ? p : []; }
+    catch { return value ? [value] : []; }
+  })();
+
+  const setUrls = (next: string[]) => onChange(JSON.stringify(next));
+
+  const handleFile = useCallback(async (file: File, replaceIndex?: number) => {
+    if (!file.type.startsWith('image/')) { setError('画像ファイルを選択してください'); return; }
+    if (file.size > 10 * 1024 * 1024) { setError('10MB 以下のファイルを選択してください'); return; }
+    setError(null);
+    setIsUploading(true);
+    setUploadingIndex(replaceIndex ?? null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'contents');
+      formData.append('folder', organizationId ? `products/${organizationId}` : 'products');
+      const res = await fetch('/api/upload-image', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'アップロードに失敗しました');
+      } else {
+        if (replaceIndex !== undefined) {
+          const next = [...urls];
+          next[replaceIndex] = data.url;
+          setUrls(next);
+        } else {
+          setUrls([...urls, data.url]);
+        }
+      }
+    } catch {
+      setError('アップロードに失敗しました');
+    } finally {
+      setIsUploading(false);
+      setUploadingIndex(null);
+    }
+  }, [organizationId, urls]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const removeUrl = (index: number) => {
+    const next = urls.filter((_, i) => i !== index);
+    setUrls(next);
+  };
+
+  const moveUrl = (from: number, to: number) => {
+    if (to < 0 || to >= urls.length) return;
+    const next = [...urls];
+    [next[from], next[to]] = [next[to], next[from]];
+    setUrls(next);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* 既存画像グリッド */}
+      {urls.length > 0 && (
+        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}>
+          {urls.map((url, i) => (
+            <div key={i} className="group relative rounded-lg overflow-hidden border border-border aspect-square bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt={`画像 ${i + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+
+              {/* アップロード中オーバーレイ */}
+              {uploadingIndex === i && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+                </div>
+              )}
+
+              {/* ホバーオーバーレイ */}
+              {!disabled && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
+                  {/* 差し替え */}
+                  <label className="cursor-pointer rounded-md bg-white/90 px-2 py-0.5 text-[10px] font-medium text-slate-700 hover:bg-white transition-colors">
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f, i); }} />
+                    差し替え
+                  </label>
+                  <div className="flex gap-1">
+                    {i > 0 && (
+                      <button type="button" onClick={() => moveUrl(i, i - 1)} className="rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 hover:bg-white">←</button>
+                    )}
+                    {i < urls.length - 1 && (
+                      <button type="button" onClick={() => moveUrl(i, i + 1)} className="rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 hover:bg-white">→</button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeUrl(i)}
+                    className="rounded-full bg-red-500/90 p-0.5 text-white hover:bg-red-600 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
+              {/* 番号バッジ */}
+              <span className="absolute top-1 left-1 text-[9px] font-bold bg-black/50 text-white rounded px-1 leading-4">{i + 1}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 追加エリア */}
+      {!disabled && (
+        <label
+          className={cn(
+            'relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-all cursor-pointer p-4',
+            isUploading && uploadingIndex === null
+              ? 'border-sky-400 bg-sky-50/60'
+              : 'border-border hover:border-sky-300 hover:bg-muted/20'
+          )}
+        >
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            disabled={isUploading}
+            onChange={async (e) => {
+              const files = Array.from(e.target.files ?? []);
+              for (const f of files) await handleFile(f);
+              e.target.value = '';
+            }}
+          />
+          {isUploading && uploadingIndex === null ? (
+            <>
+              <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+              <p className="text-xs text-muted-foreground">アップロード中...</p>
+            </>
+          ) : (
+            <>
+              <ImageIcon className="h-6 w-6 opacity-30" />
+              <div className="text-center">
+                <p className="text-xs font-medium">クリックして画像を追加</p>
+                <p className="text-[11px] text-muted-foreground/60 mt-0.5">複数ファイル同時選択可</p>
+              </div>
+            </>
+          )}
+        </label>
+      )}
+
+      {/* URL 直接入力 */}
+      <details className="group">
+        <summary className="cursor-pointer text-[11px] text-muted-foreground/60 hover:text-muted-foreground list-none flex items-center gap-1">
+          <span className="group-open:hidden">▶ URLを直接追加</span>
+          <span className="hidden group-open:inline">▼ URLを直接追加</span>
+        </summary>
+        <DirectUrlInput onAdd={(url) => { if (url && !urls.includes(url)) setUrls([...urls, url]); }} disabled={disabled} />
+      </details>
+
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+function DirectUrlInput({ onAdd, disabled }: { onAdd: (url: string) => void; disabled?: boolean }) {
+  const [url, setUrl] = useState('');
+  return (
+    <div className="mt-1.5 flex gap-2">
+      <Input
+        type="url"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="https://example.com/image.jpg"
+        disabled={disabled}
+        className="h-8 text-xs"
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (url.trim()) { onAdd(url.trim()); setUrl(''); } } }}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-8 shrink-0"
+        disabled={disabled || !url.trim()}
+        onClick={() => { if (url.trim()) { onAdd(url.trim()); setUrl(''); } }}
+      >
+        追加
+      </Button>
     </div>
   );
 }

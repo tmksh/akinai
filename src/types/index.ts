@@ -62,6 +62,7 @@ export type CustomFieldType =
   | 'color'
   | 'rating'
   | 'image_url'
+  | 'image_url_list'
   | 'list'
   | 'select'
   | 'multi_select'

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useRef } from 'react';
+import { useState, useTransition, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -22,12 +22,30 @@ import {
   SlidersHorizontal,
   X,
   Sparkles,
+  PencilLine,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,11 +65,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { useOrganization } from '@/components/providers/organization-provider';
-import { getProducts, getCategories, deleteProduct, deleteProducts, updateProductStatus, duplicateProduct, type ProductWithRelations } from '@/lib/actions/products';
+import { getProducts, getCategories, deleteProduct, deleteProducts, updateProductStatus, duplicateProduct, bulkUpdateCustomFieldPerProduct, type ProductWithRelations } from '@/lib/actions/products';
 import { toast } from 'sonner';
 import { ProductImportDialog } from '@/components/products/import-dialog';
 import type { ProductStatus } from '@/types';
 import type { Database } from '@/types/database';
+import type { ProductFieldSchemaItem } from '@/components/providers/organization-provider';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 
@@ -103,6 +122,23 @@ export default function ProductsClient({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
+  const [bulkFieldDialogOpen, setBulkFieldDialogOpen] = useState(false);
+  const [bulkFieldKey, setBulkFieldKey] = useState('');
+  // 各行は rowId で一意に管理。同じ商品を複数行に追加できるようにするため。
+  type DialogRow = { rowId: string; product: ProductWithRelations };
+  // rowId → value のマップ
+  const [bulkFieldValues, setBulkFieldValues] = useState<Record<string, string>>({});
+  // rowId → アップロード中フラグ
+  const [bulkUploadingIds, setBulkUploadingIds] = useState<Set<string>>(new Set());
+  // ダイアログ内の行リスト（同一商品の複数行 OK）
+  const [dialogRows, setDialogRows] = useState<DialogRow[]>([]);
+  // useRef でも同期的に保持
+  const dialogRowsRef = useRef<DialogRow[]>([]);
+  const newRowId = () =>
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `row-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -132,6 +168,7 @@ export default function ProductsClient({
       const result = await deleteProduct(productToDelete.id);
       if (result.success) {
         setProducts(prev => prev.filter(p => p.id !== productToDelete.id));
+        setSelectedIds(prev => { const s = new Set(prev); s.delete(productToDelete.id); return s; });
         toast.success('商品を削除しました');
       } else {
         toast.error('削除に失敗しました');
@@ -151,7 +188,11 @@ export default function ProductsClient({
   };
 
   const filteredIds = useMemo(() => filteredProducts.map(p => p.id), [filteredProducts]);
-  const selectedCount = selectedIds.size;
+  // products に実際に存在するものだけカウント（削除済み ID が残らないよう）
+  const selectedCount = useMemo(
+    () => products.filter(p => selectedIds.has(p.id)).length,
+    [products, selectedIds],
+  );
   const allFilteredSelected = filteredIds.length > 0 && filteredIds.every(id => selectedIds.has(id));
   const someFilteredSelected = !allFilteredSelected && filteredIds.some(id => selectedIds.has(id));
 
@@ -184,6 +225,249 @@ export default function ProductsClient({
         toast.error('一括削除に失敗しました');
       }
       setBulkDeleteDialogOpen(false);
+    });
+  };
+
+  const fieldSchema: ProductFieldSchemaItem[] = organization?.productFieldSchema ?? [];
+  const selectedFieldSchema = fieldSchema.find(f => f.key === bulkFieldKey);
+
+  const selectedProducts = useMemo(
+    () => products.filter(p => selectedIds.has(p.id)),
+    [products, selectedIds],
+  );
+
+  const openBulkFieldDialog = useCallback(() => {
+    // 選択中の商品をそれぞれ1行ずつのスナップショットに
+    const rows: DialogRow[] = products
+      .filter(p => selectedIds.has(p.id))
+      .map(p => ({ rowId: newRowId(), product: p }));
+    dialogRowsRef.current = rows;
+    setDialogRows(rows);
+
+    const initial: Record<string, string> = {};
+    for (const r of rows) initial[r.rowId] = '';
+    setBulkFieldValues(initial);
+    setBulkFieldKey('');
+    setBulkFieldDialogOpen(true);
+  }, [products, selectedIds]);
+
+  const handleFieldKeyChange = (key: string) => {
+    setBulkFieldKey(key);
+    const rows = dialogRowsRef.current;
+    const next: Record<string, string> = {};
+    for (const r of rows) next[r.rowId] = '';
+    setBulkFieldValues(next);
+  };
+
+  // ダイアログ内で商品を追加する（同じ商品でも複数回追加 OK）
+  const addProductToDialog = (product: ProductWithRelations) => {
+    const row: DialogRow = { rowId: newRowId(), product };
+    const next = [...dialogRowsRef.current, row];
+    dialogRowsRef.current = next;
+    setDialogRows(next);
+    setSelectedIds(prev => {
+      if (prev.has(product.id)) return prev;
+      const s = new Set(prev);
+      s.add(product.id);
+      return s;
+    });
+    setBulkFieldValues(prev => ({ ...prev, [row.rowId]: '' }));
+  };
+
+  // ダイアログから1行外す。最後の1行が外れたときだけ selectedIds から商品を消す。
+  const removeRowFromDialog = (rowId: string) => {
+    const target = dialogRowsRef.current.find(r => r.rowId === rowId);
+    const next = dialogRowsRef.current.filter(r => r.rowId !== rowId);
+    dialogRowsRef.current = next;
+    setDialogRows(next);
+    if (target && !next.some(r => r.product.id === target.product.id)) {
+      setSelectedIds(prev => {
+        const s = new Set(prev);
+        s.delete(target.product.id);
+        return s;
+      });
+    }
+    setBulkFieldValues(prev => {
+      const n = { ...prev };
+      delete n[rowId];
+      return n;
+    });
+  };
+
+  const uploadOneImage = async (file: File): Promise<{ url: string } | { error: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'contents');
+    formData.append('folder', organizationId ? `products/${organizationId}` : 'products');
+    try {
+      const res = await fetch('/api/upload-image', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || `HTTP ${res.status}` };
+      if (!data.url) return { error: 'URLが返されませんでした' };
+      return { url: data.url };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'ネットワークエラー' };
+    }
+  };
+
+  // image_url（単一）:
+  //   1枚選択 → その行にセット
+  //   複数選択 → 選択した行から順に各行へ1枚ずつ振り分け（行 = スロット）
+  // image_url_list（複数）: 複数ファイルをアップロードして JSON 配列に追記
+  const handleBulkImageUpload = async (rowId: string, files: FileList | File[]) => {
+    const fileArr = Array.from(files).filter(f => f.type.startsWith('image/') && f.size <= 10 * 1024 * 1024);
+    if (fileArr.length === 0) { toast.error('有効な画像ファイルを選択してください（10MB 以下）'); return; }
+
+    if (selectedFieldSchema?.type === 'image_url_list') {
+      // ── 複数画像フィールド: その行に追記 ──
+      setBulkUploadingIds(prev => new Set(prev).add(rowId));
+      try {
+        const uploaded: string[] = [];
+        const errors: string[] = [];
+        for (const f of fileArr) {
+          const result = await uploadOneImage(f);
+          if ('url' in result) uploaded.push(result.url);
+          else errors.push(`${f.name}: ${result.error}`);
+        }
+        if (uploaded.length > 0) {
+          setBulkFieldValues(prev => {
+            const current: string[] = (() => {
+              try { const p = JSON.parse(prev[rowId] ?? ''); return Array.isArray(p) ? p : []; } catch { return []; }
+            })();
+            return { ...prev, [rowId]: JSON.stringify([...current, ...uploaded]) };
+          });
+          toast.success(`${uploaded.length}枚アップロードしました`);
+        }
+        if (errors.length > 0) toast.error(`${errors.length}件失敗: ${errors[0]}`);
+      } finally {
+        setBulkUploadingIds(prev => { const s = new Set(prev); s.delete(rowId); return s; });
+      }
+    } else {
+      // ── 単一画像フィールド: 複数ファイル → 後続の行（スロット）へ順番に振り分け ──
+      const rows = dialogRowsRef.current;
+      const startIdx = rows.findIndex(r => r.rowId === rowId);
+      const targets = rows.slice(startIdx, startIdx + fileArr.length);
+
+      setBulkUploadingIds(prev => {
+        const s = new Set(prev);
+        targets.forEach(r => s.add(r.rowId));
+        return s;
+      });
+      try {
+        const results = await Promise.all(
+          fileArr.map((f, i) => targets[i] ? uploadOneImage(f) : Promise.resolve(null as null))
+        );
+        const errors: string[] = [];
+        setBulkFieldValues(prev => {
+          const next = { ...prev };
+          targets.forEach((r, i) => {
+            const res = results[i];
+            if (res && 'url' in res) next[r.rowId] = res.url;
+            else if (res && 'error' in res) errors.push(`${fileArr[i].name}: ${res.error}`);
+          });
+          return next;
+        });
+        const ok = results.filter(r => r && 'url' in r).length;
+        if (ok > 0) {
+          toast.success(ok === 1 ? '画像をアップロードしました' : `${ok}枚の画像を${ok}個のスロットに割り当てました`);
+        }
+        if (errors.length > 0) toast.error(`${errors.length}件失敗: ${errors[0]}`);
+      } finally {
+        setBulkUploadingIds(prev => {
+          const s = new Set(prev);
+          targets.forEach(r => s.delete(r.rowId));
+          return s;
+        });
+      }
+    }
+  };
+
+  const handleBulkFieldUpdate = () => {
+    if (!bulkFieldKey || dialogRows.length === 0) return;
+    const schema = fieldSchema.find(f => f.key === bulkFieldKey);
+    if (!schema) return;
+
+    // 同じ商品 ID で複数行ある場合の集約方法はフィールド型で分岐
+    //   - image_url: 各行の値を URL として並べて 1枚なら文字列、2枚以上なら JSON 配列文字列に集約
+    //   - image_url_list: 各行は既に JSON 配列。重複なしで結合して JSON 配列に
+    //   - その他: 「最後の非空値」を採用
+    const valueByProduct = new Map<string, string>();
+
+    if (schema.type === 'image_url') {
+      const urlsByProduct = new Map<string, string[]>();
+      for (const r of dialogRows) {
+        const v = (bulkFieldValues[r.rowId] ?? '').trim();
+        if (!v) continue;
+        const list = urlsByProduct.get(r.product.id) ?? [];
+        list.push(v);
+        urlsByProduct.set(r.product.id, list);
+      }
+      // 入力された商品はその値で
+      for (const [pid, urls] of urlsByProduct) {
+        valueByProduct.set(pid, urls.length === 1 ? urls[0] : JSON.stringify(urls));
+      }
+      // 1行も非空が無い商品は空文字（現状維持/クリア）
+      for (const r of dialogRows) {
+        if (!valueByProduct.has(r.product.id)) valueByProduct.set(r.product.id, '');
+      }
+    } else if (schema.type === 'image_url_list') {
+      const allByProduct = new Map<string, string[]>();
+      for (const r of dialogRows) {
+        const raw = bulkFieldValues[r.rowId] ?? '';
+        let list: string[] = [];
+        try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) list = parsed.filter(x => typeof x === 'string'); }
+        catch { /* ignore */ }
+        if (list.length === 0) continue;
+        const acc = allByProduct.get(r.product.id) ?? [];
+        for (const u of list) if (!acc.includes(u)) acc.push(u);
+        allByProduct.set(r.product.id, acc);
+      }
+      for (const [pid, urls] of allByProduct) {
+        valueByProduct.set(pid, JSON.stringify(urls));
+      }
+      for (const r of dialogRows) {
+        if (!valueByProduct.has(r.product.id)) valueByProduct.set(r.product.id, '');
+      }
+    } else {
+      for (const r of dialogRows) {
+        const v = bulkFieldValues[r.rowId];
+        if (v == null || v === '') continue;
+        valueByProduct.set(r.product.id, v);
+      }
+      for (const r of dialogRows) {
+        if (!valueByProduct.has(r.product.id)) {
+          valueByProduct.set(r.product.id, bulkFieldValues[r.rowId] ?? '');
+        }
+      }
+    }
+
+    const entries = Array.from(valueByProduct.entries()).map(([productId, value]) => ({ productId, value }));
+    startTransition(async () => {
+      const result = await bulkUpdateCustomFieldPerProduct(entries, schema.key, schema.label, schema.type);
+      if (result.success) {
+        setProducts(prev => prev.map(p => {
+          const newValue = valueByProduct.get(p.id);
+          if (newValue === undefined) return p;
+          const existing = Array.isArray((p as unknown as { custom_fields?: unknown }).custom_fields)
+            ? [...(p as unknown as { custom_fields: Array<Record<string, unknown>> }).custom_fields]
+            : [];
+          const idx = existing.findIndex(f => f.key === schema.key);
+          if (idx >= 0) {
+            existing[idx] = { ...existing[idx], value: newValue };
+          } else {
+            existing.push({ id: schema.key, key: schema.key, label: schema.label, value: newValue, type: schema.type });
+          }
+          return { ...p, custom_fields: existing } as typeof p;
+        }));
+        toast.success(`${result.updatedCount}件の商品を更新しました`);
+        setBulkFieldDialogOpen(false);
+        setBulkFieldKey('');
+        setBulkFieldValues({});
+        setDialogRows([]);
+        dialogRowsRef.current = [];
+      } else {
+        toast.error(result.error ?? '一括更新に失敗しました');
+      }
     });
   };
 
@@ -497,6 +781,18 @@ export default function ProductsClient({
             </button>
           </div>
           <div className="flex items-center gap-2">
+            {fieldSchema.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openBulkFieldDialog}
+                disabled={isPending}
+                className="bg-white/80"
+              >
+                <PencilLine className="h-4 w-4 mr-1.5" />
+                一括フィールド入力
+              </Button>
+            )}
             <Button
               variant="destructive"
               size="sm"
@@ -569,7 +865,8 @@ export default function ProductsClient({
             return (
               <div
                 key={product.id}
-                className={`group relative rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(100,120,160,0.15)] ${
+                onClick={() => toggleSelect(product.id)}
+                className={`group relative rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(100,120,160,0.15)] ${
                   isSelected ? 'ring-2 ring-sky-400 ring-offset-1' : ''
                 }`}
                 style={{
@@ -582,48 +879,45 @@ export default function ProductsClient({
               >
                 {/* 選択チェックボックス */}
                 <div
-                  className={`absolute top-2 left-2 z-10 transition-opacity ${
+                  className={`absolute top-2 left-2 z-20 transition-opacity pointer-events-none ${
                     isSelected ? 'opacity-100' : 'opacity-30 group-hover:opacity-100'
                   }`}
                 >
-                  <div className="bg-white/95 backdrop-blur-sm rounded-md p-1 shadow-sm border border-white/80">
+                  <div className="bg-white/95 backdrop-blur-sm rounded-md p-2 shadow-sm border border-white/80">
                     <Checkbox
                       checked={isSelected}
-                      onCheckedChange={() => toggleSelect(product.id)}
                       aria-label={`${product.name}を選択`}
+                      className="pointer-events-none"
                     />
                   </div>
                 </div>
+
                 {/* 画像エリア */}
-                <Link href={`/products/${product.id}`} className="block">
-                  <div className="relative aspect-square overflow-hidden rounded-t-2xl"
-                    style={{ background: 'linear-gradient(135deg, rgba(250,250,252,0.9) 0%, rgba(245,246,250,0.9) 100%)' }}>
-                    {product.images[0] ? (
-                      <Image
-                        src={product.images[0].url}
-                        alt={product.images[0].alt || product.name}
-                        fill
-                        sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
-                        loading="lazy"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <Package className="h-10 w-10 opacity-15" />
-                      </div>
-                    )}
-                    {/* ホバー時グラデーション */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    {/* 在庫切れオーバーレイ */}
-                    {isOutOfStock && (
-                      <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] flex items-center justify-center">
-                        <span className="bg-red-500/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm tracking-wide">
-                          在庫切れ
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </Link>
+                <div className="relative aspect-square overflow-hidden rounded-t-2xl"
+                  style={{ background: 'linear-gradient(135deg, rgba(250,250,252,0.9) 0%, rgba(245,246,250,0.9) 100%)' }}>
+                  {product.images[0] ? (
+                    <Image
+                      src={product.images[0].url}
+                      alt={product.images[0].alt || product.name}
+                      fill
+                      sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
+                      loading="lazy"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Package className="h-10 w-10 opacity-15" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  {isOutOfStock && (
+                    <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] flex items-center justify-center">
+                      <span className="bg-red-500/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm tracking-wide">
+                        在庫切れ
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {/* 情報エリア */}
                 <div className="p-3">
@@ -634,11 +928,9 @@ export default function ProductsClient({
                   </div>
 
                   {/* 商品名 */}
-                  <Link href={`/products/${product.id}`} className="block">
-                    <p className="text-xs font-semibold leading-tight line-clamp-2 text-foreground hover:text-sky-600 transition-colors mb-2">
-                      {product.name}
-                    </p>
-                  </Link>
+                  <p className="text-xs font-semibold leading-tight line-clamp-2 text-foreground mb-2">
+                    {product.name}
+                  </p>
 
                   {/* 価格・在庫 */}
                   <div className="flex items-center justify-between">
@@ -656,7 +948,10 @@ export default function ProductsClient({
                 </div>
 
                 {/* アクションメニュー（ホバーで表示） */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -757,6 +1052,261 @@ export default function ProductsClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 一括フィールド入力ダイアログ（商品ごとに個別入力） */}
+      <Dialog open={bulkFieldDialogOpen} onOpenChange={(open) => { if (!isPending) { setBulkFieldDialogOpen(open); if (!open) { setBulkFieldKey(''); setBulkFieldValues({}); setDialogRows([]); dialogRowsRef.current = []; } } }}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>一括フィールド入力</DialogTitle>
+            <DialogDescription>
+              {dialogRows.length === 0
+                ? '対象を選択してください。'
+                : <>選択中の <span className="font-semibold text-foreground">{dialogRows.length.toLocaleString()}行</span>（商品 {new Set(dialogRows.map(r => r.product.id)).size.toLocaleString()}件）に対して、フィールドを個別に入力します。同じ商品は何度でも追加できます。</>
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* フィールド選択 */}
+          <div className="space-y-1.5 shrink-0">
+            <Label>更新するフィールド</Label>
+            <Select value={bulkFieldKey} onValueChange={handleFieldKeyChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="フィールドを選択..." />
+              </SelectTrigger>
+              <SelectContent>
+                {fieldSchema.map(f => (
+                  <SelectItem key={f.key} value={f.key}>
+                    {f.label}
+                    <span className="ml-1.5 text-xs text-muted-foreground">({f.type})</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 商品ごとの入力リスト（同じ商品でも複数行 OK） */}
+          <div className="flex-1 overflow-y-auto min-h-0 rounded-lg border divide-y">
+            {dialogRows.map((r) => {
+                const p = r.product;
+                const rowId = r.rowId;
+                // 同じ商品が何回出ているか・自分が何番目か（表示用）
+                const sameProductRows = dialogRows.filter(x => x.product.id === p.id);
+                const occurrenceIndex = sameProductRows.findIndex(x => x.rowId === rowId);
+                const showOccurrence = sameProductRows.length > 1;
+                const imgUrl = p.images[0]?.url;
+                const currentVal = bulkFieldValues[rowId] ?? '';
+                const fieldType = selectedFieldSchema?.type;
+                const inputPlaceholder = !fieldType ? '' :
+                  fieldType === 'image_url' || fieldType === 'url'
+                    ? 'https://...'
+                    : fieldType === 'number' || fieldType === 'rating'
+                      ? '数値'
+                      : fieldType === 'date'
+                        ? 'YYYY-MM-DD'
+                        : fieldType === 'color'
+                          ? '#RRGGBB'
+                          : `${selectedFieldSchema!.label}を入力...`;
+                const inputType = !fieldType ? 'text' :
+                  fieldType === 'number' || fieldType === 'rating' ? 'number'
+                    : fieldType === 'date' ? 'date'
+                      : fieldType === 'email' ? 'email'
+                        : fieldType === 'phone' ? 'tel'
+                          : fieldType === 'color' ? 'color'
+                            : 'text';
+                const isUploading = bulkUploadingIds.has(rowId);
+                return (
+                  <div key={rowId} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30">
+                    {/* サムネイル */}
+                    <div className="w-9 h-9 rounded-md overflow-hidden shrink-0 bg-muted flex items-center justify-center">
+                      {imgUrl ? (
+                        <Image src={imgUrl} alt={p.name} width={36} height={36} className="object-cover w-full h-full" />
+                      ) : (
+                        <Package className="h-4 w-4 text-muted-foreground/40" />
+                      )}
+                    </div>
+                    {/* 商品名 */}
+                    <span className="text-sm font-medium min-w-0 flex-1 truncate flex items-center gap-1.5" title={p.name}>
+                      <span className="truncate">{p.name}</span>
+                      {showOccurrence && (
+                        <span className="shrink-0 text-[10px] font-normal text-muted-foreground bg-muted/70 rounded px-1.5 py-0.5">
+                          {occurrenceIndex + 1}/{sameProductRows.length}
+                        </span>
+                      )}
+                    </span>
+                    {/* 入力欄 */}
+                    <div className="w-64 shrink-0">
+                      {!selectedFieldSchema ? (
+                        <span className="text-xs text-muted-foreground/50">← フィールドを選択</span>
+                      ) : selectedFieldSchema.type === 'select' && selectedFieldSchema.options ? (
+                        <Select
+                          value={currentVal}
+                          onValueChange={(v) => setBulkFieldValues(prev => ({ ...prev, [rowId]: v }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="選択..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedFieldSchema.options.map(opt => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : selectedFieldSchema.type === 'boolean' ? (
+                        <Select
+                          value={currentVal}
+                          onValueChange={(v) => setBulkFieldValues(prev => ({ ...prev, [rowId]: v }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="選択..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="true">はい (true)</SelectItem>
+                            <SelectItem value="false">いいえ (false)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : selectedFieldSchema.type === 'image_url_list' ? (
+                        /* ── 複数画像リスト ── */
+                        (() => {
+                          const listUrls: string[] = (() => {
+                            try { const parsed = JSON.parse(currentVal); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+                          })();
+                          return (
+                            <div className="space-y-1.5">
+                              {listUrls.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {listUrls.map((u, i) => (
+                                    <div key={i} className="relative group/thumb w-8 h-8 rounded overflow-hidden border border-border bg-muted shrink-0">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={u} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const next = listUrls.filter((_, idx) => idx !== i);
+                                          setBulkFieldValues(prev => ({ ...prev, [rowId]: JSON.stringify(next) }));
+                                        }}
+                                        className="absolute inset-0 bg-black/50 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity"
+                                      >
+                                        <X className="h-3 w-3 text-white" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="flex gap-1.5 items-center">
+                                <span className="text-[10px] text-muted-foreground shrink-0">{listUrls.length}枚</span>
+                                <label className={`flex-1 flex items-center justify-center gap-1 h-7 rounded-lg border border-dashed border-input bg-background hover:bg-muted cursor-pointer transition-colors text-xs text-muted-foreground ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    className="hidden"
+                                    disabled={isUploading}
+                                    onChange={async (e) => {
+                                      if (e.target.files?.length) await handleBulkImageUpload(rowId, e.target.files);
+                                      e.target.value = '';
+                                    }}
+                                  />
+                                  {isUploading
+                                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                                    : <Upload className="h-3 w-3" />
+                                  }
+                                  {isUploading ? 'アップロード中...' : '画像を追加'}
+                                </label>
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : selectedFieldSchema.type === 'image_url' ? (
+                        /* ── 単一画像 ── */
+                        <div className="flex gap-1.5 items-center">
+                          {currentVal && (
+                            <div className="w-7 h-7 rounded shrink-0 overflow-hidden border border-border bg-muted">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={currentVal} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            </div>
+                          )}
+                          <Input
+                            className="h-8 text-xs flex-1 min-w-0"
+                            type="text"
+                            value={currentVal}
+                            placeholder="https://..."
+                            onChange={e => setBulkFieldValues(prev => ({ ...prev, [rowId]: e.target.value }))}
+                          />
+                          <label
+                            title="複数選択すると次のスロットに順番に割り当て"
+                            className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-input bg-background hover:bg-muted cursor-pointer transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                          >
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              disabled={isUploading}
+                              onChange={async (e) => {
+                                if (e.target.files) await handleBulkImageUpload(rowId, e.target.files);
+                                e.target.value = '';
+                              }}
+                            />
+                            {isUploading
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                              : <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+                            }
+                          </label>
+                        </div>
+                      ) : (
+                        <Input
+                          className="h-8 text-xs"
+                          type={inputType}
+                          value={currentVal}
+                          placeholder={inputPlaceholder}
+                          onChange={e => setBulkFieldValues(prev => ({ ...prev, [rowId]: e.target.value }))}
+                        />
+                      )}
+                    </div>
+                    {/* 同じ商品をもう1行追加（複製） */}
+                    <button
+                      type="button"
+                      onClick={() => addProductToDialog(p)}
+                      title="この商品をもう1行追加"
+                      className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground/60 hover:text-sky-600 hover:bg-sky-500/10 transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                    {/* 行を削除 */}
+                    <button
+                      type="button"
+                      onClick={() => removeRowFromDialog(rowId)}
+                      title="この行を一括対象から外す"
+                      className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+            })}
+            {dialogRows.length === 0 && (
+              <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                対象がありません。
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="shrink-0">
+            <Button variant="outline" onClick={() => setBulkFieldDialogOpen(false)} disabled={isPending}>
+              キャンセル
+            </Button>
+            <Button
+              onClick={handleBulkFieldUpdate}
+              disabled={isPending || !bulkFieldKey || dialogRows.length === 0}
+              className="bg-sky-500 hover:bg-sky-600 text-white"
+            >
+              {isPending
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />更新中...</>
+                : `${new Set(dialogRows.map(r => r.product.id)).size.toLocaleString()}件を保存`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

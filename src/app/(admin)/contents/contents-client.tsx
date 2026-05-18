@@ -60,6 +60,7 @@ import { deleteContent, archiveContent, duplicateContent, publishContent, delete
 import { toast } from 'sonner';
 import { contentTypeConfig, getContentTypeConfig } from '@/lib/content-types';
 import { useOrganization } from '@/components/providers/organization-provider';
+import { firstImageUrl } from '@/components/products/custom-fields';
 
 const contentTabs = [
   { label: '一覧', href: '/contents', exact: true },
@@ -221,7 +222,8 @@ export default function ContentsClient({ initialContents, stats, organizationId,
     const customImageField = Array.isArray(content.custom_fields)
       ? content.custom_fields.find((f) => f.type === 'image_url' && f.value)
       : undefined;
-    const hasImage = !!content.featuredImage || !!customImageField?.value;
+    const customImageUrl = customImageField ? firstImageUrl(customImageField.value) : '';
+    const hasImage = !!content.featuredImage || !!customImageUrl;
 
     // 画像なしコンテンツ用カード（アイコン＋テキストのみ）
     if (!hasImage) {
@@ -303,9 +305,9 @@ export default function ContentsClient({ initialContents, stats, organizationId,
         {/* サムネイル */}
         <Link href={`/contents/${content.id}/edit`} className="block">
           <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
-            {(content.featuredImage || customImageField?.value) ? (
+            {(content.featuredImage || customImageUrl) ? (
               <Image
-                src={content.featuredImage || customImageField!.value}
+                src={content.featuredImage || customImageUrl}
                 alt={content.title}
                 fill
                 sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"

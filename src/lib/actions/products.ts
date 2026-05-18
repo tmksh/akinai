@@ -620,6 +620,61 @@ export async function deleteProducts(productIds: string[]): Promise<{
   }
 }
 
+// 複数商品のカスタムフィールドを個別値で一括更新
+// entries: [{ productId, value }] — 商品ごとに異なる値を設定できる
+export async function bulkUpdateCustomFieldPerProduct(
+  entries: { productId: string; value: string }[],
+  fieldKey: string,
+  fieldLabel: string,
+  fieldType: string,
+): Promise<{ success: boolean; updatedCount?: number; error?: string }> {
+  if (!entries || entries.length === 0) {
+    return { success: true, updatedCount: 0 };
+  }
+
+  const supabase = await createClient();
+  const productIds = entries.map(e => e.productId);
+
+  try {
+    const { data: rows, error: fetchError } = await supabase
+      .from('products')
+      .select('id, custom_fields')
+      .in('id', productIds);
+
+    if (fetchError || !rows) throw fetchError ?? new Error('fetch failed');
+
+    const valueMap = new Map(entries.map(e => [e.productId, e.value]));
+
+    const updates = rows.map((p) => {
+      const fields: Array<Record<string, unknown>> = Array.isArray(p.custom_fields)
+        ? (p.custom_fields as Array<Record<string, unknown>>)
+        : [];
+      const newValue = valueMap.get(p.id) ?? '';
+      const idx = fields.findIndex((f) => f.key === fieldKey);
+      if (idx >= 0) {
+        fields[idx] = { ...fields[idx], value: newValue };
+      } else {
+        fields.push({ id: fieldKey, key: fieldKey, label: fieldLabel, value: newValue, type: fieldType });
+      }
+      return { id: p.id, custom_fields: fields };
+    });
+
+    for (const u of updates) {
+      const { error } = await supabase
+        .from('products')
+        .update({ custom_fields: u.custom_fields })
+        .eq('id', u.id);
+      if (error) throw error;
+    }
+
+    revalidatePath('/products');
+    return { success: true, updatedCount: updates.length };
+  } catch (error) {
+    console.error('Error bulk updating custom field per product:', error);
+    return { success: false, error: 'カスタムフィールドの一括更新に失敗しました' };
+  }
+}
+
 // 商品ステータスを更新
 export async function updateProductStatus(
   productId: string,

@@ -42,7 +42,13 @@ import { useFrontendUrl, useOrganization } from '@/components/providers/organiza
 import { cn } from '@/lib/utils';
 import { getProduct, getCategories, updateProduct, type ProductWithRelations } from '@/lib/actions/products';
 import { ImageUpload } from '@/components/products/image-upload';
-import { CustomFields, type CustomField } from '@/components/products/custom-fields';
+import { CustomFields, type CustomField, parseImageUrls, serializeImageUrl } from '@/components/products/custom-fields';
+
+// blob: URL は一時的なオブジェクトURLのため除去（単一・配列どちらも対応）
+function sanitizeImageUrlValue(value: string): string {
+  const urls = parseImageUrls(value).filter(u => !u.startsWith('blob:'));
+  return serializeImageUrl(urls);
+}
 import { FieldLabel } from '@/components/products/field-label';
 import { SimpleVariantInput, type ProductVariant } from '@/components/products/simple-variant-input';
 import { MatrixVariantInput } from '@/components/products/matrix-variant-input';
@@ -264,8 +270,7 @@ export default function ProductEditPage() {
             ...customFields.map(f => ({
               key: f.key,
               label: f.label,
-              // blob: URL は一時的なオブジェクトURLのため保存しない
-              value: (f.type === 'image_url' && f.value.startsWith('blob:')) ? '' : f.value,
+              value: f.type === 'image_url' ? sanitizeImageUrlValue(f.value) : f.value,
               type: f.type,
               ...(f.options && { options: f.options }),
             })),

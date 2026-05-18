@@ -48,7 +48,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PageTabs } from '@/components/layout/page-tabs';
-import { CustomFields, type CustomField } from '@/components/products/custom-fields';
+import { CustomFields, type CustomField, parseImageUrls, serializeImageUrl } from '@/components/products/custom-fields';
+
+// blob: URL は一時的なオブジェクトURLのため除去（単一・配列どちらも対応）
+function sanitizeImageUrlValue(value: string): string {
+  const urls = parseImageUrls(value).filter(u => !u.startsWith('blob:'));
+  return serializeImageUrl(urls);
+}
 import { FieldLabel } from '@/components/products/field-label';
 import { SimpleVariantInput, type ProductVariant } from '@/components/products/simple-variant-input';
 import type { Axis as MatrixAxis } from '@/components/products/matrix-variant-input';
@@ -243,7 +249,7 @@ export default function NewProductPage() {
             ...(customFields.length > 0 ? customFields.map(f => ({
               key: f.key,
               label: f.label,
-              value: (f.type === 'image_url' && f.value.startsWith('blob:')) ? '' : f.value,
+              value: f.type === 'image_url' ? sanitizeImageUrlValue(f.value) : f.value,
               type: f.type,
               ...(f.options && { options: f.options }),
             })) : []),
