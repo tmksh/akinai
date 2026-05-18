@@ -36,7 +36,7 @@ function escapeCsv(value: string): string {
 function normalizeExcelValue(v: string): string {
   const trimmed = v.trim();
   // ="..." 形式を剥がす
-  const formulaMatch = trimmed.match(/^="(.*)"$/s);
+  const formulaMatch = trimmed.match(/^="([\s\S]*)"$/);
   if (formulaMatch) return formulaMatch[1];
   // 科学表記を検出して変換（例: 4.58993E+12 → 4589930000000）
   // ※精度が既に失われているため、ユーザーには再入力を促す
