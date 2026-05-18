@@ -545,7 +545,7 @@ export default function ProductsClient({
     }
 
     const headers = [
-      '商品名', 'slug', 'カテゴリ', 'サブカテゴリ', 'サイズ',
+      'id', '商品名', 'slug', 'カテゴリ', 'サブカテゴリ', 'サイズ',
       '価格', 'ステータス', '説明', '並び順', '画像URL',
       '在庫数', 'SKU',
       ...fieldSchema.map((f) => f.label),
@@ -564,6 +564,7 @@ export default function ProductsClient({
         return val !== undefined && val !== null ? String(val) : '';
       });
       return [
+        p.id,
         p.name,
         p.slug ?? '',
         category,

@@ -58,6 +58,7 @@ function normalizeImageUrl(url: string): string {
 
 function buildProductTemplateCsv(fieldSchema: ProductFieldSchemaItem[]): string {
   const fixedHeaders = [
+    'id（更新時に使用）',
     '商品名※必須',
     'slug※必須',
     'カテゴリ',
@@ -70,6 +71,7 @@ function buildProductTemplateCsv(fieldSchema: ProductFieldSchemaItem[]): string 
     '画像URL',
   ];
   const fixedHints = [
+    '（空欄で新規作成）',
     'サンプル商品 1',
     'sample-product-1',
     '食品',
@@ -103,6 +105,7 @@ function buildProductTemplateCsv(fieldSchema: ProductFieldSchemaItem[]): string 
   const sampleRows = Array.from({ length: TEMPLATE_SAMPLE_COUNT }, (_, i) => {
     const n = i + 1;
     const row = [
+      '',
       `サンプル商品 ${n}`,
       `sample-product-${n}`,
       '',
@@ -148,6 +151,7 @@ interface ProductImportDialogProps {
 type ImportStep = 'upload' | 'preview' | 'importing' | 'result';
 
 interface ParsedRow {
+  id?: string;
   商品名: string;
   slug: string;
   カテゴリ: string;
@@ -225,6 +229,13 @@ export function ProductImportDialog({
             continue;
           }
 
+          // id 列: ヘッダー名が「id（更新時に使用）」の場合もフォールバックで読む
+          const rawId =
+            rawAny['id'] ??
+            rawAny['id（更新時に使用）'] ??
+            '';
+          const productId = rawId.toString().trim() || undefined;
+
           const imageUrlStr = get('画像URL');
           const imageUrls = imageUrlStr
             .split(';')
@@ -234,7 +245,6 @@ export function ProductImportDialog({
           // カスタムフィールド列を読み込む（ラベル名でマッチ）
           const customFields = fieldSchema
             .map((f) => {
-              // ヘッダーに "ラベル※必須" 形式でも対応
               const colValue = rawAny[f.label] ?? rawAny[`${f.label}※必須`] ?? '';
               if (colValue === '') return null;
               return {
@@ -248,8 +258,9 @@ export function ProductImportDialog({
             .filter((f): f is NonNullable<typeof f> => f !== null);
 
           rows.push({
+            id: productId,
             name,
-            slug: get('slug').trim(), // 空でもOK（サーバー側で商品名から自動生成）
+            slug: get('slug').trim(),
             category: get('カテゴリ').trim(),
             subcategory: get('サブカテゴリ').trim(),
             size: get('サイズ').trim(),
@@ -314,6 +325,8 @@ export function ProductImportDialog({
     acc[r.status] = (acc[r.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+  const updateCount = parsedRows.filter(r => r.id).length;
+  const newCount = parsedRows.length - updateCount;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -403,14 +416,18 @@ export function ProductImportDialog({
             </div>
 
             {/* サマリー */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <div className="rounded-lg border p-3 text-center">
                 <p className="text-2xl font-bold">{parsedRows.length}</p>
-                <p className="text-xs text-muted-foreground">商品数</p>
+                <p className="text-xs text-muted-foreground">合計</p>
               </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-bold">{categorySet.size}</p>
-                <p className="text-xs text-muted-foreground">カテゴリ数</p>
+              <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{newCount}</p>
+                <p className="text-xs text-muted-foreground">新規</p>
+              </div>
+              <div className="rounded-lg border border-sky-200 dark:border-sky-800 p-3 text-center">
+                <p className="text-2xl font-bold text-sky-600 dark:text-sky-400">{updateCount}</p>
+                <p className="text-xs text-muted-foreground">更新</p>
               </div>
               <div className="rounded-lg border p-3 text-center">
                 <p className="text-2xl font-bold">{parsedRows.reduce((sum, r) => sum + r.imageUrls.length, 0)}</p>
@@ -439,11 +456,10 @@ export function ProductImportDialog({
                   <thead className="bg-muted/50 sticky top-0">
                     <tr>
                       <th className="text-left p-2 font-medium">#</th>
+                      <th className="text-left p-2 font-medium">種別</th>
                       <th className="text-left p-2 font-medium">商品名</th>
                       <th className="text-left p-2 font-medium">カテゴリ</th>
-                      <th className="text-left p-2 font-medium">サイズ</th>
                       <th className="text-right p-2 font-medium">価格</th>
-                      <th className="text-left p-2 font-medium">説明</th>
                       <th className="text-center p-2 font-medium">画像</th>
                     </tr>
                   </thead>
@@ -451,13 +467,20 @@ export function ProductImportDialog({
                     {parsedRows.map((row, i) => (
                       <tr key={i} className="border-t hover:bg-muted/30">
                         <td className="p-2 text-muted-foreground">{i + 1}</td>
+                        <td className="p-2">
+                          {row.id ? (
+                            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
+                              更新
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                              新規
+                            </span>
+                          )}
+                        </td>
                         <td className="p-2 font-medium max-w-[200px] truncate">{row.name}</td>
                         <td className="p-2 text-muted-foreground">{row.category}</td>
-                        <td className="p-2 text-muted-foreground">{row.size}</td>
                         <td className="p-2 text-right">¥{row.price.toLocaleString()}</td>
-                        <td className="p-2 text-muted-foreground max-w-[150px] truncate" title={row.description}>
-                          {row.description ? row.description.slice(0, 30) + (row.description.length > 30 ? '…' : '') : '-'}
-                        </td>
                         <td className="p-2 text-center text-muted-foreground">{row.imageUrls.length}</td>
                       </tr>
                     ))}
@@ -492,7 +515,8 @@ export function ProductImportDialog({
               <p className="text-sm font-medium mb-2">インポート中...</p>
               <Progress value={progress} className="w-full max-w-xs mx-auto" />
               <p className="text-xs text-muted-foreground mt-2">
-                {parsedRows.length}件の商品を登録しています
+                {parsedRows.length}件の商品を処理しています
+                {updateCount > 0 && `（更新 ${updateCount}件 / 新規 ${newCount}件）`}
               </p>
             </div>
           </div>
@@ -507,10 +531,15 @@ export function ProductImportDialog({
                 <AlertCircle className="h-10 w-10 mx-auto mb-3 text-sky-500" />
               )}
               <p className="text-lg font-bold">
-                {importResult.success}件の商品をインポートしました
+                {importResult.success}件の処理が完了しました
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {importResult.updated > 0 && `更新 ${importResult.updated}件`}
+                {importResult.updated > 0 && importResult.success - importResult.updated > 0 && ' ・ '}
+                {importResult.success - importResult.updated > 0 && `新規作成 ${importResult.success - importResult.updated}件`}
               </p>
               {importResult.failed > 0 && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-destructive mt-1">
                   {importResult.failed}件が失敗しました
                 </p>
               )}
@@ -556,7 +585,11 @@ export function ProductImportDialog({
                 className="btn-premium"
               >
                 <Upload className="mr-2 h-4 w-4" />
-                {parsedRows.length}件をインポート
+                {updateCount > 0 && newCount > 0
+                  ? `新規 ${newCount}件・更新 ${updateCount}件を実行`
+                  : updateCount > 0
+                    ? `${updateCount}件を更新`
+                    : `${parsedRows.length}件をインポート`}
               </Button>
             </>
           )}
