@@ -29,6 +29,25 @@ function escapeCsv(value: string): string {
 }
 
 /**
+ * Excel が科学表記に変換した値を元に戻す。
+ * - ="12345" 形式（Excel 強制テキスト）→ 12345
+ * - 4.58993E+12 のような科学表記 → 整数文字列（精度が失われている場合あり）
+ */
+function normalizeExcelValue(v: string): string {
+  const trimmed = v.trim();
+  // ="..." 形式を剥がす
+  const formulaMatch = trimmed.match(/^="(.*)"$/s);
+  if (formulaMatch) return formulaMatch[1];
+  // 科学表記を検出して変換（例: 4.58993E+12 → 4589930000000）
+  // ※精度が既に失われているため、ユーザーには再入力を促す
+  if (/^-?\d+\.?\d*[eE][+\-]?\d+$/i.test(trimmed)) {
+    const num = Number(trimmed);
+    if (!isNaN(num) && Number.isFinite(num)) return num.toFixed(0);
+  }
+  return trimmed;
+}
+
+/**
  * Google Drive 共有URL等を <img src> で表示可能な直接URLに正規化する。
  * drive.google.com/thumbnail は 302 リダイレクトで lh3.googleusercontent.com に飛び、
  * その途中の Content-Type が image でないため Next.js Image が 400 を返す。
@@ -245,12 +264,20 @@ export function ProductImportDialog({
           // カスタムフィールド列を読み込む（ラベル名でマッチ）
           const customFields = fieldSchema
             .map((f) => {
-              const colValue = rawAny[f.label] ?? rawAny[`${f.label}※必須`] ?? '';
+              const rawColValue = rawAny[f.label] ?? rawAny[`${f.label}※必須`] ?? '';
+              if (rawColValue === '') return null;
+              const rawStr = rawColValue.toString();
+              // 科学表記が検出された場合は警告（精度が失われている可能性）
+              if (/^-?\d+\.?\d*[eE][+\-]?\d+$/i.test(rawStr.trim())) {
+                errors.push(`行 ${i + 2} [${f.label}]: 科学表記（${rawStr}）が検出されました。Excelで開いたことで精度が失われている可能性があります。`);
+              }
+              // Excel による科学表記・="..." 形式を正規化
+              const colValue = normalizeExcelValue(rawStr);
               if (colValue === '') return null;
               return {
                 key: f.key,
                 label: f.label,
-                value: colValue.trim(),
+                value: colValue,
                 type: f.type,
                 ...(f.options ? { options: f.options } : {}),
               };
@@ -491,14 +518,19 @@ export function ProductImportDialog({
 
             {/* パースエラー */}
             {parseErrors.length > 0 && (
-              <div className="rounded-lg border border-sky-200 bg-sky-50 dark:bg-sky-950/30 dark:border-sky-800 p-3">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="h-4 w-4 text-sky-600" />
-                  <span className="text-sm font-medium text-sky-800 dark:text-sky-200">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
                     {parseErrors.length}件の警告
                   </span>
                 </div>
-                <ul className="text-xs text-sky-700 dark:text-sky-300 space-y-1">
+                {parseErrors.some(e => e.includes('科学表記')) && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mb-2 leading-relaxed">
+                    ⚠️ JANコードなどの数値はExcelで開くと精度が失われます。今後は <strong>CSV出力</strong> ボタンで出力したファイルをそのまま使用してください（自動的に保護されます）。
+                  </p>
+                )}
+                <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1">
                   {parseErrors.map((err, i) => (
                     <li key={i}>• {err}</li>
                   ))}

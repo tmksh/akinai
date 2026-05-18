@@ -561,7 +561,12 @@ export default function ProductsClient({
       const customFields = fieldSchema.map((f) => {
         const cf = (p as unknown as { custom_fields?: Record<string, unknown> }).custom_fields;
         const val = cf?.[f.key];
-        return val !== undefined && val !== null ? String(val) : '';
+        const strVal = val !== undefined && val !== null ? String(val) : '';
+        // text / phone 型で純数字8桁以上の値は Excel が科学表記に変換するのを防ぐ
+        if ((f.type === 'text' || f.type === 'phone') && /^\d{8,}$/.test(strVal)) {
+          return `="${strVal}"`;
+        }
+        return strVal;
       });
       return [
         p.id,
