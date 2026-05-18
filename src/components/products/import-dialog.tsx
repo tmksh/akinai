@@ -109,7 +109,9 @@ function buildProductTemplateCsv(fieldSchema: ProductFieldSchemaItem[]): string 
       : f.label
   );
   const customHints = fieldSchema.map((f) => {
-    if (f.type === 'select' || f.type === 'multi_select') return f.options?.join(' / ') ?? '';
+    if (f.type === 'multi_select') return `${f.options?.join(' / ') ?? ''}（複数はカンマ区切り）`;
+    if (f.type === 'list') return '値1,値2,値3（カンマ区切り）';
+    if (f.type === 'select') return f.options?.join(' / ') ?? '';
     if (f.type === 'boolean') return 'true / false';
     if (f.type === 'number' || f.type === 'rating') return '数値';
     if (f.type === 'date') return 'YYYY-MM-DD';
@@ -272,8 +274,28 @@ export function ProductImportDialog({
                 errors.push(`行 ${i + 2} [${f.label}]: 科学表記（${rawStr}）が検出されました。Excelで開いたことで精度が失われている可能性があります。`);
               }
               // Excel による科学表記・="..." 形式を正規化
-              const colValue = normalizeExcelValue(rawStr);
+              let colValue = normalizeExcelValue(rawStr);
               if (colValue === '') return null;
+
+              // multi_select / list 型はカンマ・読点・セミコロン区切りを JSON 配列文字列に変換
+              if (f.type === 'multi_select' || f.type === 'list') {
+                // 既に JSON 配列ならそのまま使う
+                let isJsonArray = false;
+                try {
+                  const parsed = JSON.parse(colValue);
+                  if (Array.isArray(parsed)) isJsonArray = true;
+                } catch {
+                  // ignore
+                }
+                if (!isJsonArray) {
+                  const arr = colValue
+                    .split(/[,、;；\n]/)
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  colValue = JSON.stringify(arr);
+                }
+              }
+
               return {
                 key: f.key,
                 label: f.label,

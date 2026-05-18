@@ -563,7 +563,18 @@ export default function ProductsClient({
         const cf = (p as unknown as { custom_fields?: Array<{ key: string; value: unknown }> }).custom_fields;
         const field = Array.isArray(cf) ? cf.find((item) => item.key === f.key) : undefined;
         const val = field?.value;
-        const strVal = val !== undefined && val !== null ? String(val) : '';
+        let strVal = val !== undefined && val !== null ? String(val) : '';
+
+        // multi_select / list 型は JSON 配列文字列 → カンマ区切り文字列に展開
+        if ((f.type === 'multi_select' || f.type === 'list') && strVal) {
+          try {
+            const parsed = JSON.parse(strVal);
+            if (Array.isArray(parsed)) strVal = parsed.join(',');
+          } catch {
+            // JSON でなければそのまま
+          }
+        }
+
         // text / phone 型で純数字8桁以上の値は Excel が科学表記に変換するのを防ぐ
         if ((f.type === 'text' || f.type === 'phone') && /^\d{8,}$/.test(strVal)) {
           return `="${strVal}"`;
