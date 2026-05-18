@@ -559,8 +559,10 @@ export default function ProductsClient({
       const subcategory = (variant?.options as Record<string, string> | undefined)?.['サブカテゴリ'] ?? '';
       const size = (variant?.options as Record<string, string> | undefined)?.['サイズ'] ?? '';
       const customFields = fieldSchema.map((f) => {
-        const cf = (p as unknown as { custom_fields?: Record<string, unknown> }).custom_fields;
-        const val = cf?.[f.key];
+        // custom_fields は配列形式 [{ key, label, value, type }, ...] で保存されている
+        const cf = (p as unknown as { custom_fields?: Array<{ key: string; value: unknown }> }).custom_fields;
+        const field = Array.isArray(cf) ? cf.find((item) => item.key === f.key) : undefined;
+        const val = field?.value;
         const strVal = val !== undefined && val !== null ? String(val) : '';
         // text / phone 型で純数字8桁以上の値は Excel が科学表記に変換するのを防ぐ
         if ((f.type === 'text' || f.type === 'phone') && /^\d{8,}$/.test(strVal)) {
