@@ -46,6 +46,7 @@ export const contentTypeConfig: Record<string, ContentTypeConfig> = {
   banner: { label: 'バナー', icon: LayoutTemplate, editor: 'text' },
   service: { label: 'サービス', icon: Wrench, editor: 'text' },
   'product-review': { label: '商品レビュー', icon: MessageSquare, editor: 'text' },
+  review: { label: 'レビュー', icon: MessageSquare, editor: 'text' },
 };
 
 export const getContentTypeConfig = (type: string): ContentTypeConfig => {

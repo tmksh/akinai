@@ -222,7 +222,10 @@ export async function POST(request: NextRequest) {
       .single();
     const orgSettings = (orgForType?.settings as Record<string, unknown>) || {};
     const enabledTypes = (orgSettings.enabled_content_types as string[]) || [];
-    if (enabledTypes.length > 0 && !enabledTypes.includes(type)) {
+    // review ↔ product-review はエイリアスとして相互に許可する
+    const reviewAliases = ['review', 'product-review'];
+    const isReviewAlias = reviewAliases.includes(type) && reviewAliases.some(a => enabledTypes.includes(a));
+    if (enabledTypes.length > 0 && !enabledTypes.includes(type) && !isReviewAlias) {
       return apiError(`Type "${type}" is not enabled for this organization`, 400);
     }
 
