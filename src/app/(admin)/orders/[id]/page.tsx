@@ -70,6 +70,7 @@ import {
   confirmOrder,
   cancelOrder,
   refundOrder,
+  retryStripeRefund,
   type OrderWithItems,
 } from '@/lib/actions/orders';
 
@@ -132,6 +133,7 @@ export default function OrderDetailPage() {
   const [shipTrackingNumber, setShipTrackingNumber] = useState('');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [showRetryStripeRefundDialog, setShowRetryStripeRefundDialog] = useState(false);
 
   // データ取得
   useEffect(() => {
@@ -201,6 +203,19 @@ export default function OrderDetailPage() {
       setOrder({ ...order!, ...data });
     }
     setShowRefundDialog(false);
+    setIsUpdating(false);
+  };
+
+  // アクション: Stripe返金を再実行（DBステータスは変更しない）
+  const handleRetryStripeRefund = async () => {
+    setIsUpdating(true);
+    const { error } = await retryStripeRefund(orderId);
+    if (error) {
+      alert('Stripe返金に失敗しました: ' + error);
+    } else {
+      alert('Stripeで返金処理を実行しました。');
+    }
+    setShowRetryStripeRefundDialog(false);
     setIsUpdating(false);
   };
 
@@ -340,6 +355,19 @@ export default function OrderDetailPage() {
           );
         }
         return null;
+      case 'refunded': {
+        const hasStripePayment =
+          !!(order as unknown as { stripe_payment_intent_id?: string | null }).stripe_payment_intent_id ||
+          order.payment_method === 'subscription';
+        if (hasStripePayment) {
+          return (
+            <Button variant="outline" onClick={() => setShowRetryStripeRefundDialog(true)} disabled={isUpdating}>
+              Stripe返金を再実行
+            </Button>
+          );
+        }
+        return null;
+      }
       default:
         return null;
     }
@@ -874,6 +902,38 @@ export default function OrderDetailPage() {
             <Button variant="destructive" onClick={handleCancel} disabled={isUpdating}>
               {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
               キャンセルする
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stripe返金再実行ダイアログ */}
+      <Dialog open={showRetryStripeRefundDialog} onOpenChange={setShowRetryStripeRefundDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Stripe返金を再実行</DialogTitle>
+            <DialogDescription>
+              管理画面では返金済みですが、Stripe側で返金が完了していない場合に使用します。
+              Stripeで返金処理を実行します（注文ステータスは変更されません）。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <span className="text-sm text-muted-foreground">返金額</span>
+              <span className="font-bold text-lg">{formatCurrency(order?.total ?? 0)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 rounded-lg p-3">
+              <Clock className="h-4 w-4 flex-shrink-0" />
+              既にStripe側で返金済みの場合はエラーになります
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRetryStripeRefundDialog(false)}>
+              キャンセル
+            </Button>
+            <Button variant="destructive" onClick={handleRetryStripeRefund} disabled={isUpdating}>
+              {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Stripe返金を実行
             </Button>
           </DialogFooter>
         </DialogContent>

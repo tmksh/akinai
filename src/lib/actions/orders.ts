@@ -768,8 +768,8 @@ export async function refundOrder(
         // サブスクリプション決済の場合は notes から subscription ID を取得し
         // 最新 invoice の payment_intent を引いてくる
         if (!paymentIntentId && order.payment_method === 'subscription' && order.notes) {
-          const match = order.notes.match(/\(sub_[A-Za-z0-9]+\)/);
-          const subId = match ? match[0].slice(1, -1) : null;
+          const match = order.notes.match(/sub_[A-Za-z0-9]+/);
+          const subId = match ? match[0] : null;
           if (subId) {
             try {
               const subscription = await stripe.subscriptions.retrieve(
@@ -812,8 +812,8 @@ export async function refundOrder(
 
         // サブスクリプション決済の場合はサブスクも即時キャンセルし、顧客ステータスを更新
         if (order.payment_method === 'subscription' && order.notes) {
-          const match = order.notes.match(/\(sub_[A-Za-z0-9]+\)/);
-          const subId = match ? match[0].slice(1, -1) : null;
+          const match = order.notes.match(/sub_[A-Za-z0-9]+/);
+          const subId = match ? match[0] : null;
           if (subId) {
             // Stripe サブスクを即時キャンセル
             try {
@@ -887,6 +887,88 @@ export async function refundOrder(
     return {
       data: null,
       error: err instanceof Error ? err.message : 'Failed to refund order',
+    };
+  }
+}
+
+// Stripe側のみ返金を再実行（DBステータスは変更しない）
+// 管理画面で返金済みになっているがStripe上で返金が漏れた場合に使用
+export async function retryStripeRefund(orderId: string): Promise<{
+  error: string | null;
+}> {
+  const supabase = getAdminClient();
+
+  try {
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (orderError || !order) {
+      return { error: '注文が見つかりません' };
+    }
+
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      return { error: 'Stripe設定が見つかりません' };
+    }
+
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('stripe_account_id')
+      .eq('id', order.organization_id)
+      .single();
+
+    if (!org?.stripe_account_id) {
+      return { error: 'StripeアカウントIDが設定されていません' };
+    }
+
+    const stripe = new Stripe(stripeSecretKey);
+
+    let paymentIntentId: string | null = order.stripe_payment_intent_id ?? null;
+
+    if (!paymentIntentId && order.payment_method === 'subscription' && order.notes) {
+      const match = order.notes.match(/sub_[A-Za-z0-9]+/);
+      const subId = match ? match[0] : null;
+      if (subId) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(
+            subId,
+            { expand: ['latest_invoice.payment_intent'] },
+            { stripeAccount: org.stripe_account_id }
+          );
+          const invoice = subscription.latest_invoice as Stripe.Invoice & {
+            payment_intent?: Stripe.PaymentIntent | null;
+          };
+          paymentIntentId = (invoice?.payment_intent as Stripe.PaymentIntent | null)?.id ?? null;
+        } catch (err) {
+          console.warn('[retryStripeRefund] Failed to retrieve subscription invoice:', err);
+        }
+      }
+    }
+
+    if (!paymentIntentId) {
+      return { error: 'PaymentIntent IDが見つかりません。Stripeダッシュボードから手動で返金してください。' };
+    }
+
+    await stripe.refunds.create(
+      { payment_intent: paymentIntentId },
+      { stripeAccount: org.stripe_account_id }
+    );
+
+    return { error: null };
+  } catch (err) {
+    const isAlreadyRefunded =
+      err instanceof Error &&
+      (err.message.includes('already been refunded') ||
+        (err as { code?: string }).code === 'charge_already_refunded');
+    if (isAlreadyRefunded) {
+      return { error: 'この決済はStripeで既に返金済みです。' };
+    }
+    console.error('[retryStripeRefund] failed:', err);
+    return {
+      error: err instanceof Error ? err.message : 'Stripe返金に失敗しました',
     };
   }
 }
