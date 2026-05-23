@@ -165,28 +165,20 @@ export async function PATCH(
     if (readResult.error || !readResult.thread) {
       return jsonError(readResult.error || 'Failed to mark as read', 500);
     }
+
+    if (Object.keys(updates).length === 0) {
+      return jsonSuccess({
+        thread: {
+          ...readResult.thread,
+          myRole: loaded.myRole,
+          myUnreadCount: getMyUnreadCount(readResult.thread, loaded.myRole),
+        },
+      });
+    }
   }
 
   if (Object.keys(updates).length === 0 && body.markRead !== true) {
     return jsonError('No valid fields to update', 400);
-  }
-
-  if (Object.keys(updates).length === 0) {
-    const thread = (await loadInquiryThreadForCustomer(
-      supabase,
-      verify.payload.org,
-      threadId,
-      verify.payload.sub,
-    )) as { thread: InquiryThreadRow; myRole: typeof loaded.myRole };
-    if ('error' in thread) return jsonError(thread.error, thread.status);
-
-    return jsonSuccess({
-      thread: {
-        ...thread.thread,
-        myRole: thread.myRole,
-        myUnreadCount: getMyUnreadCount(thread.thread, thread.myRole),
-      },
-    });
   }
 
   const { data: updated, error: updateError } = await supabase
