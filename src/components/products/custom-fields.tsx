@@ -116,6 +116,97 @@ export function firstImageUrl(value: string | null | undefined): string {
   return list[0] ?? '';
 }
 
+export interface SavedCustomField {
+  key: string;
+  label?: string;
+  value: string;
+  type: string;
+  options?: string[];
+}
+
+export interface ProductFieldSchemaLike {
+  id: string;
+  key: string;
+  label: string;
+  type: CustomFieldType;
+  options?: string[];
+}
+
+export function defaultCustomFieldValue(type: CustomFieldType): string {
+  if (type === 'boolean') return 'false';
+  if (type === 'rating') return '0';
+  if (type === 'list') return '[]';
+  if (type === 'multi_select') return '[]';
+  if (type === 'json') return '{}';
+  return '';
+}
+
+/** 保存前に blob: URL 等を除去（image_url / image_url_list 用） */
+export function sanitizeCustomFieldValue(type: CustomFieldType | string, value: string): string {
+  if (type === 'image_url') {
+    const urls = parseImageUrls(value).filter(u => !u.startsWith('blob:'));
+    return serializeImageUrl(urls);
+  }
+  if (type === 'image_url_list') {
+    const urls = parseImageUrls(value).filter(u => !u.startsWith('blob:'));
+    return JSON.stringify(urls);
+  }
+  return value;
+}
+
+/**
+ * 商品に保存済みのカスタムフィールド値と、組織スキーマ（型・ラベル・選択肢）をマージする。
+ * 既存商品は保存時の type（例: textarea）が残っていることがあるため、
+ * 表示・編集時はスキーマ定義の type を優先する。
+ */
+export function mergeProductCustomFieldsWithSchema(
+  schema: ProductFieldSchemaLike[],
+  savedFields: SavedCustomField[],
+  options?: { excludeKeys?: string[] },
+): CustomField[] {
+  const exclude = new Set(options?.excludeKeys ?? ['_swatch_config']);
+  const savedMap = new Map(
+    savedFields.filter(f => !exclude.has(f.key)).map(f => [f.key, f]),
+  );
+
+  if (schema.length === 0) {
+    return savedFields
+      .filter(f => !exclude.has(f.key))
+      .map((f, i) => ({
+        id: `cf-${i}-${f.key}`,
+        key: f.key,
+        label: f.label || f.key,
+        value: f.value,
+        type: f.type as CustomFieldType,
+        ...(f.options && { options: f.options }),
+      }));
+  }
+
+  const schemaKeys = new Set(schema.map(s => s.key));
+  const merged: CustomField[] = schema.map(s => ({
+    id: `schema-${s.id}`,
+    key: s.key,
+    label: s.label,
+    value: savedMap.get(s.key)?.value ?? defaultCustomFieldValue(s.type),
+    type: s.type,
+    ...(s.options && { options: s.options }),
+  }));
+
+  for (const saved of savedFields) {
+    if (exclude.has(saved.key) || schemaKeys.has(saved.key)) continue;
+    merged.push({
+      id: `cf-extra-${saved.key}`,
+      key: saved.key,
+      label: saved.label || saved.key,
+      value: saved.value,
+      type: saved.type as CustomFieldType,
+      ...(saved.options && { options: saved.options }),
+    });
+  }
+
+  return merged;
+}
+
 interface FieldTypeInfo {
   label: string;
   icon: React.ElementType;

@@ -42,13 +42,13 @@ import { useFrontendUrl, useOrganization } from '@/components/providers/organiza
 import { cn } from '@/lib/utils';
 import { getProduct, getCategories, updateProduct, type ProductWithRelations } from '@/lib/actions/products';
 import { ImageUpload } from '@/components/products/image-upload';
-import { CustomFields, type CustomField, parseImageUrls, serializeImageUrl } from '@/components/products/custom-fields';
-
-// blob: URL は一時的なオブジェクトURLのため除去（単一・配列どちらも対応）
-function sanitizeImageUrlValue(value: string): string {
-  const urls = parseImageUrls(value).filter(u => !u.startsWith('blob:'));
-  return serializeImageUrl(urls);
-}
+import {
+  CustomFields,
+  type CustomField,
+  type SavedCustomField,
+  mergeProductCustomFieldsWithSchema,
+  sanitizeCustomFieldValue,
+} from '@/components/products/custom-fields';
 import { FieldLabel } from '@/components/products/field-label';
 import { SimpleVariantInput, type ProductVariant } from '@/components/products/simple-variant-input';
 import { MatrixVariantInput } from '@/components/products/matrix-variant-input';
@@ -93,6 +93,7 @@ export default function ProductEditPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [savedCustomFieldsRaw, setSavedCustomFieldsRaw] = useState<SavedCustomField[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [swatchConfig, setSwatchConfig] = useState<MatrixAxis[]>([]);
   const [productImages, setProductImages] = useState<{
@@ -150,41 +151,17 @@ export default function ProductEditPage() {
         
         setSelectedCategories(p.categories.map(c => c.id));
         setTags(p.tags || []);
-        // カスタムフィールドを復元（スキーマとマージ）。_swatch_config はシステム用なので除外
         const _cfRaw = p.custom_fields;
-        const rawCustomFields: { key: string; label?: string; value: string; type: string; options?: string[] }[] =
+        const rawCustomFields: SavedCustomField[] =
           Array.isArray(_cfRaw)
-            ? (_cfRaw as unknown as { key: string; label?: string; value: string; type: string; options?: string[] }[])
+            ? (_cfRaw as unknown as SavedCustomField[])
             : [];
         // スウォッチ設定を抽出
         const swatchConfigRaw = rawCustomFields.find((f) => f.key === '_swatch_config');
         if (swatchConfigRaw?.value) {
           try { setSwatchConfig(JSON.parse(swatchConfigRaw.value)); } catch { /* ignore */ }
         }
-        const productFields: CustomField[] = rawCustomFields
-          .filter((f) => f.key !== '_swatch_config')  // システムキーを除外
-          .map((f, i) => ({
-          id: `cf-${i}-${Date.now()}`,
-          key: f.key,
-          label: f.label || f.key,
-          value: f.value,
-          type: f.type as CustomField['type'],
-          ...(f.options && { options: f.options }),
-        }));
-        // 組織スキーマにあるがこの商品にないフィールドを先頭に追加
-        const schema = organization?.productFieldSchema ?? [];
-        const productFieldKeys = new Set(productFields.map(f => f.key));
-        const schemaOnlyFields: CustomField[] = schema
-          .filter(s => !productFieldKeys.has(s.key))
-          .map(s => {
-            let defaultValue = '';
-            if (s.type === 'boolean') defaultValue = 'false';
-            if (s.type === 'rating') defaultValue = '0';
-            if (s.type === 'list') defaultValue = '[]';
-            if (s.type === 'json') defaultValue = '{}';
-            return { id: `schema-${s.id}`, key: s.key, label: s.label, value: defaultValue, type: s.type, ...(s.options && { options: s.options }) };
-          });
-        setCustomFields([...schemaOnlyFields, ...productFields]);
+        setSavedCustomFieldsRaw(rawCustomFields);
         setVariants(p.variants.map(v => ({
           id: v.id,
           name: v.name,
@@ -214,6 +191,13 @@ export default function ProductEditPage() {
 
     fetchData();
   }, [organization?.id, productId]);
+
+  // 保存済み値と組織スキーマをマージ（型はスキーマ優先 → 既存商品も画像フィールドで編集可能）
+  useEffect(() => {
+    if (!product) return;
+    const schema = organization?.productFieldSchema ?? [];
+    setCustomFields(mergeProductCustomFieldsWithSchema(schema, savedCustomFieldsRaw));
+  }, [product, savedCustomFieldsRaw, organization?.productFieldSchema]);
 
   // プレビュー用データ
   const previewData = useMemo(() => ({
@@ -270,7 +254,7 @@ export default function ProductEditPage() {
             ...customFields.map(f => ({
               key: f.key,
               label: f.label,
-              value: f.type === 'image_url' ? sanitizeImageUrlValue(f.value) : f.value,
+              value: sanitizeCustomFieldValue(f.type, f.value),
               type: f.type,
               ...(f.options && { options: f.options }),
             })),
