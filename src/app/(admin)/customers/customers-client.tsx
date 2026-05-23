@@ -523,7 +523,7 @@ export default function CustomersClient({
         roleLabels={roleLabels}
         roleEnabled={roleEnabled}
         onImportComplete={async () => {
-          const result = await getCustomers(organizationId, { limit: 200 });
+          const result = await getCustomers(organizationId);
           if (result.data) setCustomers(result.data);
         }}
       />

@@ -21,6 +21,9 @@ export interface CustomerWithAddresses extends Customer {
   addresses: CustomerAddress[];
 }
 
+/** 管理画面一覧のデフォルト取得件数（Supabase max_rows=1000 に合わせる） */
+const CUSTOMERS_LIST_DEFAULT_LIMIT = 1000;
+
 // 顧客一覧を取得
 export async function getCustomers(
   organizationId: string,
@@ -30,7 +33,7 @@ export async function getCustomers(
   error: string | null;
 }> {
   const supabase = await createClient();
-  const limit = options?.limit ?? 50;
+  const limit = options?.limit ?? CUSTOMERS_LIST_DEFAULT_LIMIT;
 
   try {
     const { data: customers, error: customersError } = await supabase
