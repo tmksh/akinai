@@ -250,6 +250,7 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil((count || 0) / limit),
         hasMore: page * limit < (count || 0),
       },
+      unreadTotal: threads.reduce((sum, t) => sum + (t.myUnreadCount as number), 0),
       timestamp: new Date().toISOString(),
     },
   });

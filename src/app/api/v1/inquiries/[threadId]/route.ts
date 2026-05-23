@@ -4,7 +4,8 @@
  * スレッド本体に対する操作。
  * 認証: Authorization: Bearer <customer_jwt>
  *
- * - GET   : スレッド情報 + メッセージ一覧を取得
+ * - GET   : スレッド情報 + メッセージ一覧を取得（デフォルトで既読化）
+ *           ?markRead=false で既読化をスキップ可能
  * - PATCH : スレッド状態を変更（{ status: 'open' | 'closed' }）
  *           あるいは自分が受信したメッセージを既読化（{ markRead: true }）
  */
@@ -12,6 +13,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyCustomerToken } from '@/lib/api/customer-auth';
 import { corsHeaders, handleOptions } from '@/lib/api/auth';
+import {
+  getMyUnreadCount,
+  loadInquiryThreadForCustomer,
+  markInquiryThreadAsRead,
+  type InquiryThreadRow,
+} from '@/lib/inquiries';
 
 function getAdminSupabase() {
   return createClient(
@@ -32,48 +39,6 @@ function jsonSuccess<T>(data: T) {
   return res;
 }
 
-interface ThreadRow {
-  id: string;
-  organization_id: string;
-  product_id: string | null;
-  initiator_customer_id: string;
-  recipient_customer_id: string;
-  subject: string;
-  status: 'open' | 'closed';
-  last_message_at: string | null;
-  last_message_preview: string | null;
-  last_message_from_id: string | null;
-  initiator_unread_count: number;
-  recipient_unread_count: number;
-  created_at: string;
-  updated_at: string;
-}
-
-/** スレッドを取得し、認証ユーザーが参加者であることを確認する */
-async function loadThread(
-  organizationId: string,
-  threadId: string,
-  customerId: string
-): Promise<{ thread: ThreadRow; myRole: 'initiator' | 'recipient' } | { error: string; status: number }> {
-  const supabase = getAdminSupabase();
-  const { data, error } = await supabase
-    .from('inquiry_threads')
-    .select('*')
-    .eq('id', threadId)
-    .eq('organization_id', organizationId)
-    .single();
-
-  if (error || !data) {
-    return { error: 'Thread not found', status: 404 };
-  }
-  const thread = data as ThreadRow;
-  if (thread.initiator_customer_id !== customerId && thread.recipient_customer_id !== customerId) {
-    return { error: 'Forbidden', status: 403 };
-  }
-  const myRole = thread.initiator_customer_id === customerId ? 'initiator' : 'recipient';
-  return { thread, myRole };
-}
-
 // =====================================================
 // GET — スレッド情報 + メッセージ一覧
 // =====================================================
@@ -85,10 +50,31 @@ export async function GET(
   const verify = await verifyCustomerToken(request);
   if (!verify.success) return jsonError(verify.error, verify.status);
 
-  const result = await loadThread(verify.payload.org, threadId, verify.payload.sub);
-  if ('error' in result) return jsonError(result.error, result.status);
-
   const supabase = getAdminSupabase();
+  const loaded = await loadInquiryThreadForCustomer(
+    supabase,
+    verify.payload.org,
+    threadId,
+    verify.payload.sub,
+  );
+  if ('error' in loaded) return jsonError(loaded.error, loaded.status);
+
+  let thread: InquiryThreadRow = loaded.thread;
+  const { myRole } = loaded;
+
+  const shouldMarkRead = request.nextUrl.searchParams.get('markRead') !== 'false';
+  if (shouldMarkRead && getMyUnreadCount(thread, myRole) > 0) {
+    const readResult = await markInquiryThreadAsRead({
+      supabase,
+      organizationId: verify.payload.org,
+      threadId,
+      customerId: verify.payload.sub,
+      myRole,
+    });
+    if (readResult.thread) {
+      thread = readResult.thread;
+    }
+  }
 
   // 関連エンティティ
   const [messagesResult, initiatorResult, recipientResult, productResult] = await Promise.all([
@@ -101,18 +87,18 @@ export async function GET(
     supabase
       .from('customers')
       .select('id, name, role')
-      .eq('id', result.thread.initiator_customer_id)
+      .eq('id', thread.initiator_customer_id)
       .single(),
     supabase
       .from('customers')
       .select('id, name, role')
-      .eq('id', result.thread.recipient_customer_id)
+      .eq('id', thread.recipient_customer_id)
       .single(),
-    result.thread.product_id
+    thread.product_id
       ? supabase
           .from('products')
           .select('id, name, slug')
-          .eq('id', result.thread.product_id)
+          .eq('id', thread.product_id)
           .single()
       : Promise.resolve({ data: null }),
   ]);
@@ -124,12 +110,9 @@ export async function GET(
 
   return jsonSuccess({
     thread: {
-      ...result.thread,
-      myRole: result.myRole,
-      myUnreadCount:
-        result.myRole === 'initiator'
-          ? result.thread.initiator_unread_count
-          : result.thread.recipient_unread_count,
+      ...thread,
+      myRole,
+      myUnreadCount: getMyUnreadCount(thread, myRole),
       initiator: initiatorResult.data,
       recipient: recipientResult.data,
       product: productResult.data,
@@ -156,10 +139,15 @@ export async function PATCH(
     return jsonError('Invalid JSON body', 400);
   }
 
-  const result = await loadThread(verify.payload.org, threadId, verify.payload.sub);
-  if ('error' in result) return jsonError(result.error, result.status);
-
   const supabase = getAdminSupabase();
+  const loaded = await loadInquiryThreadForCustomer(
+    supabase,
+    verify.payload.org,
+    threadId,
+    verify.payload.sub,
+  );
+  if ('error' in loaded) return jsonError(loaded.error, loaded.status);
+
   const updates: Record<string, unknown> = {};
 
   if (body.status === 'open' || body.status === 'closed') {
@@ -167,26 +155,38 @@ export async function PATCH(
   }
 
   if (body.markRead === true) {
-    // 自分宛て（自分が受信したメッセージ）を既読化
-    const now = new Date().toISOString();
-    await supabase
-      .from('inquiry_messages')
-      .update({ is_read: true, read_at: now })
-      .eq('thread_id', threadId)
-      .eq('organization_id', verify.payload.org)
-      .neq('from_customer_id', verify.payload.sub)
-      .eq('is_read', false);
-
-    // 自分側の未読数を 0 にリセット
-    if (result.myRole === 'initiator') {
-      updates.initiator_unread_count = 0;
-    } else {
-      updates.recipient_unread_count = 0;
+    const readResult = await markInquiryThreadAsRead({
+      supabase,
+      organizationId: verify.payload.org,
+      threadId,
+      customerId: verify.payload.sub,
+      myRole: loaded.myRole,
+    });
+    if (readResult.error || !readResult.thread) {
+      return jsonError(readResult.error || 'Failed to mark as read', 500);
     }
   }
 
-  if (Object.keys(updates).length === 0) {
+  if (Object.keys(updates).length === 0 && body.markRead !== true) {
     return jsonError('No valid fields to update', 400);
+  }
+
+  if (Object.keys(updates).length === 0) {
+    const thread = (await loadInquiryThreadForCustomer(
+      supabase,
+      verify.payload.org,
+      threadId,
+      verify.payload.sub,
+    )) as { thread: InquiryThreadRow; myRole: typeof loaded.myRole };
+    if ('error' in thread) return jsonError(thread.error, thread.status);
+
+    return jsonSuccess({
+      thread: {
+        ...thread.thread,
+        myRole: thread.myRole,
+        myUnreadCount: getMyUnreadCount(thread.thread, thread.myRole),
+      },
+    });
   }
 
   const { data: updated, error: updateError } = await supabase
@@ -194,7 +194,7 @@ export async function PATCH(
     .update(updates)
     .eq('id', threadId)
     .eq('organization_id', verify.payload.org)
-    .select()
+    .select('*')
     .single();
 
   if (updateError || !updated) {
@@ -202,7 +202,14 @@ export async function PATCH(
     return jsonError('Failed to update thread', 500);
   }
 
-  return jsonSuccess({ thread: updated });
+  const updatedThread = updated as InquiryThreadRow;
+  return jsonSuccess({
+    thread: {
+      ...updatedThread,
+      myRole: loaded.myRole,
+      myUnreadCount: getMyUnreadCount(updatedThread, loaded.myRole),
+    },
+  });
 }
 
 export async function OPTIONS() {

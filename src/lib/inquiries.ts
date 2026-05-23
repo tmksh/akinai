@@ -149,3 +149,103 @@ function escapeHtml(input: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+// ─── スレッド取得・既読化 ───────────────────────────────────────────
+
+export interface InquiryThreadRow {
+  id: string;
+  organization_id: string;
+  product_id: string | null;
+  initiator_customer_id: string;
+  recipient_customer_id: string;
+  subject: string;
+  status: 'open' | 'closed';
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  last_message_from_id: string | null;
+  initiator_unread_count: number;
+  recipient_unread_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type InquiryParticipantRole = 'initiator' | 'recipient';
+
+/** スレッドを取得し、認証ユーザーが参加者であることを確認する */
+export async function loadInquiryThreadForCustomer(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any, 'public', any>,
+  organizationId: string,
+  threadId: string,
+  customerId: string,
+): Promise<
+  | { thread: InquiryThreadRow; myRole: InquiryParticipantRole }
+  | { error: string; status: number }
+> {
+  const { data, error } = await supabase
+    .from('inquiry_threads')
+    .select('*')
+    .eq('id', threadId)
+    .eq('organization_id', organizationId)
+    .single();
+
+  if (error || !data) {
+    return { error: 'Thread not found', status: 404 };
+  }
+
+  const thread = data as InquiryThreadRow;
+  if (thread.initiator_customer_id !== customerId && thread.recipient_customer_id !== customerId) {
+    return { error: 'Forbidden', status: 403 };
+  }
+
+  const myRole = thread.initiator_customer_id === customerId ? 'initiator' : 'recipient';
+  return { thread, myRole };
+}
+
+export function getMyUnreadCount(
+  thread: Pick<InquiryThreadRow, 'initiator_unread_count' | 'recipient_unread_count'>,
+  myRole: InquiryParticipantRole,
+): number {
+  return myRole === 'initiator' ? thread.initiator_unread_count : thread.recipient_unread_count;
+}
+
+/** 自分宛ての未読メッセージを既読化し、スレッド側の未読数を 0 にリセットする */
+export async function markInquiryThreadAsRead(params: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any, 'public', any>;
+  organizationId: string;
+  threadId: string;
+  customerId: string;
+  myRole: InquiryParticipantRole;
+}): Promise<{ thread: InquiryThreadRow | null; error?: string }> {
+  const { supabase, organizationId, threadId, customerId, myRole } = params;
+  const now = new Date().toISOString();
+
+  await supabase
+    .from('inquiry_messages')
+    .update({ is_read: true, read_at: now })
+    .eq('thread_id', threadId)
+    .eq('organization_id', organizationId)
+    .neq('from_customer_id', customerId)
+    .eq('is_read', false);
+
+  const updates =
+    myRole === 'initiator'
+      ? { initiator_unread_count: 0 }
+      : { recipient_unread_count: 0 };
+
+  const { data: updated, error: updateError } = await supabase
+    .from('inquiry_threads')
+    .update(updates)
+    .eq('id', threadId)
+    .eq('organization_id', organizationId)
+    .select('*')
+    .single();
+
+  if (updateError || !updated) {
+    console.error('Failed to mark inquiry thread as read:', updateError);
+    return { thread: null, error: 'Failed to mark as read' };
+  }
+
+  return { thread: updated as InquiryThreadRow };
+}
