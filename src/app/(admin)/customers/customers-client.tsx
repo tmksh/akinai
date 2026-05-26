@@ -31,6 +31,23 @@ interface CustomersClientProps {
   organizationId: string;
 }
 
+function getCustomFieldSearchText(customFields: unknown): string {
+  if (!customFields) return '';
+  if (Array.isArray(customFields)) {
+    return customFields
+      .map((f) => (f && typeof f === 'object' && 'value' in f ? String((f as { value?: unknown }).value ?? '') : ''))
+      .join(' ')
+      .toLowerCase();
+  }
+  if (typeof customFields === 'object') {
+    return Object.values(customFields as Record<string, unknown>)
+      .map((v) => String(v ?? ''))
+      .join(' ')
+      .toLowerCase();
+  }
+  return '';
+}
+
 export default function CustomersClient({
   initialCustomers,
   initialStats,
@@ -57,14 +74,17 @@ export default function CustomersClient({
   const searchFilteredCustomers = customers.filter(customer => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
-    const id = (customer as unknown as { id?: string }).id ?? '';
-    const phone = (customer as unknown as { phone?: string | null }).phone ?? '';
+    const phone = customer.phone ?? '';
+    const cfText = getCustomFieldSearchText(customer.custom_fields);
     return (
       customer.name.toLowerCase().includes(q) ||
       customer.email.toLowerCase().includes(q) ||
       (customer.company?.toLowerCase() || '').includes(q) ||
-      id.toLowerCase().includes(q) ||
-      phone.toLowerCase().includes(q)
+      customer.id.toLowerCase().includes(q) ||
+      phone.toLowerCase().includes(q) ||
+      (customer.referral_code?.toLowerCase() || '').includes(q) ||
+      (customer.referred_by_code?.toLowerCase() || '').includes(q) ||
+      cfText.includes(q)
     );
   });
 
@@ -297,7 +317,7 @@ export default function CustomersClient({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
-                placeholder="顧客名・メール・会社名・電話番号・IDで検索..."
+                placeholder="顧客名・メール・会社名・電話番号・ID・紹介コード・カスタムフィールドで検索..."
                 className="pl-10 border-slate-200 dark:border-slate-700 text-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
