@@ -326,6 +326,36 @@ export function OrdersTab() {
 
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || paymentFilter !== 'all' || datePreset !== 'all';
 
+  const handleExportCSV = useCallback(() => {
+    const header = ['注文番号', 'お客様名', 'メールアドレス', '商品数', '小計', '送料', '税額', '合計', '注文の状態', '入金の状態', '支払い方法', '代理店コード', '注文日'];
+    const rows = filteredOrders.map((order) => [
+      order.orderNumber,
+      order.customerName,
+      order.customerEmail,
+      String(order.items.reduce((s, i) => s + i.quantity, 0)),
+      String(order.subtotal),
+      String(order.shippingCost),
+      String(order.tax),
+      String(order.total),
+      orderStatusConfig[order.status]?.label ?? order.status,
+      paymentStatusConfig[order.paymentStatus]?.label ?? order.paymentStatus,
+      order.paymentMethod,
+      order.agentCode ?? '',
+      order.createdAt,
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\r\n');
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filteredOrders]);
+
   const handleOrderClick = useCallback(
     (orderId: string) => {
       router.push(`/orders/${orderId}`);
@@ -406,7 +436,7 @@ export function OrdersTab() {
             </PopoverContent>
           </Popover>
 
-          <Button variant="outline" size="sm" className="sm:w-auto">
+          <Button variant="outline" size="sm" className="sm:w-auto" onClick={handleExportCSV} disabled={filteredOrders.length === 0}>
             <Download className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">データを書き出す</span>
             <span className="sm:hidden">書き出し</span>
