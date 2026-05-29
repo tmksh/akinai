@@ -8,6 +8,7 @@ import {
   corsHeaders,
   withApiLogging,
 } from '@/lib/api/auth';
+import { resolveProductSupplierId } from '@/lib/analytics';
 
 export function OPTIONS() {
   return handleOptions();
@@ -67,38 +68,41 @@ export async function POST(request: NextRequest) {
       return new NextResponse(null, { status: 204, headers: corsHeaders() });
     }
 
-    // supplierIdが未指定の場合は商品から取得
-    let resolvedSupplierId = supplierId;
-    if (!resolvedSupplierId) {
-      const { data: product } = await supabase
-        .from('products')
-        .select('supplier_id')
-        .eq('id', productId)
-        .eq('organization_id', auth.organizationId!)
-        .single();
-      resolvedSupplierId = product?.supplier_id || undefined;
-    }
+    const resolvedSupplierId = await resolveProductSupplierId(
+      supabase,
+      auth.organizationId!,
+      productId,
+      supplierId,
+    );
 
     if (type === 'view') {
-      await supabase.from('page_views').insert({
+      const { error } = await supabase.from('page_views').insert({
         organization_id: auth.organizationId!,
         product_id: productId,
-        supplier_id: resolvedSupplierId || null,
+        supplier_id: resolvedSupplierId,
         customer_id: customerId || null,
         session_id: sessionId || null,
         referrer: referrer || null,
       });
+      if (error) {
+        console.error('Failed to track page view:', error);
+        return apiError('Failed to track view', 500);
+      }
     } else {
-      await supabase.from('product_clicks').insert({
+      const { error } = await supabase.from('product_clicks').insert({
         organization_id: auth.organizationId!,
         product_id: productId,
-        supplier_id: resolvedSupplierId || null,
+        supplier_id: resolvedSupplierId,
         customer_id: customerId || null,
         session_id: sessionId || null,
         click_type: clickType || 'detail',
       });
+      if (error) {
+        console.error('Failed to track product click:', error);
+        return apiError('Failed to track click', 500);
+      }
     }
 
-    return apiSuccess({ tracked: true });
+    return apiSuccess({ tracked: true, supplierId: resolvedSupplierId });
   });
 }

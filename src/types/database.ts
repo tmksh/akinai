@@ -691,6 +691,7 @@ export interface Database {
           approval_status: 'pending' | 'approved' | 'rejected' | null
           approved_at: string | null
           approved_by: string | null
+          supplier_id: string | null
           published_at: string | null
           created_at: string
           updated_at: string
@@ -711,6 +712,7 @@ export interface Database {
           approval_status?: 'pending' | 'approved' | 'rejected' | null
           approved_at?: string | null
           approved_by?: string | null
+          supplier_id?: string | null
           published_at?: string | null
           created_at?: string
           updated_at?: string
@@ -731,6 +733,7 @@ export interface Database {
           approval_status?: 'pending' | 'approved' | 'rejected' | null
           approved_at?: string | null
           approved_by?: string | null
+          supplier_id?: string | null
           published_at?: string | null
           created_at?: string
           updated_at?: string

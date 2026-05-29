@@ -622,10 +622,21 @@ export async function trackProductView(
     const features = (org?.features as Record<string, boolean>) || {};
     if (!features.analytics) return;
 
+    let supplierId = options?.supplierId || null;
+    if (!supplierId) {
+      const { data: product } = await supabase
+        .from('products')
+        .select('supplier_id')
+        .eq('id', productId)
+        .eq('organization_id', organizationId)
+        .single();
+      supplierId = (product?.supplier_id as string | null) ?? null;
+    }
+
     await supabase.from('page_views').insert({
       organization_id: organizationId,
       product_id: productId,
-      supplier_id: options?.supplierId || null,
+      supplier_id: supplierId,
       session_id: options?.sessionId || null,
       customer_id: options?.customerId || null,
       referrer: options?.referrer || null,
@@ -734,10 +745,21 @@ export async function trackProductClick(
     const features = (org?.features as Record<string, boolean>) || {};
     if (!features.analytics) return;
 
+    let supplierId = options?.supplierId || null;
+    if (!supplierId) {
+      const { data: product } = await supabase
+        .from('products')
+        .select('supplier_id')
+        .eq('id', productId)
+        .eq('organization_id', organizationId)
+        .single();
+      supplierId = (product?.supplier_id as string | null) ?? null;
+    }
+
     await supabase.from('product_clicks').insert({
       organization_id: organizationId,
       product_id: productId,
-      supplier_id: options?.supplierId || null,
+      supplier_id: supplierId,
       session_id: options?.sessionId || null,
       customer_id: options?.customerId || null,
       click_type: options?.clickType || 'detail',

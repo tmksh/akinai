@@ -7,6 +7,7 @@ import {
   handleOptions,
   withApiLogging,
 } from '@/lib/api/auth';
+import { buildSupplierEventFilter, getSupplierProductIds } from '@/lib/analytics';
 
 export function OPTIONS() {
   return handleOptions();
@@ -57,12 +58,19 @@ export async function GET(
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-    // 月別閲覧数
+    const supplierProductIds = await getSupplierProductIds(
+      supabase,
+      auth.organizationId!,
+      supplierId,
+    );
+    const supplierFilter = buildSupplierEventFilter(supplierId, supplierProductIds);
+
+    // 月別閲覧数（supplier_id 直接一致 + 当該サプライヤー商品への閲覧）
     const { data: viewsRaw } = await supabase
       .from('page_views')
       .select('viewed_at')
       .eq('organization_id', auth.organizationId!)
-      .eq('supplier_id', supplierId)
+      .or(supplierFilter)
       .gte('viewed_at', sixMonthsAgo.toISOString());
 
     // 月別クリック数
@@ -70,15 +78,15 @@ export async function GET(
       .from('product_clicks')
       .select('clicked_at')
       .eq('organization_id', auth.organizationId!)
-      .eq('supplier_id', supplierId)
+      .or(supplierFilter)
       .gte('clicked_at', sixMonthsAgo.toISOString());
 
     // 商品別閲覧数ランキング
     const { data: productViewsRaw } = await supabase
       .from('page_views')
-      .select('product_id, products!inner(id, name, slug)')
+      .select('product_id, products!inner(id, name, slug, supplier_id)')
       .eq('organization_id', auth.organizationId!)
-      .eq('supplier_id', supplierId)
+      .or(supplierFilter)
       .gte('viewed_at', sixMonthsAgo.toISOString())
       .not('product_id', 'is', null);
 
@@ -94,7 +102,7 @@ export async function GET(
     const productRankMap = new Map<string, { name: string; slug: string; views: number }>();
     for (const pv of productViewsRaw || []) {
       const pid = pv.product_id as string;
-      const product = ((pv as unknown) as { products: { id: string; name: string; slug: string } }).products;
+      const product = ((pv as unknown) as { products: { id: string; name: string; slug: string; supplier_id: string | null } }).products;
       if (!pid || !product) continue;
       const existing = productRankMap.get(pid);
       if (existing) {
