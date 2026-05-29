@@ -8,6 +8,7 @@ import {
   corsHeaders,
   withApiLogging,
 } from '@/lib/api/auth';
+import { extractSupplierIdFromCustomFields } from '@/lib/analytics';
 
 type CustomFieldItem = { key: string; label: string; value: string; type: string; options?: string[]; urls?: string[] };
 
@@ -289,7 +290,12 @@ export async function PUT(
       if (body.status === 'published') updateData.published_at = new Date().toISOString();
     }
     if (body.tags !== undefined) updateData.tags = body.tags;
-    if (body.customFields !== undefined) updateData.custom_fields = normalizeCustomFields(body.customFields);
+    if (body.customFields !== undefined) {
+      const normalizedCustomFields = normalizeCustomFields(body.customFields);
+      updateData.custom_fields = normalizedCustomFields;
+      // custom_fields に supplier_id があれば専用カラムへ同期（アナリティクス集計の基準）
+      updateData.supplier_id = extractSupplierIdFromCustomFields(normalizedCustomFields);
+    }
 
     if (Object.keys(updateData).length > 0) {
       const { error: updateErr } = await supabase

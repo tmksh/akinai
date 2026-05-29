@@ -9,6 +9,7 @@ import {
   corsHeaders,
   withApiLogging,
 } from '@/lib/api/auth';
+import { extractSupplierIdFromCustomFields } from '@/lib/analytics';
 
 type CustomFieldItem = { key: string; label: string; value: string; type: string; options?: string[]; urls?: string[] };
 
@@ -341,6 +342,7 @@ export async function POST(request: NextRequest) {
     const approvalStatus = isApprovalEnabled ? 'pending' : null;
 
     // 商品を作成
+    const normalizedCustomFields = normalizeCustomFields(body.customFields);
     const { data: product, error: productError } = await supabase
       .from('products')
       .insert({
@@ -354,7 +356,9 @@ export async function POST(request: NextRequest) {
         seo_title: (body.seoTitle as string) || null,
         seo_description: (body.seoDescription as string) || null,
         featured: (body.featured as boolean) || false,
-        custom_fields: normalizeCustomFields(body.customFields),
+        custom_fields: normalizedCustomFields,
+        // custom_fields に supplier_id があれば専用カラムへ同期（アナリティクス集計の基準）
+        supplier_id: extractSupplierIdFromCustomFields(normalizedCustomFields),
         approval_status: approvalStatus,
         published_at: finalStatus === 'published' ? new Date().toISOString() : null,
       })
