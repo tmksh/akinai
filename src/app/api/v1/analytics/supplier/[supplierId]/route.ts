@@ -7,7 +7,6 @@ import {
   handleOptions,
   withApiLogging,
 } from '@/lib/api/auth';
-import { buildSupplierEventFilter, getSupplierProductIds } from '@/lib/analytics';
 
 export function OPTIONS() {
   return handleOptions();
@@ -16,6 +15,10 @@ export function OPTIONS() {
 /**
  * GET /api/v1/analytics/supplier/:supplierId
  * 直近6ヶ月の月別閲覧数・クリック数・商品ランキング
+ *
+ * 集計基準: 商品マスタ products.supplier_id（イベント側 supplierId は使わない）
+ * page_views / product_clicks の productId → products.supplier_id で紐付ける。
+ * 商品の所有者が変更された場合、過去イベントも現在の supplier_id に集計される。
  */
 export async function GET(
   request: NextRequest,
@@ -57,36 +60,28 @@ export async function GET(
     // 直近6ヶ月の範囲
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const orgId = auth.organizationId!;
 
-    const supplierProductIds = await getSupplierProductIds(
-      supabase,
-      auth.organizationId!,
-      supplierId,
-    );
-    const supplierFilter = buildSupplierEventFilter(supplierId, supplierProductIds);
-
-    // 月別閲覧数（supplier_id 直接一致 + 当該サプライヤー商品への閲覧）
+    // 商品マスタ supplier_id で紐付け（イベント側 supplier_id は参照しない）
     const { data: viewsRaw } = await supabase
       .from('page_views')
-      .select('viewed_at')
-      .eq('organization_id', auth.organizationId!)
-      .or(supplierFilter)
+      .select('viewed_at, products!inner(supplier_id)')
+      .eq('organization_id', orgId)
+      .eq('products.supplier_id', supplierId)
       .gte('viewed_at', sixMonthsAgo.toISOString());
 
-    // 月別クリック数
     const { data: clicksRaw } = await supabase
       .from('product_clicks')
-      .select('clicked_at')
-      .eq('organization_id', auth.organizationId!)
-      .or(supplierFilter)
+      .select('clicked_at, products!inner(supplier_id)')
+      .eq('organization_id', orgId)
+      .eq('products.supplier_id', supplierId)
       .gte('clicked_at', sixMonthsAgo.toISOString());
 
-    // 商品別閲覧数ランキング
     const { data: productViewsRaw } = await supabase
       .from('page_views')
       .select('product_id, products!inner(id, name, slug, supplier_id)')
-      .eq('organization_id', auth.organizationId!)
-      .or(supplierFilter)
+      .eq('organization_id', orgId)
+      .eq('products.supplier_id', supplierId)
       .gte('viewed_at', sixMonthsAgo.toISOString())
       .not('product_id', 'is', null);
 
@@ -117,7 +112,6 @@ export async function GET(
       .sort((a, b) => b.views - a.views)
       .slice(0, 10);
 
-    // 合計
     const totalViews = (viewsRaw || []).length;
     const totalClicks = (clicksRaw || []).length;
 
