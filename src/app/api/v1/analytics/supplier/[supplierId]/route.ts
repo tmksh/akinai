@@ -72,7 +72,7 @@ export async function GET(
 
     const { data: clicksRaw } = await supabase
       .from('product_clicks')
-      .select('clicked_at, products!inner(supplier_id)')
+      .select('clicked_at, product_id, products!inner(supplier_id)')
       .eq('organization_id', orgId)
       .eq('products.supplier_id', supplierId)
       .gte('clicked_at', sixMonthsAgo.toISOString());
@@ -93,8 +93,8 @@ export async function GET(
       now
     );
 
-    // 商品ランキング集計
-    const productRankMap = new Map<string, { name: string; slug: string; views: number }>();
+    // 商品ランキング集計（views / clicks / ctr）
+    const productRankMap = new Map<string, { name: string; slug: string; views: number; clicks: number }>();
     for (const pv of productViewsRaw || []) {
       const pid = pv.product_id as string;
       const product = ((pv as unknown) as { products: { id: string; name: string; slug: string; supplier_id: string | null } }).products;
@@ -103,12 +103,28 @@ export async function GET(
       if (existing) {
         existing.views++;
       } else {
-        productRankMap.set(pid, { name: product.name, slug: product.slug, views: 1 });
+        productRankMap.set(pid, { name: product.name, slug: product.slug, views: 1, clicks: 0 });
       }
+    }
+    for (const pc of clicksRaw || []) {
+      const pid = pc.product_id as string;
+      if (!pid) continue;
+      const existing = productRankMap.get(pid);
+      if (existing) {
+        existing.clicks++;
+      }
+      // クリックのみ存在する商品は views 取得クエリで既に取得済みのため追加不要
     }
 
     const productRanking = Array.from(productRankMap.entries())
-      .map(([id, data]) => ({ id, ...data }))
+      .map(([id, data]) => ({
+        id,
+        name: data.name,
+        slug: data.slug,
+        views: data.views,
+        clicks: data.clicks,
+        ctr: data.views > 0 ? Math.round((data.clicks / data.views) * 1000) / 10 : 0,
+      }))
       .sort((a, b) => b.views - a.views)
       .slice(0, 10);
 
