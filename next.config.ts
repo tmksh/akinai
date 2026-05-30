@@ -47,6 +47,15 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'lh6.googleusercontent.com',
       },
+      // 任意のホスト（外部連携先など未知のドメインを許容）
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
     ],
   },
 };

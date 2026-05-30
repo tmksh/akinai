@@ -2,18 +2,57 @@ import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 
 /**
+ * アクセストークン(JWT)からユーザーを解決する。
+ *
+ * getClaims() は非対称署名鍵(JWKS)を使ってJWTを「ローカル検証」するため、
+ * Auth サーバーへのネットワーク往復が発生しない（getUser は毎回往復し200〜700ms要する）。
+ * 画面遷移ごとに必ず実行される処理なので、ここのコストが体感速度を大きく左右する。
+ *
+ * ローカル検証できない構成（対称鍵など）では getClaims が自動的に getUser へ
+ * フォールバックするが、念のため明示フォールバックも用意し退行を防ぐ。
+ */
+async function resolveUser(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+): Promise<{ id: string; email: string; user_metadata: Record<string, unknown> } | null> {
+  try {
+    if (typeof supabase.auth.getClaims === 'function') {
+      const { data, error } = await supabase.auth.getClaims();
+      const claims = data?.claims;
+      if (!error && claims?.sub) {
+        return {
+          id: claims.sub as string,
+          email: (claims.email as string) ?? '',
+          user_metadata: (claims.user_metadata as Record<string, unknown>) ?? {},
+        };
+      }
+    }
+  } catch {
+    // getClaims 失敗時は getUser にフォールバック
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  return {
+    id: user.id,
+    email: user.email ?? '',
+    user_metadata: (user.user_metadata as Record<string, unknown>) ?? {},
+  };
+}
+
+/**
  * 同一リクエスト内で auth + user profile + organization を1回だけ取得する。
  * React の cache() により、layout / page から何度呼んでも実際のDB呼び出しは1回。
  *
  * クエリフロー:
- *   1. auth.getUser() — Supabase Auth検証（1回だけ）
+ *   1. getClaims() — JWTローカル検証（ネットワーク往復なし）
  *   2. users SELECT (current_organization_id, name, avatar) — 1クエリで全取得
  *   3. organizations SELECT (*) — 1クエリで全取得
- * 合計: auth 1回 + DB 2回（並列）
+ * 合計: DB 2回（並列）+ org 1回。Auth サーバー往復なし。
  */
 export const getAuthOrganization = cache(async () => {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await resolveUser(supabase);
 
   if (!user) return {
     user: null,

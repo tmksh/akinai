@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useRef, useCallback } from 'react';
+import { useState, useTransition, useMemo, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -95,6 +95,33 @@ interface ProductsClientProps {
   initialCategories: Category[];
   organizationId: string;
   totalProducts: number;
+}
+
+/** 未許可ホストやブロークンURLでもクラッシュしない商品サムネイル */
+function ProductImage({ src, alt }: { src: string; alt: string }) {
+  const [errored, setErrored] = useState(false);
+
+  useEffect(() => { setErrored(false); }, [src]);
+
+  if (errored) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Package className="h-10 w-10 opacity-15" />
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
+      loading="lazy"
+      className="object-cover transition-transform duration-500 group-hover:scale-105"
+      onError={() => setErrored(true)}
+    />
+  );
 }
 
 export default function ProductsClient({
@@ -903,13 +930,9 @@ export default function ProductsClient({
                 <div className="relative aspect-square overflow-hidden rounded-t-2xl"
                   style={{ background: 'linear-gradient(135deg, rgba(250,250,252,0.9) 0%, rgba(245,246,250,0.9) 100%)' }}>
                   {product.images[0] ? (
-                    <Image
+                    <ProductImage
                       src={product.images[0].url}
                       alt={product.images[0].alt || product.name}
-                      fill
-                      sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
-                      loading="lazy"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center">
