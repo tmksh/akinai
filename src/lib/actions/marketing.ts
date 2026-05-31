@@ -609,3 +609,22 @@ export async function getInquiryThreadDetail(
     }),
   };
 }
+
+// ─── 1対1メッセージ：スレッド削除（運営） ──────────────────
+// スレッドを削除する。inquiry_messages は ON DELETE CASCADE で連動削除される。
+export async function deleteInquiryThread(
+  organizationId: string,
+  threadId: string
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('inquiry_threads')
+    .delete()
+    .eq('id', threadId)
+    .eq('organization_id', organizationId);
+  if (error) {
+    console.error('Failed to delete inquiry thread:', error);
+    return { error: error.message };
+  }
+  return { error: null };
+}

@@ -28,6 +28,7 @@ import {
   type AnalyticsPeriod,
   getInquiryThreads,
   getInquiryThreadDetail,
+  deleteInquiryThread,
   type InquiryThreadListItem,
   type InquiryThreadDetail,
 } from '@/lib/actions/marketing';
@@ -443,6 +444,8 @@ function InquiriesTab({ organizationId }: { organizationId: string }) {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [detail, setDetail] = useState<InquiryThreadDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -471,6 +474,20 @@ function InquiriesTab({ organizationId }: { organizationId: string }) {
   const closeDetail = () => {
     setSelectedThreadId(null);
     setDetail(null);
+  };
+
+  const handleDelete = async (threadId: string) => {
+    setDeletingId(threadId);
+    const { error } = await deleteInquiryThread(organizationId, threadId);
+    if (error) {
+      toast.error('削除に失敗しました');
+    } else {
+      setThreads((prev) => prev.filter((t) => t.id !== threadId));
+      if (selectedThreadId === threadId) closeDetail();
+      toast.success('問い合わせを削除しました');
+    }
+    setDeletingId(null);
+    setConfirmId(null);
   };
 
   const handleSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -559,21 +576,57 @@ function InquiriesTab({ organizationId }: { organizationId: string }) {
                       </p>
                     )}
                   </div>
-                  <div className="text-right shrink-0">
-                    <span className="text-[10px] text-muted-foreground block">
-                      {t.lastMessageAt
-                        ? new Date(t.lastMessageAt).toLocaleString('ja-JP', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                        : '—'}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5 mt-0.5">
-                      <MessageSquare className="h-2.5 w-2.5" />
-                      {t.messageCount}件
-                    </span>
+                  <div className="flex items-start gap-2 shrink-0">
+                    <div className="text-right">
+                      <span className="text-[10px] text-muted-foreground block">
+                        {t.lastMessageAt
+                          ? new Date(t.lastMessageAt).toLocaleString('ja-JP', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : '—'}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5 mt-0.5">
+                        <MessageSquare className="h-2.5 w-2.5" />
+                        {t.messageCount}件
+                      </span>
+                    </div>
+                    {confirmId === t.id ? (
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-7 px-2 text-xs"
+                          disabled={deletingId === t.id}
+                          onClick={() => handleDelete(t.id)}
+                        >
+                          {deletingId === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : '削除する'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs"
+                          disabled={deletingId === t.id}
+                          onClick={() => setConfirmId(null)}
+                        >
+                          キャンセル
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmId(t.id);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
