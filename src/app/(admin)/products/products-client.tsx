@@ -68,6 +68,7 @@ import { useOrganization } from '@/components/providers/organization-provider';
 import { getProducts, getCategories, deleteProduct, deleteProducts, updateProductStatus, duplicateProduct, bulkUpdateCustomFieldPerProduct, type ProductWithRelations } from '@/lib/actions/products';
 import { toast } from 'sonner';
 import { ProductImportDialog } from '@/components/products/import-dialog';
+import { compressImage } from '@/lib/image-compression';
 import type { ProductStatus } from '@/types';
 import type { Database } from '@/types/database';
 import type { ProductFieldSchemaItem } from '@/components/providers/organization-provider';
@@ -322,8 +323,9 @@ export default function ProductsClient({
   };
 
   const uploadOneImage = async (file: File): Promise<{ url: string } | { error: string }> => {
+    const optimized = await compressImage(file);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', optimized);
     formData.append('bucket', 'contents');
     formData.append('folder', organizationId ? `products/${organizationId}` : 'products');
     try {
@@ -931,7 +933,7 @@ export default function ProductsClient({
                   style={{ background: 'linear-gradient(135deg, rgba(250,250,252,0.9) 0%, rgba(245,246,250,0.9) 100%)' }}>
                   {product.images[0] ? (
                     <ProductImage
-                      src={product.images[0].url}
+                      src={product.images[0].thumbnail_url || product.images[0].url}
                       alt={product.images[0].alt || product.name}
                     />
                   ) : (

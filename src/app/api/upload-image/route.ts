@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { processAndUploadImageBuffer } from '@/lib/server-image';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -42,21 +43,17 @@ export async function POST(request: NextRequest) {
 
   const bucket = (formData.get('bucket') as string | null) || 'contents';
   const folder = (formData.get('folder') as string | null) || user.id;
-  const fileExt = file.name.split('.').pop() ?? 'jpg';
-  const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
 
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from(bucket)
-    .upload(fileName, file, { cacheControl: '3600', upsert: false });
-
-  if (uploadError) {
-    console.error('Upload error:', uploadError);
+  // サーバー側でリサイズ(長辺1200px)+WebP変換し、サムネイル(400px)も生成して保存
+  try {
+    const inputBuffer = Buffer.from(await file.arrayBuffer());
+    const processed = await processAndUploadImageBuffer(supabase, inputBuffer, {
+      bucket,
+      folder,
+    });
+    return NextResponse.json({ url: processed.url, thumbnailUrl: processed.thumbnailUrl });
+  } catch (error) {
+    console.error('Upload error:', error);
     return NextResponse.json({ error: 'アップロードに失敗しました' }, { status: 500 });
   }
-
-  const { data: { publicUrl } } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(uploadData.path);
-
-  return NextResponse.json({ url: publicUrl });
 }

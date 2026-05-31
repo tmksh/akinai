@@ -606,6 +606,7 @@ export interface Database {
           id: string
           product_id: string
           url: string
+          thumbnail_url: string | null
           alt: string | null
           sort_order: number
           created_at: string
@@ -614,6 +615,7 @@ export interface Database {
           id?: string
           product_id: string
           url: string
+          thumbnail_url?: string | null
           alt?: string | null
           sort_order?: number
           created_at?: string
@@ -622,6 +624,7 @@ export interface Database {
           id?: string
           product_id?: string
           url?: string
+          thumbnail_url?: string | null
           alt?: string | null
           sort_order?: number
           created_at?: string

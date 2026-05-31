@@ -10,6 +10,7 @@ import {
   withApiLogging,
 } from '@/lib/api/auth';
 import { extractSupplierIdFromCustomFields } from '@/lib/analytics';
+import { processAndUploadImageFromUrl } from '@/lib/server-image';
 
 type CustomFieldItem = { key: string; label: string; value: string; type: string; options?: string[]; urls?: string[] };
 
@@ -249,6 +250,7 @@ export async function GET(request: NextRequest) {
         images: pImages.map(img => ({
           id: img.id,
           url: img.url,
+          thumbnailUrl: img.thumbnail_url ?? null,
           alt: img.alt,
         })),
         categories: pCats.map((c: Record<string, unknown>) => ({
@@ -393,19 +395,33 @@ export async function POST(request: NextRequest) {
     }
 
     // 画像を登録
+    // 連携元から渡された画像URLをサーバー側で取得し、長辺1200pxにリサイズ＋WebP変換、
+    // 一覧用サムネイル(400px)も生成して Storage に保存し、その公開URLのみをDBに保存する。
+    // 取得・変換に失敗した画像は元URLをそのまま使う（取り込み自体は止めない）。
     const images = (body.images as { url: string; alt?: string }[]) || [];
     let insertedImages: Record<string, unknown>[] = [];
     if (images.length > 0) {
-      const { data: imgData, error: imgError } = await supabase
-        .from('product_images')
-        .insert(
-          images.map((img, idx) => ({
+      const processedRows = await Promise.all(
+        images.map(async (img, idx) => {
+          const processed = img.url
+            ? await processAndUploadImageFromUrl(supabase, img.url, {
+                bucket: 'products',
+                folder: product.id,
+              })
+            : null;
+          return {
             product_id: product.id,
-            url: img.url,
+            url: processed?.url ?? img.url,
+            thumbnail_url: processed?.thumbnailUrl ?? null,
             alt: img.alt || name,
             sort_order: idx,
-          }))
-        )
+          };
+        })
+      );
+
+      const { data: imgData, error: imgError } = await supabase
+        .from('product_images')
+        .insert(processedRows)
         .select();
 
       if (imgError) {
@@ -450,6 +466,7 @@ export async function POST(request: NextRequest) {
       images: insertedImages.map(img => ({
         id: img.id,
         url: img.url,
+        thumbnailUrl: img.thumbnail_url ?? null,
         alt: img.alt,
       })),
       createdAt: product.created_at,

@@ -6,6 +6,7 @@ import { Upload, X, Loader2, GripVertical, ImagePlus, Trash2 } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { uploadProductImage, deleteProductImage, updateImageOrder } from '@/lib/actions/storage';
+import { compressImage } from '@/lib/image-compression';
 
 interface ProductImage {
   id: string;
@@ -37,8 +38,9 @@ export function ImageUpload({ productId, images, onImagesChange, disabled }: Ima
 
     try {
       for (const file of Array.from(files)) {
+        const optimized = await compressImage(file);
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', optimized);
 
         const result = await uploadProductImage(productId, formData);
         
@@ -124,8 +126,9 @@ export function ImageUpload({ productId, images, onImagesChange, disabled }: Ima
         // ファイルタイプチェック
         if (!file.type.startsWith('image/')) continue;
 
+        const optimized = await compressImage(file);
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', optimized);
 
         const result = await uploadProductImage(productId, formData);
         

@@ -45,7 +45,7 @@ export async function getProducts(
       .select(`
         id, name, slug, status, featured, tags, description, custom_fields, created_at, organization_id,
         product_variants (id, name, sku, price, compare_at_price, stock),
-        product_images (id, url, alt, sort_order),
+        product_images (id, url, thumbnail_url, alt, sort_order),
         product_categories (
           category_id,
           categories (id, name, slug)

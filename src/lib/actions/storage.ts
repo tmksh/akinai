@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { processAndUploadImageBuffer } from '@/lib/server-image';
 
 const BUCKET_NAME = 'products';
 
@@ -32,27 +33,18 @@ export async function uploadProductImage(
       return { data: null, error: 'サポートされていないファイル形式です（JPG, PNG, WEBP, GIFのみ）' };
     }
 
-    // ファイル名を生成（重複を避けるためにタイムスタンプを付与）
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${productId}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-
-    // Supabase Storageにアップロード
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false,
+    // サーバー側でリサイズ(長辺1200px)+WebP変換し、サムネイル(400px)も生成して保存
+    const inputBuffer = Buffer.from(await file.arrayBuffer());
+    let processed: { url: string; thumbnailUrl: string };
+    try {
+      processed = await processAndUploadImageBuffer(supabase, inputBuffer, {
+        bucket: BUCKET_NAME,
+        folder: productId,
       });
-
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
+    } catch (e) {
+      console.error('Image processing error:', e);
       return { data: null, error: 'アップロードに失敗しました' };
     }
-
-    // 公開URLを取得
-    const { data: publicUrlData } = supabase.storage
-      .from(BUCKET_NAME)
-      .getPublicUrl(uploadData.path);
 
     // 既存の画像数を取得してソート順を決定
     const { data: existingImages } = await supabase
@@ -71,7 +63,8 @@ export async function uploadProductImage(
       .from('product_images')
       .insert({
         product_id: productId,
-        url: publicUrlData.publicUrl,
+        url: processed.url,
+        thumbnail_url: processed.thumbnailUrl,
         alt: file.name.split('.')[0], // ファイル名から拡張子を除いたものをaltに
         sort_order: nextSortOrder,
       })
@@ -80,8 +73,6 @@ export async function uploadProductImage(
 
     if (dbError) {
       console.error('DB error:', dbError);
-      // アップロードしたファイルを削除
-      await supabase.storage.from(BUCKET_NAME).remove([uploadData.path]);
       return { data: null, error: 'データベースへの保存に失敗しました' };
     }
 
@@ -91,7 +82,7 @@ export async function uploadProductImage(
     return {
       data: {
         id: imageRecord.id,
-        url: publicUrlData.publicUrl,
+        url: processed.url,
       },
       error: null,
     };
@@ -217,27 +208,21 @@ export async function uploadContentImage(
       return { data: null, error: 'サポートされていないファイル形式です（JPG, PNG, WEBP, GIFのみ）' };
     }
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${organizationId}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('contents')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false,
+    // サーバー側でリサイズ(長辺1200px)+WebP変換して保存
+    const inputBuffer = Buffer.from(await file.arrayBuffer());
+    let processed: { url: string; thumbnailUrl: string };
+    try {
+      processed = await processAndUploadImageBuffer(supabase, inputBuffer, {
+        bucket: 'contents',
+        folder: organizationId,
       });
-
-    if (uploadError) {
-      console.error('Content image upload error:', uploadError);
+    } catch (e) {
+      console.error('Content image processing error:', e);
       return { data: null, error: 'アップロードに失敗しました' };
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from('contents')
-      .getPublicUrl(uploadData.path);
-
     return {
-      data: { url: publicUrlData.publicUrl },
+      data: { url: processed.url },
       error: null,
     };
   } catch (error) {
