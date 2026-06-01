@@ -13,25 +13,10 @@ import {
   normalizeCustomFields,
   formatPublicProduct,
   extractCategoriesFromProductCategories,
+  PRODUCT_LIST_SELECT,
 } from '@/lib/api/product-format';
 import { extractSupplierIdFromCustomFields } from '@/lib/analytics';
 import { processAndUploadImageFromUrl } from '@/lib/server-image';
-
-/** 関連テーブルを 1 クエリで取得（PostgREST ネスト） */
-const PRODUCT_LIST_SELECT = `
-  id, name, slug, short_description, description, status, featured,
-  seo_title, seo_description, tags, custom_fields, created_at, updated_at,
-  product_variants (
-    id, name, sku, price, compare_at_price, stock, options, image_url
-  ),
-  product_images (
-    id, url, thumbnail_url, alt, sort_order
-  ),
-  product_categories (
-    category_id,
-    categories ( id, name, slug )
-  )
-`;
 
 // GET /api/v1/products - 商品一覧
 export async function GET(request: NextRequest) {

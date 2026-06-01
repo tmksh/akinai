@@ -8,9 +8,8 @@
  * - GET  : ログイン中の顧客が参加しているスレッド一覧を取得する
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { verifyCustomerToken } from '@/lib/api/customer-auth';
-import { corsHeaders, handleOptions } from '@/lib/api/auth';
+import { handleOptions, getServiceSupabase, CACHE_PROFILES, applyApiResponseHeaders } from '@/lib/api/auth';
 import {
   buildPreview,
   notifyInquiryRecipient,
@@ -19,22 +18,17 @@ import {
 } from '@/lib/inquiries';
 
 function getAdminSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return getServiceSupabase();
 }
 
 function jsonError(message: string, status: number) {
   const res = NextResponse.json({ error: message }, { status });
-  Object.entries(corsHeaders()).forEach(([k, v]) => res.headers.set(k, v));
-  return res;
+  return applyApiResponseHeaders(res, { cacheControl: CACHE_PROFILES.realtime });
 }
 
 function jsonSuccess<T>(data: T, status = 200) {
   const res = NextResponse.json(data, { status });
-  Object.entries(corsHeaders()).forEach(([k, v]) => res.headers.set(k, v));
-  return res;
+  return applyApiResponseHeaders(res, { cacheControl: CACHE_PROFILES.realtime });
 }
 
 const MAX_BODY_LENGTH = 8000;

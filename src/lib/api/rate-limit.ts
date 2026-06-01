@@ -310,10 +310,18 @@ export async function getApiUsageStats(
 
 /** 読み取り専用 GET の CDN / クライアントキャッシュ */
 export const CACHE_PROFILES = {
+  /** 初回表示一括（マスタ + カタログ） */
+  bootstrap: 'private, max-age=60, stale-while-revalidate=300',
   /** 商品・カテゴリなど比較的安定したカタログ */
-  catalog: 'private, max-age=60, stale-while-revalidate=300',
+  catalog: 'private, max-age=120, stale-while-revalidate=600',
+  /** 代理店・サプライヤー等のマスタ */
+  master: 'private, max-age=300, stale-while-revalidate=900',
   /** 送料設定など組織設定 */
   settings: 'private, max-age=120, stale-while-revalidate=600',
+  /** 認証済みユーザー向け（短時間のみ） */
+  session: 'private, max-age=15, stale-while-revalidate=30',
+  /** 問い合わせ等リアルタイム性が必要 */
+  realtime: 'private, no-store',
 } as const;
 
 export function applyApiResponseHeaders(

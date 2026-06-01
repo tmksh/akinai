@@ -17,6 +17,22 @@ export interface UnifiedField {
   urls?: string[];
 }
 
+/** PostgREST ネスト取得用 SELECT（商品一覧・bootstrap 共通） */
+export const PRODUCT_LIST_SELECT = `
+  id, name, slug, short_description, description, status, featured,
+  seo_title, seo_description, tags, custom_fields, created_at, updated_at,
+  product_variants (
+    id, name, sku, price, compare_at_price, stock, options, image_url
+  ),
+  product_images (
+    id, url, thumbnail_url, alt, sort_order
+  ),
+  product_categories (
+    category_id,
+    categories ( id, name, slug )
+  )
+`;
+
 function parseImageUrls(value: string | null | undefined): string[] {
   if (!value) return [];
   const trimmed = String(value).trim();

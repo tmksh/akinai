@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import {
   validateApiKey,
@@ -7,9 +6,11 @@ import {
   apiSuccess,
   apiSuccessPaginated,
   handleOptions,
-  corsHeaders,
   withApiLogging,
+  getServiceSupabase,
+  CACHE_PROFILES,
 } from '@/lib/api/auth';
+import { fetchSuppliers } from '@/lib/api/storefront-data';
 
 // 顧客作成リクエスト
 interface CreateCustomerRequest {
@@ -43,35 +44,50 @@ export async function GET(request: NextRequest) {
   }
 
   return withApiLogging(request, auth, async () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return apiError('Server configuration error', 500);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getServiceSupabase();
+    const orgId = auth.organizationId!;
 
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');
     const search = searchParams.get('search');
+    const role = searchParams.get('role');
+    const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
-    let query = supabase
-      .from('customers')
-      .select('*', { count: 'exact' })
-      .eq('organization_id', auth.organizationId)
-      .order('created_at', { ascending: false });
-
-    // メールで完全一致検索
-    if (email) {
-      query = query.eq('email', email);
+    // サプライヤーマスタ一覧（検索なし）はキャッシュ済み共通取得
+    if (role === 'supplier' && !email && !search && status !== 'pending' && status !== 'suspended') {
+      const allSuppliers = await fetchSuppliers(supabase, orgId);
+      const startIndex = (page - 1) * limit;
+      const slice = allSuppliers.slice(startIndex, startIndex + limit);
+      return apiSuccessPaginated(
+        slice,
+        page,
+        limit,
+        allSuppliers.length,
+        auth.rateLimit,
+        CACHE_PROFILES.master,
+      );
     }
 
-    // 名前・メールであいまい検索
+    let query = supabase
+      .from('customers')
+      .select(
+        'id, type, name, email, phone, company, role, status, tags, total_orders, total_spent, custom_fields, created_at',
+        { count: 'exact' },
+      )
+      .eq('organization_id', orgId)
+      .order('created_at', { ascending: false });
+
+    if (email) query = query.eq('email', email);
     if (search) {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%`);
+    }
+    if (role && ['personal', 'buyer', 'supplier'].includes(role)) {
+      query = query.eq('role', role);
+    }
+    if (status && ['pending', 'active', 'suspended'].includes(status)) {
+      query = query.eq('status', status);
     }
 
     const startIndex = (page - 1) * limit;
@@ -84,22 +100,19 @@ export async function GET(request: NextRequest) {
       return apiError('Failed to fetch customers', 500);
     }
 
-    // 住所情報を一括取得
-    const customerIds = (customers || []).map(c => c.id);
+    const customerIds = (customers || []).map((c) => c.id);
     let addressMap: Record<string, unknown[]> = {};
 
     if (customerIds.length > 0) {
       const { data: addresses } = await supabase
         .from('customer_addresses')
-        .select('*')
+        .select('id, customer_id, postal_code, prefecture, city, line1, line2, phone, is_default')
         .in('customer_id', customerIds)
         .order('is_default', { ascending: false });
 
       if (addresses) {
         for (const addr of addresses) {
-          if (!addressMap[addr.customer_id]) {
-            addressMap[addr.customer_id] = [];
-          }
+          if (!addressMap[addr.customer_id]) addressMap[addr.customer_id] = [];
           addressMap[addr.customer_id].push({
             id: addr.id,
             postalCode: addr.postal_code,
@@ -114,23 +127,27 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const result = (customers || []).map(c => ({
+    const result = (customers || []).map((c) => ({
       id: c.id,
       type: c.type,
       name: c.name,
       email: c.email,
       phone: c.phone,
       company: c.company,
+      role: c.role,
+      status: c.status,
       tags: c.tags || [],
       totalOrders: c.total_orders,
       totalSpent: c.total_spent,
+      customFields: c.custom_fields ?? {},
       addresses: addressMap[c.id] || [],
       createdAt: c.created_at,
     }));
 
-    const response = apiSuccessPaginated(result, page, limit, count || 0, auth.rateLimit);
-    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
+    const cacheProfile =
+      !email && !search ? CACHE_PROFILES.master : CACHE_PROFILES.session;
+
+    return apiSuccessPaginated(result, page, limit, count || 0, auth.rateLimit, cacheProfile);
   });
 }
 
@@ -142,14 +159,7 @@ export async function POST(request: NextRequest) {
   }
 
   return withApiLogging(request, auth, async () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return apiError('Server configuration error', 500);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getServiceSupabase();
 
     let body: CreateCustomerRequest;
     try {
@@ -235,7 +245,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const response = apiSuccess(
+    return apiSuccess(
       {
         id: customer.id,
         type: customer.type,
@@ -253,10 +263,8 @@ export async function POST(request: NextRequest) {
         createdAt: customer.created_at,
       },
       undefined,
-      auth.rateLimit
+      auth.rateLimit,
     );
-    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
   });
 }
 

@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import {
   validateApiKey,
   apiError,
   apiSuccess,
   apiSuccessPaginated,
   handleOptions,
-  corsHeaders,
   withApiLogging,
+  getServiceSupabase,
+  CACHE_PROFILES,
 } from '@/lib/api/auth';
 
 // GET /api/v1/contents - コンテンツ一覧
@@ -18,14 +18,7 @@ export async function GET(request: NextRequest) {
   }
 
   return withApiLogging(request, auth, async () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return apiError('Server configuration error', 500);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getServiceSupabase();
 
     // クエリパラメータ
     const { searchParams } = new URL(request.url);
@@ -89,9 +82,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!contents || contents.length === 0) {
-      const response = apiSuccessPaginated([], page, limit, 0, auth.rateLimit);
-      Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-      return response;
+      return apiSuccessPaginated([], page, limit, 0, auth.rateLimit, CACHE_PROFILES.catalog);
     }
 
     // カテゴリフィルタリング（content_category_relations 経由）
@@ -176,9 +167,14 @@ export async function GET(request: NextRequest) {
       publishedAt: c.published_at,
     }));
 
-    const response = apiSuccessPaginated(publicContents, page, limit, count || 0, auth.rateLimit);
-    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
+    return apiSuccessPaginated(
+      publicContents,
+      page,
+      limit,
+      count || 0,
+      auth.rateLimit,
+      CACHE_PROFILES.catalog,
+    );
   });
 }
 
@@ -190,14 +186,7 @@ export async function POST(request: NextRequest) {
   }
 
   return withApiLogging(request, auth, async () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return apiError('Server configuration error', 500);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getServiceSupabase();
 
     let body: Record<string, unknown>;
     try {
@@ -269,15 +258,13 @@ export async function POST(request: NextRequest) {
       return apiError(`Failed to create content: ${contentError.message}`, 500);
     }
 
-    const response = apiSuccess({
+    return apiSuccess({
       id: content.id,
       type: content.type,
       title: content.title,
       slug: content.slug,
       status: content.status,
     }, undefined, auth.rateLimit);
-    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
   });
 }
 

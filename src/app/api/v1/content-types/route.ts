@@ -1,23 +1,17 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import {
   validateApiKey,
   apiError,
   apiSuccess,
   handleOptions,
-  corsHeaders,
   withApiLogging,
+  getServiceSupabase,
+  CACHE_PROFILES,
 } from '@/lib/api/auth';
-import { contentTypeConfig } from '@/lib/content-types';
+import { fetchContentTypes } from '@/lib/api/storefront-data';
 
 /**
  * GET /api/v1/content-types
- *
- * この組織で有効なコンテンツタイプの一覧を返します。
- * フロントでは「どの type の値で ?type=xxx すればよいか」をここで取得できます。
- *
- * レスポンス例:
- * { "data": [ { "value": "news", "label": "ニュース" }, { "value": "article", "label": "記事" } ] }
  */
 export async function GET(request: NextRequest) {
   const auth = await validateApiKey(request);
@@ -26,40 +20,14 @@ export async function GET(request: NextRequest) {
   }
 
   return withApiLogging(request, auth, async () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return apiError('Server configuration error', 500);
+    try {
+      const supabase = getServiceSupabase();
+      const types = await fetchContentTypes(supabase, auth.organizationId!);
+      return apiSuccess({ types }, undefined, auth.rateLimit, CACHE_PROFILES.master);
+    } catch (error) {
+      console.error('Error fetching content types:', error);
+      return apiSuccess({ types: [] }, undefined, auth.rateLimit, CACHE_PROFILES.master);
     }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('settings')
-      .eq('id', auth.organizationId!)
-      .single();
-
-    if (orgError || !org) {
-      const response = apiSuccess({ types: [] }, undefined, auth.rateLimit);
-      Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-      return response;
-    }
-
-    const settings = (org.settings as Record<string, unknown>) || {};
-    const enabled = (settings.enabled_content_types as string[] | undefined) || [];
-    const customContentTypes = (settings.custom_content_types as { key: string; label: string }[] | undefined) || [];
-    const customTypeMap = Object.fromEntries(customContentTypes.map((t) => [t.key, t.label]));
-
-    const types = enabled.map((value) => ({
-      value,
-      label: contentTypeConfig[value]?.label ?? customTypeMap[value] ?? value,
-    }));
-
-    const response = apiSuccess({ types }, undefined, auth.rateLimit);
-    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
   });
 }
 
