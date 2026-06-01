@@ -1,132 +1,34 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import {
   validateApiKey,
   apiError,
   apiSuccess,
   handleOptions,
-  corsHeaders,
   withApiLogging,
+  getServiceSupabase,
+  CACHE_PROFILES,
 } from '@/lib/api/auth';
+import {
+  normalizeCustomFields,
+  formatPublicProduct,
+  extractCategoriesFromProductCategories,
+} from '@/lib/api/product-format';
 import { extractSupplierIdFromCustomFields } from '@/lib/analytics';
 
-type CustomFieldItem = { key: string; label: string; value: string; type: string; options?: string[]; urls?: string[] };
-
-/**
- * 画像フィールドの値を URL 配列にパースする。
- * - 空 → []
- * - JSON 配列文字列 → そのまま
- * - 単一 URL 文字列 → [url]
- */
-function parseImageUrls(value: string | null | undefined): string[] {
-  if (!value) return [];
-  const trimmed = String(value).trim();
-  if (!trimmed) return [];
-  if (trimmed.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === 'string' && v.length > 0);
-    } catch {
-      /* fall through */
-    }
-  }
-  return [trimmed];
-}
-
-/**
- * 画像フィールド (image_url / image_url_list) の値を消費しやすい形に変換。
- * - value: 先頭 URL（後方互換のため、単一 URL を期待する旧クライアント向け）
- * - urls : 全 URL の配列
- * 画像以外のフィールドはそのまま返す。
- */
-function normalizeImageField(item: CustomFieldItem): CustomFieldItem {
-  if (item.type !== 'image_url' && item.type !== 'image_url_list') return item;
-  const urls = parseImageUrls(item.value);
-  return {
-    ...item,
-    value: urls[0] ?? '',
-    urls,
-  };
-}
-
-/**
- * DB の custom_fields を正規化して配列に変換する。
- * - 配列形式 [{key, label, value, type}] → そのまま返す
- * - オブジェクト形式 {"key": "value"} → [{key, label:key, value, type:"text"}] に変換
- * - それ以外（null/undefined/非対象） → [] を返す
- * 画像フィールドは urls 配列を補完する。
- */
-function normalizeCustomFields(raw: unknown): CustomFieldItem[] {
-  let items: CustomFieldItem[] = [];
-  if (Array.isArray(raw)) {
-    items = raw as CustomFieldItem[];
-  } else if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-    items = Object.entries(raw as Record<string, unknown>).map(([key, value]) => ({
-      key,
-      label: key,
-      value: String(value ?? ''),
-      type: 'text',
-    }));
-  }
-  return items.map(normalizeImageField);
-}
-
-// 統一フィールド型
-interface UnifiedField {
-  key: string;
-  label: string;
-  value: string;
-  type: string;
-  system: boolean;
-  options?: string[];
-  urls?: string[];
-}
-
-// 商品データを統一フィールド形式に変換
-function buildFields(
-  product: Record<string, unknown>,
-  variants: Record<string, unknown>[],
-  customFields: CustomFieldItem[]
-): UnifiedField[] {
-  const fields: UnifiedField[] = [];
-
-  // --- システム固定フィールド ---
-  fields.push({ key: 'name',              label: '商品名',           value: (product.name as string) || '',               type: 'text',     system: true });
-  fields.push({ key: 'slug',              label: 'スラッグ',         value: (product.slug as string) || '',               type: 'text',     system: true });
-  fields.push({ key: 'short_description', label: '短い説明',         value: (product.short_description as string) || '',  type: 'text',     system: true });
-  fields.push({ key: 'description',       label: '詳細説明',         value: (product.description as string) || '',        type: 'textarea', system: true });
-  fields.push({ key: 'status',            label: 'ステータス',       value: (product.status as string) || 'draft',        type: 'select',   system: true, options: ['draft', 'published', 'archived'] });
-  fields.push({ key: 'featured',          label: 'おすすめ',         value: String(product.featured ?? false),            type: 'boolean',  system: true });
-  fields.push({ key: 'seo_title',         label: 'SEOタイトル',      value: (product.seo_title as string) || '',          type: 'text',     system: true });
-  fields.push({ key: 'seo_description',   label: 'メタディスクリプション', value: (product.seo_description as string) || '', type: 'textarea', system: true });
-  fields.push({ key: 'tags',              label: 'タグ',             value: JSON.stringify(product.tags || []),           type: 'list',     system: true });
-
-  // 価格（最低・最高）
-  const prices = variants.map(v => Number(v.price) || 0);
-  if (prices.length > 0) {
-    fields.push({ key: 'min_price', label: '最低価格', value: String(Math.min(...prices)), type: 'number', system: true });
-    fields.push({ key: 'max_price', label: '最高価格', value: String(Math.max(...prices)), type: 'number', system: true });
-  }
-
-  // 在庫合計
-  const totalStock = variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
-  fields.push({ key: 'total_stock', label: '在庫合計', value: String(totalStock), type: 'number', system: true });
-
-  // --- カスタムフィールド ---
-  for (const cf of customFields) {
-    fields.push({
-      key: cf.key,
-      label: cf.label,
-      value: cf.value,
-      type: cf.type,
-      system: false,
-      ...(cf.options && { options: cf.options }),
-      ...(cf.urls && { urls: cf.urls }),
-    });
-  }
-
-  return fields;
-}
+const PRODUCT_DETAIL_SELECT = `
+  id, name, slug, short_description, description, status, featured,
+  seo_title, seo_description, tags, custom_fields, created_at, updated_at,
+  product_variants (
+    id, name, sku, price, compare_at_price, stock, options, image_url
+  ),
+  product_images (
+    id, url, thumbnail_url, alt, sort_order
+  ),
+  product_categories (
+    category_id,
+    categories ( id, name, slug )
+  )
+`;
 
 // GET /api/v1/products/[id] - 商品詳細
 export async function GET(
@@ -139,29 +41,18 @@ export async function GET(
   }
 
   return withApiLogging(request, auth, async () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return apiError('Server configuration error', 500);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getServiceSupabase();
     const { id } = await params;
 
-    // IDまたはslugで検索
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
     let query = supabase
       .from('products')
-      .select('*')
-      .eq('organization_id', auth.organizationId);
+      .select(PRODUCT_DETAIL_SELECT)
+      .eq('organization_id', auth.organizationId)
+      .order('sort_order', { ascending: true, referencedTable: 'product_images' });
 
-    if (isUUID) {
-      query = query.eq('id', id);
-    } else {
-      query = query.eq('slug', id);
-    }
+    query = isUUID ? query.eq('id', id) : query.eq('slug', id);
 
     const { data: product, error: productError } = await query.single();
 
@@ -169,70 +60,37 @@ export async function GET(
       return apiError('Product not found', 404);
     }
 
-    // 非公開商品は返さない（status=all パラメータがない限り）
     const allowAll = new URL(request.url).searchParams.get('status') === 'all';
     if (!allowAll && product.status !== 'published') {
       return apiError('Product not found', 404);
     }
 
-    // --- 関連データを一括取得 ---
-    const [variantsRes, imagesRes, pcRes] = await Promise.all([
-      supabase.from('product_variants').select('*').eq('product_id', product.id),
-      supabase.from('product_images').select('*').eq('product_id', product.id).order('sort_order', { ascending: true }),
-      supabase.from('product_categories').select('category_id').eq('product_id', product.id),
-    ]);
-
-    const variants = variantsRes.data || [];
-    const images = imagesRes.data || [];
-    const productCategories = pcRes.data || [];
-
-    // カテゴリ詳細
-    const categoryIds = productCategories.map(pc => pc.category_id);
-    let categories: Record<string, unknown>[] = [];
-    if (categoryIds.length > 0) {
-      const { data } = await supabase.from('categories').select('*').in('id', categoryIds);
-      categories = data || [];
-    }
-
-    // カスタムフィールド
-    const customFields = normalizeCustomFields(product.custom_fields);
-
-    // --- レスポンス構築 ---
-    const publicProduct = {
-      id: product.id,
-      customFields,
-      fields: buildFields(product, variants, customFields),
-      variants: variants.map(v => {
-        const opts = (v.options || {}) as Record<string, unknown>;
-        return {
-          id: v.id,
-          name: v.name,
-          sku: v.sku,
-          price: v.price,
-          compareAtPrice: v.compare_at_price,
-          stock: v.stock,
-          available: v.stock > 0,
-          imageUrl: (v.image_url as string) || (opts.imageUrl as string) || null,
-          options: opts,
-        };
-      }),
-      images: images.map(img => ({
-        id: img.id,
-        url: img.url,
-        alt: img.alt,
-      })),
-      categories: categories.map((c: Record<string, unknown>) => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-      })),
-      createdAt: product.created_at,
-      updatedAt: product.updated_at,
+    const {
+      product_variants = [],
+      product_images = [],
+      product_categories = [],
+      ...base
+    } = product as unknown as Record<string, unknown> & {
+      product_variants?: Record<string, unknown>[];
+      product_images?: Record<string, unknown>[];
+      product_categories?: Array<{
+        category_id?: string;
+        categories?: { id: string; name: string; slug: string } | null;
+      }>;
     };
 
-    const response = apiSuccess(publicProduct, undefined, auth.rateLimit);
-    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
+    return apiSuccess(
+      formatPublicProduct(
+        base,
+        product_variants,
+        product_images,
+        extractCategoriesFromProductCategories(product_categories),
+        { includeThumbnail: false },
+      ),
+      undefined,
+      auth.rateLimit,
+      CACHE_PROFILES.catalog,
+    );
   });
 }
 
@@ -247,14 +105,7 @@ export async function PUT(
   }
 
   return withApiLogging(request, auth, async () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return apiError('Server configuration error', 500);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getServiceSupabase();
     const { id } = await params;
 
     let body: Record<string, unknown>;
@@ -354,14 +205,11 @@ export async function PUT(
       }
     }
 
-    const response = apiSuccess({
+    return apiSuccess({
       id: productId,
       updated: true,
       variants: insertedVariants.length,
     }, undefined, auth.rateLimit);
-
-    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
   });
 }
 
@@ -376,14 +224,7 @@ export async function DELETE(
   }
 
   return withApiLogging(request, auth, async () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return apiError('Server configuration error', 500);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getServiceSupabase();
     const { id } = await params;
 
     // UUID またはスラッグで検索
@@ -419,9 +260,7 @@ export async function DELETE(
       return apiError(`Failed to delete product: ${deleteError.message}`, 500);
     }
 
-    const response = apiSuccess({ id: productId, deleted: true }, undefined, auth.rateLimit);
-    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
+    return apiSuccess({ id: productId, deleted: true }, undefined, auth.rateLimit);
   });
 }
 

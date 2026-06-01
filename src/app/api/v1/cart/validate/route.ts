@@ -1,12 +1,11 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import {
   validateApiKey,
   apiError,
   apiSuccess,
   handleOptions,
-  corsHeaders,
   withApiLogging,
+  getServiceSupabase,
 } from '@/lib/api/auth';
 
 // カートアイテムの型
@@ -24,14 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   return withApiLogging(request, auth, async () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return apiError('Server configuration error', 500);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getServiceSupabase();
 
     let body: { items: CartItem[]; couponCode?: string };
 
@@ -47,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     // カートが空の場合
     if (body.items.length === 0) {
-      const response = apiSuccess({
+      return apiSuccess({
         valid: true,
         items: [],
         summary: {
@@ -60,9 +52,7 @@ export async function POST(request: NextRequest) {
           coupon: null,
         },
         messages: [],
-      });
-      Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-      return response;
+      }, undefined, auth.rateLimit);
     }
 
     // バリアントIDを一括取得
@@ -247,7 +237,7 @@ export async function POST(request: NextRequest) {
 
     const total = subtotal + shippingFee - discount;
 
-    const response = apiSuccess({
+    return apiSuccess({
       valid: !hasErrors,
       items: validatedItems,
       summary: {
@@ -267,9 +257,6 @@ export async function POST(request: NextRequest) {
       },
       messages,
     }, undefined, auth.rateLimit);
-
-    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
   });
 }
 

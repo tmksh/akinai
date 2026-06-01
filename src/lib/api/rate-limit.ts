@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getServiceSupabase } from './supabase-admin';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -20,28 +20,119 @@ export interface ApiUsageLog {
   userAgent?: string;
 }
 
-// Supabaseクライアントを作成
-function getSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+export interface ValidatedApiOrg {
+  organizationId: string;
+  organizationName: string;
+  plan: string;
+  rateLimit: RateLimitResult;
+}
 
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase configuration');
-  }
+const DEFAULT_RATE_LIMIT: RateLimitResult = {
+  allowed: true,
+  minuteLimit: 60,
+  minuteRemaining: 60,
+  dayLimit: 10000,
+  dayRemaining: 10000,
+};
 
-  return createClient(supabaseUrl, supabaseServiceKey);
+function parseRateLimitPayload(data: Record<string, unknown>): RateLimitResult {
+  const allowed = Boolean(data.allowed);
+  return {
+    allowed,
+    minuteLimit: Number(data.minute_limit) || 60,
+    minuteRemaining: Number(data.minute_remaining) || 0,
+    dayLimit: Number(data.day_limit) || 10000,
+    dayRemaining: Number(data.day_remaining) || 0,
+    retryAfter: allowed ? undefined : 60,
+  };
+}
+
+function isMissingRpcError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === '42883' ||
+    error.code === 'PGRST202' ||
+    (error.message?.includes('validate_api_key_and_consume_rate_limit') ?? false)
+  );
 }
 
 /**
- * レート制限をチェック
+ * APIキー検証 + レート制限消費を 1 RPC で実行（マイグレーション 036 以降）。
+ * 未適用環境では従来の 2 段階処理にフォールバック。
  */
-export async function checkRateLimit(
-  organizationId: string,
-  plan: string
-): Promise<RateLimitResult> {
+export async function validateApiKeyAndRateLimit(apiKey: string): Promise<
+  | { success: true; org: ValidatedApiOrg }
+  | { success: false; error: string; status: number; rateLimit?: RateLimitResult }
+> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getServiceSupabase();
 
+    const { data, error } = await supabase.rpc('validate_api_key_and_consume_rate_limit', {
+      p_api_key: apiKey,
+    });
+
+    if (!error && data) {
+      const payload = data as Record<string, unknown>;
+      if (!payload.success) {
+        return { success: false, error: 'Invalid API key', status: 401 };
+      }
+
+      const rateLimit = parseRateLimitPayload(payload);
+      if (!rateLimit.allowed) {
+        return { success: false, error: 'Rate limit exceeded', status: 429, rateLimit };
+      }
+
+      return {
+        success: true,
+        org: {
+          organizationId: String(payload.organization_id),
+          organizationName: String(payload.organization_name),
+          plan: String(payload.plan),
+          rateLimit,
+        },
+      };
+    }
+
+    if (!isMissingRpcError(error)) {
+      console.error('Fast API auth error:', error);
+    }
+
+    // フォールバック: 従来フロー
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('id, name, plan')
+      .eq('frontend_api_key', apiKey)
+      .eq('is_active', true)
+      .single();
+
+    if (orgError || !org) {
+      return { success: false, error: 'Invalid API key', status: 401 };
+    }
+
+    const rateLimit = await checkRateLimitLegacy(org.id, org.plan);
+    if (!rateLimit.allowed) {
+      return { success: false, error: 'Rate limit exceeded', status: 429, rateLimit };
+    }
+
+    return {
+      success: true,
+      org: {
+        organizationId: org.id,
+        organizationName: org.name,
+        plan: org.plan,
+        rateLimit,
+      },
+    };
+  } catch (err) {
+    console.error('validateApiKeyAndRateLimit exception:', err);
+    return { success: false, error: 'Server configuration error', status: 500 };
+  }
+}
+
+/** @deprecated 036 未適用時のフォールバック */
+async function checkRateLimitLegacy(organizationId: string, plan: string): Promise<RateLimitResult> {
+  try {
+    const supabase = getServiceSupabase();
     const { data, error } = await supabase.rpc('check_rate_limit', {
       org_id: organizationId,
       org_plan: plan,
@@ -49,44 +140,29 @@ export async function checkRateLimit(
 
     if (error) {
       console.error('Rate limit check error:', error);
-      // エラー時は許可（フェイルオープン）
-      return {
-        allowed: true,
-        minuteLimit: 60,
-        minuteRemaining: 60,
-        dayLimit: 10000,
-        dayRemaining: 10000,
-      };
+      return DEFAULT_RATE_LIMIT;
     }
 
-    return {
-      allowed: data.allowed,
-      minuteLimit: data.minute_limit,
-      minuteRemaining: data.minute_remaining,
-      dayLimit: data.day_limit,
-      dayRemaining: data.day_remaining,
-      retryAfter: data.allowed ? undefined : 60,
-    };
+    return parseRateLimitPayload(data as Record<string, unknown>);
   } catch (error) {
     console.error('Rate limit check exception:', error);
-    // エラー時は許可（フェイルオープン）
-    return {
-      allowed: true,
-      minuteLimit: 60,
-      minuteRemaining: 60,
-      dayLimit: 10000,
-      dayRemaining: 10000,
-    };
+    return DEFAULT_RATE_LIMIT;
   }
 }
 
 /**
- * API使用量をログに記録
+ * @deprecated validateApiKeyAndRateLimit を使用してください
  */
+export async function checkRateLimit(
+  organizationId: string,
+  plan: string,
+): Promise<RateLimitResult> {
+  return checkRateLimitLegacy(organizationId, plan);
+}
+
 export async function logApiUsage(usage: ApiUsageLog): Promise<void> {
   try {
-    const supabase = getSupabaseClient();
-
+    const supabase = getServiceSupabase();
     await supabase.from('api_usage').insert({
       organization_id: usage.organizationId,
       endpoint: usage.endpoint,
@@ -97,14 +173,10 @@ export async function logApiUsage(usage: ApiUsageLog): Promise<void> {
       user_agent: usage.userAgent,
     });
   } catch (error) {
-    // ログの記録に失敗してもAPIリクエストは継続
     console.error('Failed to log API usage:', error);
   }
 }
 
-/**
- * レート制限ヘッダーを取得
- */
 export function getRateLimitHeaders(result: RateLimitResult): Record<string, string> {
   return {
     'X-RateLimit-Limit-Minute': result.minuteLimit.toString(),
@@ -115,9 +187,6 @@ export function getRateLimitHeaders(result: RateLimitResult): Record<string, str
   };
 }
 
-/**
- * レート制限エラーレスポンスを生成
- */
 export function rateLimitError(result: RateLimitResult): NextResponse {
   return NextResponse.json(
     {
@@ -125,14 +194,8 @@ export function rateLimitError(result: RateLimitResult): NextResponse {
       message: 'API rate limit exceeded. Please try again later.',
       status: 429,
       limits: {
-        minute: {
-          limit: result.minuteLimit,
-          remaining: result.minuteRemaining,
-        },
-        day: {
-          limit: result.dayLimit,
-          remaining: result.dayRemaining,
-        },
+        minute: { limit: result.minuteLimit, remaining: result.minuteRemaining },
+        day: { limit: result.dayLimit, remaining: result.dayRemaining },
       },
       retryAfter: result.retryAfter,
       timestamp: new Date().toISOString(),
@@ -143,13 +206,10 @@ export function rateLimitError(result: RateLimitResult): NextResponse {
         ...getRateLimitHeaders(result),
         'Content-Type': 'application/json',
       },
-    }
+    },
   );
 }
 
-/**
- * リクエストからIPアドレスを取得
- */
 export function getClientIp(request: NextRequest): string | undefined {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -158,30 +218,20 @@ export function getClientIp(request: NextRequest): string | undefined {
   );
 }
 
-/**
- * リクエストからUser-Agentを取得
- */
 export function getUserAgent(request: NextRequest): string | undefined {
   return request.headers.get('user-agent') || undefined;
 }
 
-/**
- * エンドポイントパスを正規化（パラメータを除去）
- */
 export function normalizeEndpoint(pathname: string): string {
-  // UUIDパターンを:idに置換
   return pathname.replace(
     /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
-    ':id'
+    ':id',
   );
 }
 
-/**
- * API使用量統計を取得
- */
 export async function getApiUsageStats(
   organizationId: string,
-  days: number = 30
+  days: number = 30,
 ): Promise<{
   totalRequests: number;
   successfulRequests: number;
@@ -196,8 +246,7 @@ export async function getApiUsageStats(
   }>;
 }> {
   try {
-    const supabase = getSupabaseClient();
-
+    const supabase = getServiceSupabase();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -234,7 +283,7 @@ export async function getApiUsageStats(
         failedRequests: acc.failedRequests + d.failedRequests,
         avgResponseTime: acc.avgResponseTime + d.avgResponseTime * d.totalRequests,
       }),
-      { totalRequests: 0, successfulRequests: 0, failedRequests: 0, avgResponseTime: 0 }
+      { totalRequests: 0, successfulRequests: 0, failedRequests: 0, avgResponseTime: 0 },
     );
 
     return {
@@ -257,4 +306,39 @@ export async function getApiUsageStats(
       dailyStats: [],
     };
   }
+}
+
+/** 読み取り専用 GET の CDN / クライアントキャッシュ */
+export const CACHE_PROFILES = {
+  /** 商品・カテゴリなど比較的安定したカタログ */
+  catalog: 'private, max-age=60, stale-while-revalidate=300',
+  /** 送料設定など組織設定 */
+  settings: 'private, max-age=120, stale-while-revalidate=600',
+} as const;
+
+export function applyApiResponseHeaders(
+  response: NextResponse,
+  options?: { cacheControl?: string },
+): NextResponse {
+  Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
+  if (options?.cacheControl) {
+    response.headers.set('Cache-Control', options.cacheControl);
+    response.headers.set('Vary', 'Authorization');
+  }
+  return response;
+}
+
+export function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+}
+
+export function handleOptions() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders(),
+  });
 }

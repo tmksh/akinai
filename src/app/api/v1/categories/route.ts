@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import {
   validateApiKey,
   apiError,
   apiSuccess,
   handleOptions,
-  corsHeaders,
   withApiLogging,
+  getServiceSupabase,
+  CACHE_PROFILES,
 } from '@/lib/api/auth';
 
 // カテゴリー型定義（レスポンス用）
@@ -63,14 +63,7 @@ export async function GET(request: NextRequest) {
   }
 
   return withApiLogging(request, auth, async () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return apiError('Server configuration error', 500);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getServiceSupabase();
 
     // クエリパラメータ
     const { searchParams } = new URL(request.url);
@@ -147,9 +140,7 @@ export async function GET(request: NextRequest) {
       result = buildTree(rows, productCounts, null);
     }
 
-    const response = apiSuccess(result, undefined, auth.rateLimit);
-    Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
-    return response;
+    return apiSuccess(result, undefined, auth.rateLimit, CACHE_PROFILES.catalog);
   });
 }
 
