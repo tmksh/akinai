@@ -519,7 +519,7 @@ export default function ProductsClient({
     const fieldSchema = organization?.productFieldSchema ?? [];
 
     function escapeCsv(v: string): string {
-      if (v.includes(',') || v.includes('"') || v.includes('\n')) return `"${v.replace(/"/g, '""')}"`;
+      if (v.includes(',') || v.includes('"') || v.includes('\n') || v.includes('\r')) return `"${v.replace(/"/g, '""')}"`;
       return v;
     }
 
@@ -567,7 +567,7 @@ export default function ProductsClient({
     const fieldSchema = organization?.productFieldSchema ?? [];
 
     function escapeCsv(v: string): string {
-      if (v.includes(',') || v.includes('"') || v.includes('\n')) {
+      if (v.includes(',') || v.includes('"') || v.includes('\n') || v.includes('\r')) {
         return `"${v.replace(/"/g, '""')}"`;
       }
       return v;
@@ -604,13 +604,9 @@ export default function ProductsClient({
           }
         }
 
-        // text / phone 型で純数字8桁以上の値は Excel が科学表記に変換するのを防ぐ
-        if ((f.type === 'text' || f.type === 'phone') && /^\d{8,}$/.test(strVal)) {
-          return `="${strVal}"`;
-        }
         return strVal;
       });
-      return [
+      const baseFields = [
         p.id,
         p.name,
         p.slug ?? '',
@@ -624,13 +620,22 @@ export default function ProductsClient({
         imageUrls,
         String(totalStock),
         variant?.sku ?? '',
-        ...customFields,
       ];
+      const customFieldCells = fieldSchema.map((f, fi) => {
+        const strVal = customFields[fi];
+        // text / phone 型で純数字8桁以上の値は Excel が科学表記に変換するのを防ぐ
+        // escapeCsv の対象外にするため、行セルとして直接出力する
+        if ((f.type === 'text' || f.type === 'phone') && /^\d{8,}$/.test(strVal)) {
+          return `="${strVal}"`;
+        }
+        return escapeCsv(strVal);
+      });
+      return [...baseFields.map(escapeCsv), ...customFieldCells].join(',');
     });
 
     const lines = [
       headers.map(escapeCsv).join(','),
-      ...rows.map((r) => r.map(escapeCsv).join(',')),
+      ...rows,
     ];
 
     const csv = '\uFEFF' + lines.join('\r\n');
