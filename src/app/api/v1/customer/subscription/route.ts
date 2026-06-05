@@ -191,6 +191,11 @@ export async function GET(request: NextRequest) {
   const plansSettings = readPlansSettings(org?.settings as Record<string, unknown> | null);
   const plan = plansSettings.plans.find((p) => p.id === sub.planId);
 
+  const scheduledPlanId = (sub as unknown as Record<string, unknown>).scheduledPlanId as string | null | undefined;
+  const scheduledPlan = scheduledPlanId
+    ? plansSettings.plans.find((p) => p.id === scheduledPlanId)
+    : null;
+
   return jsonSuccess({
     subscription: sub,
     plan: plan
@@ -203,6 +208,19 @@ export async function GET(request: NextRequest) {
           interval: plan.interval,
           features: plan.features,
           targetRole: plan.targetRole,
+        }
+      : null,
+    scheduledPlan: scheduledPlan
+      ? {
+          id: scheduledPlan.id,
+          name: scheduledPlan.name,
+          description: scheduledPlan.description,
+          amount: scheduledPlan.amount,
+          currency: scheduledPlan.currency,
+          interval: scheduledPlan.interval,
+          features: scheduledPlan.features,
+          targetRole: scheduledPlan.targetRole,
+          scheduledAt: (sub as unknown as Record<string, unknown>).scheduledAt as string | null,
         }
       : null,
   });
@@ -334,15 +352,36 @@ export async function PATCH(request: NextRequest) {
     return jsonError(`Failed to change plan: ${msg}`, 500);
   }
 
-  // Akinai 顧客の custom_fields を新プランで更新
+  // Akinai 顧客の custom_fields を更新
   const now = new Date().toISOString();
   const currentCustomFields = (customer.custom_fields as Record<string, unknown>) || {};
-  const updatedSubscription = {
-    ...existingSub,
-    planId: newPlan.id,
-    status: updatedSub.status,
-    updatedAt: now,
-  };
+
+  let updatedSubscription: Record<string, unknown>;
+  let planFieldUpdate: Record<string, unknown> = {};
+
+  if (scheduleAtPeriodEnd) {
+    // ダウングレード予約: 現在の planId は変えず、scheduledPlanId に次プランを記録
+    updatedSubscription = {
+      ...existingSub,
+      scheduledPlanId: newPlan.id,
+      scheduledPlanName: newPlan.name,
+      scheduledAt: now,
+      updatedAt: now,
+    };
+    // custom_fields.plan は現在のプランのまま（変更しない）
+  } else {
+    // 即時切り替え: planId を更新し、予約情報があればクリア
+    updatedSubscription = {
+      ...existingSub,
+      planId: newPlan.id,
+      scheduledPlanId: null,
+      scheduledPlanName: null,
+      scheduledAt: null,
+      status: updatedSub.status,
+      updatedAt: now,
+    };
+    planFieldUpdate = { plan: newPlan.name };
+  }
 
   await supabase
     .from('customers')
@@ -350,7 +389,7 @@ export async function PATCH(request: NextRequest) {
       custom_fields: {
         ...currentCustomFields,
         subscription: updatedSubscription,
-        plan: newPlan.name,
+        ...planFieldUpdate,
       },
       updated_at: now,
     })

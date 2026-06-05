@@ -747,6 +747,12 @@ async function handleCustomerSubscriptionChange(
   }
 
   const now = new Date().toISOString();
+
+  // スケジュールされたダウングレードが実行されたか判定
+  // Stripe の metadata に新プランIDが入っており、それが scheduledPlanId と一致する場合
+  const scheduledPlanId = currentSub.scheduledPlanId as string | undefined;
+  const isScheduledPlanActivated = scheduledPlanId && planId && planId === scheduledPlanId;
+
   const updatedSub = {
     ...currentSub,
     planId: planId ?? currentSub.planId,
@@ -759,6 +765,10 @@ async function handleCustomerSubscriptionChange(
     cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
     startedAt: currentSub.startedAt ?? now,
     updatedAt: now,
+    // ダウングレード予約が実行されたらクリア
+    ...(isScheduledPlanActivated
+      ? { scheduledPlanId: null, scheduledPlanName: null, scheduledAt: null }
+      : {}),
   };
 
   // active / trialing になった場合は custom_fields.plan もプラン名で同期する
