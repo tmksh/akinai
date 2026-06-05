@@ -443,17 +443,26 @@ export default function CustomersClient({
                         <Mail className="h-3 w-3" />
                         {customer.email}
                       </span>
-                      {(customer as unknown as { role?: string }).role && (customer as unknown as { role?: string }).role !== 'personal' && (
-                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${
-                          (customer as unknown as { role?: string }).role === 'buyer'
-                            ? 'bg-orange-50 text-orange-600 border-orange-200'
-                            : 'bg-green-50 text-green-600 border-green-200'
-                        }`}>
-                          {(customer as unknown as { role?: string }).role === 'buyer'
-                            ? roleLabels.buyer
-                            : roleLabels.supplier}
-                        </Badge>
-                      )}
+                      {(() => {
+                        const cRoles = getCustomerRoles(customer);
+                        const isMulti = cRoles.includes('buyer') && cRoles.includes('supplier');
+                        if (isMulti) return (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-purple-50 text-purple-600 border-purple-200">
+                            {roleLabels.buyer} / {roleLabels.supplier}
+                          </Badge>
+                        );
+                        if (cRoles.includes('buyer')) return (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-orange-50 text-orange-600 border-orange-200">
+                            {roleLabels.buyer}
+                          </Badge>
+                        );
+                        if (cRoles.includes('supplier')) return (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-green-50 text-green-600 border-green-200">
+                            {roleLabels.supplier}
+                          </Badge>
+                        );
+                        return null;
+                      })()}
                       {(customer as unknown as { status?: string }).status === 'pending' && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-yellow-50 text-yellow-700 border-yellow-300">
                           審査中
