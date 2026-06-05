@@ -168,9 +168,14 @@ export default function CustomerDetailPage() {
   const isVip = customer.total_orders >= 5;
   const averageOrderValue = customer.total_orders > 0 ? Math.round(customer.total_spent / customer.total_orders) : 0;
   const role = customer.role || 'personal';
+  const roles: string[] = (customer as unknown as { roles?: string[] }).roles ?? [role];
+  const isMultiRole = roles.includes('buyer') && roles.includes('supplier');
   const status = customer.status || 'active';
-  const roleLabel = roleLabels[role as keyof CustomerRoleLabels] ?? role;
-  const roleColor = role === 'buyer' ? 'bg-orange-50 text-orange-600 border-orange-200'
+  const roleLabel = isMultiRole
+    ? `${roleLabels.buyer} / ${roleLabels.supplier}`
+    : roleLabels[role as keyof CustomerRoleLabels] ?? role;
+  const roleColor = isMultiRole ? 'bg-purple-50 text-purple-600 border-purple-200'
+    : role === 'buyer' ? 'bg-orange-50 text-orange-600 border-orange-200'
     : role === 'supplier' ? 'bg-green-50 text-green-600 border-green-200'
     : 'bg-slate-50 text-slate-600 border-slate-200';
   const statusConfig = STATUS_CONFIG[status] ?? STATUS_CONFIG.active;
@@ -293,27 +298,34 @@ export default function CustomerDetailPage() {
           </Card>
 
           {/* 種別ごとの追加情報 */}
-          {role !== 'personal' && Object.keys(metadata).length > 0 && (
+          {!roles.includes('personal') && Object.keys(metadata).length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Info className="h-4 w-4 text-muted-foreground" />
-                  {role === 'buyer' ? `${roleLabels.buyer}情報` : `${roleLabels.supplier}情報`}
+                  {isMultiRole ? `${roleLabels.buyer} / ${roleLabels.supplier}情報` : role === 'buyer' ? `${roleLabels.buyer}情報` : `${roleLabels.supplier}情報`}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {role === 'buyer' && (
-                  <>
+              <CardContent className="space-y-4 text-sm">
+                {roles.includes('buyer') && (
+                  <div className="space-y-3">
+                    {isMultiRole && (
+                      <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide">{roleLabels.buyer}</p>
+                    )}
                     {metadata.contactPerson && (
                       <div><p className="text-xs text-muted-foreground">担当者名</p><p className="font-medium">{String(metadata.contactPerson)}</p></div>
                     )}
                     {metadata.industry && (
                       <div><p className="text-xs text-muted-foreground">業種</p><p className="font-medium">{String(metadata.industry)}</p></div>
                     )}
-                  </>
+                  </div>
                 )}
-                {role === 'supplier' && (
-                  <>
+                {isMultiRole && <div className="border-t" />}
+                {roles.includes('supplier') && (
+                  <div className="space-y-3">
+                    {isMultiRole && (
+                      <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">{roleLabels.supplier}</p>
+                    )}
                     {metadata.representativeName && (
                       <div><p className="text-xs text-muted-foreground">代表者名</p><p className="font-medium">{String(metadata.representativeName)}</p></div>
                     )}
@@ -330,7 +342,7 @@ export default function CustomerDetailPage() {
                         </div>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
