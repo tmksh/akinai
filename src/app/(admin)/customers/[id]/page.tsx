@@ -179,7 +179,7 @@ export default function CustomerDetailPage() {
     : role === 'supplier' ? 'bg-green-50 text-green-600 border-green-200'
     : 'bg-slate-50 text-slate-600 border-slate-200';
   const statusConfig = STATUS_CONFIG[status] ?? STATUS_CONFIG.active;
-  const metadata = customer.metadata ?? {};
+  const metadata = (customer.metadata ?? {}) as Record<string, string | string[]>;
 
   return (
     <div className="space-y-6">
