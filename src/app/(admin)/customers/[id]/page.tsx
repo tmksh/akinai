@@ -380,10 +380,10 @@ export default function CustomerDetailPage() {
               }
               return {};
             })();
-            const customerRole = (customer.role as 'personal' | 'buyer' | 'supplier') || 'personal';
+            // roles[] に基づいてスキーマフィールドを絞り込む（兼業顧客対応）
             const visibleFields = schema.filter(f => {
               if (!f.roles || f.roles.length === 0) return true;
-              return f.roles.includes(customerRole);
+              return f.roles.some((r: string) => roles.includes(r));
             }).filter(f => cfValues[f.key] !== undefined && cfValues[f.key] !== '');
 
             if (visibleFields.length === 0) return null;
