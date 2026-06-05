@@ -19,7 +19,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { AgentDisplay } from '../types';
-import { cn } from '@/lib/utils';
+import { cn, getAvatarColor } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface AgentCardProps {
@@ -96,7 +96,7 @@ export function AgentCard({
       {/* ヘッダー: 会社名・担当者 */}
       <div className="flex items-start gap-3 mb-4 pr-20">
         <Avatar className="h-12 w-12 flex-shrink-0">
-          <AvatarFallback className="bg-gradient-to-br from-sky-400 to-sky-500 text-white font-bold text-sm">
+          <AvatarFallback className={`font-bold text-sm ${getAvatarColor(agent.id ?? agent.code)}`}>
             {agent.company.slice(0, 2)}
           </AvatarFallback>
         </Avatar>

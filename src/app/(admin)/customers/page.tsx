@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import CustomersClient from './customers-client';
 import { getCustomers, getCustomerStats } from '@/lib/actions/customers';
-import { getCustomerRoleLabels, getCustomerFieldSchema } from '@/lib/actions/settings';
+import { getCustomerRoleLabels, getCustomerFieldSchema, getOrganizationFeatures } from '@/lib/actions/settings';
 import { ensureDefaultOrganization } from '@/lib/actions/onboarding';
 import { getAuthOrganization } from '@/lib/auth-helpers';
 
@@ -17,11 +17,12 @@ export default async function CustomersPage() {
     redirect('/customers');
   }
 
-  const [customersResult, statsResult, labelsResult, schemaResult] = await Promise.all([
+  const [customersResult, statsResult, labelsResult, schemaResult, featuresResult] = await Promise.all([
     getCustomers(organizationId),
     getCustomerStats(organizationId),
     getCustomerRoleLabels(organizationId),
     getCustomerFieldSchema(organizationId),
+    getOrganizationFeatures(organizationId),
   ]);
 
   return (
@@ -32,6 +33,7 @@ export default async function CustomersPage() {
       initialRoleEnabled={labelsResult.enabled}
       initialFieldSchema={schemaResult.data || []}
       organizationId={organizationId}
+      referralEnabled={featuresResult.data.referral_code}
     />
   );
 }

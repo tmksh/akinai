@@ -44,6 +44,7 @@ import {
   getCustomerRoleLabels,
 } from '@/lib/actions/settings';
 import { DEFAULT_CUSTOMER_ROLE_LABELS, type CustomerRoleLabels } from '@/lib/customer-roles';
+import { getAvatarColor } from '@/lib/utils';
 import { useOrganization } from '@/components/providers/organization-provider';
 
 function CopyIdButton({ value }: { value: string }) {
@@ -185,7 +186,7 @@ export default function CustomerDetailPage() {
           </Button>
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarFallback className="bg-sky-100 text-sky-600 text-xl">
+              <AvatarFallback className={`text-xl ${getAvatarColor(customer.id)}`}>
                 {customer.name.slice(0, 2)}
               </AvatarFallback>
             </Avatar>

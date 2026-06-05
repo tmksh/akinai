@@ -19,6 +19,7 @@ type CustomerAddress = Database['public']['Tables']['customer_addresses']['Row']
 // 顧客とリレーションを含んだ型
 export interface CustomerWithAddresses extends Customer {
   addresses: CustomerAddress[];
+  referral_count?: number;
 }
 
 /** 管理画面一覧のデフォルト取得件数（Supabase max_rows=1000 に合わせる） */
@@ -36,8 +37,9 @@ export async function getCustomers(
   const limit = options?.limit ?? CUSTOMERS_LIST_DEFAULT_LIMIT;
 
   try {
-    const { data: customers, error: customersError } = await supabase
-      .from('customers')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: customers, error: customersError } = await (supabase as any)
+      .from('customers_with_referral_count')
       .select('*, customer_addresses (id, postal_code, prefecture, city, line1, line2, is_default)')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })

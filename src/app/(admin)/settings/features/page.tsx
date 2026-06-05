@@ -235,7 +235,7 @@ export default function FeaturesSettingsPage() {
           <FeatureToggleRow
             icon={<Gift className="h-4 w-4 text-emerald-500" />}
             title="紹介コード（アフィリエイト）機能"
-            description="会員登録時に referral_code を自動生成。紹介経由登録数のカウントと累計紹介数に応じた特典ロジックを有効化します"
+            description="会員登録時に紹介コードを自動生成します。登録フォームで紹介コードを入力した場合に紹介元を記録し、顧客一覧で紹介数を確認できます"
             checked={features.referral_code}
             onCheckedChange={(v) => handleToggle('referral_code', v)}
           />

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles, Download, Upload } from 'lucide-react';
+import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles, Download, Upload, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { CustomerWithAddresses, CustomerStats } from '@/lib/actions/customers';
+import { getAvatarColor } from '@/lib/utils';
 import { getCustomers } from '@/lib/actions/customers';
 import type { CustomerFieldSchema } from '@/lib/actions/settings';
 import { DEFAULT_CUSTOMER_ROLE_LABELS, DEFAULT_CUSTOMER_ROLE_ENABLED, type CustomerRoleLabels, type CustomerRoleEnabled } from '@/lib/customer-roles';
@@ -29,6 +30,7 @@ interface CustomersClientProps {
   initialRoleEnabled?: CustomerRoleEnabled;
   initialFieldSchema?: CustomerFieldSchema[];
   organizationId: string;
+  referralEnabled?: boolean;
 }
 
 function getCustomFieldSearchText(customFields: unknown): string {
@@ -55,13 +57,14 @@ export default function CustomersClient({
   initialRoleEnabled,
   initialFieldSchema,
   organizationId,
+  referralEnabled = false,
 }: CustomersClientProps) {
   const [customers, setCustomers] = useState<CustomerWithAddresses[]>(initialCustomers);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [stats] = useState<CustomerStats | null>(initialStats);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithAddresses | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeRole, setActiveRole] = useState<'all' | 'personal' | 'buyer' | 'supplier'>('all');
+  const [activeRole, setActiveRole] = useState<'all' | 'personal' | 'buyer' | 'supplier' | 'referral'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const roleLabels: CustomerRoleLabels = initialRoleLabels ?? { ...DEFAULT_CUSTOMER_ROLE_LABELS };
@@ -89,6 +92,9 @@ export default function CustomersClient({
   });
 
   const filteredCustomers = searchFilteredCustomers.filter(customer => {
+    if (activeRole === 'referral') {
+      return (customer.referral_count ?? 0) > 0;
+    }
     if (activeRole !== 'all') {
       const role = getCustomerRole(customer);
       if (activeRole === 'personal' && role && role !== 'personal') return false;
@@ -179,6 +185,7 @@ export default function CustomersClient({
     personal: searchFilteredCustomers.filter(c => { const r = getCustomerRole(c); return !r || r === 'personal'; }).length,
     buyer: searchFilteredCustomers.filter(c => getCustomerRole(c) === 'buyer').length,
     supplier: searchFilteredCustomers.filter(c => getCustomerRole(c) === 'supplier').length,
+    referral: searchFilteredCustomers.filter(c => (c.referral_count ?? 0) > 0).length,
   };
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ja-JP', {
@@ -307,6 +314,15 @@ export default function CustomersClient({
                     {roleCounts.supplier}
                   </span>
                 </TabsTrigger>
+                {referralEnabled && (
+                  <TabsTrigger value="referral" className="h-7 px-2.5 text-xs gap-1">
+                    <Share2 className="h-3 w-3" />
+                    紹介
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] font-medium">
+                      {roleCounts.referral}
+                    </span>
+                  </TabsTrigger>
+                )}
               </TabsList>
             </Tabs>
           </div>
@@ -374,7 +390,10 @@ export default function CustomersClient({
             </div>
           ) : (
           <div className="space-y-2">
-            {filteredCustomers.map((customer) => (
+            {(activeRole === 'referral'
+              ? [...filteredCustomers].sort((a, b) => (b.referral_count ?? 0) - (a.referral_count ?? 0))
+              : filteredCustomers
+            ).map((customer) => (
               <div
                 key={customer.id}
                 onClick={() => setSelectedCustomer(customer)}
@@ -382,7 +401,7 @@ export default function CustomersClient({
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-sky-100 text-sky-600 text-sm">
+                    <AvatarFallback className={`text-sm ${getAvatarColor(customer.id)}`}>
                       {customer.name.slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
@@ -418,6 +437,12 @@ export default function CustomersClient({
                   </div>
                 </div>
                 <div className="flex items-center gap-4 sm:gap-6">
+                  {referralEnabled && customer.referral_code && (activeRole === 'referral' || (customer.referral_count ?? 0) > 0) && (
+                    <div className="text-right hidden sm:block">
+                      <div className="text-xs text-slate-500">紹介数</div>
+                      <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{customer.referral_count ?? 0}件</div>
+                    </div>
+                  )}
                   <div className="text-right hidden sm:block">
                     <div className="text-xs text-slate-500">注文数</div>
                     <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{customer.total_orders}件</div>
@@ -449,7 +474,7 @@ export default function CustomersClient({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-sky-100 text-sky-600 text-lg">
+                <AvatarFallback className={`text-lg ${selectedCustomer ? getAvatarColor(selectedCustomer.id) : 'bg-sky-100 text-sky-600'}`}>
                   {selectedCustomer?.name.slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
@@ -496,7 +521,7 @@ export default function CustomersClient({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className={`grid gap-3 ${referralEnabled && selectedCustomer.referral_code ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-center">
                   <ShoppingBag className="h-5 w-5 text-sky-500 mx-auto mb-1" />
                   <div className="text-lg font-bold text-sky-900 dark:text-sky-100">{selectedCustomer.total_orders}</div>
@@ -514,6 +539,13 @@ export default function CustomersClient({
                   </div>
                   <div className="text-xs text-sky-600">登録日</div>
                 </div>
+                {referralEnabled && selectedCustomer.referral_code && (
+                  <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-center">
+                    <Share2 className="h-5 w-5 text-sky-500 mx-auto mb-1" />
+                    <div className="text-lg font-bold text-sky-900 dark:text-sky-100">{selectedCustomer.referral_count ?? 0}</div>
+                    <div className="text-xs text-sky-600">紹介数</div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2">
