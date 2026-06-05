@@ -6,7 +6,9 @@
  *
  * POST   : Checkout Session を作成（{ planId, successUrl?, cancelUrl? }）
  * GET    : 自分の契約状態を取得
- * PATCH  : プラン変更（{ planId }）— Stripe 上で即時切り替え・日割り計算あり
+ * PATCH  : プラン変更（{ planId, scheduleAtPeriodEnd? }）
+ *           scheduleAtPeriodEnd=false（デフォルト）: 即時切り替え・日割り計算あり
+ *           scheduleAtPeriodEnd=true: 期間終了時に切り替え（ダウングレード予約）
  * DELETE : 期間終了時に解約（cancel_at_period_end）
  */
 import { NextRequest, NextResponse } from 'next/server';
@@ -216,13 +218,14 @@ export async function PATCH(request: NextRequest) {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeSecretKey) return jsonError('Stripe is not configured', 500);
 
-  let body: { planId?: string };
+  let body: { planId?: string; scheduleAtPeriodEnd?: boolean };
   try {
     body = await request.json();
   } catch {
     return jsonError('Invalid JSON body', 400);
   }
   if (!body.planId) return jsonError('planId is required', 400);
+  const scheduleAtPeriodEnd = body.scheduleAtPeriodEnd === true;
 
   const supabase = getAdminSupabase();
 
@@ -287,27 +290,43 @@ export async function PATCH(request: NextRequest) {
   const currentItemId = stripeSub.items.data[0]?.id;
   if (!currentItemId) return jsonError('Subscription item not found', 500);
 
-  // Stripe でプランを即時変更し、差額インボイスを即時発行・課金する
-  // always_invoice = 変更と同時にインボイスを作成して即時決済を試みる
   let updatedSub: Stripe.Subscription;
   try {
-    updatedSub = await stripe.subscriptions.update(
-      existingSub.stripeSubscriptionId,
-      {
-        items: [{ id: currentItemId, price: newPlan.stripePriceId }],
-        proration_behavior: 'always_invoice',
-        payment_behavior: 'error_if_incomplete',
-        metadata: {
-          akinai_organization_id: verify.payload.org,
-          akinai_customer_id: customer.id,
-          akinai_plan_id: newPlan.id,
+    if (scheduleAtPeriodEnd) {
+      // 期間終了時に切り替え（ダウングレード予約）
+      // proration_behavior: 'none' = 即時課金なし。次回更新時に新プランで請求される
+      updatedSub = await stripe.subscriptions.update(
+        existingSub.stripeSubscriptionId,
+        {
+          items: [{ id: currentItemId, price: newPlan.stripePriceId }],
+          proration_behavior: 'none',
+          metadata: {
+            akinai_organization_id: verify.payload.org,
+            akinai_customer_id: customer.id,
+            akinai_plan_id: newPlan.id,
+          },
         },
-      },
-      { stripeAccount: org.stripe_account_id }
-    );
+        { stripeAccount: org.stripe_account_id }
+      );
+    } else {
+      // 即時切り替え・日割り精算（アップグレード向け）
+      updatedSub = await stripe.subscriptions.update(
+        existingSub.stripeSubscriptionId,
+        {
+          items: [{ id: currentItemId, price: newPlan.stripePriceId }],
+          proration_behavior: 'always_invoice',
+          payment_behavior: 'error_if_incomplete',
+          metadata: {
+            akinai_organization_id: verify.payload.org,
+            akinai_customer_id: customer.id,
+            akinai_plan_id: newPlan.id,
+          },
+        },
+        { stripeAccount: org.stripe_account_id }
+      );
+    }
   } catch (err) {
     console.error('Failed to update subscription:', err);
-    // Stripe の StripeCardError などは payment failure として返す
     if (err instanceof Stripe.errors.StripeError && err.type === 'StripeCardError') {
       return jsonError(`Payment failed: ${err.message}`, 402);
     }
@@ -440,6 +459,7 @@ export async function PATCH(request: NextRequest) {
     planName: newPlan.name,
     subscriptionId: existingSub.stripeSubscriptionId,
     status: updatedSub.status,
+    scheduledAtPeriodEnd: scheduleAtPeriodEnd,
     latestInvoiceStatus,
   });
 }
