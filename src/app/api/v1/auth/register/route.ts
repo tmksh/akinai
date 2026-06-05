@@ -3,7 +3,9 @@
  *
  * エンドユーザー（顧客）の新規会員登録
  * - Authorization: Bearer <shop_api_key>  ← ショップのAPIキー
- * - Body: { name, email, password, role?, status?, prefecture?, businessType?, metadata? }
+ * - Body: { name, email, password, role?, roles?, status?, prefecture?, businessType?, metadata? }
+ *   - roles: 複数ロール指定（例: ["buyer","supplier"]）。role より優先。
+ *   - role:  単一ロール指定（後方互換）。roles が未指定の場合のみ使用。
  * - Returns: { token, customer }
  */
 import { NextRequest } from 'next/server';
@@ -18,11 +20,16 @@ function generateReferralCode(): string {
   return 'REF-' + randomBytes(3).toString('hex').toUpperCase();
 }
 
+type CustomerRoleKey = 'personal' | 'buyer' | 'supplier';
+
 interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  role?: 'personal' | 'buyer' | 'supplier';
+  /** 後方互換: 単一ロール。roles が指定されている場合は無視される */
+  role?: CustomerRoleKey;
+  /** マルチロール指定（推奨）。先頭がプライマリロール */
+  roles?: CustomerRoleKey[];
   status?: 'pending' | 'active' | 'suspended';
   prefecture?: string;
   businessType?: string;
@@ -57,8 +64,17 @@ export async function POST(request: NextRequest) {
   if (!body.password || body.password.length < 6) {
     return apiError('password must be at least 6 characters', 400);
   }
-  if (body.role && !['personal', 'buyer', 'supplier'].includes(body.role)) {
+  const validRoles: CustomerRoleKey[] = ['personal', 'buyer', 'supplier'];
+  if (body.role && !validRoles.includes(body.role)) {
     return apiError('role must be personal, buyer, or supplier', 400);
+  }
+  if (body.roles) {
+    if (!Array.isArray(body.roles) || body.roles.length === 0) {
+      return apiError('roles must be a non-empty array', 400);
+    }
+    if (body.roles.some((r) => !validRoles.includes(r))) {
+      return apiError('each role must be personal, buyer, or supplier', 400);
+    }
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -102,7 +118,9 @@ export async function POST(request: NextRequest) {
   }
 
   const passwordHash = await bcrypt.hash(body.password, 12);
-  const role = body.role ?? 'personal';
+  // roles が指定されていればそれを使用、なければ role から生成
+  const roles: CustomerRoleKey[] = body.roles ?? (body.role ? [body.role] : ['personal']);
+  const role = roles[0];
 
   const { data: customer, error } = await supabase
     .from('customers')
@@ -112,6 +130,7 @@ export async function POST(request: NextRequest) {
       email: body.email.trim().toLowerCase(),
       password_hash: passwordHash,
       role,
+      roles,
       status: body.status ?? (role === 'personal' ? 'active' : 'pending'),
       type: role === 'personal' ? 'individual' : 'business',
       phone: body.phone ?? null,
@@ -123,7 +142,7 @@ export async function POST(request: NextRequest) {
       referral_code: newReferralCode,
       referred_by_code: body.referralCode ?? null,
     })
-    .select('id, name, email, phone, company, type, role, status, prefecture, business_type, tags, total_orders, total_spent, referral_code, created_at')
+    .select('id, name, email, phone, company, type, role, roles, status, prefecture, business_type, tags, total_orders, total_spent, referral_code, created_at')
     .single();
 
   if (error || !customer) {
@@ -148,6 +167,7 @@ export async function POST(request: NextRequest) {
         company: customer.company,
         type: customer.type,
         role: customer.role,
+        roles: customer.roles || [customer.role],
         status: customer.status,
         prefecture: customer.prefecture,
         businessType: customer.business_type,

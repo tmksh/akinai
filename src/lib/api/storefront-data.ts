@@ -179,9 +179,9 @@ export async function fetchSuppliers(
     async () => {
       const { data, error } = await supabase
         .from('customers')
-        .select('id, name, email, company, phone, prefecture, custom_fields, created_at')
+        .select('id, name, email, company, phone, prefecture, role, roles, custom_fields, created_at')
         .eq('organization_id', organizationId)
-        .eq('role', 'supplier')
+        .contains('roles', ['supplier'])
         .eq('status', 'active')
         .order('name', { ascending: true })
         .limit(limit);
@@ -195,6 +195,8 @@ export async function fetchSuppliers(
         company: c.company,
         phone: c.phone,
         prefecture: c.prefecture,
+        role: c.role,
+        roles: (c.roles as string[]) || [c.role],
         customFields: c.custom_fields ?? {},
         createdAt: c.created_at,
       }));

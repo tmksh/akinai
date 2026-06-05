@@ -12,6 +12,8 @@ import {
 } from '@/lib/api/auth';
 import { fetchSuppliers } from '@/lib/api/storefront-data';
 
+type CustomerRoleKey = 'personal' | 'buyer' | 'supplier';
+
 // 顧客作成リクエスト
 interface CreateCustomerRequest {
   name: string;
@@ -20,7 +22,10 @@ interface CreateCustomerRequest {
   phone?: string;
   company?: string;
   type?: 'individual' | 'business';
-  role?: 'personal' | 'buyer' | 'supplier';
+  /** 後方互換: 単一ロール。roles が指定されている場合は無視される */
+  role?: CustomerRoleKey;
+  /** マルチロール指定（推奨）。先頭がプライマリロール */
+  roles?: CustomerRoleKey[];
   status?: 'pending' | 'active' | 'suspended';
   metadata?: Record<string, unknown>;
   tags?: string[];
@@ -56,6 +61,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
     // サプライヤーマスタ一覧（検索なし）はキャッシュ済み共通取得
+    // roles[] に 'supplier' を含む顧客も対象
     if (role === 'supplier' && !email && !search && status !== 'pending' && status !== 'suspended') {
       const allSuppliers = await fetchSuppliers(supabase, orgId);
       const startIndex = (page - 1) * limit;
@@ -73,7 +79,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('customers')
       .select(
-        'id, type, name, email, phone, company, role, status, tags, total_orders, total_spent, custom_fields, created_at',
+        'id, type, name, email, phone, company, role, roles, status, tags, total_orders, total_spent, custom_fields, created_at',
         { count: 'exact' },
       )
       .eq('organization_id', orgId)
@@ -84,7 +90,8 @@ export async function GET(request: NextRequest) {
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%`);
     }
     if (role && ['personal', 'buyer', 'supplier'].includes(role)) {
-      query = query.eq('role', role);
+      // roles[] に含まれるか、または role（プライマリ）が一致する顧客を取得
+      query = query.contains('roles', [role]);
     }
     if (status && ['pending', 'active', 'suspended'].includes(status)) {
       query = query.eq('status', status);
@@ -135,6 +142,7 @@ export async function GET(request: NextRequest) {
       phone: c.phone,
       company: c.company,
       role: c.role,
+      roles: (c.roles as string[]) || [c.role],
       status: c.status,
       tags: c.tags || [],
       totalOrders: c.total_orders,
@@ -188,6 +196,12 @@ export async function POST(request: NextRequest) {
       return apiError('A customer with this email already exists', 409);
     }
 
+    // roles/role の解決
+    const validRolesList: CustomerRoleKey[] = ['personal', 'buyer', 'supplier'];
+    const resolvedRoles: CustomerRoleKey[] = body.roles?.filter((r) => validRolesList.includes(r)) ??
+      (body.role ? [body.role] : ['personal']);
+    const primaryRole = resolvedRoles[0];
+
     // 顧客を作成
     const { data: customer, error: createError } = await supabase
       .from('customers')
@@ -198,7 +212,8 @@ export async function POST(request: NextRequest) {
         phone: body.phone || null,
         company: body.company || null,
         type: body.type || 'individual',
-        role: body.role || 'personal',
+        role: primaryRole,
+        roles: resolvedRoles,
         status: body.status || 'active',
         metadata: body.metadata || null,
         tags: body.tags || [],
@@ -250,6 +265,7 @@ export async function POST(request: NextRequest) {
         id: customer.id,
         type: customer.type,
         role: customer.role,
+        roles: (customer.roles as string[]) || [customer.role],
         status: customer.status,
         name: customer.name,
         email: customer.email,

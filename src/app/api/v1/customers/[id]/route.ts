@@ -16,6 +16,8 @@ import Stripe from 'stripe';
 import { validateApiKey, apiError, apiSuccess, handleOptions, corsHeaders } from '@/lib/api/auth';
 import { verifyCustomerToken } from '@/lib/api/customer-auth';
 
+type CustomerRoleKey = 'personal' | 'buyer' | 'supplier';
+
 interface UpdateCustomerRequest {
   name?: string;
   phone?: string;
@@ -23,7 +25,10 @@ interface UpdateCustomerRequest {
   tags?: string[];
   notes?: string;
   password?: string;
-  role?: 'personal' | 'buyer' | 'supplier';
+  /** 後方互換: 単一ロール上書き。roles が指定されている場合は無視される */
+  role?: CustomerRoleKey;
+  /** マルチロール更新（推奨）。先頭がプライマリロール */
+  roles?: CustomerRoleKey[];
   status?: 'pending' | 'active' | 'suspended';
   prefecture?: string;
   businessType?: string;
@@ -68,7 +73,7 @@ async function resolveAuth(request: NextRequest, targetId: string): Promise<
   return { ok: false, error: 'Invalid or expired token', status: 401 };
 }
 
-const CUSTOMER_SELECT = 'id, name, email, phone, company, type, role, status, prefecture, business_type, tags, metadata, custom_fields, total_orders, total_spent, created_at';
+const CUSTOMER_SELECT = 'id, name, email, phone, company, type, role, roles, status, prefecture, business_type, tags, metadata, custom_fields, total_orders, total_spent, created_at';
 
 function formatCustomer(customer: Record<string, unknown>, addresses: Record<string, unknown>[] = []) {
   return {
@@ -79,6 +84,7 @@ function formatCustomer(customer: Record<string, unknown>, addresses: Record<str
     company: customer.company,
     type: customer.type,
     role: customer.role,
+    roles: (customer.roles as string[]) || [customer.role],
     status: customer.status,
     prefecture: customer.prefecture,
     businessType: customer.business_type,
@@ -190,7 +196,6 @@ export async function PUT(
   if (body.company !== undefined)     updates.company = body.company || null;
   if (body.tags !== undefined)        updates.tags = body.tags;
   if (body.notes !== undefined)       updates.notes = body.notes || null;
-  if (body.role !== undefined)        updates.role = body.role;
   if (body.status !== undefined)      updates.status = body.status;
   if (body.prefecture !== undefined)  updates.prefecture = body.prefecture || null;
   if (body.businessType !== undefined) updates.business_type = body.businessType || null;
@@ -198,6 +203,19 @@ export async function PUT(
   if (body.customFields !== undefined) updates.custom_fields = body.customFields;
   if (body.password) {
     updates.password_hash = await bcrypt.hash(body.password, 12);
+  }
+  // roles[] が指定された場合は優先、なければ role 単体で更新
+  if (body.roles !== undefined) {
+    const validRolesList: CustomerRoleKey[] = ['personal', 'buyer', 'supplier'];
+    const filtered = body.roles.filter((r) => validRolesList.includes(r));
+    if (filtered.length === 0) {
+      return apiError('roles must contain at least one valid role', 400);
+    }
+    updates.roles = filtered;
+    updates.role = filtered[0];
+  } else if (body.role !== undefined) {
+    updates.role = body.role;
+    updates.roles = [body.role];
   }
 
   if (Object.keys(updates).length === 0) {

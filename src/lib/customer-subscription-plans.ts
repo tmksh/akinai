@@ -15,8 +15,18 @@ export type SubscriptionInterval = 'month' | 'year';
 export interface CustomerSubscriptionPlan {
   /** プランID（Akinai 側で生成する UUID） */
   id: string;
-  /** 対象会員種別（customers.role に対応） */
+  /**
+   * 対象会員種別（後方互換）
+   * targetRoles が指定されている場合は targetRoles を優先。
+   * どちらか一方のみ指定する場合は targetRoles を推奨。
+   */
   targetRole: CustomerRoleKey;
+  /**
+   * 対象会員種別（複数ロール対応）
+   * 例: ["buyer", "supplier"] → buyer かつ supplier の顧客に適用可
+   * 未指定の場合は targetRole にフォールバック
+   */
+  targetRoles?: CustomerRoleKey[];
   /** プラン名（テナントが自由に命名） */
   name: string;
   /** 説明 */
@@ -108,6 +118,19 @@ export function readSubscriptionInfo(
 ): CustomerSubscriptionInfo | null {
   const sub = customFields?.subscription as CustomerSubscriptionInfo | undefined;
   return sub || null;
+}
+
+/**
+ * 顧客の roles[] に対してプランが適用可能かどうかを返す
+ * - targetRoles が定義されていれば、顧客の roles と1つでも一致すれば true
+ * - 未定義なら targetRole（後方互換）で判定
+ */
+export function isPlanApplicable(
+  plan: CustomerSubscriptionPlan,
+  customerRoles: CustomerRoleKey[],
+): boolean {
+  const targets = plan.targetRoles ?? [plan.targetRole];
+  return customerRoles.some((r) => targets.includes(r));
 }
 
 /** プランの最小単位金額を返す（JPY なら整数） */
