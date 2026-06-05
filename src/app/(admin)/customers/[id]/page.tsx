@@ -402,13 +402,13 @@ export default function CustomerDetailPage() {
                       <span className="font-medium">{currentPeriodEnd}</span>
                     </div>
                   )}
-                  {sub.cancelAtPeriodEnd && !sub.scheduledPlanId && (
+                  {!!sub.cancelAtPeriodEnd && !sub.scheduledPlanId && (
                     <div className="flex items-center gap-2 p-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-xs">
                       <Info className="h-3.5 w-3.5 shrink-0" />
                       期間終了時に解約予定
                     </div>
                   )}
-                  {sub.scheduledPlanId && (
+                  {!!sub.scheduledPlanId && (
                     <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 text-xs">
                       <ArrowDownCircle className="h-3.5 w-3.5 shrink-0" />
                       <span>
