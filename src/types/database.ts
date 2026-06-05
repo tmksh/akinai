@@ -391,6 +391,7 @@ export interface Database {
           total_spent: number
           tags: string[]
           role: 'personal' | 'buyer' | 'supplier'
+          roles: ('personal' | 'buyer' | 'supplier')[]
           status: 'pending' | 'active' | 'suspended'
           metadata: Json | null
           prefecture: string | null
@@ -417,6 +418,7 @@ export interface Database {
           total_spent?: number
           tags?: string[]
           role?: 'personal' | 'buyer' | 'supplier'
+          roles?: ('personal' | 'buyer' | 'supplier')[]
           status?: 'pending' | 'active' | 'suspended'
           metadata?: Json | null
           prefecture?: string | null
@@ -443,6 +445,7 @@ export interface Database {
           total_spent?: number
           tags?: string[]
           role?: 'personal' | 'buyer' | 'supplier'
+          roles?: ('personal' | 'buyer' | 'supplier')[]
           status?: 'pending' | 'active' | 'suspended'
           metadata?: Json | null
           prefecture?: string | null

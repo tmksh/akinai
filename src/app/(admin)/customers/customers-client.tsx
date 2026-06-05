@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles, Download, Upload, Share2 } from 'lucide-react';
+import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles, Download, Upload, Share2, Layers2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -64,15 +64,19 @@ export default function CustomersClient({
   const [stats] = useState<CustomerStats | null>(initialStats);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithAddresses | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeRole, setActiveRole] = useState<'all' | 'personal' | 'buyer' | 'supplier' | 'referral'>('all');
+  const [activeRole, setActiveRole] = useState<'all' | 'personal' | 'buyer' | 'supplier' | 'multi' | 'referral'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const roleLabels: CustomerRoleLabels = initialRoleLabels ?? { ...DEFAULT_CUSTOMER_ROLE_LABELS };
   const roleEnabled: CustomerRoleEnabled = initialRoleEnabled ?? { ...DEFAULT_CUSTOMER_ROLE_ENABLED };
   const fieldSchema: CustomerFieldSchema[] = initialFieldSchema ?? [];
 
-  const getCustomerRole = (customer: CustomerWithAddresses) =>
-    (customer as unknown as { role?: string }).role;
+  const getCustomerRoles = (customer: CustomerWithAddresses): string[] => {
+    const c = customer as unknown as { roles?: string[]; role?: string };
+    if (Array.isArray(c.roles) && c.roles.length > 0) return c.roles;
+    if (c.role) return [c.role];
+    return [];
+  };
 
   const searchFilteredCustomers = customers.filter(customer => {
     const q = searchQuery.trim().toLowerCase();
@@ -96,9 +100,20 @@ export default function CustomersClient({
       return (customer.referral_count ?? 0) > 0;
     }
     if (activeRole !== 'all') {
-      const role = getCustomerRole(customer);
-      if (activeRole === 'personal' && role && role !== 'personal') return false;
-      if (activeRole !== 'personal' && role !== activeRole) return false;
+      const roles = getCustomerRoles(customer);
+      if (activeRole === 'multi') {
+        // マルチロールタブ: buyer と supplier を両方持つ顧客
+        return roles.includes('buyer') && roles.includes('supplier');
+      }
+      const isMulti = roles.includes('buyer') && roles.includes('supplier');
+      if (activeRole === 'personal') {
+        if (!roles.includes('personal')) return false;
+        if (isMulti) return false;
+      } else {
+        // buyer / supplier タブ: 兼業（multi）は除外
+        if (isMulti) return false;
+        if (!roles.includes(activeRole)) return false;
+      }
     }
     if (dateFrom) {
       const createdAt = new Date(customer.created_at);
@@ -182,9 +197,16 @@ export default function CustomersClient({
 
   const roleCounts = {
     all: searchFilteredCustomers.length,
-    personal: searchFilteredCustomers.filter(c => { const r = getCustomerRole(c); return !r || r === 'personal'; }).length,
-    buyer: searchFilteredCustomers.filter(c => getCustomerRole(c) === 'buyer').length,
-    supplier: searchFilteredCustomers.filter(c => getCustomerRole(c) === 'supplier').length,
+    personal: searchFilteredCustomers.filter(c => {
+      const roles = getCustomerRoles(c);
+      return (roles.length === 0 || roles.includes('personal')) && !roles.includes('buyer') && !roles.includes('supplier');
+    }).length,
+    buyer: searchFilteredCustomers.filter(c => getCustomerRoles(c).includes('buyer')).length,
+    supplier: searchFilteredCustomers.filter(c => getCustomerRoles(c).includes('supplier')).length,
+    multi: searchFilteredCustomers.filter(c => {
+      const roles = getCustomerRoles(c);
+      return roles.includes('buyer') && roles.includes('supplier');
+    }).length,
     referral: searchFilteredCustomers.filter(c => (c.referral_count ?? 0) > 0).length,
   };
   const formatCurrency = (value: number) => {
@@ -314,6 +336,15 @@ export default function CustomersClient({
                     {roleCounts.supplier}
                   </span>
                 </TabsTrigger>
+                {roleCounts.multi > 0 && (
+                  <TabsTrigger value="multi" className="h-7 px-2.5 text-xs gap-1">
+                    <Layers2 className="h-3 w-3" />
+                    兼業
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] font-medium">
+                      {roleCounts.multi}
+                    </span>
+                  </TabsTrigger>
+                )}
                 {referralEnabled && (
                   <TabsTrigger value="referral" className="h-7 px-2.5 text-xs gap-1">
                     <Share2 className="h-3 w-3" />
