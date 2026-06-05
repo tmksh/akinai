@@ -23,6 +23,8 @@ import {
   Code,
   Copy,
   CheckCircle2,
+  CreditCard,
+  ArrowDownCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -351,6 +353,75 @@ export default function CustomerDetailPage() {
 
         {/* カスタムフィールド + 注文履歴 */}
         <div className="lg:col-span-2 space-y-6">
+          {/* サブスクリプション情報 */}
+          {(() => {
+            const cf = (customer.custom_fields ?? {}) as Record<string, unknown>;
+            const sub = cf.subscription as Record<string, unknown> | undefined;
+            if (!sub?.planId && !sub?.stripeSubscriptionId) return null;
+
+            const statusMap: Record<string, { label: string; color: string }> = {
+              active:             { label: '有効',     color: 'bg-green-50 text-green-700 border-green-200' },
+              trialing:           { label: 'トライアル', color: 'bg-sky-50 text-sky-700 border-sky-200' },
+              past_due:           { label: '支払い遅延', color: 'bg-red-50 text-red-700 border-red-200' },
+              canceled:           { label: '解約済み',  color: 'bg-slate-100 text-slate-500 border-slate-200' },
+              paused:             { label: '一時停止',  color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+              incomplete:         { label: '未完了',   color: 'bg-orange-50 text-orange-700 border-orange-200' },
+              incomplete_expired: { label: '期限切れ',  color: 'bg-red-50 text-red-700 border-red-200' },
+              unpaid:             { label: '未払い',   color: 'bg-red-50 text-red-700 border-red-200' },
+            };
+            const subStatus = (sub.status as string) || '';
+            const statusConfig = statusMap[subStatus] ?? { label: subStatus, color: 'bg-slate-100 text-slate-500 border-slate-200' };
+
+            const currentPeriodEnd = sub.currentPeriodEnd
+              ? new Date(sub.currentPeriodEnd as string).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
+              : null;
+            const scheduledAt = sub.scheduledAt
+              ? new Date(sub.scheduledAt as string).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
+              : null;
+
+            return (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    サブスクリプション
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">現在のプラン</span>
+                    <span className="font-medium">{(cf.plan as string) || (sub.planId as string) || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">ステータス</span>
+                    <Badge variant="outline" className={`text-xs ${statusConfig.color}`}>{statusConfig.label}</Badge>
+                  </div>
+                  {currentPeriodEnd && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">次回請求日</span>
+                      <span className="font-medium">{currentPeriodEnd}</span>
+                    </div>
+                  )}
+                  {sub.cancelAtPeriodEnd && !sub.scheduledPlanId && (
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-xs">
+                      <Info className="h-3.5 w-3.5 shrink-0" />
+                      期間終了時に解約予定
+                    </div>
+                  )}
+                  {sub.scheduledPlanId && (
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 text-xs">
+                      <ArrowDownCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        次回更新時に <strong>{(sub.scheduledPlanName as string) || (sub.scheduledPlanId as string)}</strong> へダウングレード予約済み
+                        {scheduledAt && <span className="text-purple-500 ml-1">（{scheduledAt} 予約）</span>}
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* 顧客ID */}
           <Card>
             <CardContent className="py-3">
