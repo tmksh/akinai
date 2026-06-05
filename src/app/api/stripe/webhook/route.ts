@@ -748,25 +748,65 @@ async function handleCustomerSubscriptionChange(
 
   const now = new Date().toISOString();
 
-  // スケジュールされたダウングレードが実行されたか判定
-  // Stripe の metadata に新プランIDが入っており、それが scheduledPlanId と一致する場合
   const scheduledPlanId = currentSub.scheduledPlanId as string | undefined;
-  const isScheduledPlanActivated = scheduledPlanId && planId && planId === scheduledPlanId;
+  const incomingNewPeriodEnd = subscription.current_period_end
+    ? new Date(subscription.current_period_end * 1000).toISOString()
+    : null;
+  const prevPeriodEnd = currentSub.currentPeriodEnd as string | undefined;
+
+  // ダウングレード予約が存在し、incoming planId が scheduledPlanId と一致する場合は
+  // 「登録時の即時イベント」か「期間終了による自動更新」かを currentPeriodEnd で判定する。
+  // - 期間が進んでいる（prevPeriodEnd !== newPeriodEnd）→ 自動更新: scheduledPlanId を昇格
+  // - 期間が同じ → 登録時の即時イベント: planId を変えずスケジュール状態を維持
+  const isScheduledDowngrade = !!(scheduledPlanId && planId && planId === scheduledPlanId);
+  const isPeriodAdvanced = !!(prevPeriodEnd && incomingNewPeriodEnd && prevPeriodEnd !== incomingNewPeriodEnd);
+  const isScheduleRegistrationEvent = isScheduledDowngrade && !isPeriodAdvanced;
+  const isScheduleActivated = isScheduledDowngrade && isPeriodAdvanced;
+
+  if (isScheduleRegistrationEvent) {
+    // スケジュール登録時の即時 webhook → planId は現状維持、currentPeriodEnd のみ更新
+    console.log(
+      `[Webhook] schedule registration event (not renewal): keep planId=${currentSub.planId}, scheduledPlanId=${scheduledPlanId}`
+    );
+    await supabase
+      .from('customers')
+      .update({
+        custom_fields: {
+          ...currentCustomFields,
+          subscription: {
+            ...currentSub,
+            stripeSubscriptionId: subscription.id,
+            stripeCustomerId: subscription.customer as string,
+            status: nextStatus,
+            currentPeriodEnd: incomingNewPeriodEnd,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
+            updatedAt: now,
+          },
+        },
+        updated_at: now,
+      })
+      .eq('id', customerId)
+      .eq('organization_id', organizationId);
+    return;
+  }
+
+  // 通常更新 or スケジュールダウングレード自動実行
+  const activePlanId = isScheduleActivated
+    ? scheduledPlanId   // ダウングレード実行: scheduledPlanId を正式な planId に
+    : (planId ?? currentSub.planId);
 
   const updatedSub = {
     ...currentSub,
-    planId: planId ?? currentSub.planId,
+    planId: activePlanId,
     stripeSubscriptionId: subscription.id,
     stripeCustomerId: subscription.customer as string,
     status: nextStatus,
-    currentPeriodEnd: subscription.current_period_end
-      ? new Date(subscription.current_period_end * 1000).toISOString()
-      : null,
+    currentPeriodEnd: incomingNewPeriodEnd,
     cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
     startedAt: currentSub.startedAt ?? now,
     updatedAt: now,
     // ダウングレード予約が実行されたらクリア
-    ...(isScheduledPlanActivated
+    ...(isScheduleActivated
       ? { scheduledPlanId: null, scheduledPlanName: null, scheduledAt: null }
       : {}),
   };
@@ -784,7 +824,7 @@ async function handleCustomerSubscriptionChange(
     );
     planLabel = resolvePlanLabel(
       plansSettingsForLabel,
-      (planId ?? (currentSub.planId as string | undefined)) || null
+      (activePlanId as string | undefined) || null
     );
   }
 
