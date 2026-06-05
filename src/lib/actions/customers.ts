@@ -51,7 +51,7 @@ export async function getCustomers(
     }
 
     // データを整形
-    const customersWithAddresses: CustomerWithAddresses[] = customers.map(customer => {
+    const customersWithAddresses: CustomerWithAddresses[] = customers.map((customer: Record<string, unknown> & { customer_addresses?: CustomerAddress[] }) => {
       const { customer_addresses, ...rest } = customer;
       return {
         ...rest,
