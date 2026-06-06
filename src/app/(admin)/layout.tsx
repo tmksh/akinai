@@ -10,11 +10,12 @@ import { getAuthOrganization } from '@/lib/auth-helpers';
 async function getInitialData(): Promise<{
   organization: Organization | null;
   currentUser: CurrentUser | null;
+  trialInfo: { subscription_status: string | null; trial_ends_at: string | null; plan: string } | null;
 }> {
   try {
     const { user, userProfile, orgRow } = await getAuthOrganization();
 
-    if (!user) return { organization: null, currentUser: null };
+    if (!user) return { organization: null, currentUser: null, trialInfo: null };
 
     const currentUser: CurrentUser = {
       id: user.id,
@@ -23,7 +24,7 @@ async function getInitialData(): Promise<{
       avatar: (userProfile?.avatar as string) ?? user.user_metadata?.avatar_url ?? null,
     };
 
-    if (!orgRow) return { organization: null, currentUser };
+    if (!orgRow) return { organization: null, currentUser, trialInfo: null };
 
     const settings = (orgRow.settings as Record<string, unknown>) || {};
     const organization: Organization = {
@@ -50,9 +51,15 @@ async function getInitialData(): Promise<{
       updatedAt: orgRow.updated_at as string,
     };
 
-    return { organization, currentUser };
+    const trialInfo = {
+      subscription_status: (orgRow.subscription_status as string | null) ?? null,
+      trial_ends_at: (orgRow.trial_ends_at as string | null) ?? null,
+      plan: orgRow.plan as string,
+    };
+
+    return { organization, currentUser, trialInfo };
   } catch {
-    return { organization: null, currentUser: null };
+    return { organization: null, currentUser: null, trialInfo: null };
   }
 }
 
@@ -61,7 +68,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { organization, currentUser } = await getInitialData();
+  const { organization, currentUser, trialInfo } = await getInitialData();
 
   return (
     <OrganizationProvider initialOrganization={organization} initialUser={currentUser}>
@@ -76,7 +83,7 @@ export default async function AdminLayout({
             style={{ background: 'radial-gradient(ellipse, #a5b4fc, transparent 70%)', filter: 'blur(50px)' }} />
         </div>
         <TopNavigation />
-        <TrialEndingBanner />
+        <TrialEndingBanner initialInfo={trialInfo} />
         <main className="relative z-10 p-3 sm:p-4 md:p-6 pt-4 md:pt-5 max-w-7xl mx-auto w-full min-w-0">
           {children}
         </main>

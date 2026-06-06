@@ -21,6 +21,7 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { validateApiKey, corsHeaders, handleOptions } from '@/lib/api/auth';
 import { readOneTimeServicesSettings } from '@/lib/customer-one-time-services';
+import { getStripeConfig } from '@/lib/stripe-client';
 
 function getAdminSupabase() {
   return createClient(
@@ -63,13 +64,9 @@ function sanitizeMetadata(
 }
 
 export async function POST(request: NextRequest) {
-  // API キー認証
   const auth = await validateApiKey(request);
   if (!auth.success) return jsonError(auth.error ?? 'Unauthorized', auth.status ?? 401);
   const organizationId = auth.organizationId!;
-
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeSecretKey) return jsonError('Stripe is not configured', 500);
 
   let body: {
     serviceId?: string;
@@ -94,12 +91,20 @@ export async function POST(request: NextRequest) {
   // 組織情報を取得
   const { data: org } = await supabase
     .from('organizations')
-    .select('id, settings, stripe_account_id')
+    .select('id, settings, stripe_account_id, stripe_test_mode, stripe_test_account_id')
     .eq('id', organizationId)
     .single();
 
   if (!org) return jsonError('Organization not found', 404);
-  if (!org.stripe_account_id) return jsonError('Stripe is not connected', 400);
+
+  let stripeConfig;
+  try {
+    stripeConfig = getStripeConfig(org);
+  } catch {
+    return jsonError('Stripe is not configured', 500);
+  }
+  const { stripe, accountId } = stripeConfig;
+  if (!accountId) return jsonError('Stripe is not connected', 400);
 
   // 単発サービス設定を確認
   const servicesSettings = readOneTimeServicesSettings(
@@ -163,7 +168,6 @@ export async function POST(request: NextRequest) {
   });
 
   // Stripe Checkout Session を作成
-  const stripe = new Stripe(stripeSecretKey);
   const extraMetadata = sanitizeMetadata(body.metadata);
 
   let session: Stripe.Checkout.Session;
@@ -190,11 +194,10 @@ export async function POST(request: NextRequest) {
           },
         },
       },
-      { stripeAccount: org.stripe_account_id }
+      { stripeAccount: accountId }
     );
   } catch (err) {
     console.error('Failed to create checkout session:', err);
-    // Checkout 作成失敗時は作成した注文を削除
     await supabase.from('orders').delete().eq('id', order.id);
     return jsonError('Failed to create checkout session', 500);
   }

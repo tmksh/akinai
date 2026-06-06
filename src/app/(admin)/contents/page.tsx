@@ -26,7 +26,7 @@ export default async function ContentsPage() {
 
   // タイプ別に独立してフェッチ（全件一括だと Supabase の 1000 行上限で他タイプが消える）
   const perTypeResults = await Promise.all(
-    enabledTypes.map((type) => getContents(organizationId, { type, limit: 2000 }))
+    enabledTypes.map((type) => getContents(organizationId, { type, limit: 200 }))
   );
   const allContents = perTypeResults.flatMap((r) => r.data || []);
 

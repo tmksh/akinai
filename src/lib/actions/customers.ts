@@ -23,7 +23,7 @@ export interface CustomerWithAddresses extends Customer {
 }
 
 /** 管理画面一覧のデフォルト取得件数（Supabase max_rows=1000 に合わせる） */
-const CUSTOMERS_LIST_DEFAULT_LIMIT = 1000;
+const CUSTOMERS_LIST_DEFAULT_LIMIT = 200;
 
 // 顧客一覧を取得
 export async function getCustomers(

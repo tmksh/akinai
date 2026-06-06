@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import Stripe from 'stripe';
 import {
   validateApiKey,
   apiError,
@@ -9,6 +8,7 @@ import {
   corsHeaders,
   withApiLogging,
 } from '@/lib/api/auth';
+import { getStripeConfig } from '@/lib/stripe-client';
 
 // チェックアウトリクエストの型
 interface CheckoutItem {
@@ -66,13 +66,9 @@ export async function POST(request: NextRequest) {
     // --- 環境変数チェック ---
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
       return apiError('Server configuration error', 500);
-    }
-    if (!stripeSecretKey) {
-      return apiError('Payment service is not configured', 500);
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -109,14 +105,27 @@ export async function POST(request: NextRequest) {
     // --- 組織の Stripe Connect アカウントを取得 ---
     const { data: org, error: orgError } = await supabase
       .from('organizations')
-      .select('stripe_account_id, stripe_onboarding_complete, settings')
+      .select('stripe_account_id, stripe_onboarding_complete, stripe_test_mode, stripe_test_account_id, stripe_test_onboarding_complete, settings')
       .eq('id', auth.organizationId)
       .single();
 
     if (orgError || !org) {
       return apiError('Organization not found', 404);
     }
-    if (!org.stripe_account_id || !org.stripe_onboarding_complete) {
+
+    let stripeConfig;
+    try {
+      stripeConfig = getStripeConfig(org);
+    } catch {
+      return apiError('Payment service is not configured', 500);
+    }
+    const { stripe, accountId, publishableKey } = stripeConfig;
+
+    const onboardingComplete = org.stripe_test_mode
+      ? org.stripe_test_onboarding_complete
+      : org.stripe_onboarding_complete;
+
+    if (!accountId || !onboardingComplete) {
       return apiError('Payment is not set up for this store. Please contact the store owner.', 400);
     }
 
@@ -260,8 +269,6 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Stripe で決済を作成 ---
-    const stripe = new Stripe(stripeSecretKey);
-
     try {
       if (mode === 'checkout_session') {
         // --- Checkout Session モード ---
@@ -300,10 +307,9 @@ export async function POST(request: NextRequest) {
             success_url: body.successUrl!,
             cancel_url: body.cancelUrl!,
           },
-          { stripeAccount: org.stripe_account_id }
+          { stripeAccount: accountId }
         );
 
-        // checkout session id を注文に保存
         await supabase
           .from('orders')
           .update({ notes: `${order.notes || ''}\n[stripe_session_id:${session.id}]`.trim() })
@@ -325,7 +331,6 @@ export async function POST(request: NextRequest) {
         Object.entries(corsHeaders()).forEach(([k, v]) => response.headers.set(k, v));
         return response;
       } else {
-        // --- PaymentIntent モード（デフォルト） ---
         const paymentIntent = await stripe.paymentIntents.create(
           {
             amount: total,
@@ -336,7 +341,7 @@ export async function POST(request: NextRequest) {
               organization_id: auth.organizationId as string,
             },
           },
-          { stripeAccount: org.stripe_account_id }
+          { stripeAccount: accountId }
         );
 
         // payment intent id を注文に保存
@@ -350,8 +355,8 @@ export async function POST(request: NextRequest) {
             mode: 'payment_intent',
             clientSecret: paymentIntent.client_secret,
             paymentIntentId: paymentIntent.id,
-            publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || null,
-            stripeAccount: org.stripe_account_id,
+            publishableKey: publishableKey,
+            stripeAccount: accountId,
             order: {
               id: order.id,
               orderNumber,

@@ -3,29 +3,34 @@ import { createClient } from '@/lib/supabase/server';
 import Stripe from 'stripe';
 
 /**
- * GET /api/stripe/callback
- * Stripe Connect オンボーディング完了後のコールバック
- * アカウントの状態を確認してDBを更新
+ * GET /api/stripe/callback?mode=live
+ * GET /api/stripe/callback?mode=test
+ *
+ * Stripe Connect オンボーディング完了後のコールバック。
+ * mode パラメータでテスト/本番を判定し、対応するカラムを更新する。
  */
 export async function GET(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const isTestMode = request.nextUrl.searchParams.get('mode') === 'test';
 
   try {
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    const stripeSecretKey = isTestMode
+      ? process.env.STRIPE_TEST_SECRET_KEY
+      : process.env.STRIPE_SECRET_KEY;
+
     if (!stripeSecretKey) {
-      console.error('STRIPE_SECRET_KEY is not set');
+      const keyName = isTestMode ? 'STRIPE_TEST_SECRET_KEY' : 'STRIPE_SECRET_KEY';
+      console.error(`${keyName} is not set`);
       return NextResponse.redirect(new URL('/settings/payments?error=config_error', appUrl));
     }
 
     const supabase = await createClient();
 
-    // ユーザー認証確認
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.redirect(new URL('/login?redirect=/settings/payments', appUrl));
     }
 
-    // ユーザーの組織を取得
     const { data: member } = await supabase
       .from('organization_members')
       .select('organization_id')
@@ -36,29 +41,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/settings/payments?error=no_organization', appUrl));
     }
 
-    // 組織のStripeアカウントIDを取得
+    const accountIdColumn = isTestMode ? 'stripe_test_account_id' : 'stripe_account_id';
     const { data: org } = await supabase
       .from('organizations')
-      .select('stripe_account_id')
+      .select(`${accountIdColumn}`)
       .eq('id', member.organization_id)
       .single();
 
-    if (!org?.stripe_account_id) {
+    const stripeAccountId = org?.[accountIdColumn as keyof typeof org] as string | null | undefined;
+    if (!stripeAccountId) {
       return NextResponse.redirect(new URL('/settings/payments?error=no_account', appUrl));
     }
 
-    // Stripeアカウントの状態を確認
     const stripe = new Stripe(stripeSecretKey);
-    const account = await stripe.accounts.retrieve(org.stripe_account_id);
+    const account = await stripe.accounts.retrieve(stripeAccountId);
     const isOnboardingComplete = account.charges_enabled && account.payouts_enabled;
 
-    // DBを更新
+    const updatePayload = isTestMode
+      ? { stripe_test_account_status: isOnboardingComplete ? 'active' : 'pending', stripe_test_onboarding_complete: isOnboardingComplete }
+      : { stripe_account_status: isOnboardingComplete ? 'active' : 'pending', stripe_onboarding_complete: isOnboardingComplete };
+
     await supabase
       .from('organizations')
-      .update({
-        stripe_account_status: isOnboardingComplete ? 'active' : 'pending',
-        stripe_onboarding_complete: isOnboardingComplete,
-      })
+      .update(updatePayload)
       .eq('id', member.organization_id);
 
     return NextResponse.redirect(new URL('/settings/payments?stripe=connected', appUrl));

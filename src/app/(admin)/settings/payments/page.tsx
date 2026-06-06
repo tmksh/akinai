@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Loader2,
   Unlink,
+  FlaskConical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -56,6 +57,9 @@ interface StripeStatus {
   accountId?: string;
   chargesEnabled?: boolean;
   payoutsEnabled?: boolean;
+  testMode: boolean;
+  testAccountId?: string;
+  testOnboardingComplete?: boolean;
 }
 
 // 決済方法
@@ -101,8 +105,11 @@ function PaymentsSettingsContent() {
   const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnectingTest, setIsConnectingTest] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const [disconnectTarget, setDisconnectTarget] = useState<'live' | 'test'>('live');
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isTogglingMode, setIsTogglingMode] = useState(false);
   const [enabledMethods, setEnabledMethods] = useState<Record<string, boolean>>({
     credit_card: true,
     bank_transfer: true,
@@ -203,21 +210,51 @@ function PaymentsSettingsContent() {
     window.location.href = '/api/stripe/connect';
   };
 
+  // Stripeテスト連携開始
+  const handleConnectStripeTest = () => {
+    setIsConnectingTest(true);
+    window.location.href = '/api/stripe/connect?test=1';
+  };
+
+  // テスト/本番モード切り替え
+  const handleToggleTestMode = async (checked: boolean) => {
+    setIsTogglingMode(true);
+    try {
+      const res = await fetch('/api/stripe/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testMode: checked }),
+      });
+      if (res.ok) {
+        setStripeStatus(prev => prev ? { ...prev, testMode: checked } : prev);
+        toast.success(checked ? 'テストモードに切り替えました' : '本番モードに切り替えました');
+        // 最新状態を再取得
+        const statusRes = await fetch('/api/stripe/status');
+        if (statusRes.ok) setStripeStatus(await statusRes.json());
+      } else {
+        toast.error('モードの切り替えに失敗しました');
+      }
+    } catch {
+      toast.error('モードの切り替えに失敗しました');
+    } finally {
+      setIsTogglingMode(false);
+    }
+  };
+
   // Stripe連携解除
   const handleDisconnectStripe = async () => {
     setIsDisconnecting(true);
+    const isTest = disconnectTarget === 'test';
     try {
-      const res = await fetch('/api/stripe/status', { method: 'DELETE' });
+      const res = await fetch(`/api/stripe/status${isTest ? '?test=1' : ''}`, { method: 'DELETE' });
       if (res.ok) {
-        setStripeStatus({
-          connected: false,
-          status: 'not_connected',
-          onboardingComplete: false,
-        });
+        const statusRes = await fetch('/api/stripe/status');
+        if (statusRes.ok) setStripeStatus(await statusRes.json());
         setShowDisconnectDialog(false);
+        toast.success(isTest ? 'テスト連携を解除しました' : '本番連携を解除しました');
       }
-    } catch (error) {
-      console.error('Failed to disconnect:', error);
+    } catch {
+      toast.error('連携解除に失敗しました');
     } finally {
       setIsDisconnecting(false);
     }
@@ -237,6 +274,8 @@ function PaymentsSettingsContent() {
   };
 
   const isStripeConnected = stripeStatus?.connected && stripeStatus?.onboardingComplete;
+  const isTestMode = !!stripeStatus?.testMode;
+  const hasTestAccount = !!(stripeStatus?.testAccountId && stripeStatus?.testOnboardingComplete);
 
   return (
     <div className="space-y-6">
@@ -278,6 +317,17 @@ function PaymentsSettingsContent() {
       {/* Stripe Connect カード */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">決済プロバイダー</h2>
+
+        {/* テストモード警告バナー */}
+        {isTestMode && (
+          <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
+            <FlaskConical className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800 dark:text-amber-200">テストモード稼働中</AlertTitle>
+            <AlertDescription className="text-amber-700 dark:text-amber-300">
+              現在テストモードです。実際の決済は処理されません。本番運用を開始する前に「本番モードに切り替え」を行ってください。
+            </AlertDescription>
+          </Alert>
+        )}
         
         <Card className="card-hover overflow-hidden">
           <CardHeader className="pb-3">
@@ -293,22 +343,29 @@ function PaymentsSettingsContent() {
                   </CardDescription>
                 </div>
               </div>
-              {!isLoading && stripeStatus && (
-                <Badge
-                  variant={isStripeConnected ? 'default' : stripeStatus.status === 'pending' ? 'secondary' : 'outline'}
-                  className={cn(
-                    isStripeConnected && 'bg-emerald-500 hover:bg-emerald-600'
-                  )}
-                >
-                  {isStripeConnected ? (
-                    <><CheckCircle2 className="mr-1 h-3 w-3" />連携済み</>
-                  ) : stripeStatus.status === 'pending' ? (
-                    <><Loader2 className="mr-1 h-3 w-3 animate-spin" />設定中</>
-                  ) : (
-                    '未連携'
-                  )}
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                {isTestMode && (
+                  <Badge variant="outline" className="border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/30">
+                    <FlaskConical className="mr-1 h-3 w-3" />テスト
+                  </Badge>
+                )}
+                {!isLoading && stripeStatus && (
+                  <Badge
+                    variant={isStripeConnected ? 'default' : stripeStatus.status === 'pending' ? 'secondary' : 'outline'}
+                    className={cn(
+                      isStripeConnected && 'bg-emerald-500 hover:bg-emerald-600'
+                    )}
+                  >
+                    {isStripeConnected ? (
+                      <><CheckCircle2 className="mr-1 h-3 w-3" />連携済み</>
+                    ) : stripeStatus.status === 'pending' ? (
+                      <><Loader2 className="mr-1 h-3 w-3 animate-spin" />設定中</>
+                    ) : (
+                      '未連携'
+                    )}
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -317,34 +374,42 @@ function PaymentsSettingsContent() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : isStripeConnected ? (
-              // 連携済みの場合
               <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                <div className={cn(
+                  "p-4 rounded-lg border",
+                  isTestMode
+                    ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+                    : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                )}>
                   <div className="flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    <CheckCircle2 className={cn("h-5 w-5", isTestMode ? "text-amber-600" : "text-emerald-600")} />
                     <div>
-                      <p className="font-medium text-emerald-800 dark:text-emerald-200">
-                        クレジットカード決済が有効です
+                      <p className={cn("font-medium", isTestMode ? "text-amber-800 dark:text-amber-200" : "text-emerald-800 dark:text-emerald-200")}>
+                        {isTestMode ? 'テストモードで決済が有効です' : 'クレジットカード決済が有効です'}
                       </p>
-                      <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                        アカウントID: {stripeStatus.accountId}
+                      <p className={cn("text-sm", isTestMode ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
+                        アカウントID: {stripeStatus?.accountId}
                       </p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button variant="outline" size="sm" asChild>
-                    <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={isTestMode ? "https://dashboard.stripe.com/test" : "https://dashboard.stripe.com"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      Stripeダッシュボード
+                      Stripeダッシュボード{isTestMode ? '（テスト）' : ''}
                     </a>
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => setShowDisconnectDialog(true)}
+                    onClick={() => { setDisconnectTarget(isTestMode ? 'test' : 'live'); setShowDisconnectDialog(true); }}
                   >
                     <Unlink className="mr-2 h-4 w-4" />
                     連携解除
@@ -352,7 +417,6 @@ function PaymentsSettingsContent() {
                 </div>
               </div>
             ) : stripeStatus?.status === 'pending' ? (
-              // オンボーディング中の場合
               <div className="space-y-4">
                 <div className="p-4 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800">
                   <div className="flex items-center gap-3">
@@ -368,11 +432,11 @@ function PaymentsSettingsContent() {
                   </div>
                 </div>
                 <Button 
-                  onClick={handleConnectStripe}
-                  disabled={isConnecting}
+                  onClick={isTestMode ? handleConnectStripeTest : handleConnectStripe}
+                  disabled={isConnecting || isConnectingTest}
                   className="w-full btn-premium"
                 >
-                  {isConnecting ? (
+                  {(isConnecting || isConnectingTest) ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" />設定を続ける...</>
                   ) : (
                     '設定を続ける'
@@ -380,7 +444,6 @@ function PaymentsSettingsContent() {
                 </Button>
               </div>
             ) : (
-              // 未連携の場合
               <div className="space-y-4">
                 <div className="grid gap-2 sm:grid-cols-2">
                   {['クレジットカード', 'Apple Pay', 'Google Pay', '銀行振込'].map((feature) => (
@@ -391,17 +454,17 @@ function PaymentsSettingsContent() {
                   ))}
                 </div>
                 <Button 
-                  onClick={handleConnectStripe}
-                  disabled={isConnecting}
+                  onClick={isTestMode ? handleConnectStripeTest : handleConnectStripe}
+                  disabled={isConnecting || isConnectingTest}
                   className="w-full btn-premium"
                   size="lg"
                 >
-                  {isConnecting ? (
+                  {(isConnecting || isConnectingTest) ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Stripeに接続中...</>
                   ) : (
                     <>
                       <CreditCard className="mr-2 h-5 w-5" />
-                      Stripeと連携する（ワンクリック）
+                      {isTestMode ? 'テスト用Stripeアカウントと連携する' : 'Stripeと連携する（ワンクリック）'}
                     </>
                   )}
                 </Button>
@@ -409,6 +472,41 @@ function PaymentsSettingsContent() {
                   ボタンをクリックするとStripeの認証ページに移動します。
                   Stripeアカウントをお持ちでない場合は、その場で作成できます。
                 </p>
+              </div>
+            )}
+
+            {/* テスト/本番モード切り替えセクション */}
+            {!isLoading && (
+              <div className="pt-4 border-t border-dashed">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 font-medium text-sm">
+                      <FlaskConical className="h-4 w-4 text-amber-500" />
+                      テストモード
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      ONにすると実際の決済は行われません。本番運用前の動作確認に使用してください。
+                    </p>
+                    {isTestMode && hasTestAccount && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        テスト用Connect連携済み: {stripeStatus?.testAccountId}
+                      </p>
+                    )}
+                    {isTestMode && !hasTestAccount && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        テスト用Stripeアカウントの連携が必要です
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isTogglingMode && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                    <Switch
+                      checked={isTestMode}
+                      onCheckedChange={handleToggleTestMode}
+                      disabled={isTogglingMode}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
@@ -657,10 +755,13 @@ function PaymentsSettingsContent() {
       <Dialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Stripe連携を解除しますか？</DialogTitle>
+            <DialogTitle>
+              {disconnectTarget === 'test' ? 'テスト連携を解除しますか？' : 'Stripe連携を解除しますか？'}
+            </DialogTitle>
             <DialogDescription>
-              連携を解除すると、クレジットカード決済が利用できなくなります。
-              既存の注文や払い戻しには影響しません。
+              {disconnectTarget === 'test'
+                ? 'テスト用Stripeアカウントの連携を解除します。本番の連携には影響しません。'
+                : '連携を解除すると、クレジットカード決済が利用できなくなります。既存の注文や払い戻しには影響しません。'}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

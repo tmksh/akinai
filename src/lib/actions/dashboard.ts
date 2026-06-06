@@ -152,9 +152,14 @@ export async function getDashboardData(organizationId: string) {
   const chartRangeStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
   const chartRangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  // --- 全クエリを並列実行（期間制限+重複排除済み） ---
+  const revenueStatuses = ['confirmed', 'processing', 'shipped', 'delivered'] as const;
+
+  // --- 全クエリを並列実行 ---
   const [
+    // チャート + 当月/当年/前月売上: chartRangeStart(過去7ヶ月)に限定し転送量を大幅削減
     allOrdersRes,
+    // 前年売上比較用: total のみ取得（created_at不要）
+    prevYearRevenueRes,
     ordersCountTotalRes,
     ordersCountMonthRes,
     ordersCountYearRes,
@@ -171,13 +176,21 @@ export async function getDashboardData(organizationId: string) {
     lowStockRes,
     allOrderItemsRes,
   ] = await Promise.all([
-    // 売上集計用: 前年〜今（チャート・パフォーマンス計算に十分）
+    // 売上集計用: 直近7ヶ月のみ（チャート・当月・当年・前月計算に必要な範囲）
     supabase
       .from('orders')
       .select('total, created_at')
       .eq('organization_id', organizationId)
-      .in('status', ['confirmed', 'processing', 'shipped', 'delivered'])
-      .gte('created_at', prevYearStart.toISOString()),
+      .in('status', revenueStatuses)
+      .gte('created_at', chartRangeStart.toISOString()),
+    // 前年売上: totalのみ取得（created_atは不要）
+    supabase
+      .from('orders')
+      .select('total')
+      .eq('organization_id', organizationId)
+      .in('status', revenueStatuses)
+      .gte('created_at', prevYearStart.toISOString())
+      .lte('created_at', prevYearEnd.toISOString()),
     // 注文COUNT（全ステータス）
     supabase.from('orders').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId),
     supabase.from('orders').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId)
@@ -210,18 +223,21 @@ export async function getDashboardData(organizationId: string) {
         id, name, sku, stock, low_stock_threshold,
         product:products!inner ( id, name, organization_id, product_images (url, sort_order) )
       `).eq('product.organization_id', organizationId).order('stock', { ascending: true }).limit(10),
-    // 人気商品用（前年以降に絞りデータ転送量を削減）
+    // 人気商品用: limitを設けて大量転送を防止
     supabase.from('order_items')
       .select('product_id, product_name, quantity, orders!inner(status, organization_id, created_at)')
       .eq('orders.organization_id', organizationId)
-      .in('orders.status', ['confirmed', 'processing', 'shipped', 'delivered'])
-      .gte('orders.created_at', prevYearStart.toISOString())
-      .not('product_id', 'is', null),
+      .in('orders.status', revenueStatuses)
+      .gte('orders.created_at', chartRangeStart.toISOString())
+      .not('product_id', 'is', null)
+      .limit(2000),
   ]);
 
-  // --- 売上集計（全期間データからJS側で期間ごとに集計） ---
+  // --- 売上集計（chartRange内のデータからJS側で期間ごとに集計） ---
   const allOrders = allOrdersRes.data || [];
 
+  // allOrders は chartRangeStart 以降のデータ（過去7ヶ月）
+  // 当月・当年・前月はすべてこの範囲内に収まるため正確に集計可能
   const revenueMonth = allOrders
     .filter(o => new Date(o.created_at) >= monthStart && new Date(o.created_at) <= todayEnd)
     .reduce((sum, o) => sum + o.total, 0);
@@ -230,13 +246,11 @@ export async function getDashboardData(organizationId: string) {
     .reduce((sum, o) => sum + o.total, 0);
   const revenueTotal = allOrders.reduce((sum, o) => sum + o.total, 0);
 
-  // 前月・前年の売上もJS側で集計（重複クエリ排除）
   const prevMonthRevenue = allOrders
     .filter(o => new Date(o.created_at) >= prevMonthStart && new Date(o.created_at) <= prevMonthEnd)
     .reduce((sum, o) => sum + o.total, 0);
-  const prevYearRevenue = allOrders
-    .filter(o => new Date(o.created_at) >= prevYearStart && new Date(o.created_at) <= prevYearEnd)
-    .reduce((sum, o) => sum + o.total, 0);
+  // 前年売上は専用クエリ結果を使用（chartRangeに含まれないため）
+  const prevYearRevenue = (prevYearRevenueRes.data || []).reduce((sum, o) => sum + o.total, 0);
 
   const calcChange = (current: number, prev: number) =>
     prev > 0 ? Math.round(((current - prev) / prev) * 100 * 10) / 10 : 0;

@@ -21,6 +21,7 @@ import {
   readSubscriptionInfo,
 } from '@/lib/customer-subscription-plans';
 import { sendOrderEmails } from '@/lib/order-emails';
+import { getStripeConfig } from '@/lib/stripe-client';
 
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -47,9 +48,6 @@ export async function POST(request: NextRequest) {
   const verify = await verifyCustomerToken(request);
   if (!verify.success) return jsonError(verify.error, verify.status);
 
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeSecretKey) return jsonError('Stripe is not configured', 500);
-
   let body: { planId?: string; successUrl?: string; cancelUrl?: string };
   try {
     body = await request.json();
@@ -60,15 +58,22 @@ export async function POST(request: NextRequest) {
 
   const supabase = getAdminSupabase();
 
-  // 組織情報とプラン定義を取得
   const { data: org } = await supabase
     .from('organizations')
-    .select('id, settings, stripe_account_id, frontend_url')
+    .select('id, settings, stripe_account_id, stripe_test_mode, stripe_test_account_id, frontend_url')
     .eq('id', verify.payload.org)
     .single();
 
   if (!org) return jsonError('Organization not found', 404);
-  if (!org.stripe_account_id) return jsonError('Stripe is not connected', 400);
+
+  let stripeConfig;
+  try {
+    stripeConfig = getStripeConfig(org);
+  } catch {
+    return jsonError('Stripe is not configured', 500);
+  }
+  const { stripe, accountId } = stripeConfig;
+  if (!accountId) return jsonError('Stripe is not connected', 400);
 
   const plansSettings = readPlansSettings(org.settings as Record<string, unknown> | null);
   if (!plansSettings.enabled) return jsonError('Customer subscriptions are disabled', 400);
@@ -98,9 +103,6 @@ export async function POST(request: NextRequest) {
     return jsonError('You already have an active subscription', 409);
   }
 
-  const stripe = new Stripe(stripeSecretKey);
-
-  // Stripe Customer を取得 or 作成（Connected Account 上）
   let stripeCustomerId = existingSub?.stripeCustomerId;
   if (!stripeCustomerId) {
     try {
@@ -113,7 +115,7 @@ export async function POST(request: NextRequest) {
             akinai_organization_id: verify.payload.org,
           },
         },
-        { stripeAccount: org.stripe_account_id }
+        { stripeAccount: accountId }
       );
       stripeCustomerId = stripeCustomer.id;
     } catch (err) {
@@ -151,7 +153,7 @@ export async function POST(request: NextRequest) {
           },
         },
       },
-      { stripeAccount: org.stripe_account_id }
+      { stripeAccount: accountId }
     );
   } catch (err) {
     console.error('Failed to create checkout session:', err);
@@ -233,9 +235,6 @@ export async function PATCH(request: NextRequest) {
   const verify = await verifyCustomerToken(request);
   if (!verify.success) return jsonError(verify.error, verify.status);
 
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeSecretKey) return jsonError('Stripe is not configured', 500);
-
   let body: { planId?: string; scheduleAtPeriodEnd?: boolean };
   try {
     body = await request.json();
@@ -247,15 +246,22 @@ export async function PATCH(request: NextRequest) {
 
   const supabase = getAdminSupabase();
 
-  // 組織情報とプラン定義を取得
   const { data: org } = await supabase
     .from('organizations')
-    .select('id, settings, stripe_account_id')
+    .select('id, settings, stripe_account_id, stripe_test_mode, stripe_test_account_id')
     .eq('id', verify.payload.org)
     .single();
 
   if (!org) return jsonError('Organization not found', 404);
-  if (!org.stripe_account_id) return jsonError('Stripe is not connected', 400);
+
+  let stripeConfig;
+  try {
+    stripeConfig = getStripeConfig(org);
+  } catch {
+    return jsonError('Stripe is not configured', 500);
+  }
+  const { stripe, accountId } = stripeConfig;
+  if (!accountId) return jsonError('Stripe is not connected', 400);
 
   const plansSettings = readPlansSettings(org.settings as Record<string, unknown> | null);
   if (!plansSettings.enabled) return jsonError('Customer subscriptions are disabled', 400);
@@ -291,14 +297,11 @@ export async function PATCH(request: NextRequest) {
     return jsonError('Already on this plan', 409);
   }
 
-  const stripe = new Stripe(stripeSecretKey);
-
-  // 現在の Stripe Subscription を取得して item ID を確認
   let stripeSub: Stripe.Subscription;
   try {
     stripeSub = await stripe.subscriptions.retrieve(
       existingSub.stripeSubscriptionId,
-      { stripeAccount: org.stripe_account_id }
+      { stripeAccount: accountId }
     );
   } catch (err) {
     console.error('Failed to retrieve subscription:', err);
@@ -314,34 +317,33 @@ export async function PATCH(request: NextRequest) {
       // 期間終了時に切り替え（ダウングレード予約）
       // proration_behavior: 'none' = 即時課金なし。次回更新時に新プランで請求される
       updatedSub = await stripe.subscriptions.update(
-        existingSub.stripeSubscriptionId,
-        {
-          items: [{ id: currentItemId, price: newPlan.stripePriceId }],
-          proration_behavior: 'none',
-          metadata: {
-            akinai_organization_id: verify.payload.org,
-            akinai_customer_id: customer.id,
-            akinai_plan_id: newPlan.id,
+          existingSub.stripeSubscriptionId,
+          {
+            items: [{ id: currentItemId, price: newPlan.stripePriceId }],
+            proration_behavior: 'none',
+            metadata: {
+              akinai_organization_id: verify.payload.org,
+              akinai_customer_id: customer.id,
+              akinai_plan_id: newPlan.id,
+            },
           },
-        },
-        { stripeAccount: org.stripe_account_id }
-      );
-    } else {
-      // 即時切り替え・日割り精算（アップグレード向け）
-      updatedSub = await stripe.subscriptions.update(
-        existingSub.stripeSubscriptionId,
-        {
-          items: [{ id: currentItemId, price: newPlan.stripePriceId }],
-          proration_behavior: 'always_invoice',
-          payment_behavior: 'error_if_incomplete',
-          metadata: {
-            akinai_organization_id: verify.payload.org,
-            akinai_customer_id: customer.id,
-            akinai_plan_id: newPlan.id,
+          { stripeAccount: accountId }
+        );
+      } else {
+        updatedSub = await stripe.subscriptions.update(
+          existingSub.stripeSubscriptionId,
+          {
+            items: [{ id: currentItemId, price: newPlan.stripePriceId }],
+            proration_behavior: 'always_invoice',
+            payment_behavior: 'error_if_incomplete',
+            metadata: {
+              akinai_organization_id: verify.payload.org,
+              akinai_customer_id: customer.id,
+              akinai_plan_id: newPlan.id,
+            },
           },
-        },
-        { stripeAccount: org.stripe_account_id }
-      );
+          { stripeAccount: accountId }
+        );
     }
   } catch (err) {
     console.error('Failed to update subscription:', err);
@@ -407,7 +409,7 @@ export async function PATCH(request: NextRequest) {
       ? updatedSub.latest_invoice
       : updatedSub.latest_invoice.id;
     try {
-      const invoice = await stripe.invoices.retrieve(invoiceId, { stripeAccount: org.stripe_account_id });
+      const invoice = await stripe.invoices.retrieve(invoiceId, { stripeAccount: accountId });
       latestInvoiceStatus = invoice.status;
 
       // 支払い成功 & subscriptionCreatesOrder が有効なら注文を作成
@@ -510,16 +512,22 @@ export async function DELETE(request: NextRequest) {
   const verify = await verifyCustomerToken(request);
   if (!verify.success) return jsonError(verify.error, verify.status);
 
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeSecretKey) return jsonError('Stripe is not configured', 500);
-
   const supabase = getAdminSupabase();
   const { data: org } = await supabase
     .from('organizations')
-    .select('stripe_account_id')
+    .select('stripe_account_id, stripe_test_mode, stripe_test_account_id')
     .eq('id', verify.payload.org)
     .single();
-  if (!org?.stripe_account_id) return jsonError('Stripe is not connected', 400);
+  if (!org) return jsonError('Organization not found', 404);
+
+  let stripeConfig;
+  try {
+    stripeConfig = getStripeConfig(org);
+  } catch {
+    return jsonError('Stripe is not configured', 500);
+  }
+  const { stripe, accountId } = stripeConfig;
+  if (!accountId) return jsonError('Stripe is not connected', 400);
 
   const { data: customer } = await supabase
     .from('customers')
@@ -534,12 +542,11 @@ export async function DELETE(request: NextRequest) {
     return jsonError('No active subscription', 404);
   }
 
-  const stripe = new Stripe(stripeSecretKey);
   try {
     await stripe.subscriptions.update(
       sub.stripeSubscriptionId,
       { cancel_at_period_end: true },
-      { stripeAccount: org.stripe_account_id }
+      { stripeAccount: accountId }
     );
   } catch (err) {
     console.error('Failed to cancel subscription:', err);

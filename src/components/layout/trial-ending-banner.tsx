@@ -1,44 +1,35 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, X, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 const DISMISS_KEY = 'trial_ending_banner_dismissed';
 
-export function TrialEndingBanner() {
-  const [info, setInfo] = useState<{
+interface TrialEndingBannerProps {
+  initialInfo: {
     subscription_status: string | null;
     trial_ends_at: string | null;
     plan: string;
-  } | null>(null);
-  const [dismissed, setDismissed] = useState(false);
+  } | null;
+}
 
-  useEffect(() => {
-    const savedDate = sessionStorage.getItem(DISMISS_KEY);
-    if (savedDate === new Date().toDateString()) {
-      setDismissed(true);
-      return;
-    }
-
-    fetch('/api/stripe/subscription')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) setInfo(data);
-      })
-      .catch(() => {});
-  }, []);
+export function TrialEndingBanner({ initialInfo }: TrialEndingBannerProps) {
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem(DISMISS_KEY) === new Date().toDateString();
+  });
 
   const handleDismiss = () => {
     sessionStorage.setItem(DISMISS_KEY, new Date().toDateString());
     setDismissed(true);
   };
 
-  if (dismissed || !info) return null;
-  if (info.subscription_status !== 'trialing') return null;
-  if (!info.trial_ends_at) return null;
+  if (dismissed || !initialInfo) return null;
+  if (initialInfo.subscription_status !== 'trialing') return null;
+  if (!initialInfo.trial_ends_at) return null;
 
-  const trialEnd = new Date(info.trial_ends_at);
+  const trialEnd = new Date(initialInfo.trial_ends_at);
   const now = new Date();
   const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 

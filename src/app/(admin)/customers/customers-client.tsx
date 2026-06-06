@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles, Download, Upload, Share2, Layers2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -78,7 +78,7 @@ export default function CustomersClient({
     return [];
   };
 
-  const searchFilteredCustomers = customers.filter(customer => {
+  const searchFilteredCustomers = useMemo(() => customers.filter(customer => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
     const phone = customer.phone ?? '';
@@ -93,16 +93,16 @@ export default function CustomersClient({
       (customer.referred_by_code?.toLowerCase() || '').includes(q) ||
       cfText.includes(q)
     );
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [customers, searchQuery]);
 
-  const filteredCustomers = searchFilteredCustomers.filter(customer => {
+  const filteredCustomers = useMemo(() => searchFilteredCustomers.filter(customer => {
     if (activeRole === 'referral') {
       return (customer.referral_count ?? 0) > 0;
     }
     if (activeRole !== 'all') {
       const roles = getCustomerRoles(customer);
       if (activeRole === 'multi') {
-        // マルチロールタブ: buyer と supplier を両方持つ顧客
         return roles.includes('buyer') && roles.includes('supplier');
       }
       const isMulti = roles.includes('buyer') && roles.includes('supplier');
@@ -110,7 +110,6 @@ export default function CustomersClient({
         if (!roles.includes('personal')) return false;
         if (isMulti) return false;
       } else {
-        // buyer / supplier タブ: 兼業（multi）は除外
         if (isMulti) return false;
         if (!roles.includes(activeRole)) return false;
       }
@@ -128,7 +127,8 @@ export default function CustomersClient({
       if (createdAt > to) return false;
     }
     return true;
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [searchFilteredCustomers, activeRole, dateFrom, dateTo]);
 
   const hasDateFilter = dateFrom !== '' || dateTo !== '';
   const clearDateFilter = () => { setDateFrom(''); setDateTo(''); };

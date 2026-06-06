@@ -24,6 +24,7 @@ import {
   readPlansSettings,
   readSubscriptionInfo,
 } from '@/lib/customer-subscription-plans';
+import { getStripeConfig } from '@/lib/stripe-client';
 
 function getAdminSupabase() {
   return createClient(
@@ -57,13 +58,9 @@ function sanitizeMetadata(
 }
 
 export async function POST(request: NextRequest) {
-  // API キー認証
   const auth = await validateApiKey(request);
   if (!auth.success) return jsonError(auth.error ?? 'Unauthorized', auth.status ?? 401);
   const organizationId = auth.organizationId!;
-
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeSecretKey) return jsonError('Stripe is not configured', 500);
 
   let body: {
     planId?: string;
@@ -88,12 +85,20 @@ export async function POST(request: NextRequest) {
   // 組織情報を取得
   const { data: org } = await supabase
     .from('organizations')
-    .select('id, settings, stripe_account_id')
+    .select('id, settings, stripe_account_id, stripe_test_mode, stripe_test_account_id')
     .eq('id', organizationId)
     .single();
 
   if (!org) return jsonError('Organization not found', 404);
-  if (!org.stripe_account_id) return jsonError('Stripe is not connected', 400);
+
+  let stripeConfig;
+  try {
+    stripeConfig = getStripeConfig(org);
+  } catch {
+    return jsonError('Stripe is not configured', 500);
+  }
+  const { stripe, accountId } = stripeConfig;
+  if (!accountId) return jsonError('Stripe is not connected', 400);
 
   // プラン設定を確認
   const plansSettings = readPlansSettings(org.settings as Record<string, unknown> | null);
@@ -113,7 +118,6 @@ export async function POST(request: NextRequest) {
 
   if (!customer) return jsonError('Customer not found', 404);
 
-  // 顧客の role がプランの targetRole と一致するか確認
   if (customer.role !== plan.targetRole) {
     return jsonError('Plan is not available for this customer type', 403);
   }
@@ -123,8 +127,6 @@ export async function POST(request: NextRequest) {
   if (existingSub && (existingSub.status === 'active' || existingSub.status === 'trialing')) {
     return jsonError('Customer already has an active subscription', 409);
   }
-
-  const stripe = new Stripe(stripeSecretKey);
 
   // Stripe Customer を取得 or 作成（Connected Account 上）
   let stripeCustomerId = existingSub?.stripeCustomerId;
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
             akinai_organization_id: organizationId,
           },
         },
-        { stripeAccount: org.stripe_account_id }
+        { stripeAccount: accountId }
       );
       stripeCustomerId = stripeCustomer.id;
     } catch (err) {
@@ -149,9 +151,6 @@ export async function POST(request: NextRequest) {
   }
 
   const extraMetadata = sanitizeMetadata(body.metadata);
-
-  // 同一顧客・同一プランへの重複セッション発行を防ぐ冪等キー
-  // 24時間以内に同じキーで呼ばれた場合、Stripe は既存セッションをそのまま返す
   const idempotencyKey = `sub-checkout-${organizationId}-${customer.id}-${plan.id}`;
 
   let session: Stripe.Checkout.Session;
@@ -177,7 +176,7 @@ export async function POST(request: NextRequest) {
           },
         },
       },
-      { stripeAccount: org.stripe_account_id, idempotencyKey }
+      { stripeAccount: accountId, idempotencyKey }
     );
   } catch (err) {
     console.error('Failed to create checkout session:', err);

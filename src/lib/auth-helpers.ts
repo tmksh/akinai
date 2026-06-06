@@ -109,7 +109,7 @@ export const getAuthOrganization = cache(async () => {
   if (organizationId) {
     const { data: orgData } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo, email, phone, website, address, frontend_url, frontend_api_key, plan, settings, owner_id, is_active, created_at, updated_at')
+      .select('id, name, slug, logo, email, phone, website, address, frontend_url, frontend_api_key, plan, settings, owner_id, is_active, created_at, updated_at, subscription_status, trial_ends_at')
       .eq('id', organizationId)
       .single();
     if (orgData) {

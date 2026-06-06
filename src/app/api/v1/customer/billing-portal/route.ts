@@ -10,10 +10,10 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import Stripe from 'stripe';
 import { verifyCustomerToken } from '@/lib/api/customer-auth';
 import { corsHeaders, handleOptions } from '@/lib/api/auth';
 import { readSubscriptionInfo } from '@/lib/customer-subscription-plans';
+import { getStripeConfig } from '@/lib/stripe-client';
 
 function jsonError(message: string, status: number) {
   const res = NextResponse.json({ error: message }, { status });
@@ -31,9 +31,6 @@ export async function POST(request: NextRequest) {
   const verify = await verifyCustomerToken(request);
   if (!verify.success) return jsonError(verify.error, verify.status);
 
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeSecretKey) return jsonError('Stripe is not configured', 500);
-
   let body: { returnUrl?: string };
   try {
     body = await request.json().catch(() => ({}));
@@ -47,10 +44,19 @@ export async function POST(request: NextRequest) {
 
   const { data: org } = await supabase
     .from('organizations')
-    .select('stripe_account_id, frontend_url')
+    .select('stripe_account_id, stripe_test_mode, stripe_test_account_id, frontend_url')
     .eq('id', verify.payload.org)
     .single();
-  if (!org?.stripe_account_id) return jsonError('Stripe is not connected', 400);
+  if (!org) return jsonError('Organization not found', 404);
+
+  let stripeConfig;
+  try {
+    stripeConfig = getStripeConfig(org);
+  } catch {
+    return jsonError('Stripe is not configured', 500);
+  }
+  const { stripe, accountId } = stripeConfig;
+  if (!accountId) return jsonError('Stripe is not connected', 400);
 
   const { data: customer } = await supabase
     .from('customers')
@@ -69,14 +75,13 @@ export async function POST(request: NextRequest) {
     body.returnUrl ||
     `${org.frontend_url || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/mypage`;
 
-  const stripe = new Stripe(stripeSecretKey);
   try {
     const portal = await stripe.billingPortal.sessions.create(
       {
         customer: sub.stripeCustomerId,
         return_url: returnUrl,
       },
-      { stripeAccount: org.stripe_account_id }
+      { stripeAccount: accountId }
     );
     return jsonSuccess({ url: portal.url });
   } catch (err) {

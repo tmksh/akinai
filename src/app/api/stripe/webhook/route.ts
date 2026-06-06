@@ -3,6 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { sendOrderEmails } from '@/lib/order-emails';
 import { readPlansSettings } from '@/lib/customer-subscription-plans';
+import { getWebhookSecretCandidates } from '@/lib/stripe-client';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAdmin = SupabaseClient<any, 'public', any>;
@@ -19,8 +20,11 @@ export async function GET() {
     endpoint: '/api/stripe/webhook',
     method: 'POST',
     hasStripeSecretKey: !!process.env.STRIPE_SECRET_KEY,
+    hasTestStripeSecretKey: !!process.env.STRIPE_TEST_SECRET_KEY,
     hasAccountWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
     hasConnectWebhookSecret: !!process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
+    hasTestAccountWebhookSecret: !!process.env.STRIPE_TEST_WEBHOOK_SECRET,
+    hasTestConnectWebhookSecret: !!process.env.STRIPE_TEST_CONNECT_WEBHOOK_SECRET,
     handles: [
       'payment_intent.succeeded',
       'payment_intent.payment_failed',
@@ -51,14 +55,7 @@ export async function GET() {
  * - checkout.session.completed → 注文を「支払い済み」に更新（Checkout Session モード用）
  */
 export async function POST(request: NextRequest) {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  // Account events 用と Connect events 用は Stripe 側で別 Endpoint として登録され、
-  // それぞれ別の署名シークレットになるので両方を読み込む。
-  // Stripe Dashboard で Endpoint を1つしか作っていない場合は、
-  // 同じシークレットを両方の env にセットすればよい。
-  const accountWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  const connectWebhookSecret =
-    process.env.STRIPE_CONNECT_WEBHOOK_SECRET || accountWebhookSecret;
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_TEST_SECRET_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -70,30 +67,25 @@ export async function POST(request: NextRequest) {
   const stripe = new Stripe(stripeSecretKey);
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // リクエストボディを raw text で取得（署名検証に必要）
   const body = await request.text();
 
   let event: Stripe.Event;
 
-  if (accountWebhookSecret || connectWebhookSecret) {
+  const secretCandidates = getWebhookSecretCandidates();
+
+  if (secretCandidates.length > 0) {
     const signature = request.headers.get('stripe-signature');
     if (!signature) {
       console.error('[Webhook] Missing stripe-signature header');
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
     }
 
-    // Account 用と Connect 用のシークレットを順に試す。
-    // どちらかで検証に成功すればそれを採用する。
-    const candidates = [
-      { name: 'account', secret: accountWebhookSecret },
-      { name: 'connect', secret: connectWebhookSecret },
-    ].filter((c): c is { name: string; secret: string } => !!c.secret);
-
+    // 本番・テスト両方のシークレットを順に試す
     let verified: Stripe.Event | null = null;
     let lastError: unknown = null;
-    for (const c of candidates) {
+    for (const secret of secretCandidates) {
       try {
-        verified = stripe.webhooks.constructEvent(body, signature, c.secret);
+        verified = stripe.webhooks.constructEvent(body, signature, secret);
         break;
       } catch (err) {
         lastError = err;
@@ -144,7 +136,7 @@ export async function POST(request: NextRequest) {
         if (session.mode === 'subscription') {
           // customer_id メタデータ付きはエンドユーザー向けサブスク
           if (session.metadata?.customer_id) {
-            await handleCustomerSubscriptionCheckoutComplete(supabase, session);
+            await handleCustomerSubscriptionCheckoutComplete(supabase, stripe, session, connectedAccountId);
           } else {
             await handleSubscriptionCheckoutComplete(supabase, session);
           }
@@ -613,7 +605,9 @@ async function ensureSubscriptionOrder(
  */
 async function handleCustomerSubscriptionCheckoutComplete(
   supabase: SupabaseAdmin,
-  session: Stripe.Checkout.Session
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+  connectedAccountId: string | null
 ) {
   const organizationId = session.metadata?.organization_id;
   const customerId = session.metadata?.customer_id;
@@ -649,13 +643,30 @@ async function handleCustomerSubscriptionCheckoutComplete(
   );
   const planLabel = resolvePlanLabel(plansSettingsForLabel, planId);
 
+  // サブスクリプションの current_period_end を Stripe から取得する
+  let currentPeriodEnd: string | null = null;
+  if (session.subscription) {
+    try {
+      const subId = typeof session.subscription === 'string'
+        ? session.subscription
+        : session.subscription.id;
+      const retrieveOptions = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
+      const stripeSub = await stripe.subscriptions.retrieve(subId, retrieveOptions as Parameters<typeof stripe.subscriptions.retrieve>[1]);
+      currentPeriodEnd = stripeSub.current_period_end
+        ? new Date(stripeSub.current_period_end * 1000).toISOString()
+        : null;
+    } catch (err) {
+      console.warn('[Webhook] failed to retrieve subscription for currentPeriodEnd:', err);
+    }
+  }
+
   const now = new Date().toISOString();
   const subscription = {
     planId,
     stripeSubscriptionId: session.subscription as string,
     stripeCustomerId: session.customer as string,
     status: 'active',
-    currentPeriodEnd: null,
+    currentPeriodEnd,
     cancelAtPeriodEnd: false,
     startedAt: now,
     updatedAt: now,

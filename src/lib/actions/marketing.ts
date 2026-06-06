@@ -72,12 +72,12 @@ export async function getAnalyticsOverview(
     return q;
   };
   const buildBucketViews = () => {
-    let q = supabase.from('page_views').select('viewed_at').eq('organization_id', organizationId).gte('viewed_at', since);
+    let q = supabase.from('page_views').select('viewed_at').eq('organization_id', organizationId).gte('viewed_at', since).limit(10000);
     if (productId) q = q.eq('product_id', productId);
     return q;
   };
   const buildBucketClicks = () => {
-    let q = supabase.from('product_clicks').select('clicked_at').eq('organization_id', organizationId).gte('clicked_at', since);
+    let q = supabase.from('product_clicks').select('clicked_at').eq('organization_id', organizationId).gte('clicked_at', since).limit(10000);
     if (productId) q = q.eq('product_id', productId);
     return q;
   };
@@ -87,8 +87,8 @@ export async function getAnalyticsOverview(
     buildClicksCount(),
     buildBucketViews(),
     buildBucketClicks(),
-    supabase.from('page_views').select('product_id, products!inner(id, name)').eq('organization_id', organizationId).gte('viewed_at', since).not('product_id', 'is', null),
-    supabase.from('product_clicks').select('product_id, click_type, products!inner(id, name)').eq('organization_id', organizationId).gte('clicked_at', since).not('product_id', 'is', null),
+    supabase.from('page_views').select('product_id, products!inner(id, name)').eq('organization_id', organizationId).gte('viewed_at', since).not('product_id', 'is', null).limit(2000),
+    supabase.from('product_clicks').select('product_id, click_type, products!inner(id, name)').eq('organization_id', organizationId).gte('clicked_at', since).not('product_id', 'is', null).limit(2000),
   ]);
 
   // バケット集計

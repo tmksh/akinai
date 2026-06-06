@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { triggerOrderEmails } from '@/lib/order-emails';
+import { getStripeConfig } from '@/lib/stripe-client';
 
 /**
  * POST /api/shop/checkout
@@ -56,7 +57,6 @@ interface CheckoutRequest {
 }
 
 export async function POST(request: NextRequest) {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   let body: CheckoutRequest;
@@ -80,14 +80,13 @@ export async function POST(request: NextRequest) {
 
   // リクエストのホスト名からショップの組織を特定
   const host = request.headers.get('host') || '';
-  const hostname = host.replace(/:\d+$/, ''); // ポート番号を除去
+  const hostname = host.replace(/:\d+$/, '');
 
   let org = null;
 
-  // 1. ホスト名でfrontend_urlが一致する組織を検索
   const { data: orgs } = await supabase
     .from('organizations')
-    .select('id, name, stripe_account_id, settings, frontend_url');
+    .select('id, name, stripe_account_id, stripe_test_mode, stripe_test_account_id, settings, frontend_url');
 
   if (orgs) {
     org = orgs.find(o => {
@@ -179,12 +178,15 @@ export async function POST(request: NextRequest) {
 
   // クレジットカードの場合は Stripe Checkout Session を作成
   if (body.paymentMethod === 'credit_card') {
-    if (!stripeSecretKey) {
+    let stripeConfig;
+    try {
+      stripeConfig = getStripeConfig(org);
+    } catch {
       return NextResponse.json({ error: 'Stripe設定がありません' }, { status: 500 });
     }
+    const { stripe, accountId } = stripeConfig;
 
-    const stripeAccountId = org.stripe_account_id as string | null;
-    if (!stripeAccountId) {
+    if (!accountId) {
       return NextResponse.json(
         { error: 'このショップはまだクレジットカード決済に対応していません' },
         { status: 400 }
@@ -192,8 +194,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const stripe = new Stripe(stripeSecretKey);
-
+      const stripe = stripeConfig.stripe;
       const successUrl = body.successUrl || `${appUrl}/shop/checkout/complete?session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = body.cancelUrl || `${appUrl}/shop/checkout/confirm`;
 
@@ -251,7 +252,7 @@ export async function POST(request: NextRequest) {
             },
           },
         },
-        { stripeAccount: stripeAccountId }
+        { stripeAccount: accountId }
       );
 
       // checkout_session_id を注文に保存
