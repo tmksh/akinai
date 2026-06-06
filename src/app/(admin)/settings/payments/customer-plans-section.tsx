@@ -14,7 +14,25 @@ import {
   Settings2,
   Copy,
   Hash,
+  GripVertical,
 } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -105,6 +123,51 @@ const INTERVAL_LABEL: Record<SubscriptionInterval, string> = {
   year: '年額',
 };
 
+function SortableFeatureItem({
+  id,
+  value,
+  showRemove,
+  onChange,
+  onRemove,
+}: {
+  id: string;
+  value: string;
+  showRemove: boolean;
+  onChange: (value: string) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
+      <button
+        type="button"
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="例: 商品掲載 50件まで"
+      />
+      {showRemove && (
+        <Button type="button" variant="ghost" size="icon" onClick={onRemove}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function StripeIdRow({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
@@ -154,6 +217,7 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const loadPlans = useCallback(async () => {
     setLoading(true);
@@ -265,6 +329,22 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
     }));
   };
 
+  const moveFeature = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setForm((prev) => {
+        const oldIndex = prev.features.findIndex((_, i) => String(i) === active.id);
+        const newIndex = prev.features.findIndex((_, i) => String(i) === over.id);
+        return { ...prev, features: arrayMove(prev.features, oldIndex, newIndex) };
+      });
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const handleSubmit = async () => {
     const amount = Number(form.amount);
     if (!form.name.trim()) {
@@ -310,6 +390,29 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
       toast.error('保存に失敗しました');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleToggleActive = async (plan: CustomerSubscriptionPlan) => {
+    setTogglingId(plan.id);
+    try {
+      const res = await fetch(`/api/stripe/customer-plans/${plan.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !plan.isActive }),
+      });
+      if (!res.ok) {
+        const result = await res.json().catch(() => ({}));
+        toast.error(result.error || '更新に失敗しました');
+        return;
+      }
+      toast.success(!plan.isActive ? '公開しました' : '非公開にしました');
+      await loadPlans();
+    } catch (e) {
+      console.error(e);
+      toast.error('更新に失敗しました');
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -484,11 +587,6 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium">{plan.name}</span>
-                              {!plan.isActive && (
-                                <Badge variant="outline" className="text-[10px]">
-                                  非公開
-                                </Badge>
-                              )}
                               <Badge
                                 variant="outline"
                                 className={cn(
@@ -516,6 +614,12 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
                             </div>
                           </div>
                           <div className="flex items-center gap-1 ml-3">
+                            <Switch
+                              checked={plan.isActive}
+                              disabled={togglingId === plan.id}
+                              onCheckedChange={() => handleToggleActive(plan)}
+                              title={plan.isActive ? '公開中（クリックで非公開）' : '非公開（クリックで公開）'}
+                            />
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button size="sm" variant="ghost" title="IDを確認">
@@ -653,28 +757,29 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
                   <Plus className="h-3.5 w-3.5 mr-1" /> 追加
                 </Button>
               </div>
-              <div className="space-y-2">
-                {form.features.map((feature, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      value={feature}
-                      onChange={(e) => updateFeature(idx, e.target.value)}
-                      placeholder="例: 商品掲載 50件まで"
-                    />
-                    {form.features.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeFeature(idx)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={moveFeature}
+              >
+                <SortableContext
+                  items={form.features.map((_, i) => String(i))}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-2">
+                    {form.features.map((feature, idx) => (
+                      <SortableFeatureItem
+                        key={idx}
+                        id={String(idx)}
+                        value={feature}
+                        showRemove={form.features.length > 1}
+                        onChange={(v) => updateFeature(idx, v)}
+                        onRemove={() => removeFeature(idx)}
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             </div>
 
             <div className="flex items-center justify-between rounded-lg border p-3">
