@@ -25,7 +25,7 @@ import {
 } from '@/lib/customer-subscription-plans';
 
 const VALID_ROLES: CustomerRoleKey[] = ['personal', 'buyer', 'supplier'];
-const VALID_INTERVALS: SubscriptionInterval[] = ['month', 'year'];
+const VALID_INTERVALS: SubscriptionInterval[] = ['day', 'month', 'year'];
 
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;

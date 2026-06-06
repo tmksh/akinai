@@ -100,6 +100,7 @@ const DEFAULT_FORM: PlanFormState = {
 };
 
 const INTERVAL_LABEL: Record<SubscriptionInterval, string> = {
+  day: '日次（テスト用）',
   month: '月額',
   year: '年額',
 };
@@ -637,6 +638,7 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="day">日次（テスト用）</SelectItem>
                     <SelectItem value="month">月額</SelectItem>
                     <SelectItem value="year">年額</SelectItem>
                   </SelectContent>

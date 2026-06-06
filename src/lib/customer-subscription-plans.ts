@@ -9,7 +9,7 @@
  */
 
 export type CustomerRoleKey = 'personal' | 'buyer' | 'supplier';
-export type SubscriptionInterval = 'month' | 'year';
+export type SubscriptionInterval = 'month' | 'year' | 'day';
 
 /** 1つのプラン定義 */
 export interface CustomerSubscriptionPlan {
