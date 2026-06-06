@@ -17,7 +17,7 @@ export default async function ProductsPage() {
   }
 
   const [p, c] = await Promise.all([
-    getProducts(organizationId, { limit: 100 }),
+    getProducts(organizationId),
     getCategories(organizationId),
   ]);
 

@@ -35,7 +35,7 @@ export async function getProducts(
   total: number;
 }> {
   const supabase = await createClient();
-  const limit = options?.limit ?? 50;
+  const limit = options?.limit;
   const offset = options?.offset ?? 0;
 
   try {
@@ -52,8 +52,11 @@ export async function getProducts(
         )
       `, { count: 'exact' })
       .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order('created_at', { ascending: false });
+
+    if (limit !== undefined) {
+      query = query.range(offset, offset + limit - 1);
+    }
 
     if (options?.status && options.status !== 'all') {
       query = query.eq('status', options.status);
