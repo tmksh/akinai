@@ -403,8 +403,9 @@ export async function PATCH(request: NextRequest) {
   );
 
   // 最新インボイスの状態を取得し、支払い済みなら注文を作成する
+  // ダウングレード予約（scheduleAtPeriodEnd=true）は即時課金なし → 注文作成不要
   let latestInvoiceStatus: string | null = null;
-  if (updatedSub.latest_invoice) {
+  if (!scheduleAtPeriodEnd && updatedSub.latest_invoice) {
     const invoiceId = typeof updatedSub.latest_invoice === 'string'
       ? updatedSub.latest_invoice
       : updatedSub.latest_invoice.id;
