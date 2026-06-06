@@ -565,7 +565,7 @@ export function CustomerSubscriptionPlansSection({ isStripeConnected }: Customer
 
       {/* 作成・編集ダイアログ */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'プランを編集' : '新規プラン作成'}</DialogTitle>
             <DialogDescription>
