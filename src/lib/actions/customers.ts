@@ -3,6 +3,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import Stripe from 'stripe';
+import { getStripeConfig } from '@/lib/stripe-client';
+import { readSubscriptionInfo } from '@/lib/customer-subscription-plans';
 
 function getAdminClient() {
   return createServiceClient(
@@ -304,7 +307,7 @@ export async function approveCustomer(customerId: string): Promise<{
   }
 }
 
-// 顧客を削除
+// 顧客を削除（Stripeサブスクがあれば先にキャンセル）
 export async function deleteCustomer(customerId: string): Promise<{
   success: boolean;
   error: string | null;
@@ -312,6 +315,39 @@ export async function deleteCustomer(customerId: string): Promise<{
   const supabase = getAdminClient();
 
   try {
+    // 顧客情報と組織のStripe設定を取得
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('custom_fields, organization_id')
+      .eq('id', customerId)
+      .single();
+
+    if (customer?.custom_fields && customer.organization_id) {
+      const sub = readSubscriptionInfo(customer.custom_fields as Record<string, unknown>);
+      if (sub?.stripeSubscriptionId && (sub.status === 'active' || sub.status === 'trialing')) {
+        // 組織のStripe設定を取得
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('stripe_account_id, stripe_test_mode, stripe_test_account_id')
+          .eq('id', customer.organization_id)
+          .single();
+
+        if (org) {
+          try {
+            const { stripe, accountId } = getStripeConfig(org);
+            await stripe.subscriptions.cancel(
+              sub.stripeSubscriptionId,
+              accountId ? { stripeAccount: accountId } as Parameters<typeof stripe.subscriptions.cancel>[1] : undefined
+            );
+            console.log(`[deleteCustomer] Stripe subscription cancelled: ${sub.stripeSubscriptionId}`);
+          } catch (stripeErr) {
+            // Stripe側が既にキャンセル済み等のエラーは無視して削除を続行
+            console.warn('[deleteCustomer] Stripe cancel failed (proceeding with delete):', stripeErr);
+          }
+        }
+      }
+    }
+
     // 住所は CASCADE で自動削除される
     const { error } = await supabase
       .from('customers')
