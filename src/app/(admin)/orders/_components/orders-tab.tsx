@@ -221,9 +221,17 @@ function mapOrderFromApi(row: Record<string, unknown>): Order {
   };
 }
 
+function mapInitialOrders(
+  raw: Awaited<ReturnType<typeof getOrders>>['data'],
+): Order[] {
+  if (!raw) return [];
+  return raw.map((o) => mapOrderFromApi(o as unknown as Record<string, unknown>));
+}
+
 export function OrdersTab() {
   const router = useRouter();
   const { organization } = useOrganization();
+  const organizationId = organization?.id;
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -234,24 +242,24 @@ export function OrdersTab() {
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
-    if (!organization?.id) {
+    if (!organizationId) {
       setOrders([]);
       setOrdersLoading(false);
       return;
     }
     let cancelled = false;
     setOrdersLoading(true);
-    getOrders(organization.id).then(({ data, error }) => {
+    getOrders(organizationId).then(({ data, error }) => {
       if (cancelled) return;
       setOrdersLoading(false);
       if (error || !data) {
         setOrders([]);
         return;
       }
-      setOrders(data.map((o) => mapOrderFromApi(o as unknown as Record<string, unknown>)));
+      setOrders(mapInitialOrders(data));
     });
     return () => { cancelled = true; };
-  }, [organization?.id]);
+  }, [organizationId]);
 
   const handlePresetChange = useCallback((preset: PresetType) => {
     setDatePreset(preset);

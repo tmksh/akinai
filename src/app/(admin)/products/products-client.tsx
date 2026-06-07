@@ -92,10 +92,10 @@ const formatCurrency = (value: number) =>
   new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(value);
 
 interface ProductsClientProps {
-  initialProducts: ProductWithRelations[];
-  initialCategories: Category[];
-  organizationId: string;
-  totalProducts: number;
+  initialProducts?: ProductWithRelations[];
+  initialCategories?: Category[];
+  organizationId?: string;
+  totalProducts?: number;
 }
 
 /** 未許可ホストやブロークンURLでもクラッシュしない商品サムネイル */
@@ -117,6 +117,7 @@ function ProductImage({ src, alt }: { src: string; alt: string }) {
       src={src}
       alt={alt}
       fill
+      unoptimized
       sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
       loading="lazy"
       className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -128,13 +129,33 @@ function ProductImage({ src, alt }: { src: string; alt: string }) {
 export default function ProductsClient({
   initialProducts,
   initialCategories,
-  organizationId,
-  totalProducts,
-}: ProductsClientProps) {
+  organizationId: organizationIdProp,
+  totalProducts: totalProductsProp,
+}: ProductsClientProps = {}) {
   const { organization } = useOrganization();
-  const [products, setProducts] = useState<ProductWithRelations[]>(initialProducts);
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const organizationId = organizationIdProp || organization?.id || '';
+  const [products, setProducts] = useState<ProductWithRelations[]>(initialProducts ?? []);
+  const [categories, setCategories] = useState<Category[]>(initialCategories ?? []);
+  const [totalProducts, setTotalProducts] = useState(totalProductsProp ?? 0);
+  const [isLoadingData, setIsLoadingData] = useState(!initialProducts);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!organizationId || initialProducts) return;
+    let cancelled = false;
+    setIsLoadingData(true);
+    Promise.all([
+      getProducts(organizationId, { limit: 100 }),
+      getCategories(organizationId),
+    ]).then(([p, c]) => {
+      if (cancelled) return;
+      setProducts(p.data || []);
+      setCategories(c.data || []);
+      setTotalProducts(p.total);
+      setIsLoadingData(false);
+    });
+    return () => { cancelled = true; };
+  }, [organizationId, initialProducts]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -862,7 +883,13 @@ export default function ProductsClient({
       )}
 
       {/* ── 商品グリッド ── */}
-      {filteredProducts.length === 0 ? (
+      {isLoadingData ? (
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="animate-pulse rounded-2xl border border-white/60 bg-white/40 h-52" />
+          ))}
+        </div>
+      ) : filteredProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-dashed border-sky-200/40" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(16px)' }}>
           <div className="w-16 h-16 rounded-full bg-sky-50 flex items-center justify-center mb-4">
             <Package className="h-8 w-8 text-sky-400" />

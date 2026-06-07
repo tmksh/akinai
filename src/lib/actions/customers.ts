@@ -3,6 +3,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import {
+  getOrSetCached,
+  orgCacheKey,
+  invalidateOrgCache,
+  MEMORY_TTL,
+} from '@/lib/api/memory-cache';
 import Stripe from 'stripe';
 import { getStripeConfig } from '@/lib/stripe-client';
 import { readSubscriptionInfo } from '@/lib/customer-subscription-plans';
@@ -36,8 +42,13 @@ export async function getCustomers(
   data: CustomerWithAddresses[] | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
   const limit = options?.limit ?? CUSTOMERS_LIST_DEFAULT_LIMIT;
+
+  return getOrSetCached(
+    orgCacheKey(organizationId, 'customers', `l${limit}`),
+    MEMORY_TTL.adminList,
+    async () => {
+  const supabase = await createClient();
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,6 +81,8 @@ export async function getCustomers(
       error: err instanceof Error ? err.message : 'Failed to fetch customers',
     };
   }
+    },
+  );
 }
 
 // 顧客詳細を取得

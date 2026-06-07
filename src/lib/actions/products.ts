@@ -3,6 +3,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import {
+  getOrSetCached,
+  orgCacheKey,
+  invalidateOrgCache,
+  MEMORY_TTL,
+} from '@/lib/api/memory-cache';
 import type { Database } from '@/types/database';
 
 function getAdminClient() {
@@ -25,6 +31,11 @@ export interface ProductWithRelations extends Product {
   categories: Category[];
 }
 
+function bustProductCaches(organizationId: string) {
+  invalidateOrgCache(organizationId, 'products');
+  invalidateOrgCache(organizationId, 'categories');
+}
+
 // 商品一覧を取得
 export async function getProducts(
   organizationId: string,
@@ -34,17 +45,23 @@ export async function getProducts(
   error: string | null;
   total: number;
 }> {
-  const supabase = await createClient();
   const limit = options?.limit;
   const offset = options?.offset ?? 0;
+  const cacheSuffix = `l${limit ?? 'all'}:o${offset}:s${options?.status ?? 'all'}:q${options?.search ?? ''}`;
+
+  return getOrSetCached(
+    orgCacheKey(organizationId, 'products', cacheSuffix),
+    MEMORY_TTL.adminList,
+    async () => {
+  const supabase = await createClient();
 
   try {
-    // 1クエリで商品＋バリエーション＋画像＋カテゴリをJOIN取得（一覧表示に必要なカラムのみ）
+    // 一覧用: description/tags を除外し転送量を削減
     let query = supabase
       .from('products')
       .select(`
-        id, name, slug, status, featured, tags, description, custom_fields, created_at, organization_id,
-        product_variants (id, name, sku, price, compare_at_price, stock),
+        id, name, slug, status, featured, custom_fields, created_at, organization_id,
+        product_variants (id, sku, price, stock),
         product_images (id, url, thumbnail_url, alt, sort_order),
         product_categories (
           category_id,
@@ -77,7 +94,8 @@ export async function getProducts(
       const { product_variants, product_images, product_categories, ...rest } = product as Record<string, unknown>;
       const variants = (product_variants as ProductVariant[]) || [];
       const images = ((product_images as ProductImage[]) || [])
-        .sort((a, b) => a.sort_order - b.sort_order);
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .slice(0, 1);
       const categories = ((product_categories as { category_id: string; categories: Category }[]) || [])
         .map(pc => pc.categories)
         .filter((c): c is Category => c !== null && c !== undefined);
@@ -95,6 +113,8 @@ export async function getProducts(
     console.error('Error fetching products:', error);
     return { data: null, error: 'Failed to fetch products', total: 0 };
   }
+    },
+  );
 }
 
 // カテゴリ一覧を取得
@@ -102,21 +122,26 @@ export async function getCategories(organizationId: string): Promise<{
   data: Category[] | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
+  return getOrSetCached(
+    orgCacheKey(organizationId, 'categories'),
+    MEMORY_TTL.settings,
+    async () => {
+      const supabase = await createClient();
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('id, name, slug, description, parent_id, sort_order, image, organization_id, created_at, updated_at')
+          .eq('organization_id', organizationId)
+          .order('sort_order', { ascending: true });
 
-  try {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .order('sort_order', { ascending: true });
-
-    if (error) throw error;
-    return { data, error: null };
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    return { data: null, error: 'Failed to fetch categories' };
-  }
+        if (error) throw error;
+        return { data, error: null };
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        return { data: null, error: 'Failed to fetch categories' };
+      }
+    },
+  );
 }
 
 // カテゴリごとの商品数を取得
@@ -198,6 +223,7 @@ export async function createCategory(input: {
 
     if (error) throw error;
 
+    bustProductCaches(input.organizationId);
     revalidatePath('/products');
     revalidatePath('/products/categories');
     return { data, error: null };
@@ -245,6 +271,7 @@ export async function updateCategory(
 
     if (error) throw error;
 
+    bustProductCaches(data.organization_id);
     revalidatePath('/products');
     revalidatePath('/products/categories');
     return { data, error: null };
@@ -275,6 +302,12 @@ export async function deleteCategory(categoryId: string): Promise<{
       return { success: false, error: `このカテゴリには${count}件の商品が紐づいています。先に商品のカテゴリを変更してください。` };
     }
 
+    const { data: category } = await supabase
+      .from('categories')
+      .select('organization_id')
+      .eq('id', categoryId)
+      .single();
+
     const { error } = await supabase
       .from('categories')
       .delete()
@@ -282,6 +315,7 @@ export async function deleteCategory(categoryId: string): Promise<{
 
     if (error) throw error;
 
+    if (category?.organization_id) bustProductCaches(category.organization_id);
     revalidatePath('/products');
     revalidatePath('/products/categories');
     return { success: true, error: null };
@@ -427,6 +461,7 @@ export async function createProduct(input: CreateProductInput): Promise<{
       if (catError) throw catError;
     }
 
+    bustProductCaches(input.organizationId);
     revalidatePath('/products');
     return { data: product, error: null };
   } catch (error) {
@@ -550,6 +585,7 @@ export async function updateProduct(input: UpdateProductInput): Promise<{
       }
     }
 
+    bustProductCaches(product.organization_id);
     revalidatePath('/products');
     revalidatePath(`/products/${input.id}`);
 
@@ -578,7 +614,12 @@ export async function deleteProduct(productId: string): Promise<{
   const supabase = await createClient();
 
   try {
-    // 関連データは CASCADE で自動削除される
+    const { data: product } = await supabase
+      .from('products')
+      .select('organization_id')
+      .eq('id', productId)
+      .single();
+
     const { error } = await supabase
       .from('products')
       .delete()
@@ -586,6 +627,7 @@ export async function deleteProduct(productId: string): Promise<{
 
     if (error) throw error;
 
+    if (product?.organization_id) bustProductCaches(product.organization_id);
     revalidatePath('/products');
     return { success: true, error: null };
   } catch (error) {
@@ -607,7 +649,13 @@ export async function deleteProducts(productIds: string[]): Promise<{
   const supabase = await createClient();
 
   try {
-    // 関連データは CASCADE で自動削除される
+    const { data: orgRow } = await supabase
+      .from('products')
+      .select('organization_id')
+      .in('id', productIds)
+      .limit(1)
+      .maybeSingle();
+
     const { error, count } = await supabase
       .from('products')
       .delete({ count: 'exact' })
@@ -615,6 +663,7 @@ export async function deleteProducts(productIds: string[]): Promise<{
 
     if (error) throw error;
 
+    if (orgRow?.organization_id) bustProductCaches(orgRow.organization_id);
     revalidatePath('/products');
     return { success: true, deletedCount: count ?? productIds.length, error: null };
   } catch (error) {
@@ -641,7 +690,7 @@ export async function bulkUpdateCustomFieldPerProduct(
   try {
     const { data: rows, error: fetchError } = await supabase
       .from('products')
-      .select('id, custom_fields')
+      .select('id, custom_fields, organization_id')
       .in('id', productIds);
 
     if (fetchError || !rows) throw fetchError ?? new Error('fetch failed');
@@ -670,6 +719,8 @@ export async function bulkUpdateCustomFieldPerProduct(
       if (error) throw error;
     }
 
+    const orgId = rows[0]?.organization_id as string | undefined;
+    if (orgId) bustProductCaches(orgId);
     revalidatePath('/products');
     return { success: true, updatedCount: updates.length };
   } catch (error) {
@@ -694,13 +745,16 @@ export async function updateProductStatus(
       updateData.published_at = new Date().toISOString();
     }
 
-    const { error } = await supabase
+    const { data: product, error } = await supabase
       .from('products')
       .update(updateData)
-      .eq('id', productId);
+      .eq('id', productId)
+      .select('organization_id')
+      .single();
 
     if (error) throw error;
 
+    if (product?.organization_id) bustProductCaches(product.organization_id);
     revalidatePath('/products');
     revalidatePath(`/products/${productId}`);
     return { success: true, error: null };
@@ -1082,6 +1136,7 @@ export async function importProducts(
     }
   }
 
+  bustProductCaches(organizationId);
   revalidatePath('/products');
   revalidatePath('/products/categories');
   return result;
@@ -1185,6 +1240,7 @@ export async function duplicateProduct(productId: string): Promise<{
 
     await Promise.all(inserts);
 
+    bustProductCaches(orig.organization_id);
     revalidatePath('/products');
     return { data: newProduct, error: null };
   } catch (error) {
@@ -1265,6 +1321,7 @@ export async function syncVariantImagesFromSource(
       }
     }
 
+    bustProductCaches(organizationId);
     revalidatePath('/products');
     return result;
   } catch (error) {

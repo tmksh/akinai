@@ -47,4 +47,20 @@ export const MEMORY_TTL = {
   master: 5 * 60 * 1000,
   catalog: 60 * 1000,
   settings: 2 * 60 * 1000,
+  /** 管理画面一覧（短め: 更新後も最大30秒で反映） */
+  adminList: 30 * 1000,
+  /** ダッシュボード集計 */
+  dashboard: 45 * 1000,
 } as const;
+
+/** 組織単位でキャッシュを無効化（mutation 後に呼ぶ） */
+export function invalidateOrgCache(organizationId: string, resource?: string): void {
+  const prefix = resource
+    ? `org:${organizationId}:${resource}`
+    : `org:${organizationId}:`;
+  for (const key of store.keys()) {
+    if (key.startsWith(prefix)) {
+      store.delete(key);
+    }
+  }
+}

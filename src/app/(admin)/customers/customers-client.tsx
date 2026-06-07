@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getCustomerStats } from '@/lib/actions/customers';
+import { getCustomerRoleLabels, getCustomerFieldSchema, getOrganizationFeatures } from '@/lib/actions/settings';
 import Link from 'next/link';
 import { Users, Plus, Search, Mail, UserPlus, Repeat, DollarSign, Phone, MapPin, Calendar, ShoppingBag, ExternalLink, X, Sparkles, Download, Upload, Share2, Layers2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,12 +27,12 @@ import { ImportTemplateDialog } from '@/components/customers/import-template-dia
 import { CustomerImportDialog } from '@/components/customers/import-dialog';
 
 interface CustomersClientProps {
-  initialCustomers: CustomerWithAddresses[];
-  initialStats: CustomerStats | null;
+  initialCustomers?: CustomerWithAddresses[];
+  initialStats?: CustomerStats | null;
   initialRoleLabels?: CustomerRoleLabels;
   initialRoleEnabled?: CustomerRoleEnabled;
   initialFieldSchema?: CustomerFieldSchema[];
-  organizationId: string;
+  organizationId?: string;
   referralEnabled?: boolean;
 }
 
@@ -56,21 +59,47 @@ export default function CustomersClient({
   initialRoleLabels,
   initialRoleEnabled,
   initialFieldSchema,
-  organizationId,
-  referralEnabled = false,
-}: CustomersClientProps) {
-  const [customers, setCustomers] = useState<CustomerWithAddresses[]>(initialCustomers);
+  organizationId: orgIdProp,
+  referralEnabled: referralEnabledProp,
+}: CustomersClientProps = {}) {
+  const { organization } = useOrganization();
+  const organizationId = orgIdProp || organization?.id || '';
+  const [customers, setCustomers] = useState<CustomerWithAddresses[]>(initialCustomers ?? []);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [stats] = useState<CustomerStats | null>(initialStats);
+  const [stats, setStats] = useState<CustomerStats | null>(initialStats ?? null);
+  const [roleLabels, setRoleLabels] = useState<CustomerRoleLabels>(initialRoleLabels ?? { ...DEFAULT_CUSTOMER_ROLE_LABELS });
+  const [roleEnabled, setRoleEnabled] = useState<CustomerRoleEnabled>(initialRoleEnabled ?? { ...DEFAULT_CUSTOMER_ROLE_ENABLED });
+  const [fieldSchema, setFieldSchema] = useState<CustomerFieldSchema[]>(initialFieldSchema ?? []);
+  const [referralEnabled, setReferralEnabled] = useState(referralEnabledProp ?? false);
+  const [isLoadingData, setIsLoadingData] = useState(!initialCustomers);
+
+  useEffect(() => {
+    if (!organizationId || initialCustomers) return;
+    let cancelled = false;
+    setIsLoadingData(true);
+    Promise.all([
+      getCustomers(organizationId),
+      getCustomerStats(organizationId),
+      getCustomerRoleLabels(organizationId),
+      getCustomerFieldSchema(organizationId),
+      getOrganizationFeatures(organizationId),
+    ]).then(([c, s, labels, schema, features]) => {
+      if (cancelled) return;
+      setCustomers(c.data || []);
+      setStats(s.data);
+      if (labels.data) setRoleLabels(labels.data);
+      if (labels.enabled) setRoleEnabled(labels.enabled);
+      setFieldSchema(schema.data || []);
+      setReferralEnabled(features.data.referral_code);
+      setIsLoadingData(false);
+    });
+    return () => { cancelled = true; };
+  }, [organizationId, initialCustomers]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithAddresses | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeRole, setActiveRole] = useState<'all' | 'personal' | 'buyer' | 'supplier' | 'multi' | 'referral'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const roleLabels: CustomerRoleLabels = initialRoleLabels ?? { ...DEFAULT_CUSTOMER_ROLE_LABELS };
-  const roleEnabled: CustomerRoleEnabled = initialRoleEnabled ?? { ...DEFAULT_CUSTOMER_ROLE_ENABLED };
-  const fieldSchema: CustomerFieldSchema[] = initialFieldSchema ?? [];
-
   const getCustomerRoles = (customer: CustomerWithAddresses): string[] => {
     const c = customer as unknown as { roles?: string[]; role?: string };
     if (Array.isArray(c.roles) && c.roles.length > 0) return c.roles;
@@ -255,7 +284,13 @@ export default function CustomersClient({
         </div>
       </div>
 
-            {/* 統計カード - オレンジグラデーション */}
+            {isLoadingData ? (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="animate-pulse h-24 rounded-2xl bg-white/40 border border-white/60" />
+                ))}
+              </div>
+            ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               {/* 総顧客数 - 薄いオレンジ */}
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-sky-50 via-sky-100/50 to-sky-50 dark:from-sky-950/40 dark:via-sky-900/30 dark:to-sky-950/40 border border-sky-100 dark:border-sky-800/30 shadow-sm hover:shadow-md transition-all duration-300">
@@ -301,6 +336,7 @@ export default function CustomersClient({
                 <p className="text-lg sm:text-2xl font-bold text-white">{formatCurrency(stats?.averageOrderValue || 0)}</p>
               </div>
             </div>
+            )}
 
       {/* 顧客一覧 */}
       <Card className="border-0 shadow-sm bg-white dark:bg-slate-900">
@@ -404,7 +440,13 @@ export default function CustomersClient({
             </div>
           </div>
 
-          {filteredCustomers.length === 0 ? (
+          {isLoadingData ? (
+            <div className="space-y-2">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="animate-pulse h-16 rounded-lg bg-slate-100 dark:bg-slate-800" />
+              ))}
+            </div>
+          ) : filteredCustomers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Users className="h-12 w-12 text-muted-foreground/30 mb-4" />
               <p className="text-muted-foreground">

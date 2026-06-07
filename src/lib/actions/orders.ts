@@ -3,6 +3,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import {
+  getOrSetCached,
+  orgCacheKey,
+  invalidateOrgCache,
+  MEMORY_TTL,
+} from '@/lib/api/memory-cache';
 import Stripe from 'stripe';
 import { getStripeConfig } from '@/lib/stripe-client';
 
@@ -209,6 +215,8 @@ export async function createOrder(input: CreateOrderInput): Promise<{
       }
     }
 
+    invalidateOrgCache(input.organizationId, 'orders');
+    invalidateOrgCache(input.organizationId, 'dashboard');
     revalidatePath('/orders');
     revalidatePath('/inventory');
     revalidatePath('/inventory/movements');
@@ -237,39 +245,47 @@ export async function getOrders(
   data: OrderWithItems[] | null;
   error: string | null;
 }> {
-  const supabase = await createClient();
   const limit = options?.limit ?? 50;
 
-  try {
-    const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('*, order_items (id, quantity, product_name, variant_name, unit_price, total_price, sku)')
-      .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+  return getOrSetCached(
+    orgCacheKey(organizationId, 'orders', `l${limit}`),
+    MEMORY_TTL.adminList,
+    async () => {
+      const supabase = await createClient();
+      try {
+        const { data: orders, error: ordersError } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            order_items (id, quantity, product_name, variant_name, unit_price, total_price, sku)
+          `)
+          .eq('organization_id', organizationId)
+          .order('created_at', { ascending: false })
+          .limit(limit);
 
-    if (ordersError) throw ordersError;
-    if (!orders || orders.length === 0) {
-      return { data: [], error: null };
-    }
+        if (ordersError) throw ordersError;
+        if (!orders || orders.length === 0) {
+          return { data: [], error: null };
+        }
 
-    // データを整形
-    const ordersWithItems: OrderWithItems[] = orders.map(order => {
-      const { order_items, ...rest } = order;
-      return {
-        ...rest,
-        items: (order_items as OrderItem[]) || [],
-      };
-    });
+        const ordersWithItems: OrderWithItems[] = orders.map(order => {
+          const { order_items, ...rest } = order;
+          return {
+            ...rest,
+            items: (order_items as OrderItem[]) || [],
+          };
+        });
 
-    return { data: ordersWithItems, error: null };
-  } catch (err) {
-    console.error('Failed to fetch orders:', err);
-    return {
-      data: null,
-      error: err instanceof Error ? err.message : 'Failed to fetch orders',
-    };
-  }
+        return { data: ordersWithItems, error: null };
+      } catch (err) {
+        console.error('Failed to fetch orders:', err);
+        return {
+          data: null,
+          error: err instanceof Error ? err.message : 'Failed to fetch orders',
+        };
+      }
+    },
+  );
 }
 
 // 注文詳細を取得
@@ -343,6 +359,8 @@ export async function updateOrderStatus(
 
     if (error) throw error;
 
+    invalidateOrgCache(data.organization_id, 'orders');
+    invalidateOrgCache(data.organization_id, 'dashboard');
     revalidatePath('/orders');
     revalidatePath(`/orders/${orderId}`);
 
@@ -376,6 +394,8 @@ export async function updatePaymentStatus(
 
     if (error) throw error;
 
+    invalidateOrgCache(data.organization_id, 'orders');
+    invalidateOrgCache(data.organization_id, 'dashboard');
     revalidatePath('/orders');
     revalidatePath(`/orders/${orderId}`);
 
@@ -409,6 +429,8 @@ export async function updateTrackingNumber(
 
     if (error) throw error;
 
+    invalidateOrgCache(data.organization_id, 'orders');
+    invalidateOrgCache(data.organization_id, 'dashboard');
     revalidatePath('/orders');
     revalidatePath(`/orders/${orderId}`);
 
@@ -442,6 +464,8 @@ export async function updateOrderNotes(
 
     if (error) throw error;
 
+    invalidateOrgCache(data.organization_id, 'orders');
+    invalidateOrgCache(data.organization_id, 'dashboard');
     revalidatePath('/orders');
     revalidatePath(`/orders/${orderId}`);
 
@@ -569,6 +593,8 @@ export async function shipOrder(
 
     if (error) throw error;
 
+    invalidateOrgCache(order.organization_id, 'orders');
+    invalidateOrgCache(order.organization_id, 'dashboard');
     revalidatePath('/orders');
     revalidatePath(`/orders/${orderId}`);
     revalidatePath('/inventory');
@@ -663,6 +689,8 @@ export async function cancelOrder(
 
     if (error) throw error;
 
+    invalidateOrgCache(order.organization_id, 'orders');
+    invalidateOrgCache(order.organization_id, 'dashboard');
     revalidatePath('/orders');
     revalidatePath(`/orders/${orderId}`);
     revalidatePath('/inventory');
@@ -955,6 +983,8 @@ export async function refundOrder(
 
     if (error) throw error;
 
+    invalidateOrgCache(order.organization_id, 'orders');
+    invalidateOrgCache(order.organization_id, 'dashboard');
     revalidatePath('/orders');
     revalidatePath(`/orders/${orderId}`);
     revalidatePath('/inventory');

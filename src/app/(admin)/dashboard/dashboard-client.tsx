@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { useOrganization } from '@/components/providers/organization-provider';
+import { getDashboardData } from '@/lib/actions/dashboard';
 import type { ResponsiveProps } from 'react-grid-layout';
 
 const DashboardChart = dynamic(
@@ -372,17 +374,54 @@ interface DashboardData {
   };
 }
 
+const EMPTY_DASHBOARD: DashboardData = {
+  revenue: { month: { total: 0, change: 0 }, year: { total: 0, change: 0 }, total: { total: 0, change: 0 } },
+  orders: { month: { total: 0, change: 0 }, year: { total: 0, change: 0 }, total: { total: 0, change: 0 } },
+  customers: { month: { total: 0, change: 0 }, year: { total: 0, change: 0 }, total: { total: 0, change: 0 } },
+  products: { total: 0, newThisMonth: 0 },
+  recentOrders: [],
+  topProducts: [],
+  lowStockItems: [],
+  monthlySales: [],
+  performance: {
+    salesTarget: 0, salesActual: 0, salesAchievement: 0,
+    ordersTarget: 0, ordersActual: 0, ordersAchievement: 0,
+    customersTarget: 0, customersActual: 0, customersAchievement: 0,
+    growthRate: 0, avgAchievement: 0, grade: '-',
+  },
+};
+
 interface DashboardClientProps {
-  initialData: DashboardData;
-  organizationId: string;
+  initialData?: DashboardData;
+  organizationId?: string;
 }
 
-export default function DashboardClient({ initialData, organizationId }: DashboardClientProps) {
+export default function DashboardClient({ initialData, organizationId: orgIdProp }: DashboardClientProps = {}) {
+  const { organization } = useOrganization();
+  const organizationId = orgIdProp || organization?.id || '';
+  const [dashboardData, setDashboardData] = useState<DashboardData>(initialData ?? EMPTY_DASHBOARD);
+  const [isLoadingData, setIsLoadingData] = useState(!initialData);
+
+  useEffect(() => {
+    if (!organizationId || initialData) return;
+    let cancelled = false;
+    setIsLoadingData(true);
+    getDashboardData(organizationId).then((data) => {
+      if (cancelled) return;
+      setDashboardData(data);
+      setPerformanceData(data.performance);
+      setIsLoadingData(false);
+    });
+    return () => { cancelled = true; };
+  }, [organizationId, initialData]);
+
+  const initialDataResolved = dashboardData;
+
   const [revenuePeriod, setRevenuePeriod] = useState<PeriodType>('month');
   const [ordersPeriod, setOrdersPeriod] = useState<PeriodType>('month');
   const [customersPeriod, setCustomersPeriod] = useState<PeriodType>('month');
   const [performanceMonth, setPerformanceMonth] = useState(0);
-  const [performanceData, setPerformanceData] = useState(initialData.performance);
+  const [performanceData, setPerformanceData] = useState(initialDataResolved.performance);
   const [isLoadingPerformance, setIsLoadingPerformance] = useState(false);
   const [layouts, setLayouts] = useState<Layouts>(defaultLayouts);
   
@@ -420,9 +459,9 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
   }, []);
   
   // 期間ごとのデータを取得
-  const getRevenueData = (period: PeriodType) => initialData.revenue[period];
-  const getOrdersData = (period: PeriodType) => initialData.orders[period];
-  const getCustomersData = (period: PeriodType) => initialData.customers[period];
+  const getRevenueData = (period: PeriodType) => initialDataResolved.revenue[period];
+  const getOrdersData = (period: PeriodType) => initialDataResolved.orders[period];
+  const getCustomersData = (period: PeriodType) => initialDataResolved.customers[period];
   
   const revenueStats = getRevenueData(revenuePeriod);
   const ordersStats = getOrdersData(ordersPeriod);
@@ -530,10 +569,10 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
             </div>
           </div>
           <p className="text-sm sm:text-lg font-semibold text-white/90">商品数</p>
-          <p className="text-2xl sm:text-4xl font-extrabold mt-1 sm:mt-2">{formatNumber(initialData.products.total)}<span className="text-lg sm:text-2xl font-bold ml-1 sm:ml-1.5 opacity-80">点</span></p>
+          <p className="text-2xl sm:text-4xl font-extrabold mt-1 sm:mt-2">{formatNumber(initialDataResolved.products.total)}<span className="text-lg sm:text-2xl font-bold ml-1 sm:ml-1.5 opacity-80">点</span></p>
           <div className="flex items-center gap-2 mt-auto pt-3">
             <span className="text-sm font-bold bg-white/20 px-3 py-1 rounded-full">
-              +{initialData.products.newThisMonth}
+              +{initialDataResolved.products.newThisMonth}
             </span>
             <TrendingUp className="h-5 w-5" />
           </div>
@@ -585,14 +624,14 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           <div>
             <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">売上サマリー</p>
             <p className="text-2xl font-black text-foreground mt-0.5 tracking-tight tabular-nums">
-              ¥{(initialData.revenue.month.total / 10000).toFixed(1)}<span className="text-sm font-medium text-muted-foreground ml-1">万</span>
+              ¥{(initialDataResolved.revenue.month.total / 10000).toFixed(1)}<span className="text-sm font-medium text-muted-foreground ml-1">万</span>
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={cn(
                 "text-xs font-semibold",
-                initialData.revenue.month.change >= 0 ? "text-sky-500" : "text-destructive"
+                initialDataResolved.revenue.month.change >= 0 ? "text-sky-500" : "text-destructive"
               )}>
-                {initialData.revenue.month.change >= 0 ? '▲' : '▼'} {Math.abs(initialData.revenue.month.change)}%
+                {initialDataResolved.revenue.month.change >= 0 ? '▲' : '▼'} {Math.abs(initialDataResolved.revenue.month.change)}%
               </span>
               <span className="text-[10px] text-muted-foreground">前月比</span>
             </div>
@@ -609,7 +648,7 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           </div>
         </div>
         <div className="h-[calc(100%-80px)]">
-          <DashboardChart data={initialData.monthlySales} />
+          <DashboardChart data={initialDataResolved.monthlySales} />
         </div>
       </WidgetWrapper>
     ),
@@ -770,9 +809,9 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
             <Link href="/orders">すべて<ArrowRight className="ml-1 h-3 w-3" /></Link>
           </Button>
         </div>
-        {initialData.recentOrders.length > 0 ? (
+        {initialDataResolved.recentOrders.length > 0 ? (
           <div className="space-y-1 overflow-y-auto h-[calc(100%-44px)] scrollbar-thin">
-            {initialData.recentOrders.map((order) => {
+            {initialDataResolved.recentOrders.map((order) => {
               const statusConfig = orderStatusConfig[order.status as OrderStatus] ?? { label: String(order.status), color: 'bg-slate-100 text-slate-700' };
               const customerName = order.customer_name ?? '顧客';
               const total = Number(order.total) || 0;
@@ -815,15 +854,15 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
           boxShadow: 'inset 0 2px 6px rgba(14,165,233,0.06), inset 0 1px 2px rgba(14,165,233,0.04), 0 1px 0 rgba(255,255,255,0.9)',
         }}>
         <div className="flex items-center gap-2 mb-3">
-          <AlertCircle className={cn("h-4 w-4", initialData.lowStockItems.length > 0 ? "text-sky-500" : "text-slate-400")} />
+          <AlertCircle className={cn("h-4 w-4", initialDataResolved.lowStockItems.length > 0 ? "text-sky-500" : "text-slate-400")} />
           <h3 className="font-semibold text-slate-900 dark:text-white text-sm">在庫アラート</h3>
-          {initialData.lowStockItems.length > 0 && (
-            <Badge className="bg-sky-500 text-white text-[9px] h-4 px-1.5">{initialData.lowStockItems.length}</Badge>
+          {initialDataResolved.lowStockItems.length > 0 && (
+            <Badge className="bg-sky-500 text-white text-[9px] h-4 px-1.5">{initialDataResolved.lowStockItems.length}</Badge>
           )}
         </div>
-        {initialData.lowStockItems.length > 0 ? (
+        {initialDataResolved.lowStockItems.length > 0 ? (
           <div className="space-y-1.5 overflow-y-auto h-[calc(100%-44px)] scrollbar-thin">
-            {initialData.lowStockItems.map((item) => (
+            {initialDataResolved.lowStockItems.map((item) => (
               <Link
                 key={`${item.productId}-${item.variantId}`}
                 href={`/products/${item.productId}`}
@@ -880,9 +919,9 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
             <Link href="/products">すべて見る<ArrowRight className="ml-1 h-3 w-3" /></Link>
           </Button>
         </div>
-        {initialData.topProducts.length > 0 ? (
+        {initialDataResolved.topProducts.length > 0 ? (
           <div className="flex gap-3 overflow-x-auto overflow-y-hidden h-[calc(100%-52px)] pb-2 scrollbar-thin">
-            {initialData.topProducts.map((product, index) => (
+            {initialDataResolved.topProducts.map((product, index) => (
               <Link
                 key={product.id}
                 href={`/products/${product.id}`}
@@ -975,7 +1014,17 @@ export default function DashboardClient({ initialData, organizationId }: Dashboa
 
       {/* ウィジェットグリッド */}
       <div ref={containerRef} className="overflow-x-hidden w-full min-w-0">
-        {width > 0 && (
+        {isLoadingData ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="animate-pulse rounded-2xl bg-white/40 border border-white/60"
+                style={{ height: i < 4 ? 120 : 200 }}
+              />
+            ))}
+          </div>
+        ) : width > 0 && (
         <Responsive
           className="layout"
           width={width}

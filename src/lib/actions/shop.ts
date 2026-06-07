@@ -1,70 +1,99 @@
 'use server';
 
+import { cache } from 'react';
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 
-/**
- * リクエストのホスト名からショップの組織IDを解決する
- * 優先順位: shop_subdomain一致 → frontend_url一致 → NEXT_PUBLIC_ORGANIZATION_ID → 先頭レコード
- */
-async function resolveOrganizationId(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
-  // ホスト名を取得（Server Actions では next/headers を使用）
-  let hostname = '';
+async function getRequestHostname(): Promise<string> {
   try {
     const headersList = await headers();
-    // middleware が付加した x-shop-hostname を優先（リライト時もオリジナルホスト名を保持）
     const shopHostname = headersList.get('x-shop-hostname');
     const host = shopHostname || headersList.get('host') || '';
-    hostname = host.replace(/:\d+$/, '');
+    return host.replace(/:\d+$/, '');
   } catch {
-    // headers() が使えない場合はスキップ
+    return '';
   }
+}
 
-  const { data: orgs } = await supabase
-    .from('organizations')
-    .select('id, frontend_url, shop_subdomain');
-
-  if (!orgs || orgs.length === 0) return null;
-
+/**
+ * リクエストのホスト名からショップの組織IDを解決する
+ * 優先順位: shop_subdomain一致 → slug一致 → frontend_url一致 → 環境変数 → 先頭レコード
+ * 同一リクエスト内は cache() で dedupe、全件スキャンは避けてインデックス付きクエリを使用
+ */
+async function resolveOrganizationIdImpl(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  hostname: string,
+): Promise<string | null> {
   if (hostname) {
-    // 1. shop_subdomain（独自ドメイン）で完全一致
-    const bySubdomain = orgs.find(o => o.shop_subdomain && o.shop_subdomain === hostname);
+    const { data: bySubdomain } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('shop_subdomain', hostname)
+      .maybeSingle();
     if (bySubdomain) return bySubdomain.id;
 
-    // 2. frontend_url のホスト名と一致
-    const byFrontendUrl = orgs.find(o => {
+    const adminDomain = process.env.NEXT_PUBLIC_ADMIN_DOMAIN || 'akinai-dx.com';
+    if (hostname.endsWith(`.${adminDomain}`)) {
+      const subdomain = hostname.replace(`.${adminDomain}`, '');
+      const { data: bySlug } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('slug', subdomain)
+        .maybeSingle();
+      if (bySlug) return bySlug.id;
+    }
+
+    const { data: orgsWithUrl } = await supabase
+      .from('organizations')
+      .select('id, frontend_url')
+      .not('frontend_url', 'is', null);
+    const byFrontendUrl = orgsWithUrl?.find(o => {
       if (!o.frontend_url) return false;
       try {
-        const url = new URL(o.frontend_url as string);
-        return url.hostname === hostname;
+        return new URL(o.frontend_url as string).hostname === hostname;
       } catch {
         return false;
       }
     });
     if (byFrontendUrl) return byFrontendUrl.id;
-
-    // 3. サブドメイン形式（xxx.akinai-dx.com）から slug 部分を抽出して一致
-    const adminDomain = process.env.NEXT_PUBLIC_ADMIN_DOMAIN || 'akinai-dx.com';
-    if (hostname.endsWith(`.${adminDomain}`)) {
-      const subdomain = hostname.replace(`.${adminDomain}`, '');
-      const bySlug = orgs.find(o => {
-        // shop_subdomain が未設定の場合は slug でも検索
-        const orgAny = o as Record<string, unknown>;
-        return orgAny.slug === subdomain;
-      });
-      if (bySlug) return bySlug.id;
-    }
   }
 
-  // 4. 環境変数でフォールバック
   const envOrgId = process.env.NEXT_PUBLIC_ORGANIZATION_ID;
   if (envOrgId) {
-    const found = orgs.find(o => o.id === envOrgId);
-    if (found) return found.id;
+    const { data: byEnv } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('id', envOrgId)
+      .maybeSingle();
+    if (byEnv) return byEnv.id;
   }
 
-  // 5. 先頭レコードで最終フォールバック
-  return orgs[0].id;
+  const { data: fallback } = await supabase
+    .from('organizations')
+    .select('id')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return fallback?.id ?? null;
+}
+
+const resolveOrganizationIdCached = cache(async () => {
+  const supabase = await createClient();
+  const hostname = await getRequestHostname();
+  return resolveOrganizationIdImpl(supabase, hostname);
+});
+
+async function resolveOrganizationId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string | null> {
+  const hostname = await getRequestHostname();
+  return resolveOrganizationIdImpl(supabase, hostname);
+}
+
+/** レイアウト等の Server Component から組織IDを取得（リクエスト内 dedupe） */
+export async function getShopOrganizationId(): Promise<string | null> {
+  return resolveOrganizationIdCached();
 }
 import type { Database } from '@/types/database';
 
@@ -165,10 +194,10 @@ export async function getShopProducts(options?: {
       if (!organizationId) return { data: [], error: null };
     }
 
-    // 公開中の商品を取得
+    // 公開中の商品を取得（一覧表示に必要なカラムのみ）
     let productQuery = supabase
       .from('products')
-      .select('*')
+      .select('id, name, slug, description, short_description, featured, custom_fields, organization_id, supplier_id, published_at, created_at')
       .eq('organization_id', organizationId)
       .eq('status', 'published');
 
@@ -203,7 +232,7 @@ export async function getShopProducts(options?: {
     // バリエーションを取得
     const { data: variants, error: variantsError } = await supabase
       .from('product_variants')
-      .select('*')
+      .select('id, product_id, name, sku, price, compare_at_price, stock, options, image_url')
       .in('product_id', productIds);
 
     if (variantsError) throw variantsError;
@@ -211,7 +240,7 @@ export async function getShopProducts(options?: {
     // 画像を取得
     const { data: images, error: imagesError } = await supabase
       .from('product_images')
-      .select('*')
+      .select('id, product_id, url, alt, sort_order')
       .in('product_id', productIds)
       .order('sort_order', { ascending: true });
 
@@ -227,14 +256,15 @@ export async function getShopProducts(options?: {
 
     // カテゴリ詳細を取得
     const categoryIds = [...new Set(productCategories?.map(pc => pc.category_id) || [])];
-    let categories: Category[] = [];
+    type CategorySummary = Pick<Category, 'id' | 'name' | 'slug' | 'description' | 'image'>;
+    let categories: CategorySummary[] = [];
     if (categoryIds.length > 0) {
       const { data: catData, error: catError } = await supabase
         .from('categories')
-        .select('*')
+        .select('id, name, slug, description, image')
         .in('id', categoryIds);
       if (catError) throw catError;
-      categories = catData || [];
+      categories = (catData || []) as CategorySummary[];
     }
 
     // カテゴリフィルター
@@ -375,14 +405,15 @@ export async function getShopProduct(productIdOrSlug: string): Promise<{
     if (pcError) throw pcError;
 
     const categoryIds = productCategories?.map(pc => pc.category_id) || [];
-    let categories: Category[] = [];
+    type CategorySummary = Pick<Category, 'id' | 'name' | 'slug' | 'description' | 'image'>;
+    let categories: CategorySummary[] = [];
     if (categoryIds.length > 0) {
       const { data: catData, error: catError } = await supabase
         .from('categories')
-        .select('*')
+        .select('id, name, slug, description, image')
         .in('id', categoryIds);
       if (catError) throw catError;
-      categories = catData || [];
+      categories = (catData || []) as CategorySummary[];
     }
 
     const prices = variants?.map(v => v.price) || [];
@@ -453,7 +484,7 @@ export async function getShopCategories(organizationId?: string): Promise<{
 
     const { data: categories, error: catError } = await supabase
       .from('categories')
-      .select('*')
+      .select('id, name, slug, description, image, sort_order')
       .eq('organization_id', orgId)
       .order('sort_order', { ascending: true });
 

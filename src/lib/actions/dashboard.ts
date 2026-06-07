@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { getOrSetCached, orgCacheKey, invalidateOrgCache, MEMORY_TTL } from '@/lib/api/memory-cache';
 
 // 期間タイプ
 type PeriodType = 'month' | 'year' | 'total';
@@ -138,6 +139,14 @@ export async function getPerformanceData(organizationId: string, monthOffset: nu
 
 // ダッシュボード全体のデータを一括取得（1つのSupabaseクライアントで全クエリ実行）
 export async function getDashboardData(organizationId: string) {
+  return getOrSetCached(
+    orgCacheKey(organizationId, 'dashboard'),
+    MEMORY_TTL.dashboard,
+    async () => fetchDashboardData(organizationId),
+  );
+}
+
+async function fetchDashboardData(organizationId: string) {
   const supabase = await createClient();
   const now = new Date();
 

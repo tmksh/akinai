@@ -81,7 +81,6 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* ヘッダー */}
       <div>
         <h1 className="text-2xl font-bold">設定</h1>
         <p className="text-muted-foreground">
@@ -89,13 +88,10 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* 設定カテゴリー */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {settingsCategories.flatMap((section) =>
           section.items.map((category) => {
             const Icon = category.icon;
-
-            // 通常カード
             return (
               <Link key={category.href!} href={category.href!}>
                 <Card className="card-hover h-full cursor-pointer group">
@@ -126,7 +122,6 @@ export default function SettingsPage() {
           })
         )}
       </div>
-
     </div>
   );
 }

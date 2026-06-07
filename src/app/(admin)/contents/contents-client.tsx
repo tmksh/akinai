@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
+import { getContents, getContentStats } from '@/lib/actions/contents';
+import { getEnabledContentTypes } from '@/lib/actions/settings';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -86,24 +88,55 @@ const formatDate = (dateString?: string | null) => {
 };
 
 interface ContentsClientProps {
-  initialContents: ContentData[];
-  stats: {
+  initialContents?: ContentData[];
+  stats?: {
     total: number;
     published: number;
     draft: number;
     scheduled: number;
   };
-  organizationId: string;
-  /** 設定で「使う」にしたタイプのみ。空のときは新規作成不可・タイプフィルターはすべて非表示 */
-  enabledContentTypes: string[];
+  organizationId?: string;
+  enabledContentTypes?: string[];
 }
 
-export default function ContentsClient({ initialContents, stats, organizationId, enabledContentTypes }: ContentsClientProps) {
+const EMPTY_STATS = { total: 0, published: 0, draft: 0, scheduled: 0 };
+
+export default function ContentsClient({
+  initialContents,
+  stats: statsProp,
+  organizationId: orgIdProp,
+  enabledContentTypes: enabledTypesProp,
+}: ContentsClientProps = {}) {
   const { organization } = useOrganization();
-  const [contents, setContents] = useState<ContentData[]>(initialContents);
+  const organizationId = orgIdProp || organization?.id || '';
+  const [contents, setContents] = useState<ContentData[]>(initialContents ?? []);
+  const [stats, setStats] = useState(statsProp ?? EMPTY_STATS);
+  const [enabledContentTypes, setEnabledContentTypes] = useState<string[]>(enabledTypesProp ?? []);
+  const [isLoadingData, setIsLoadingData] = useState(!initialContents);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<string>(enabledContentTypes[0] ?? '');
+  const [activeTab, setActiveTab] = useState<string>(enabledTypesProp?.[0] ?? '');
+
+  useEffect(() => {
+    if (!organizationId || initialContents) return;
+    let cancelled = false;
+    setIsLoadingData(true);
+    Promise.all([
+      getContentStats(organizationId),
+      getEnabledContentTypes(organizationId),
+    ]).then(async ([s, t]) => {
+      if (cancelled) return;
+      const types = t.data || [];
+      setStats(s || EMPTY_STATS);
+      setEnabledContentTypes(types);
+      if (types[0]) setActiveTab(types[0]);
+      const perType = await Promise.all(types.map((type) => getContents(organizationId, { type, limit: 200 })));
+      if (cancelled) return;
+      setContents(perType.flatMap((r) => r.data || []));
+      setIsLoadingData(false);
+    });
+    return () => { cancelled = true; };
+  }, [organizationId, initialContents]);
   const [deleteTarget, setDeleteTarget] = useState<ContentData | null>(null);
   const [bulkDeleteType, setBulkDeleteType] = useState<string | null>(null);
   const [displayLimit, setDisplayLimit] = useState<Record<string, number>>({});
@@ -436,7 +469,20 @@ export default function ContentsClient({ initialContents, stats, organizationId,
       {/* ページタブ（複数タブある場合のみ表示） */}
       {contentTabs.length > 1 && <PageTabs tabs={contentTabs} />}
 
-      {/* フィルタータブ（設定で有効にしたタイプを表示。0件でもタブを出して「このタイプで追加」できる） */}
+      {isLoadingData ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="animate-pulse h-8 w-24 rounded-lg bg-white/40" />
+            ))}
+          </div>
+          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="animate-pulse rounded-2xl border border-white/60 bg-white/40 h-52" />
+            ))}
+          </div>
+        </div>
+      ) : (
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           {allDisplayTypes.map((type) => {
@@ -570,9 +616,10 @@ export default function ContentsClient({ initialContents, stats, organizationId,
           );
         })}
       </Tabs>
+      )}
 
       {/* タイプが未設定の場合の案内 */}
-      {allDisplayTypes.length === 0 && (
+      {!isLoadingData && allDisplayTypes.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <FileText className="h-12 w-12 text-muted-foreground mb-3" />
           <p className="text-muted-foreground mb-3">

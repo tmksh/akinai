@@ -1,6 +1,5 @@
 'use client';
 
-import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { OrdersTabSkeleton } from './_components/tab-skeleton';
 
@@ -27,9 +26,7 @@ export default function OrdersPage() {
         }}
       >
         <div className="p-5 sm:p-6">
-          <Suspense fallback={<OrdersTabSkeleton />}>
-            <OrdersTab />
-          </Suspense>
+          <OrdersTab />
         </div>
       </div>
     </div>

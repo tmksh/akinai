@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Package } from 'lucide-react';
@@ -67,17 +66,13 @@ function ProductCard({ product }: { product: ShopProduct }) {
 }
 
 // 商品リストコンポーネント
-async function ProductList({ 
-  categorySlug, 
-  sortBy 
-}: { 
-  categorySlug: string; 
-  sortBy: string;
+function ProductList({
+  products,
+  error,
+}: {
+  products: ShopProduct[];
+  error: string | null;
 }) {
-  const { data: products, error } = await getShopProducts({
-    categorySlug: categorySlug !== 'all' ? categorySlug : undefined,
-    sortBy: sortBy as 'popular' | 'new' | 'price-low' | 'price-high',
-  });
 
   if (error || !products) {
     return (
@@ -112,13 +107,17 @@ async function ProductList({
   );
 }
 
-// カテゴリタブ（Server Component）
-async function CategoryTabs({ currentCategory }: { currentCategory: string }) {
-  const { data: categories } = await getShopCategories();
-  
+// カテゴリタブ
+function CategoryTabs({
+  currentCategory,
+  categories,
+}: {
+  currentCategory: string;
+  categories: { id: string; name: string; slug: string }[];
+}) {
   const allCategories = [
     { id: 'all', name: 'All', slug: 'all' },
-    ...(categories || []).map(c => ({ id: c.id, name: c.name, slug: c.slug })),
+    ...categories.map(c => ({ id: c.id, name: c.name, slug: c.slug })),
   ];
 
   return (
@@ -141,22 +140,6 @@ async function CategoryTabs({ currentCategory }: { currentCategory: string }) {
   );
 }
 
-// ローディングスケルトン
-function ProductSkeleton() {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-8 sm:gap-x-4 sm:gap-y-10 md:gap-x-6 md:gap-y-14 pt-8 sm:pt-10">
-      {[...Array(8)].map((_, i) => (
-        <div key={i} className="animate-pulse">
-          <div className="aspect-[3/4] bg-slate-200 rounded mb-4" />
-          <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
-          <div className="h-3 bg-slate-200 rounded w-1/2 mb-2" />
-          <div className="h-4 bg-slate-200 rounded w-1/4" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default async function ProductsPage({
   searchParams,
 }: {
@@ -171,12 +154,14 @@ export default async function ProductsPage({
     getShopCategories(),
     getShopProducts({
       categorySlug: categorySlug !== 'all' ? categorySlug : undefined,
+      sortBy: sortBy as 'popular' | 'new' | 'price-low' | 'price-high',
     }),
   ]);
-  const categories = categoriesRes.data;
-  const currentCategory = categories?.find(c => c.slug === categorySlug);
+  const categories = categoriesRes.data || [];
+  const products = productsRes.data || [];
+  const currentCategory = categories.find(c => c.slug === categorySlug);
   const categoryName = categorySlug === 'all' ? 'すべての製品' : currentCategory?.name || 'すべての製品';
-  const productCount = productsRes.data?.length || 0;
+  const productCount = products.length;
 
   return (
     <div className="min-h-screen bg-white">
@@ -197,18 +182,14 @@ export default async function ProductsPage({
         {/* フィルターバー */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-10 border-b border-slate-100">
           {/* カテゴリータブ */}
-          <Suspense fallback={<div className="h-10 bg-slate-100 animate-pulse rounded w-64" />}>
-            <CategoryTabs currentCategory={categorySlug} />
-          </Suspense>
+          <CategoryTabs currentCategory={categorySlug} categories={categories} />
 
           {/* ソート */}
           <SortSelect currentSort={sortBy} currentCategory={categorySlug} />
         </div>
 
         {/* 商品グリッド */}
-        <Suspense fallback={<ProductSkeleton />}>
-          <ProductList categorySlug={categorySlug} sortBy={sortBy} />
-        </Suspense>
+        <ProductList products={products} error={productsRes.error} />
       </div>
     </div>
   );

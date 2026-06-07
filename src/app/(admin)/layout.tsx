@@ -1,6 +1,4 @@
-import { Suspense } from 'react';
 import { TopNavigation } from '@/components/layout/top-navigation';
-import { NavigationProgress } from '@/components/layout/navigation-progress';
 import { TrialEndingBanner } from '@/components/layout/trial-ending-banner';
 import { OrganizationProvider } from '@/components/providers/organization-provider';
 import type { Organization, CurrentUser } from '@/components/providers/organization-provider';
@@ -72,9 +70,6 @@ export default async function AdminLayout({
 
   return (
     <OrganizationProvider initialOrganization={organization} initialUser={currentUser}>
-      <Suspense fallback={null}>
-        <NavigationProgress />
-      </Suspense>
       <div className="min-h-screen overflow-x-hidden main-gradient-bg relative">
         <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
           <div className="absolute top-0 left-[10%] w-[600px] h-[400px] opacity-[0.18]"

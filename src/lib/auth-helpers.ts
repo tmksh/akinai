@@ -63,43 +63,39 @@ export const getAuthOrganization = cache(async () => {
     supabase,
   };
 
-  // users テーブルと organization_members を並列取得
-  const [userRes, membershipRes] = await Promise.all([
-    supabase
-      .from('users')
-      .select('current_organization_id, name, avatar')
-      .eq('id', user.id)
-      .maybeSingle(),
-    supabase
+  const { data: userRow } = await supabase
+    .from('users')
+    .select('current_organization_id, name, avatar')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const userProfile = userRow
+    ? { name: userRow.name, avatar: userRow.avatar }
+    : null;
+
+  let organizationId = (userRow?.current_organization_id as string | null) ?? null;
+
+  // current_organization_id 未設定時のみメンバーシップを照会（大半のリクエストで1クエリ削減）
+  if (!organizationId) {
+    const { data: membership } = await supabase
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .limit(1)
-      .maybeSingle(),
-  ]);
+      .maybeSingle();
 
-  const userProfile = userRes.data
-    ? { name: userRes.data.name, avatar: userRes.data.avatar }
-    : null;
+    organizationId = (membership?.organization_id as string | null) ?? null;
 
-  // current_organization_id が未設定でもメンバーシップから組織IDを補完する
-  const organizationId = (userRes.data?.current_organization_id as string | null)
-    ?? (membershipRes.data?.organization_id as string | null)
-    ?? null;
-
-  // current_organization_id が未設定の場合はここで更新する
-  if (
-    !userRes.data?.current_organization_id &&
-    membershipRes.data?.organization_id
-  ) {
-    await supabase
-      .from('users')
-      .update({
-        current_organization_id: membershipRes.data.organization_id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id);
+    if (membership?.organization_id) {
+      await supabase
+        .from('users')
+        .update({
+          current_organization_id: membership.organization_id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+    }
   }
 
   // organizations テーブルから全カラムを1クエリで取得

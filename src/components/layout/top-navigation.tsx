@@ -33,7 +33,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useOrganization } from '@/components/providers/organization-provider';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { IconType } from 'react-icons';
 
@@ -144,8 +145,20 @@ export function TopNavigation() {
       })
     : navigationItems;
 
-  // Link コンポーネントはビューポート内で自動的に prefetch を行う。
-  // 以前の useEffect による強制 prefetch は初期描画をブロックしていたため削除。
+  const router = useRouter();
+
+  // ビューポート外のナビ先もアイドル時に prefetch（2回目以降の遷移を高速化）
+  useEffect(() => {
+    const prefetchAll = () => {
+      visibleNavItems.forEach((item) => router.prefetch(item.href));
+    };
+    if ('requestIdleCallback' in window) {
+      const id = requestIdleCallback(prefetchAll, { timeout: 3000 });
+      return () => cancelIdleCallback(id);
+    }
+    const t = setTimeout(prefetchAll, 1500);
+    return () => clearTimeout(t);
+  }, [router, visibleNavItems]);
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard';
