@@ -9,6 +9,51 @@ import { getWebhookSecretCandidates } from '@/lib/stripe-client';
 type SupabaseAdmin = SupabaseClient<any, 'public', any>;
 
 /**
+ * Webhook ペイロードの Stripe API バージョン差異を吸収するヘルパー群。
+ *
+ * 背景: Webhook が送ってくる JSON の形は「エンドポイントの API バージョン」で決まる。
+ * 2025-03-31.basil 以降では以下のフィールドがトップレベルから移動・廃止された:
+ *   - invoice.subscription          → invoice.parent.subscription_details.subscription
+ *                                      / invoice.lines.data[].parent.subscription_item_details.subscription
+ *   - subscription.current_period_end → subscription.items.data[].current_period_end
+ * SDK 経由の API 呼び出し（subscriptions.retrieve 等）は SDK 固定バージョンで応答するため
+ * 旧形式のままだが、Webhook ペイロードは新形式になり得る。両方を見て取得する。
+ */
+function extractInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  const pick = (v: unknown): string | null =>
+    !v ? null : typeof v === 'string' ? v : ((v as { id?: string }).id ?? null);
+
+  const inv = invoice as unknown as {
+    subscription?: unknown;
+    parent?: { subscription_details?: { subscription?: unknown } | null } | null;
+    lines?: {
+      data?: Array<{
+        subscription?: unknown;
+        parent?: { subscription_item_details?: { subscription?: unknown } | null } | null;
+      }>;
+    };
+  };
+
+  const direct = pick(inv.subscription) || pick(inv.parent?.subscription_details?.subscription);
+  if (direct) return direct;
+
+  for (const line of inv.lines?.data ?? []) {
+    const fromLine = pick(line.subscription) || pick(line.parent?.subscription_item_details?.subscription);
+    if (fromLine) return fromLine;
+  }
+  return null;
+}
+
+function extractCurrentPeriodEnd(subscription: Stripe.Subscription): number | null {
+  const sub = subscription as unknown as {
+    current_period_end?: number | null;
+    items?: { data?: Array<{ current_period_end?: number | null }> };
+  };
+  if (sub.current_period_end) return sub.current_period_end;
+  return sub.items?.data?.find((i) => i.current_period_end)?.current_period_end ?? null;
+}
+
+/**
  * GET /api/stripe/webhook
  *
  * Stripe Webhook の設定状況を確認するための診断エンドポイント。
@@ -242,6 +287,8 @@ async function handleSubscriptionUpdated(
 
   console.log(`[Webhook] subscription updated: org=${organizationId}, status=${subscription.status}`);
 
+  const periodEndUnix = extractCurrentPeriodEnd(subscription);
+
   await supabase
     .from('organizations')
     .update({
@@ -249,7 +296,9 @@ async function handleSubscriptionUpdated(
       trial_ends_at: subscription.trial_end
         ? new Date(subscription.trial_end * 1000).toISOString()
         : null,
-      subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      subscription_current_period_end: periodEndUnix
+        ? new Date(periodEndUnix * 1000).toISOString()
+        : null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', organizationId);
@@ -293,7 +342,7 @@ async function routeInvoicePaymentSucceeded(
   invoice: Stripe.Invoice,
   connectedAccountId: string | null
 ): Promise<boolean> {
-  const subscriptionId = invoice.subscription as string | null;
+  const subscriptionId = extractInvoiceSubscriptionId(invoice);
   if (!subscriptionId) return false;
 
   // Connect 経由の場合は stripeAccount を指定して Subscription を取得する
@@ -425,12 +474,13 @@ async function handleInvoicePaymentSucceeded(
   supabase: SupabaseAdmin,
   invoice: Stripe.Invoice
 ) {
-  if (!invoice.subscription) return;
+  const subscriptionId = extractInvoiceSubscriptionId(invoice);
+  if (!subscriptionId) return;
 
   const { data: org } = await supabase
     .from('organizations')
     .select('id')
-    .eq('stripe_subscription_id', invoice.subscription)
+    .eq('stripe_subscription_id', subscriptionId)
     .single();
 
   if (!org) return;
@@ -652,9 +702,8 @@ async function handleCustomerSubscriptionCheckoutComplete(
         : session.subscription.id;
       const retrieveOptions = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
       const stripeSub = await stripe.subscriptions.retrieve(subId, retrieveOptions as Parameters<typeof stripe.subscriptions.retrieve>[1]);
-      currentPeriodEnd = stripeSub.current_period_end
-        ? new Date(stripeSub.current_period_end * 1000).toISOString()
-        : null;
+      const periodEndUnix = extractCurrentPeriodEnd(stripeSub);
+      currentPeriodEnd = periodEndUnix ? new Date(periodEndUnix * 1000).toISOString() : null;
     } catch (err) {
       console.warn('[Webhook] failed to retrieve subscription for currentPeriodEnd:', err);
     }
@@ -760,8 +809,9 @@ async function handleCustomerSubscriptionChange(
   const now = new Date().toISOString();
 
   const scheduledPlanId = currentSub.scheduledPlanId as string | undefined;
-  const incomingNewPeriodEnd = subscription.current_period_end
-    ? new Date(subscription.current_period_end * 1000).toISOString()
+  const incomingPeriodEndUnix = extractCurrentPeriodEnd(subscription);
+  const incomingNewPeriodEnd = incomingPeriodEndUnix
+    ? new Date(incomingPeriodEndUnix * 1000).toISOString()
     : null;
   const prevPeriodEnd = currentSub.currentPeriodEnd as string | undefined;
 
