@@ -44,20 +44,22 @@ function extractInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
   return null;
 }
 
-function extractCurrentPeriodEnd(subscription: Stripe.Subscription): number | null {
-  const sub = subscription as unknown as {
+function extractCurrentPeriodEnd(subscription: unknown): number | null {
+  const sub = subscription as {
     current_period_end?: number | null;
     items?: { data?: Array<{ current_period_end?: number | null }> };
-  };
+  } | null | undefined;
+  if (!sub) return null;
   if (sub.current_period_end) return sub.current_period_end;
   return sub.items?.data?.find((i) => i.current_period_end)?.current_period_end ?? null;
 }
 
-function extractCurrentPeriodStart(subscription: Stripe.Subscription): number | null {
-  const sub = subscription as unknown as {
+function extractCurrentPeriodStart(subscription: unknown): number | null {
+  const sub = subscription as {
     current_period_start?: number | null;
     items?: { data?: Array<{ current_period_start?: number | null }> };
-  };
+  } | null | undefined;
+  if (!sub) return null;
   if (sub.current_period_start) return sub.current_period_start;
   return sub.items?.data?.find((i) => i.current_period_start)?.current_period_start ?? null;
 }
@@ -211,7 +213,7 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         // 顧客向けサブスクは customer_id メタデータで判定
         if (subscription.metadata?.akinai_customer_id) {
-          await handleCustomerSubscriptionChange(supabase, subscription);
+          await handleCustomerSubscriptionChange(supabase, subscription, event.data.previous_attributes);
         } else {
           await handleSubscriptionUpdated(supabase, subscription);
         }
@@ -772,7 +774,8 @@ async function handleCustomerSubscriptionCheckoutComplete(
  */
 async function handleCustomerSubscriptionChange(
   supabase: SupabaseAdmin,
-  subscription: Stripe.Subscription
+  subscription: Stripe.Subscription,
+  previousAttributes?: unknown
 ) {
   const organizationId = subscription.metadata?.akinai_organization_id;
   const customerId = subscription.metadata?.akinai_customer_id;
@@ -842,7 +845,19 @@ async function handleCustomerSubscriptionChange(
     new Date(incomingPeriodStartUnix * 1000).getTime() > new Date(scheduledAt).getTime()
   );
 
-  const isScheduleActivated = isScheduledDowngrade && (isPeriodAdvanced || isPeriodStartedAfterSchedule);
+  // イベント自身の previous_attributes から「この更新で課金期間が前進したか」を判定する。
+  // akinai 側の保存値に依存しないため、過去のデータ欠落があっても再送信で正しく復旧できる。
+  // 登録時の即時更新（価格変更のみ・期間据え置き）では期間が変わらないため発火しない。
+  const prevPeriodEndFromEventUnix = extractCurrentPeriodEnd(previousAttributes);
+  const isPeriodAdvancedFromEvent = !!(
+    prevPeriodEndFromEventUnix &&
+    incomingPeriodEndUnix &&
+    prevPeriodEndFromEventUnix !== incomingPeriodEndUnix
+  );
+
+  const isScheduleActivated =
+    isScheduledDowngrade &&
+    (isPeriodAdvanced || isPeriodStartedAfterSchedule || isPeriodAdvancedFromEvent);
   const isScheduleRegistrationEvent = isScheduledDowngrade && !isScheduleActivated;
 
   if (isScheduleRegistrationEvent) {
