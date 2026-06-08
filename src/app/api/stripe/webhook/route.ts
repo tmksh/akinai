@@ -53,6 +53,15 @@ function extractCurrentPeriodEnd(subscription: Stripe.Subscription): number | nu
   return sub.items?.data?.find((i) => i.current_period_end)?.current_period_end ?? null;
 }
 
+function extractCurrentPeriodStart(subscription: Stripe.Subscription): number | null {
+  const sub = subscription as unknown as {
+    current_period_start?: number | null;
+    items?: { data?: Array<{ current_period_start?: number | null }> };
+  };
+  if (sub.current_period_start) return sub.current_period_start;
+  return sub.items?.data?.find((i) => i.current_period_start)?.current_period_start ?? null;
+}
+
 /**
  * GET /api/stripe/webhook
  *
@@ -816,13 +825,25 @@ async function handleCustomerSubscriptionChange(
   const prevPeriodEnd = currentSub.currentPeriodEnd as string | undefined;
 
   // ダウングレード予約が存在し、incoming planId が scheduledPlanId と一致する場合は
-  // 「登録時の即時イベント」か「期間終了による自動更新」かを currentPeriodEnd で判定する。
-  // - 期間が進んでいる（prevPeriodEnd !== newPeriodEnd）→ 自動更新: scheduledPlanId を昇格
-  // - 期間が同じ → 登録時の即時イベント: planId を変えずスケジュール状態を維持
+  // 「登録時の即時イベント」か「期間終了による自動更新」かを判定する。
+  // 判定シグナル（どちらか成立で「有効化」）:
+  //  (a) 期間が進んだ: prevPeriodEnd !== newPeriodEnd
+  //  (b) 予約時刻より後に新しい課金期間が始まった: current_period_start > scheduledAt
+  // (b) を併用するのは、過去に current_period_end を取りこぼして prevPeriodEnd が
+  // 欠落しているケース（旧 API バージョン差異による空振り）でも再送信で復旧できるようにするため。
   const isScheduledDowngrade = !!(scheduledPlanId && planId && planId === scheduledPlanId);
   const isPeriodAdvanced = !!(prevPeriodEnd && incomingNewPeriodEnd && prevPeriodEnd !== incomingNewPeriodEnd);
-  const isScheduleRegistrationEvent = isScheduledDowngrade && !isPeriodAdvanced;
-  const isScheduleActivated = isScheduledDowngrade && isPeriodAdvanced;
+
+  const incomingPeriodStartUnix = extractCurrentPeriodStart(subscription);
+  const scheduledAt = currentSub.scheduledAt as string | undefined;
+  const isPeriodStartedAfterSchedule = !!(
+    incomingPeriodStartUnix &&
+    scheduledAt &&
+    new Date(incomingPeriodStartUnix * 1000).getTime() > new Date(scheduledAt).getTime()
+  );
+
+  const isScheduleActivated = isScheduledDowngrade && (isPeriodAdvanced || isPeriodStartedAfterSchedule);
+  const isScheduleRegistrationEvent = isScheduledDowngrade && !isScheduleActivated;
 
   if (isScheduleRegistrationEvent) {
     // スケジュール登録時の即時 webhook → planId は現状維持、currentPeriodEnd のみ更新
