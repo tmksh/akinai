@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { sendOrderEmails } from '@/lib/order-emails';
+import { sendEmail } from '@/lib/email';
+import { buildUpcomingInvoiceEmail } from '@/lib/email-templates/order';
 import { readPlansSettings } from '@/lib/customer-subscription-plans';
 import { getWebhookSecretCandidates } from '@/lib/stripe-client';
 
@@ -242,6 +244,12 @@ export async function POST(request: NextRequest) {
         if (!isCustomerInvoice) {
           await handleInvoicePaymentSucceeded(supabase, invoice);
         }
+        break;
+      }
+
+      case 'invoice.upcoming': {
+        const invoice = event.data.object as Stripe.Invoice;
+        await handleCustomerUpcomingInvoice(stripe, supabase, invoice, connectedAccountId);
         break;
       }
 
@@ -1191,4 +1199,104 @@ async function deductStock(
   }
 }
 
+/**
+ * invoice.upcoming: 次回請求日の数日前に Stripe が発火するイベント。
+ * 顧客サブスクに紐づく場合、事前通知メールを送信する。
+ * Stripe ダッシュボードの「請求 > 設定 > 請求書の送信前日数」で
+ * 何日前に発火するかを変更できる（デフォルト7日）。
+ */
+async function handleCustomerUpcomingInvoice(
+  stripe: Stripe,
+  supabase: SupabaseAdmin,
+  invoice: Stripe.Invoice,
+  connectedAccountId: string | null
+) {
+  const subscriptionId = extractInvoiceSubscriptionId(invoice);
+  if (!subscriptionId) return;
 
+  let subscription: Stripe.Subscription | null = null;
+  try {
+    subscription = await stripe.subscriptions.retrieve(
+      subscriptionId,
+      connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+    );
+  } catch (err) {
+    console.warn('[Webhook] upcoming: failed to retrieve subscription', err);
+    return;
+  }
+
+  const organizationId = subscription.metadata?.akinai_organization_id;
+  const customerId = subscription.metadata?.akinai_customer_id;
+  const planId = subscription.metadata?.akinai_plan_id;
+
+  // 顧客サブスクでない（テナント自身のサブスク）はスキップ
+  if (!organizationId || !customerId) return;
+
+  // テナント設定確認（subscriptionSendsEmail が有効な場合のみ送信）
+  const { data: orgData } = await supabase
+    .from('organizations')
+    .select('name, email, mail_from_address, mail_domain_verified, settings')
+    .eq('id', organizationId)
+    .single();
+
+  const plansSettings = readPlansSettings(orgData?.settings as Record<string, unknown> | null);
+  if (!plansSettings.subscriptionSendsEmail) {
+    console.log(`[Webhook] upcoming: subscriptionSendsEmail is false, skip org=${organizationId}`);
+    return;
+  }
+
+  // 顧客情報を取得
+  const { data: customer } = await supabase
+    .from('customers')
+    .select('name, email')
+    .eq('id', customerId)
+    .eq('organization_id', organizationId)
+    .single();
+
+  const customerEmail = (customer?.email as string | null) || '';
+  const customerName = (customer?.name as string | null) || '';
+  if (!customerEmail) {
+    console.warn(`[Webhook] upcoming: no customer email, customer=${customerId}`);
+    return;
+  }
+
+  const plan = plansSettings.plans.find((p) => p.id === planId);
+  const planName = plan?.name ?? 'サブスクリプション';
+  const amount = (invoice as unknown as { amount_due?: number }).amount_due ?? plan?.amount ?? 0;
+
+  const periodEndUnix = extractCurrentPeriodEnd(subscription);
+  const nextBillingDate = periodEndUnix
+    ? new Date(periodEndUnix * 1000).toLocaleDateString('ja-JP', {
+        year: 'numeric', month: 'long', day: 'numeric',
+      })
+    : '次回更新日';
+
+  const shopName = orgData?.name || 'ショップ';
+  const defaultFrom = process.env.EMAIL_FROM || 'noreply@akinai.jp';
+  const fromAddress =
+    orgData?.mail_domain_verified && orgData?.mail_from_address
+      ? (orgData.name ? `${orgData.name} <${orgData.mail_from_address}>` : orgData.mail_from_address)
+      : (orgData?.name ? `${orgData.name} <${defaultFrom}>` : defaultFrom);
+
+  const customTemplates =
+    ((orgData?.settings as Record<string, unknown> | null)?.email_templates as Record<string, unknown>) || {};
+  const upcomingCustom = (customTemplates.upcoming_invoice as {
+    enabled?: boolean; subject?: string; bodyText?: string;
+  } | undefined) || {};
+
+  if (upcomingCustom.enabled === false) {
+    console.log(`[Webhook] upcoming: template disabled, skip org=${organizationId}`);
+    return;
+  }
+
+  const { subject, html } = buildUpcomingInvoiceEmail(
+    { customerName, customerEmail, planName, amount, nextBillingDate, shopName },
+    upcomingCustom
+  );
+
+  await sendEmail({ to: customerEmail, subject, html, from: fromAddress });
+
+  console.log(
+    `[Webhook] upcoming invoice email sent: org=${organizationId}, customer=${customerId}, to=${customerEmail}`
+  );
+}

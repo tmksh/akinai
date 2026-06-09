@@ -696,3 +696,85 @@ export function buildNewOrderNotificationEmail(
 
   return { subject, html };
 }
+
+// ─────────────────────────────────────────────────────────
+// 次回請求予告メール（invoice.upcoming 用）
+// ─────────────────────────────────────────────────────────
+
+export interface UpcomingInvoiceEmailData {
+  customerName: string;
+  customerEmail: string;
+  planName: string;
+  amount: number;
+  nextBillingDate: string;
+  shopName: string;
+}
+
+export function buildUpcomingInvoiceEmail(
+  data: UpcomingInvoiceEmailData,
+  custom?: { enabled?: boolean; subject?: string; bodyText?: string }
+): { subject: string; html: string } {
+  const subject =
+    custom?.subject || `【${data.shopName}】次回のご請求日のご案内`;
+
+  const bodyText =
+    custom?.bodyText ||
+    `いつも ${data.shopName} をご利用いただきありがとうございます。\n近日中に以下の内容でご請求が発生する予定です。お支払い情報に変更がある場合はお早めにご確認ください。`;
+
+  const bodyHtml = bodyText.replace(/\n/g, '<br>');
+
+  const html = `
+<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+        <tr>
+          <td style="background:#0f172a;padding:24px 32px;">
+            <p style="margin:0;font-size:13px;font-weight:700;color:#38bdf8;">📅 次回請求のご案内</p>
+            <p style="margin:6px 0 0;font-size:28px;font-weight:800;color:#ffffff;">${formatPrice(data.amount)}</p>
+            <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;">請求予定日: ${data.nextBillingDate}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 32px 0;">
+            <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.7;">${bodyHtml}</p>
+            <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:0.05em;">請求内容</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+              <tr style="background:#f8fafc;">
+                <td style="font-size:12px;color:#64748b;padding:10px 14px;width:140px;border-bottom:1px solid #e2e8f0;">お客様名</td>
+                <td style="font-size:13px;color:#1e293b;font-weight:600;padding:10px 14px;border-bottom:1px solid #e2e8f0;">${data.customerName}</td>
+              </tr>
+              <tr>
+                <td style="font-size:12px;color:#64748b;padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">プラン</td>
+                <td style="font-size:13px;color:#1e293b;padding:10px 14px;border-bottom:1px solid #e2e8f0;">${data.planName}</td>
+              </tr>
+              <tr style="background:#f8fafc;">
+                <td style="font-size:12px;color:#64748b;padding:10px 14px;border-bottom:1px solid #e2e8f0;">請求予定日</td>
+                <td style="font-size:13px;color:#1e293b;padding:10px 14px;border-bottom:1px solid #e2e8f0;">${data.nextBillingDate}</td>
+              </tr>
+              <tr>
+                <td style="font-size:12px;color:#64748b;padding:10px 14px;background:#f8fafc;">ご請求金額</td>
+                <td style="font-size:15px;color:#0f172a;font-weight:800;padding:10px 14px;">${formatPrice(data.amount)}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px 28px;">
+            <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
+              このメールは ${data.shopName} よりお送りしています。<br>
+              ご不明な点がございましたらお問い合わせください。
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, html };
+}
