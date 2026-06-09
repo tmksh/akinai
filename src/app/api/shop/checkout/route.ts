@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { triggerOrderEmails } from '@/lib/order-emails';
+import { generateOrderNumber } from '@/lib/generate-order-number';
 import { getStripeConfig } from '@/lib/stripe-client';
 
 /**
@@ -18,14 +19,6 @@ function createAdminClient() {
   );
 }
 
-function generateOrderNumber(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  const rand = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `ORD-${y}${m}${d}-${rand}`;
-}
 
 interface CartItem {
   productId: string;
@@ -130,7 +123,7 @@ export async function POST(request: NextRequest) {
     .from('orders')
     .insert({
       organization_id: org.id,
-      order_number: generateOrderNumber(),
+      order_number: await generateOrderNumber(supabase),
       customer_name: body.shipping.name,
       customer_email: body.shipping.email,
       subtotal,

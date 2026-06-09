@@ -22,6 +22,7 @@ import {
 } from '@/lib/customer-subscription-plans';
 import { sendOrderEmails } from '@/lib/order-emails';
 import { getStripeConfig } from '@/lib/stripe-client';
+import { generateOrderNumber } from '@/lib/generate-order-number';
 
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -425,7 +426,7 @@ export async function PATCH(request: NextRequest) {
 
         if (!existingOrder || existingOrder.length === 0) {
           const amount = invoice.amount_paid ?? newPlan.amount ?? 0;
-          const orderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 9000) + 1000}`;
+          const orderNumber = await generateOrderNumber(supabase);
 
           const { data: newOrder } = await supabase
             .from('orders')

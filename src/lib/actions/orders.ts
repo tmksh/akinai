@@ -67,15 +67,7 @@ export interface CreateOrderInput {
   reserveStock?: boolean;
 }
 
-// 注文番号生成
-function generateOrderNumber(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `ORD-${year}${month}${day}-${random}`;
-}
+import { generateOrderNumber } from '@/lib/generate-order-number';
 
 // 注文を作成（在庫確認・引き当て含む）
 export async function createOrder(input: CreateOrderInput): Promise<{
@@ -143,7 +135,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{
       .from('orders')
       .insert({
         organization_id: input.organizationId,
-        order_number: generateOrderNumber(),
+        order_number: await generateOrderNumber(supabase),
         customer_id: input.customerId,
         customer_name: input.customerName,
         customer_email: input.customerEmail,

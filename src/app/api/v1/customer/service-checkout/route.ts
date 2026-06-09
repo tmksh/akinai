@@ -37,14 +37,7 @@ function jsonSuccess<T>(data: T, status = 200) {
   return res;
 }
 
-function generateOrderNumber(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `ORD-${year}${month}${day}-${random}`;
-}
+import { generateOrderNumber } from '@/lib/generate-order-number';
 
 export async function POST(request: NextRequest) {
   const verify = await verifyCustomerToken(request);
@@ -91,7 +84,7 @@ export async function POST(request: NextRequest) {
   if (!customer) return jsonError('Customer not found', 404);
 
   // 注文を事前作成（pending）
-  const orderNumber = generateOrderNumber();
+  const orderNumber = await generateOrderNumber(supabase);
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({

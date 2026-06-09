@@ -39,15 +39,7 @@ interface CheckoutRequest {
   cancelUrl?: string;
 }
 
-// 注文番号生成
-function generateOrderNumber(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `ORD-${year}${month}${day}-${random}`;
-}
+import { generateOrderNumber } from '@/lib/generate-order-number';
 
 /**
  * POST /api/v1/checkout
@@ -210,7 +202,7 @@ export async function POST(request: NextRequest) {
 
     // --- 注文レコードを「未決済」で作成 ---
     const customerName = `${body.shippingAddress.lastName} ${body.shippingAddress.firstName}`;
-    const orderNumber = generateOrderNumber();
+    const orderNumber = await generateOrderNumber(supabase);
 
     const { data: order, error: orderError } = await supabase
       .from('orders')

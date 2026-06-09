@@ -5,6 +5,7 @@ import { sendOrderEmails } from '@/lib/order-emails';
 import { sendEmail } from '@/lib/email';
 import { buildUpcomingInvoiceEmail } from '@/lib/email-templates/order';
 import { readPlansSettings } from '@/lib/customer-subscription-plans';
+import { generateOrderNumber } from '@/lib/generate-order-number';
 import { getWebhookSecretCandidates } from '@/lib/stripe-client';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -436,7 +437,7 @@ async function routeInvoicePaymentSucceeded(
     ? 'サブスクリプションアップグレード'
     : 'サブスクリプション継続課金';
 
-  const orderNumber = generateOrderNumber();
+  const orderNumber = await generateOrderNumber(supabase);
   const { data: newOrder, error: orderError } = await supabase
     .from('orders')
     .insert({
@@ -515,14 +516,6 @@ async function handleInvoicePaymentSucceeded(
     .eq('id', org.id);
 }
 
-function generateOrderNumber(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `ORD-${year}${month}${day}-${random}`;
-}
 
 /**
  * planId からプラン名を解決する。
@@ -618,7 +611,7 @@ async function ensureSubscriptionOrder(
   const amount = plan?.amount ?? 0;
   const planName = plan?.name ?? 'サブスクリプション';
 
-  const orderNumber = generateOrderNumber();
+  const orderNumber = await generateOrderNumber(supabase);
   const { data: newOrder, error: orderError } = await supabase
     .from('orders')
     .insert({

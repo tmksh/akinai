@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { triggerOrderEmails, sendOrderEmails } from '@/lib/order-emails';
+import { generateOrderNumber } from '@/lib/generate-order-number';
 import { 
   validateApiKey, 
   apiError, 
@@ -51,15 +52,6 @@ interface CreateOrderRequest {
   cancelUrl?: string;
 }
 
-// 注文番号生成
-function generateOrderNumber(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `ORD-${year}${month}${day}-${random}`;
-}
 
 // POST /api/v1/orders - 注文作成
 export async function POST(request: NextRequest) {
@@ -210,7 +202,7 @@ export async function POST(request: NextRequest) {
       .from('orders')
       .insert({
         organization_id: auth.organizationId,
-        order_number: generateOrderNumber(),
+        order_number: await generateOrderNumber(supabase),
         customer_id: body.customerId || null,
         customer_name: customerName,
         customer_email: body.shippingAddress.email,
