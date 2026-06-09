@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Mail, Bell, Save, Loader2, Eye, RotateCcw, Users, CreditCard, Landmark } from 'lucide-react';
+import { ArrowLeft, Mail, Bell, Save, Loader2, Eye, RotateCcw, Users, CreditCard, Landmark, CalendarClock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,7 +48,7 @@ export default function EmailTemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplateSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [preview, setPreview] = useState<'confirmation' | 'bank_transfer' | 'notification' | 'agent' | null>(null);
+  const [preview, setPreview] = useState<'confirmation' | 'bank_transfer' | 'notification' | 'agent' | 'upcoming' | null>(null);
   const [confirmationTab, setConfirmationTab] = useState<'credit_card' | 'bank_transfer'>('credit_card');
 
   useEffect(() => {
@@ -518,6 +518,76 @@ export default function EmailTemplatesPage() {
                 {previewReplace(templates.agent_notification.bodyText)}
               </p>
               <p className="text-xs text-muted-foreground italic">（注文内容・コミッション詳細がここに表示されます）</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 次回請求予告メール */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">次回請求予告メール（顧客向け）</CardTitle>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={templates.upcoming_invoice.enabled}
+                onCheckedChange={v => update('upcoming_invoice', 'enabled', v)}
+              />
+              <Badge variant={templates.upcoming_invoice.enabled ? 'default' : 'secondary'}>
+                {templates.upcoming_invoice.enabled ? '有効' : '無効'}
+              </Badge>
+            </div>
+          </div>
+          <CardDescription>サブスクリプションの次回請求日の数日前に自動送信されます（Stripe の設定による）</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground">件名</Label>
+            <Input
+              className="mt-1.5"
+              value={templates.upcoming_invoice.subject}
+              onChange={e => update('upcoming_invoice', 'subject', e.target.value)}
+              placeholder="【{shopName}】次回のご請求日のご案内"
+            />
+          </div>
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground">本文（冒頭）</Label>
+            <Textarea
+              className="mt-1.5 min-h-[80px] text-sm"
+              value={templates.upcoming_invoice.bodyText}
+              onChange={e => update('upcoming_invoice', 'bodyText', e.target.value)}
+              placeholder="いつも {shopName} をご利用いただきありがとうございます..."
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreview(preview === 'upcoming' ? null : 'upcoming')}
+            >
+              <Eye className="mr-2 h-3.5 w-3.5" />
+              {preview === 'upcoming' ? 'プレビューを閉じる' : 'プレビュー'}
+            </Button>
+          </div>
+          {preview === 'upcoming' && (
+            <div className="rounded-lg border bg-muted/30 p-4 text-sm space-y-2">
+              <p className="font-semibold text-xs text-muted-foreground">件名プレビュー</p>
+              <p className="font-medium">
+                {previewReplace(templates.upcoming_invoice.subject)}
+              </p>
+              <Separator />
+              <p className="whitespace-pre-line text-muted-foreground">
+                {previewReplace(templates.upcoming_invoice.bodyText)}
+              </p>
+              <div className="rounded border border-sky-200 bg-sky-50/50 p-3 text-xs space-y-1">
+                <p className="font-semibold text-sky-700">📅 請求内容（自動挿入）</p>
+                <p className="text-sky-600">プラン: スタンダードプラン</p>
+                <p className="text-sky-600">請求予定日: 2026年7月1日</p>
+                <p className="text-sky-600">ご請求金額: ¥9,800</p>
+              </div>
             </div>
           )}
         </CardContent>

@@ -28,6 +28,11 @@ export interface EmailTemplateSettings {
     bodyText: string;
     skipCustomerEmail: boolean;
   };
+  upcoming_invoice: {
+    enabled: boolean;
+    subject: string;
+    bodyText: string;
+  };
 }
 
 export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSettings = {
@@ -60,6 +65,12 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSettings = {
     bodyText:
       'お世話になっております。\nあなたのご紹介コード（{agentCode}）経由で新しい注文が入りました。\n\n引き続きよろしくお願いいたします。',
     skipCustomerEmail: false,
+  },
+  upcoming_invoice: {
+    enabled: true,
+    subject: '【{shopName}】次回のご請求日のご案内',
+    bodyText:
+      'いつも {shopName} をご利用いただきありがとうございます。\n近日中に以下の内容でご請求が発生する予定です。お支払い情報に変更がある場合はお早めにご確認ください。',
   },
 };
 
@@ -108,6 +119,10 @@ export async function GET() {
     agent_notification: {
       ...DEFAULT_EMAIL_TEMPLATES.agent_notification,
       ...(saved.agent_notification || {}),
+    },
+    upcoming_invoice: {
+      ...DEFAULT_EMAIL_TEMPLATES.upcoming_invoice,
+      ...(saved.upcoming_invoice || {}),
     },
   };
 

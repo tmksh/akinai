@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Bell, Mail, Smartphone, Package, ShoppingCart, MessageSquare, Users, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Bell, Mail, Smartphone, Package, ShoppingCart, MessageSquare, Users, AlertTriangle, FileText, ShieldCheck, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -101,6 +101,46 @@ export default function NotificationsSettingsPage() {
           <p className="text-muted-foreground">メール通知やアラートの設定</p>
         </div>
       </div>
+
+      {/* 関連するメール設定への導線 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>メール設定</CardTitle>
+          <CardDescription>テンプレートの編集や送信ドメインの認証はこちら</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Link
+            href="/settings/email-templates"
+            className="flex items-center justify-between gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">メールテンプレート</p>
+                <p className="text-sm text-muted-foreground">注文確認・通知・次回請求予告メールの件名・本文を編集</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+          <Link
+            href="/settings/email-domain"
+            className="flex items-center justify-between gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">送信ドメイン認証</p>
+                <p className="text-sm text-muted-foreground">自社ドメインからメールを送信するための設定</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </CardContent>
+      </Card>
 
       {/* 通知方法の設定 */}
       <Card>
