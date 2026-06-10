@@ -11,6 +11,7 @@ import {
 } from '@/lib/api/memory-cache';
 import Stripe from 'stripe';
 import { getStripeConfig } from '@/lib/stripe-client';
+import { sendOrderEmails } from '@/lib/order-emails';
 
 function getAdminClient() {
   return createServiceClient(
@@ -1080,6 +1081,32 @@ export async function markAsDelivered(orderId: string): Promise<{
   error: string | null;
 }> {
   return updateOrderStatus(orderId, 'delivered');
+}
+
+/** 注文確認・通知メールを再送信する */
+export async function resendOrderEmails(orderId: string): Promise<{
+  success: boolean;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: 'ログインが必要です' };
+  }
+
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .select('id, organization_id')
+    .eq('id', orderId)
+    .single();
+
+  if (orderError || !order) {
+    return { success: false, error: '注文が見つかりません' };
+  }
+
+  const admin = getAdminClient();
+  await sendOrderEmails(admin, order.id, order.organization_id);
+  return { success: true, error: null };
 }
 
 // 予約済み在庫を計算（未発送の注文に含まれる在庫数）

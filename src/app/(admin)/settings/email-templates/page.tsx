@@ -484,11 +484,11 @@ export default function EmailTemplatesPage() {
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 space-y-1">
                 <Label className="text-sm font-semibold">
-                  代理店経由の注文では顧客向けメールを送信しない
+                  代理店本人が購入した場合は顧客向けメールを送信しない
                 </Label>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  ONにすると、代理店コード経由の注文の場合、お客様宛の「ご注文確認メール」の送信をスキップします。<br />
-                  （代理店・管理者向けのメールは通常通り送信されます）
+                  ONにすると、注文者のメールアドレスが代理店と一致する場合（代理店本人の購入）のみ、お客様宛の「ご注文確認メール」をスキップし、代理店向け通知のみ送信します。<br />
+                  一般のお客様が代理店コード経由で購入した場合は、通常通りお客様宛の確認メールも送信されます。
                 </p>
               </div>
               <Switch

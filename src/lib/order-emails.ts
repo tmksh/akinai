@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/email';
+import { resolveFromAddress } from '@/lib/email-from';
 import {
   buildOrderConfirmationEmail,
   buildBankTransferConfirmationEmail,
@@ -44,7 +45,7 @@ export async function sendOrderEmails(
     const orgId = organizationId || order.organization_id;
     const { data: org } = await supabase
       .from('organizations')
-      .select('name, email, mail_from_address, mail_domain_verified, email_templates')
+      .select('name, email, mail_from_address, mail_domain_verified, resend_domain_id, email_templates')
       .eq('id', orgId)
       .single();
 
@@ -55,15 +56,37 @@ export async function sendOrderEmails(
     const notifyCustom = (customTemplates.order_notification as Record<string, unknown>) || {};
     const agentCustom = (customTemplates.agent_notification as Record<string, unknown>) || {};
 
-    // 代理店経由の注文で、かつ「代理店経由は顧客メールを送信しない」設定が有効なら顧客メールをスキップ
-    const skipCustomerForAgent = !!order.agent_id && agentCustom.skipCustomerEmail === true;
+    // 代理店情報を先に取得（本人購入かどうかの判定に使う）
+    let agent: {
+      email: string;
+      name: string;
+      company: string;
+      code: string;
+      commission_rate: number;
+    } | null = null;
+    if (order.agent_id) {
+      const { data, error: agentErr } = await supabase
+        .from('agents')
+        .select('email, name, company, code, commission_rate')
+        .eq('id', order.agent_id)
+        .single();
+      if (agentErr) console.error('[Email] Agent fetch error:', agentErr);
+      agent = data;
+    }
+
+    const isAgentSelfPurchase = !!(
+      agent?.email &&
+      order.customer_email &&
+      agent.email.toLowerCase().trim() === order.customer_email.toLowerCase().trim()
+    );
+
+    // 代理店本人が購入した場合のみ顧客向けメールをスキップ（代理店向け通知を送る）
+    // 一般のお客様が代理店コード経由で購入した場合は、通常通り顧客向けメールを送信
+    const skipCustomerForAgent = isAgentSelfPurchase && agentCustom.skipCustomerEmail !== false;
 
     // service role で取得済みの org データから from アドレスを組み立てる
     // （sendEmail 内で匿名クライアントを使って再取得すると RLS でブロックされるため）
-    const defaultFrom = process.env.EMAIL_FROM || 'noreply@akinai.jp';
-    const fromAddress = org?.mail_domain_verified && org?.mail_from_address
-      ? (org.name ? `${org.name} <${org.mail_from_address}>` : org.mail_from_address)
-      : (org?.name ? `${org.name} <${defaultFrom}>` : defaultFrom);
+    const fromAddress = await resolveFromAddress(org || {});
 
     const addr = (order.shipping_address as Record<string, string | null>) || {};
 
@@ -112,7 +135,7 @@ export async function sendOrderEmails(
 
     // --- 顧客向けメール ---
     if (skipCustomerForAgent) {
-      console.log('[Email] Customer email skipped: order has agent_id and skipCustomerEmail=true');
+      console.log('[Email] Customer email skipped: agent self-purchase (customer_email matches agent.email)');
     } else try {
       if (order.payment_method === 'bank_transfer') {
         const isBankEnabled = bankTransferCustom.enabled !== false;
@@ -134,16 +157,24 @@ export async function sendOrderEmails(
             { ...bankData, transferDeadline: deadline },
             bankTransferCustom as Parameters<typeof buildBankTransferConfirmationEmail>[2]
           );
-          await sendEmail({ to: order.customer_email, subject, html, from: fromAddress });
-          console.log(`[Email] Bank transfer confirmation sent to ${order.customer_email}`);
+          const bankResult = await sendEmail({ to: order.customer_email, subject, html, from: fromAddress });
+          if (bankResult.success) {
+            console.log(`[Email] Bank transfer confirmation sent to ${order.customer_email}`);
+          } else {
+            console.error(`[Email] Bank transfer confirmation failed for ${order.customer_email}:`, bankResult.error);
+          }
         }
       } else if (confirmCustom.enabled !== false) {
         const { subject, html } = buildOrderConfirmationEmail(
           emailData,
           confirmCustom as Parameters<typeof buildOrderConfirmationEmail>[1]
         );
-        await sendEmail({ to: order.customer_email, subject, html, from: fromAddress });
-        console.log(`[Email] Order confirmation sent to ${order.customer_email}`);
+        const confirmResult = await sendEmail({ to: order.customer_email, subject, html, from: fromAddress });
+        if (confirmResult.success) {
+          console.log(`[Email] Order confirmation sent to ${order.customer_email}`);
+        } else {
+          console.error(`[Email] Order confirmation failed for ${order.customer_email}:`, confirmResult.error);
+        }
       }
     } catch (err) {
       console.error('[Email] Customer email failed:', err);
@@ -164,8 +195,12 @@ export async function sendOrderEmails(
             emailData,
             notifyCustom as Parameters<typeof buildNewOrderNotificationEmail>[1]
           );
-          await sendEmail({ to: adminEmail, subject, html, from: fromAddress });
-          console.log(`[Email] New order notification sent to ${adminEmail}`);
+          const notifyResult = await sendEmail({ to: adminEmail, subject, html, from: fromAddress });
+          if (notifyResult.success) {
+            console.log(`[Email] New order notification sent to ${adminEmail}`);
+          } else {
+            console.error(`[Email] New order notification failed for ${adminEmail}:`, notifyResult.error);
+          }
         } else {
           console.log('[Email] Admin notification skipped: no admin email configured');
         }
@@ -181,20 +216,11 @@ export async function sendOrderEmails(
 
     // --- 代理店向けメール ---
     try {
-      console.log(`[Email] Agent check: enabled=${agentCustom.enabled !== false}, order.agent_id=${order.agent_id}`);
-      if (agentCustom.enabled !== false && order.agent_id) {
-        const { data: agent, error: agentErr } = await supabase
-          .from('agents')
-          .select('email, name, company, code, commission_rate')
-          .eq('id', order.agent_id)
-          .single();
+      console.log(`[Email] Agent check: enabled=${agentCustom.enabled !== false}, order.agent_id=${order.agent_id}, selfPurchase=${isAgentSelfPurchase}`);
+      if (agentCustom.enabled !== false && order.agent_id && agent) {
+        console.log(`[Email] Agent data: ${JSON.stringify({ email: agent.email, code: agent.code })}`);
 
-        if (agentErr) {
-          console.error('[Email] Agent fetch error:', agentErr);
-        }
-        console.log(`[Email] Agent data: ${agent ? JSON.stringify({ email: agent.email, code: agent.code }) : 'null'}`);
-
-        if (agent?.email) {
+        if (agent.email) {
           const agentEmailData: AgentOrderEmailData = {
             orderNumber: order.order_number,
             orderDate: orderDateStr,

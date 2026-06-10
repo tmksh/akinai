@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { triggerOrderEmails } from '@/lib/order-emails';
+import { sendOrderEmails } from '@/lib/order-emails';
 import { generateOrderNumber } from '@/lib/generate-order-number';
 import { getStripeConfig } from '@/lib/stripe-client';
 
@@ -280,8 +280,7 @@ export async function POST(request: NextRequest) {
     : null;
 
   // 銀行振込・代引きは注文作成時点でメール送信（Stripeイベントがないため）
-  // akinai 側の内部エンドポイント経由で送信することで、RESEND_API_KEY を一元管理する
-  await triggerOrderEmails(order.id, org.id as string);
+  await sendOrderEmails(supabase, order.id, org.id as string);
 
   return NextResponse.json({
     orderId: order.id,

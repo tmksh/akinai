@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import { triggerOrderEmails, sendOrderEmails } from '@/lib/order-emails';
+import { sendOrderEmails } from '@/lib/order-emails';
 import { generateOrderNumber } from '@/lib/generate-order-number';
 import { 
   validateApiKey, 

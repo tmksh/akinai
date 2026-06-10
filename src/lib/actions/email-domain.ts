@@ -47,22 +47,28 @@ export async function getEmailDomainStatus(organizationId: string): Promise<{
     if (resendData) {
       resendStatus = resendData.status;
       records = resendData.records;
-      // 認証完了していればDBを更新
-      if (resendData.status === 'verified' && !data.mail_domain_verified) {
+      // Resend の最新ステータスで DB を同期
+      const verified = resendData.status === 'verified';
+      if (verified !== (data.mail_domain_verified ?? false)) {
         await supabase
           .from('organizations')
-          .update({ mail_domain_verified: true, mail_domain_records: resendData.records })
+          .update({
+            mail_domain_verified: verified,
+            mail_domain_records: resendData.records,
+          })
           .eq('id', organizationId);
       }
     }
   }
+
+  const verified = resendStatus === 'verified' || (data.mail_domain_verified ?? false);
 
   return {
     data: {
       domain: data.mail_from_domain,
       fromAddress: data.mail_from_address,
       domainId: data.resend_domain_id,
-      verified: data.mail_domain_verified ?? false,
+      verified,
       resendStatus,
       records,
     },

@@ -71,6 +71,7 @@ import {
   cancelOrder,
   refundOrder,
   retryStripeRefund,
+  resendOrderEmails,
   type OrderWithItems,
 } from '@/lib/actions/orders';
 
@@ -134,6 +135,7 @@ export default function OrderDetailPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [showRetryStripeRefundDialog, setShowRetryStripeRefundDialog] = useState(false);
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
 
   // データ取得
   useEffect(() => {
@@ -217,6 +219,18 @@ export default function OrderDetailPage() {
     }
     setShowRetryStripeRefundDialog(false);
     setIsUpdating(false);
+  };
+
+  // 注文メールを再送信
+  const handleResendEmails = async () => {
+    setIsResendingEmail(true);
+    const { success, error } = await resendOrderEmails(orderId);
+    if (error || !success) {
+      alert('メールの再送信に失敗しました: ' + (error || '不明なエラー'));
+    } else {
+      alert('注文メールを再送信しました。');
+    }
+    setIsResendingEmail(false);
   };
 
   // 追跡番号を保存
@@ -415,6 +429,13 @@ export default function OrderDetailPage() {
               <DropdownMenuItem>
                 <FileText className="mr-2 h-4 w-4" />
                 請求書を印刷
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleResendEmails}
+                disabled={isResendingEmail}
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                {isResendingEmail ? '送信中...' : '注文メールを再送信'}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
