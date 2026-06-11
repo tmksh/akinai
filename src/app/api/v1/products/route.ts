@@ -16,7 +16,7 @@ import {
   PRODUCT_LIST_SELECT,
 } from '@/lib/api/product-format';
 import { extractSupplierIdFromCustomFields } from '@/lib/analytics';
-import { processAndUploadImageFromUrl } from '@/lib/server-image';
+import { buildProductImageRows, validateProductImageUrls } from '@/lib/api/product-images';
 
 // GET /api/v1/products - 商品一覧
 export async function GET(request: NextRequest) {
@@ -224,30 +224,17 @@ export async function POST(request: NextRequest) {
       return apiError(`Failed to create variants: ${variantsError.message}`, 500);
     }
 
-    // 画像を登録
-    // 連携元から渡された画像URLをサーバー側で取得し、長辺1200pxにリサイズ＋WebP変換、
-    // 一覧用サムネイル(400px)も生成して Storage に保存し、その公開URLのみをDBに保存する。
-    // 取得・変換に失敗した画像は元URLをそのまま使う（取り込み自体は止めない）。
+    // 画像を登録（http/https URL をサーバー側で最適化して Storage に保存）
     const images = (body.images as { url: string; alt?: string }[]) || [];
     let insertedImages: Record<string, unknown>[] = [];
     if (images.length > 0) {
-      const processedRows = await Promise.all(
-        images.map(async (img, idx) => {
-          const processed = img.url
-            ? await processAndUploadImageFromUrl(supabase, img.url, {
-                bucket: 'products',
-                folder: product.id,
-              })
-            : null;
-          return {
-            product_id: product.id,
-            url: processed?.url ?? img.url,
-            thumbnail_url: processed?.thumbnailUrl ?? null,
-            alt: img.alt || name,
-            sort_order: idx,
-          };
-        })
-      );
+      const imageValidationError = validateProductImageUrls(images);
+      if (imageValidationError) {
+        await supabase.from('products').delete().eq('id', product.id);
+        return apiError(imageValidationError, 400);
+      }
+
+      const processedRows = await buildProductImageRows(supabase, product.id, images, name);
 
       const { data: imgData, error: imgError } = await supabase
         .from('product_images')

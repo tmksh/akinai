@@ -14,6 +14,7 @@ import {
   extractCategoriesFromProductCategories,
 } from '@/lib/api/product-format';
 import { extractSupplierIdFromCustomFields } from '@/lib/analytics';
+import { buildProductImageRows, validateProductImageUrls } from '@/lib/api/product-images';
 
 const PRODUCT_DETAIL_SELECT = `
   id, name, slug, short_description, description, status, featured,
@@ -189,19 +190,24 @@ export async function PUT(
       insertedVariants = varData || [];
     }
 
-    // 画像を置換（指定された場合のみ）
+    // 画像を置換（指定された場合のみ。POST と同様に URL 取り込み・最適化を行う）
     const images = body.images as { url: string; alt?: string }[] | undefined;
     if (images) {
+      if (images.length > 0) {
+        const imageValidationError = validateProductImageUrls(images);
+        if (imageValidationError) {
+          return apiError(imageValidationError, 400);
+        }
+      }
+
       await supabase.from('product_images').delete().eq('product_id', productId);
       if (images.length > 0) {
-        await supabase.from('product_images').insert(
-          images.map((img, idx) => ({
-            product_id: productId,
-            url: img.url,
-            alt: img.alt || '',
-            sort_order: idx,
-          }))
-        );
+        const processedRows = await buildProductImageRows(supabase, productId, images);
+        const { error: imgError } = await supabase.from('product_images').insert(processedRows);
+        if (imgError) {
+          console.error('Error updating images:', imgError);
+          return apiError(`Failed to update images: ${imgError.message}`, 500);
+        }
       }
     }
 
