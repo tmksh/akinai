@@ -15,6 +15,8 @@ import {
 } from '@/lib/api/product-format';
 import { extractSupplierIdFromCustomFields } from '@/lib/analytics';
 import { buildProductImageRows, validateProductImageUrls } from '@/lib/api/product-images';
+import { triggerWebhook } from '@/lib/webhooks/sender';
+import { WEBHOOK_EVENTS, type ProductEventData } from '@/lib/webhooks/events';
 
 const PRODUCT_DETAIL_SELECT = `
   id, name, slug, short_description, description, status, featured,
@@ -61,10 +63,15 @@ export async function GET(
       return apiError('Product not found', 404);
     }
 
-    const allowAll = new URL(request.url).searchParams.get('status') === 'all';
+    const detailParams = new URL(request.url).searchParams;
+    const allowAll = detailParams.get('status') === 'all';
     if (!allowAll && product.status !== 'published') {
       return apiError('Product not found', 404);
     }
+
+    // cache=no で登録直後の強整合取得（Read-After-Write）を保証
+    const cacheProfile =
+      detailParams.get('cache') === 'no' ? CACHE_PROFILES.realtime : CACHE_PROFILES.catalog;
 
     const {
       product_variants = [],
@@ -90,7 +97,7 @@ export async function GET(
       ),
       undefined,
       auth.rateLimit,
-      CACHE_PROFILES.catalog,
+      cacheProfile,
     );
   });
 }
@@ -211,6 +218,35 @@ export async function PUT(
       }
     }
 
+    // Webhook 発火（商品更新 / 公開）。配信は sender 側でバックグラウンド実行・失敗は握りつぶす
+    const { data: updatedProduct } = await supabase
+      .from('products')
+      .select('id, name, slug, status, product_variants ( id, name, sku, price, stock )')
+      .eq('id', productId)
+      .single();
+
+    if (updatedProduct) {
+      const variantRows =
+        (updatedProduct.product_variants as Record<string, unknown>[] | null) || [];
+      const productEventData: ProductEventData = {
+        product_id: String(updatedProduct.id),
+        name: String(updatedProduct.name),
+        slug: String(updatedProduct.slug),
+        status: String(updatedProduct.status),
+        variants: variantRows.map((v) => ({
+          variant_id: String(v.id),
+          name: String(v.name),
+          sku: String(v.sku),
+          price: Number(v.price),
+          stock: Number(v.stock),
+        })),
+      };
+      await triggerWebhook(auth.organizationId!, WEBHOOK_EVENTS.PRODUCT_UPDATED, productEventData);
+      if (body.status === 'published') {
+        await triggerWebhook(auth.organizationId!, WEBHOOK_EVENTS.PRODUCT_PUBLISHED, productEventData);
+      }
+    }
+
     return apiSuccess({
       id: productId,
       updated: true,
@@ -233,11 +269,11 @@ export async function DELETE(
     const supabase = getServiceSupabase();
     const { id } = await params;
 
-    // UUID またはスラッグで検索
+    // UUID またはスラッグで検索（Webhook ペイロード用に基本情報も取得）
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     let query = supabase
       .from('products')
-      .select('id')
+      .select('id, name, slug, status, product_variants ( id, name, sku, price, stock )')
       .eq('organization_id', auth.organizationId);
     if (isUUID) query = query.eq('id', id);
     else query = query.eq('slug', id);
@@ -248,6 +284,8 @@ export async function DELETE(
     }
 
     const productId = existing.id;
+    const deletedVariantRows =
+      (existing.product_variants as Record<string, unknown>[] | null) || [];
 
     // 関連データを先に削除（FK 制約回避）
     await Promise.all([
@@ -265,6 +303,21 @@ export async function DELETE(
     if (deleteError) {
       return apiError(`Failed to delete product: ${deleteError.message}`, 500);
     }
+
+    // Webhook 発火（商品削除）
+    await triggerWebhook<ProductEventData>(auth.organizationId!, WEBHOOK_EVENTS.PRODUCT_DELETED, {
+      product_id: String(existing.id),
+      name: String(existing.name),
+      slug: String(existing.slug),
+      status: String(existing.status),
+      variants: deletedVariantRows.map((v) => ({
+        variant_id: String(v.id),
+        name: String(v.name),
+        sku: String(v.sku),
+        price: Number(v.price),
+        stock: Number(v.stock),
+      })),
+    });
 
     return apiSuccess({ id: productId, deleted: true }, undefined, auth.rateLimit);
   });

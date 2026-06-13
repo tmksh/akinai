@@ -17,6 +17,8 @@ import {
 } from '@/lib/api/product-format';
 import { extractSupplierIdFromCustomFields } from '@/lib/analytics';
 import { buildProductImageRows, validateProductImageUrls } from '@/lib/api/product-images';
+import { triggerWebhook } from '@/lib/webhooks/sender';
+import { WEBHOOK_EVENTS, type ProductEventData } from '@/lib/webhooks/events';
 
 // GET /api/v1/products - 商品一覧
 export async function GET(request: NextRequest) {
@@ -36,6 +38,68 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const sort = searchParams.get('sort') || 'created_at';
     const order = searchParams.get('order') || 'desc';
+
+    // cache=no で登録直後の強整合取得（Read-After-Write）を保証
+    const cacheProfile =
+      searchParams.get('cache') === 'no' ? CACHE_PROFILES.realtime : CACHE_PROFILES.catalog;
+
+    type ProductRow = Record<string, unknown> & {
+      product_variants?: Record<string, unknown>[];
+      product_images?: Record<string, unknown>[];
+      product_categories?: Array<{
+        category_id?: string;
+        categories?: { id: string; name: string; slug: string } | null;
+      }>;
+    };
+
+    const formatRow = (product: ProductRow) => {
+      const { product_variants = [], product_images = [], product_categories = [], ...base } = product;
+      return formatPublicProduct(
+        base,
+        product_variants,
+        product_images,
+        extractCategoriesFromProductCategories(product_categories),
+      );
+    };
+
+    // 複数ID一括取得: GET /api/v1/products?ids=id1,id2,...（最大100件、1リクエストに集約）
+    const idsParam = searchParams.get('ids');
+    if (idsParam) {
+      const ids = Array.from(
+        new Set(idsParam.split(',').map((s) => s.trim()).filter(Boolean)),
+      ).slice(0, 100);
+
+      if (ids.length === 0) {
+        return apiSuccessPaginated([], 1, 0, 0, auth.rateLimit, cacheProfile);
+      }
+
+      let idQuery = supabase
+        .from('products')
+        .select(PRODUCT_LIST_SELECT)
+        .eq('organization_id', auth.organizationId)
+        .in('id', ids)
+        .order('sort_order', { ascending: true, referencedTable: 'product_images' });
+
+      if (status !== 'all') {
+        idQuery = idQuery.eq('status', status);
+      }
+
+      const { data: idRows, error: idsError } = await idQuery;
+      if (idsError) {
+        console.error('Error fetching products by ids:', idsError);
+        return apiError('Failed to fetch products', 500);
+      }
+
+      const formatted = ((idRows || []) as unknown as ProductRow[]).map(formatRow);
+      return apiSuccessPaginated(
+        formatted,
+        1,
+        ids.length,
+        formatted.length,
+        auth.rateLimit,
+        cacheProfile,
+      );
+    }
 
     let query = supabase
       .from('products')
@@ -65,17 +129,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (!products || products.length === 0) {
-      return apiSuccessPaginated([], page, limit, 0, auth.rateLimit, CACHE_PROFILES.catalog);
+      return apiSuccessPaginated([], page, limit, 0, auth.rateLimit, cacheProfile);
     }
-
-    type ProductRow = Record<string, unknown> & {
-      product_variants?: Record<string, unknown>[];
-      product_images?: Record<string, unknown>[];
-      product_categories?: Array<{
-        category_id?: string;
-        categories?: { id: string; name: string; slug: string } | null;
-      }>;
-    };
 
     let filteredProducts = products as unknown as ProductRow[];
     if (category) {
@@ -85,15 +140,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const publicProducts = filteredProducts.map((product) => {
-      const { product_variants = [], product_images = [], product_categories = [], ...base } = product;
-      return formatPublicProduct(
-        base,
-        product_variants,
-        product_images,
-        extractCategoriesFromProductCategories(product_categories),
-      );
-    });
+    const publicProducts = filteredProducts.map(formatRow);
 
     return apiSuccessPaginated(
       publicProducts,
@@ -101,7 +148,7 @@ export async function GET(request: NextRequest) {
       limit,
       count || 0,
       auth.rateLimit,
-      CACHE_PROFILES.catalog,
+      cacheProfile,
     );
   });
 }
@@ -263,6 +310,25 @@ export async function POST(request: NextRequest) {
       if (catError) {
         console.error('Error linking categories:', catError);
       }
+    }
+
+    // Webhook 発火（商品作成 / 公開）。配信は sender 側でバックグラウンド実行・失敗は握りつぶす
+    const productEventData: ProductEventData = {
+      product_id: product.id,
+      name: product.name,
+      slug: product.slug,
+      status: product.status,
+      variants: (insertedVariants || []).map((v) => ({
+        variant_id: String(v.id),
+        name: String(v.name),
+        sku: String(v.sku),
+        price: Number(v.price),
+        stock: Number(v.stock),
+      })),
+    };
+    await triggerWebhook(auth.organizationId!, WEBHOOK_EVENTS.PRODUCT_CREATED, productEventData);
+    if (finalStatus === 'published') {
+      await triggerWebhook(auth.organizationId!, WEBHOOK_EVENTS.PRODUCT_PUBLISHED, productEventData);
     }
 
     const response = apiSuccess({
