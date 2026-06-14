@@ -145,7 +145,7 @@ export default function ProductsClient({
     let cancelled = false;
     setIsLoadingData(true);
     Promise.all([
-      getProducts(organizationId, { limit: 100 }),
+      getProducts(organizationId),
       getCategories(organizationId),
     ]).then(([p, c]) => {
       if (cancelled) return;
@@ -876,7 +876,7 @@ export default function ProductsClient({
             </>
           ) : (
             <>
-              全 <span className="font-semibold text-foreground">{products.length.toLocaleString()}</span> 件
+              全 <span className="font-semibold text-foreground">{totalProducts.toLocaleString()}</span> 件
             </>
           )}
         </p>
