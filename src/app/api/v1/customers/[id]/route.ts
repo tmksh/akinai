@@ -300,6 +300,8 @@ export async function DELETE(
     }
   }
 
+  // サプライヤーの商品は products.supplier_id FK の ON DELETE CASCADE で自動削除される（migration 044）
+
   // 関連住所を先に削除（FK 制約がある場合に備えて）
   await supabase.from('customer_addresses').delete().eq('customer_id', id);
 

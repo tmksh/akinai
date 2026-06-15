@@ -362,6 +362,7 @@ export async function deleteCustomer(customerId: string): Promise<{
     }
 
     // 住所は CASCADE で自動削除される
+    // サプライヤーの商品は products.supplier_id FK の ON DELETE CASCADE で自動削除される（migration 044）
     const { error } = await supabase
       .from('customers')
       .delete()
@@ -370,6 +371,7 @@ export async function deleteCustomer(customerId: string): Promise<{
     if (error) throw error;
 
     revalidatePath('/customers');
+    revalidatePath('/products');
 
     return { success: true, error: null };
   } catch (err) {
