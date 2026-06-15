@@ -313,7 +313,7 @@ export const CACHE_PROFILES = {
   /** 初回表示一括（マスタ + カタログ） */
   bootstrap: 'private, max-age=60, stale-while-revalidate=300',
   /** 商品・カテゴリなど比較的安定したカタログ */
-  catalog: 'private, max-age=120, stale-while-revalidate=600',
+  catalog: 'private, max-age=30, stale-while-revalidate=120',
   /** 代理店・サプライヤー等のマスタ */
   master: 'private, max-age=300, stale-while-revalidate=900',
   /** 送料設定など組織設定 */

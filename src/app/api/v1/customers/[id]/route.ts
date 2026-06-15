@@ -15,6 +15,8 @@ import bcrypt from 'bcryptjs';
 import Stripe from 'stripe';
 import { validateApiKey, apiError, apiSuccess, handleOptions, corsHeaders } from '@/lib/api/auth';
 import { verifyCustomerToken } from '@/lib/api/customer-auth';
+import { triggerWebhook } from '@/lib/webhooks/sender';
+import { WEBHOOK_EVENTS, type ProductEventData } from '@/lib/webhooks/events';
 
 type CustomerRoleKey = 'personal' | 'buyer' | 'supplier';
 
@@ -301,6 +303,12 @@ export async function DELETE(
   }
 
   // サプライヤーの商品は products.supplier_id FK の ON DELETE CASCADE で自動削除される（migration 044）
+  // CASCADE削除前にWebhook発火用の商品情報を取得（削除後は取得不能になるため）
+  const { data: supplierProducts } = await supabase
+    .from('products')
+    .select('id, name, slug, status')
+    .eq('supplier_id', id);
+  const supplierProductsForWebhook = supplierProducts ?? [];
 
   // 関連住所を先に削除（FK 制約がある場合に備えて）
   await supabase.from('customer_addresses').delete().eq('customer_id', id);
@@ -313,6 +321,17 @@ export async function DELETE(
 
   if (deleteError) {
     return apiError(`Failed to delete customer: ${deleteError.message}`, 500);
+  }
+
+  // 削除された商品の product.deleted Webhook をバックグラウンド発火
+  for (const p of supplierProductsForWebhook) {
+    triggerWebhook<ProductEventData>(organizationId, WEBHOOK_EVENTS.PRODUCT_DELETED, {
+      product_id: p.id,
+      name: p.name,
+      slug: p.slug,
+      status: p.status,
+      variants: [],
+    }).catch((e) => console.error('[DELETE customer] Webhook error:', e));
   }
 
   const response = apiSuccess({ id, deleted: true });

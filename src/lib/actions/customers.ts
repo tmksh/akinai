@@ -12,6 +12,8 @@ import {
 import Stripe from 'stripe';
 import { getStripeConfig } from '@/lib/stripe-client';
 import { readSubscriptionInfo } from '@/lib/customer-subscription-plans';
+import { triggerWebhook } from '@/lib/webhooks/sender';
+import { WEBHOOK_EVENTS, type ProductEventData } from '@/lib/webhooks/events';
 
 function getAdminClient() {
   return createServiceClient(
@@ -361,6 +363,17 @@ export async function deleteCustomer(customerId: string): Promise<{
       }
     }
 
+    // CASCADE削除前にWebhook発火用の商品情報を取得（削除後は取得不能になるため）
+    const orgId = customer?.organization_id;
+    let supplierProductsForWebhook: { id: string; name: string; slug: string; status: string }[] = [];
+    if (orgId) {
+      const { data: sp } = await supabase
+        .from('products')
+        .select('id, name, slug, status')
+        .eq('supplier_id', customerId);
+      supplierProductsForWebhook = sp ?? [];
+    }
+
     // 住所は CASCADE で自動削除される
     // サプライヤーの商品は products.supplier_id FK の ON DELETE CASCADE で自動削除される（migration 044）
     const { error } = await supabase
@@ -369,6 +382,19 @@ export async function deleteCustomer(customerId: string): Promise<{
       .eq('id', customerId);
 
     if (error) throw error;
+
+    // 削除された商品の product.deleted Webhook をバックグラウンド発火
+    if (orgId && supplierProductsForWebhook.length > 0) {
+      for (const p of supplierProductsForWebhook) {
+        triggerWebhook<ProductEventData>(orgId, WEBHOOK_EVENTS.PRODUCT_DELETED, {
+          product_id: p.id,
+          name: p.name,
+          slug: p.slug,
+          status: p.status,
+          variants: [],
+        }).catch((e) => console.error('[deleteCustomer] Webhook error:', e));
+      }
+    }
 
     revalidatePath('/customers');
     revalidatePath('/products');
