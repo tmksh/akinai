@@ -141,14 +141,15 @@ export function defaultCustomFieldValue(type: CustomFieldType): string {
   return '';
 }
 
-/** 保存前に blob: URL 等を除去（image_url / image_url_list 用） */
+/** 保存前に blob: / data: URL 等を除去（image_url / image_url_list 用） */
 export function sanitizeCustomFieldValue(type: CustomFieldType | string, value: string): string {
+  const isTemporary = (u: string) => u.startsWith('blob:') || u.startsWith('data:');
   if (type === 'image_url') {
-    const urls = parseImageUrls(value).filter(u => !u.startsWith('blob:'));
+    const urls = parseImageUrls(value).filter(u => !isTemporary(u));
     return serializeImageUrl(urls);
   }
   if (type === 'image_url_list') {
-    const urls = parseImageUrls(value).filter(u => !u.startsWith('blob:'));
+    const urls = parseImageUrls(value).filter(u => !isTemporary(u));
     return JSON.stringify(urls);
   }
   return value;

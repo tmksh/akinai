@@ -604,7 +604,10 @@ export default function ProductsClient({
     const rows = filteredProducts.map((p, i) => {
       const variant = p.variants[0];
       const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
-      const imageUrls = p.images?.map((img: { url: string }) => img.url).join(';') ?? '';
+      const imageUrls = p.images
+        ?.map((img: { url: string }) => img.url)
+        .filter((u) => !u.startsWith('data:'))
+        .join(';') ?? '';
       const category = p.categories?.[0]?.name ?? '';
       const subcategory = (variant?.options as Record<string, string> | undefined)?.['サブカテゴリ'] ?? '';
       const size = (variant?.options as Record<string, string> | undefined)?.['サイズ'] ?? '';
@@ -620,6 +623,21 @@ export default function ProductsClient({
           try {
             const parsed = JSON.parse(strVal);
             if (Array.isArray(parsed)) strVal = parsed.join(',');
+          } catch {
+            // JSON でなければそのまま
+          }
+        }
+
+        // base64 データURL（画像）は CSV に含めない（直接 data: または JSON 配列内に混入している場合も対応）
+        if (strVal.startsWith('data:')) {
+          strVal = '';
+        } else if (strVal.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(strVal);
+            if (Array.isArray(parsed) && parsed.some((u) => typeof u === 'string' && u.startsWith('data:'))) {
+              const cleaned = parsed.filter((u) => !(typeof u === 'string' && u.startsWith('data:')));
+              strVal = cleaned.length > 0 ? JSON.stringify(cleaned) : '';
+            }
           } catch {
             // JSON でなければそのまま
           }
@@ -643,10 +661,18 @@ export default function ProductsClient({
         variant?.sku ?? '',
       ];
       const customFieldCells = fieldSchema.map((f, fi) => {
-        const strVal = customFields[fi];
-        // text / phone 型で純数字8桁以上の値は Excel が科学表記に変換するのを防ぐ
+        let strVal = customFields[fi];
+        // 科学表記で保存されている整数値（例: 4.56224E+12）を元の整数文字列に復元する
+        // DB に "4.56224E+12" のようなテキストが入っている場合に対応
+        if (/^-?\d+\.?\d*[Ee][+\-]?\d+$/.test(strVal)) {
+          const num = Number(strVal);
+          if (Number.isFinite(num) && Math.abs(num) < 1e15) {
+            strVal = String(Math.round(num));
+          }
+        }
+        // text / phone / number 型で純数字8桁以上の値は Excel が科学表記に変換するのを防ぐ
         // escapeCsv の対象外にするため、行セルとして直接出力する
-        if ((f.type === 'text' || f.type === 'phone') && /^\d{8,}$/.test(strVal)) {
+        if (/^\d{8,}$/.test(strVal)) {
           return `="${strVal}"`;
         }
         return escapeCsv(strVal);

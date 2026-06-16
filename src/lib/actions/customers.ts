@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { randomBytes } from 'crypto';
 import {
   getOrSetCached,
   orgCacheKey,
@@ -20,6 +21,10 @@ function getAdminClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+}
+
+function generateReferralCode(): string {
+  return 'REF-' + randomBytes(3).toString('hex').toUpperCase();
 }
 import type { Database } from '@/types/database';
 
@@ -158,6 +163,29 @@ export async function createCustomer(input: CreateCustomerInput): Promise<{
   const supabase = getAdminClient();
 
   try {
+    // 紹介コード機能フラグを確認して referral_code を自動生成
+    let newReferralCode: string | null = null;
+    const { data: orgData } = await supabase
+      .from('organizations')
+      .select('features')
+      .eq('id', input.organizationId)
+      .single();
+    const orgFeatures = (orgData?.features as Record<string, unknown>) || {};
+    if (orgFeatures.referral_code) {
+      for (let i = 0; i < 5; i++) {
+        const candidate = generateReferralCode();
+        const { data: dup } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('referral_code', candidate)
+          .maybeSingle();
+        if (!dup) {
+          newReferralCode = candidate;
+          break;
+        }
+      }
+    }
+
     // 顧客を作成
     const insertData: Record<string, unknown> = {
       organization_id: input.organizationId,
@@ -174,6 +202,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<{
       prefecture: input.prefecture || null,
       business_type: input.businessType || null,
       custom_fields: input.customFields || {},
+      referral_code: newReferralCode,
     };
     if (input.password) {
       const bcrypt = await import('bcryptjs');

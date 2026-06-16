@@ -36,6 +36,22 @@ interface CustomersClientProps {
   referralEnabled?: boolean;
 }
 
+/** DB カラム referral_code または custom_fields の 'referral_code' キーから実効紹介コードを取得 */
+function getEffectiveReferralCode(customer: CustomerWithAddresses): string | null {
+  if (customer.referral_code) return customer.referral_code;
+  const cf = customer.custom_fields;
+  if (!cf) return null;
+  if (Array.isArray(cf)) {
+    const entry = (cf as Array<{ key?: string; value?: unknown }>).find((f) => f?.key === 'referral_code');
+    return entry?.value ? String(entry.value) : null;
+  }
+  if (typeof cf === 'object') {
+    const val = (cf as Record<string, unknown>)['referral_code'];
+    return val ? String(val) : null;
+  }
+  return null;
+}
+
 function getCustomFieldSearchText(customFields: unknown): string {
   if (!customFields) return '';
   if (Array.isArray(customFields)) {
@@ -519,7 +535,7 @@ export default function CustomersClient({
                   </div>
                 </div>
                 <div className="flex items-center gap-4 sm:gap-6">
-                  {referralEnabled && customer.referral_code && (activeRole === 'referral' || (customer.referral_count ?? 0) > 0) && (
+                  {referralEnabled && getEffectiveReferralCode(customer) && (activeRole === 'referral' || (customer.referral_count ?? 0) > 0) && (
                     <div className="text-right hidden sm:block">
                       <div className="text-xs text-slate-500">紹介数</div>
                       <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{customer.referral_count ?? 0}件</div>
@@ -603,7 +619,7 @@ export default function CustomersClient({
                 </div>
               </div>
 
-              <div className={`grid gap-3 ${referralEnabled && selectedCustomer.referral_code ? 'grid-cols-4' : 'grid-cols-3'}`}>
+              <div className={`grid gap-3 ${referralEnabled && getEffectiveReferralCode(selectedCustomer) ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-center">
                   <ShoppingBag className="h-5 w-5 text-sky-500 mx-auto mb-1" />
                   <div className="text-lg font-bold text-sky-900 dark:text-sky-100">{selectedCustomer.total_orders}</div>
@@ -621,7 +637,7 @@ export default function CustomersClient({
                   </div>
                   <div className="text-xs text-sky-600">登録日</div>
                 </div>
-                {referralEnabled && selectedCustomer.referral_code && (
+                {referralEnabled && getEffectiveReferralCode(selectedCustomer) && (
                   <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-center">
                     <Share2 className="h-5 w-5 text-sky-500 mx-auto mb-1" />
                     <div className="text-lg font-bold text-sky-900 dark:text-sky-100">{selectedCustomer.referral_count ?? 0}</div>
