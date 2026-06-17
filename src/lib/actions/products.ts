@@ -89,8 +89,15 @@ export async function getProducts(
       return { data: [], error: null, total: 0 };
     }
 
-    // データを整形
-    const productsWithRelations: ProductWithRelations[] = products.map(product => {
+    // データを整形（同一 ID の重複を除去してからマップ）
+    const seenIds = new Set<string>();
+    const productsWithRelations: ProductWithRelations[] = products
+      .filter(product => {
+        if (seenIds.has(product.id)) return false;
+        seenIds.add(product.id);
+        return true;
+      })
+      .map(product => {
       const { product_variants, product_images, product_categories, ...rest } = product as Record<string, unknown>;
       const variants = (product_variants as ProductVariant[]) || [];
       const images = ((product_images as ProductImage[]) || [])
@@ -857,10 +864,10 @@ export async function importProducts(
       .replace(/[^a-z0-9\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'product';
 
-  // ① 既存商品を一括取得（id・slug 両方でマッチできるように）
+  // ① 既存商品を一括取得（id・slug・name 三段階でマッチできるように）
   const { data: existingProducts, error: existingError } = await supabase
     .from('products')
-    .select('id, slug')
+    .select('id, slug, name')
     .eq('organization_id', organizationId);
 
   if (existingError) {
@@ -875,10 +882,12 @@ export async function importProducts(
 
   const existingById = new Map<string, string>(); // id → slug
   const existingBySlug = new Map<string, string>(); // slug → id
+  const existingByName = new Map<string, string>(); // name(lowercase) → id
   const usedSlugs = new Set<string>();
   for (const p of existingProducts ?? []) {
     existingById.set(p.id, p.slug);
     existingBySlug.set(p.slug, p.id);
+    existingByName.set(p.name.trim().toLowerCase(), p.id);
     usedSlugs.add(p.slug);
   }
 
@@ -949,6 +958,14 @@ export async function importProducts(
     const rowSlug = row.slug?.trim();
     if (rowSlug && existingBySlug.has(rowSlug)) {
       return { idx, row, slug: rowSlug, status, existingId: existingBySlug.get(rowSlug)! };
+    }
+
+    // 商品名が既存商品と完全一致 → 重複作成を防ぐため更新扱い（第3優先フォールバック）
+    const normalizedName = row.name.trim().toLowerCase();
+    const matchedIdByName = existingByName.get(normalizedName);
+    if (matchedIdByName) {
+      const matchedSlug = existingById.get(matchedIdByName) ?? rowSlug ?? toSlug(row.name);
+      return { idx, row, slug: matchedSlug, status, existingId: matchedIdByName };
     }
 
     // 新規作成: slug をユニークに

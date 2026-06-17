@@ -267,6 +267,20 @@ export default function WebhooksSettingsPage() {
         </Button>
       </div>
 
+      {/* タブ：API / Webhook */}
+      <div className="flex gap-1 border-b">
+        <Link
+          href="/settings/api"
+          className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
+        >
+          APIキー
+        </Link>
+        <span className="px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary flex items-center gap-1.5">
+          <Webhook className="h-3.5 w-3.5" />
+          Webhook
+        </span>
+      </div>
+
       {/* 説明カード */}
       <Card>
         <CardHeader>

@@ -211,6 +211,7 @@ export default function NewProductPage() {
   // 保存処理
   const handleSave = async (publish = false) => {
     if (!organization?.id) return;
+    if (isPending) return; // 二重送信防止
     if (!productName.trim()) {
       alert('商品名を入力してください');
       return;

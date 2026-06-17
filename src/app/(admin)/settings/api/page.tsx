@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import { ArrowLeft, Key, Copy, RefreshCw, Trash2, Check, AlertTriangle, Loader2, Eye, EyeOff, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Key, Copy, RefreshCw, Trash2, Check, AlertTriangle, Loader2, Eye, EyeOff, ExternalLink, Webhook } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -120,6 +120,20 @@ export default function ApiSettingsPage() {
           <h1 className="text-2xl font-bold">API設定</h1>
           <p className="text-muted-foreground">外部連携用のAPIキーを管理</p>
         </div>
+      </div>
+
+      {/* タブ：API / Webhook */}
+      <div className="flex gap-1 border-b">
+        <span className="px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary">
+          APIキー
+        </span>
+        <Link
+          href="/settings/webhooks"
+          className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
+        >
+          <Webhook className="h-3.5 w-3.5" />
+          Webhook
+        </Link>
       </div>
 
       {/* 新しいAPIキーの表示（生成直後のみ） */}

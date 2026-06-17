@@ -328,6 +328,20 @@ export function ProductImportDialog({
           }
         }
 
+        // CSV内での商品名重複を警告
+        const nameCounts = new Map<string, number>();
+        for (const r of rows) {
+          const key = r.name.trim().toLowerCase();
+          nameCounts.set(key, (nameCounts.get(key) ?? 0) + 1);
+        }
+        for (const [, count] of nameCounts) {
+          if (count > 1) {
+            const dupName = rows.find(r => nameCounts.get(r.name.trim().toLowerCase())! > 1)?.name;
+            errors.push(`⚠️ 同じ商品名が${count}行含まれています（例: 「${dupName}」）。重複はサーバー側で自動的に更新扱いになります。`);
+            break;
+          }
+        }
+
         setParsedRows(rows);
         setParseErrors(errors);
         setStep('preview');
