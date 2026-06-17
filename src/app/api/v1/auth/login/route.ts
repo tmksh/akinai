@@ -52,6 +52,11 @@ export async function POST(request: NextRequest) {
     return apiError('Invalid email or password', 401);
   }
 
+  // pending ユーザーはログイン不可（有料プラン登録後の決済待ち状態）
+  if (customer.status === 'pending') {
+    return apiError('Your account is pending payment confirmation', 403);
+  }
+
   // suspended ユーザーはログイン不可
   if (customer.status === 'suspended') {
     return apiError('Your account has been suspended', 403);

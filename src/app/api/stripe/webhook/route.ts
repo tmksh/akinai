@@ -793,7 +793,7 @@ async function handleCustomerSubscriptionChange(
 
   const { data: existing } = await supabase
     .from('customers')
-    .select('custom_fields, name, email')
+    .select('custom_fields, name, email, status')
     .eq('id', customerId)
     .eq('organization_id', organizationId)
     .single();
@@ -926,9 +926,17 @@ async function handleCustomerSubscriptionChange(
     );
   }
 
+  // pending → active: サブスクが開始・更新されたら顧客ステータスを active に昇格する。
+  // ただし suspended は維持する（管理者による停止措置を上書きしない）。
+  const existingCustomerStatus = existing?.status as string | undefined;
+  const shouldActivateCustomer =
+    (nextStatus === 'active' || nextStatus === 'trialing') &&
+    existingCustomerStatus === 'pending';
+
   await supabase
     .from('customers')
     .update({
+      ...(shouldActivateCustomer ? { status: 'active' } : {}),
       custom_fields: {
         ...currentCustomFields,
         subscription: updatedSub,
@@ -938,6 +946,12 @@ async function handleCustomerSubscriptionChange(
     })
     .eq('id', customerId)
     .eq('organization_id', organizationId);
+
+  if (shouldActivateCustomer) {
+    console.log(
+      `[Webhook] customer status activated: org=${organizationId}, customer=${customerId}`
+    );
+  }
 
   // 注文作成は invoice.payment_succeeded に一本化しているため、ここでは行わない
 }
