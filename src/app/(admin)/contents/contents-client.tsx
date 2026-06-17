@@ -487,37 +487,49 @@ export default function ContentsClient({
         <TabsList>
           {allDisplayTypes.map((type) => {
             const info = getTypeConfig(type);
+            const typeTotal = contents.filter((c) => c.type === type).length;
             return (
-              <TabsTrigger key={type} value={type}>{info.label}</TabsTrigger>
+              <TabsTrigger key={type} value={type}>
+                {info.label}
+              </TabsTrigger>
             );
           })}
         </TabsList>
 
-        {/* 統計バー（全タブ共通） */}
+        {/* 統計バー（選択中タブのみ集計） */}
+        {(() => {
+          const typeContentsAll = contents.filter((c) => c.type === activeTab);
+          const tabTotal = typeContentsAll.length;
+          const tabPublished = typeContentsAll.filter((c) => c.status === 'published').length;
+          const tabDraft = typeContentsAll.filter((c) => c.status === 'draft').length;
+          const tabScheduled = typeContentsAll.filter((c) => c.status === 'review').length;
+          return (
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/40" style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(12px)' }}>
             <FileText className="h-3.5 w-3.5 text-sky-400" />
             <span className="text-xs text-sky-700">全件</span>
-            <span className="text-sm font-semibold text-sky-900">{stats.total}</span>
+            <span className="text-sm font-semibold text-sky-900">{tabTotal}</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-100">
             <Eye className="h-3.5 w-3.5 text-sky-500" />
             <span className="text-xs text-sky-700">公開中</span>
-            <span className="text-sm font-semibold text-sky-800">{stats.published}</span>
+            <span className="text-sm font-semibold text-sky-800">{tabPublished}</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-sky-100" style={{ background: '#fefce8' }}>
             <Edit className="h-3.5 w-3.5 text-sky-500" />
             <span className="text-xs text-sky-700">下書き</span>
-            <span className="text-sm font-semibold text-sky-800">{stats.draft}</span>
+            <span className="text-sm font-semibold text-sky-800">{tabDraft}</span>
           </div>
-          {stats.scheduled > 0 && (
+          {tabScheduled > 0 && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-100 border border-sky-200">
               <Calendar className="h-3.5 w-3.5 text-sky-600" />
-              <span className="text-xs text-sky-700">予約</span>
-              <span className="text-sm font-semibold text-sky-800">{stats.scheduled}</span>
+              <span className="text-xs text-sky-700">レビュー中</span>
+              <span className="text-sm font-semibold text-sky-800">{tabScheduled}</span>
             </div>
           )}
         </div>
+          );
+        })()}
 
         {/* 検索・ステータスフィルター（全タブ共通） */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
