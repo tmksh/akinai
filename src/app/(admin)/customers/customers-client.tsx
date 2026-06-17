@@ -52,6 +52,17 @@ function getEffectiveReferralCode(customer: CustomerWithAddresses): string | nul
   return null;
 }
 
+/** メルマガ配信停止フラグを取得 */
+function isNewsletterUnsubscribed(customer: CustomerWithAddresses): boolean {
+  const cf = customer.custom_fields;
+  if (!cf) return false;
+  if (typeof cf === 'object' && !Array.isArray(cf)) {
+    const val = (cf as Record<string, unknown>)['newsletter_unsubscribed'];
+    return val === true || val === 'true';
+  }
+  return false;
+}
+
 function getCustomFieldSearchText(customFields: unknown): string {
   if (!customFields) return '';
   if (Array.isArray(customFields)) {
@@ -529,6 +540,11 @@ export default function CustomersClient({
                       {(customer as unknown as { status?: string }).status === 'suspended' && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-red-50 text-red-700 border-red-300">
                           停止中
+                        </Badge>
+                      )}
+                      {isNewsletterUnsubscribed(customer) && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-slate-100 text-slate-500 border-slate-300">
+                          メルマガ停止
                         </Badge>
                       )}
                     </div>

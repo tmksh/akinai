@@ -25,6 +25,8 @@ import {
   CheckCircle2,
   CreditCard,
   ArrowDownCircle,
+  BellOff,
+  Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -291,6 +293,27 @@ export default function CustomerDetailPage() {
                 <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/30"><Calendar className="h-4 w-4 text-sky-500" /></div>
                 <div><p className="text-xs text-slate-500">登録日</p><p className="text-sm font-medium">{formatDate(customer.created_at)}</p></div>
               </div>
+              {/* メルマガ配信状況 */}
+              {(() => {
+                const cf = customer.custom_fields as Record<string, unknown> | null | undefined;
+                const unsubscribed = cf?.newsletter_unsubscribed === true || cf?.newsletter_unsubscribed === 'true';
+                return (
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${unsubscribed ? 'bg-slate-100 dark:bg-slate-800' : 'bg-sky-50 dark:bg-sky-950/30'}`}>
+                      {unsubscribed
+                        ? <BellOff className="h-4 w-4 text-slate-400" />
+                        : <Bell className="h-4 w-4 text-sky-500" />
+                      }
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">メルマガ配信</p>
+                      <p className={`text-sm font-medium ${unsubscribed ? 'text-slate-400' : 'text-sky-600'}`}>
+                        {unsubscribed ? '配信停止' : '配信中'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="pt-2">
                 <Button className="w-full" variant="outline" asChild>
                   <a href={`mailto:${customer.email}`}><Mail className="mr-2 h-4 w-4" />メールを送る</a>
