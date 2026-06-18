@@ -145,7 +145,7 @@ export async function getAnalyticsOverview(
   const productRanking = Array.from(productMap.entries())
     .map(([id, d]) => ({ id, ...d }))
     .sort((a, b) => b.views - a.views)
-    .slice(0, 10);
+    .slice(0, 20);
 
   return {
     totalViews: totalViews ?? 0,

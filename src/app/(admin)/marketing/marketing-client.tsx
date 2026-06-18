@@ -222,7 +222,7 @@ function AnalyticsTab({
       <Card>
         <CardContent className="p-0">
           <div className="flex items-center justify-between px-4 py-3 border-b">
-            <h3 className="text-xs font-semibold text-muted-foreground">商品別ランキング（上位10件）</h3>
+            <h3 className="text-xs font-semibold text-muted-foreground">商品別ランキング（上位20件）</h3>
           </div>
           {(data?.productRanking || []).length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-8 px-4">

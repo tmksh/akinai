@@ -142,7 +142,7 @@ export async function GET(
         ctr: data.views > 0 ? Math.round((data.clicks / data.views) * 1000) / 10 : 0,
       }))
       .sort((a, b) => b.views - a.views)
-      .slice(0, 10);
+      .slice(0, 20);
 
     const totalViews = (viewsRaw || []).length;
     const totalClicks = (clicksRaw || []).length;
