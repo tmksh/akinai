@@ -72,14 +72,14 @@ export async function GET(
 
     const { data: clicksRaw } = await supabase
       .from('product_clicks')
-      .select('clicked_at, product_id, products!inner(supplier_id)')
+      .select('clicked_at, product_id, session_id, products!inner(supplier_id)')
       .eq('organization_id', orgId)
       .eq('products.supplier_id', supplierId)
       .gte('clicked_at', sixMonthsAgo.toISOString());
 
     const { data: productViewsRaw } = await supabase
       .from('page_views')
-      .select('product_id, products!inner(id, name, slug, supplier_id)')
+      .select('product_id, session_id, products!inner(id, name, slug, supplier_id)')
       .eq('organization_id', orgId)
       .eq('products.supplier_id', supplierId)
       .gte('viewed_at', sixMonthsAgo.toISOString())
@@ -93,12 +93,20 @@ export async function GET(
       now
     );
 
-    // 商品ランキング集計（views / clicks / ctr）
+    // 商品ランキング集計（同一セッションの重複を除去してカウント）
     const productRankMap = new Map<string, { name: string; slug: string; views: number; clicks: number }>();
+    const viewSessionSeen = new Set<string>();
     for (const pv of productViewsRaw || []) {
       const pid = pv.product_id as string;
+      const sid = (pv as unknown as { session_id?: string | null }).session_id;
       const product = ((pv as unknown) as { products: { id: string; name: string; slug: string; supplier_id: string | null } }).products;
       if (!pid || !product) continue;
+      // session_id がある場合は同一セッションの重複閲覧を除去
+      if (sid) {
+        const key = `${pid}:${sid}`;
+        if (viewSessionSeen.has(key)) continue;
+        viewSessionSeen.add(key);
+      }
       const existing = productRankMap.get(pid);
       if (existing) {
         existing.views++;
@@ -106,9 +114,17 @@ export async function GET(
         productRankMap.set(pid, { name: product.name, slug: product.slug, views: 1, clicks: 0 });
       }
     }
+    const clickSessionSeen = new Set<string>();
     for (const pc of clicksRaw || []) {
       const pid = pc.product_id as string;
+      const sid = (pc as unknown as { session_id?: string | null }).session_id;
       if (!pid) continue;
+      // session_id がある場合は同一セッションの重複クリックを除去
+      if (sid) {
+        const key = `${pid}:${sid}`;
+        if (clickSessionSeen.has(key)) continue;
+        clickSessionSeen.add(key);
+      }
       const existing = productRankMap.get(pid);
       if (existing) {
         existing.clicks++;

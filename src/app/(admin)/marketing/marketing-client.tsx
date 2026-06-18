@@ -242,7 +242,8 @@ function AnalyticsTab({
                 </thead>
                 <tbody>
                   {data?.productRanking.map((p, i) => {
-                    const ctr = p.views > 0 ? Math.round((p.clicks / p.views) * 1000) / 10 : 0;
+                    const rawCtr = p.views > 0 ? (p.clicks / p.views) * 100 : 0;
+                    const ctr = Math.round(Math.min(rawCtr, 100) * 10) / 10;
                     return (
                       <tr key={p.id} className="border-t hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-2">

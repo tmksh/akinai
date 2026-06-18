@@ -87,8 +87,8 @@ export async function getAnalyticsOverview(
     buildClicksCount(),
     buildBucketViews(),
     buildBucketClicks(),
-    supabase.from('page_views').select('product_id, products!inner(id, name)').eq('organization_id', organizationId).gte('viewed_at', since).not('product_id', 'is', null).limit(2000),
-    supabase.from('product_clicks').select('product_id, click_type, products!inner(id, name)').eq('organization_id', organizationId).gte('clicked_at', since).not('product_id', 'is', null).limit(2000),
+    supabase.from('page_views').select('product_id, session_id, products!inner(id, name)').eq('organization_id', organizationId).gte('viewed_at', since).not('product_id', 'is', null).limit(2000),
+    supabase.from('product_clicks').select('product_id, session_id, products!inner(id, name)').eq('organization_id', organizationId).gte('clicked_at', since).not('product_id', 'is', null).limit(2000),
   ]);
 
   // バケット集計
@@ -108,20 +108,36 @@ export async function getAnalyticsOverview(
     if (b) b.clicks++;
   }
 
-  // 商品ランキング
+  // 商品ランキング（同一セッションの重複を除去してカウント）
   const productMap = new Map<string, { name: string; views: number; clicks: number }>();
+  const viewSessionSeen = new Set<string>();
   for (const pv of topProducts || []) {
     const pid = pv.product_id as string;
+    const sid = (pv as unknown as { session_id?: string | null }).session_id;
     const product = ((pv as unknown) as { products: { id: string; name: string } }).products;
     if (!product) continue;
+    // session_id がある場合は同一セッションの重複閲覧を除去
+    if (sid) {
+      const key = `${pid}:${sid}`;
+      if (viewSessionSeen.has(key)) continue;
+      viewSessionSeen.add(key);
+    }
     const e = productMap.get(pid);
     if (e) e.views++;
     else productMap.set(pid, { name: product.name, views: 1, clicks: 0 });
   }
+  const clickSessionSeen = new Set<string>();
   for (const pc of topClicks || []) {
     const pid = pc.product_id as string;
+    const sid = (pc as unknown as { session_id?: string | null }).session_id;
     const product = ((pc as unknown) as { products: { id: string; name: string } }).products;
     if (!product) continue;
+    // session_id がある場合は同一セッションの重複クリックを除去
+    if (sid) {
+      const key = `${pid}:${sid}`;
+      if (clickSessionSeen.has(key)) continue;
+      clickSessionSeen.add(key);
+    }
     const e = productMap.get(pid);
     if (e) e.clicks++;
     else productMap.set(pid, { name: product.name, views: 0, clicks: 1 });
