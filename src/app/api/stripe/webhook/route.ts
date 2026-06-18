@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { sendOrderEmails } from '@/lib/order-emails';
 import { sendEmail } from '@/lib/email';
 import { buildUpcomingInvoiceEmail } from '@/lib/email-templates/order';
@@ -193,8 +195,11 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === 'subscription') {
-          // customer_id メタデータ付きはエンドユーザー向けサブスク
-          if (session.metadata?.customer_id) {
+          if (session.metadata?.reg_mode === 'create_on_complete') {
+            // 新フロー: checkout-session API 経由。アカウントをここで初めて作成する
+            await handleRegistrationCheckoutComplete(supabase, stripe, session, connectedAccountId);
+          } else if (session.metadata?.customer_id) {
+            // 旧フロー: register-with-plan API 経由。顧客は pending 状態で既存
             await handleCustomerSubscriptionCheckoutComplete(supabase, stripe, session, connectedAccountId);
           } else {
             await handleSubscriptionCheckoutComplete(supabase, session);
@@ -658,6 +663,221 @@ async function ensureSubscriptionOrder(
   }
 
   console.log(`[Webhook] ensureSubscriptionOrder: order created: ${newOrder.id}`);
+}
+
+/**
+ * 【新フロー】checkout.session.completed で初めてアカウントを作成する。
+ *
+ * POST /api/v1/stripe/checkout-session で reg_mode=create_on_complete をセットした場合に呼ばれる。
+ * Stripe session metadata から登録情報を取り出し、顧客レコードを status: active で作成する。
+ * 作成後に custom_fields.checkout_session_id を付与することで、
+ * GET /api/v1/stripe/checkout-status がこのレコードを発見できるようにする。
+ */
+async function handleRegistrationCheckoutComplete(
+  supabase: SupabaseAdmin,
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+  connectedAccountId: string | null
+) {
+  const organizationId = session.metadata?.organization_id;
+  const planId = session.metadata?.plan_id;
+  const regEmail = session.metadata?.reg_email;
+  const regName = session.metadata?.reg_name;
+  const regPasswordHash = session.metadata?.reg_password_hash;
+
+  if (!organizationId || !planId || !regEmail || !regName || !regPasswordHash) {
+    console.warn('[Webhook] registration checkout: missing required metadata', session.metadata);
+    return;
+  }
+
+  console.log(
+    `[Webhook] registration checkout completed (new flow): org=${organizationId}, email=${regEmail}`
+  );
+
+  // ── 冪等チェック: 同じセッションで二重作成しない ──
+  const { data: alreadyExists } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('custom_fields->>checkout_session_id', session.id)
+    .maybeSingle();
+
+  if (alreadyExists) {
+    console.log('[Webhook] registration checkout: customer already created, skip:', session.id);
+    return;
+  }
+
+  // ── メール重複チェック（念のため） ──
+  const { data: emailExists } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('email', regEmail)
+    .maybeSingle();
+
+  if (emailExists) {
+    console.warn('[Webhook] registration checkout: email already exists, skip creation:', regEmail);
+    return;
+  }
+
+  // ── 登録情報を metadata から復元 ──
+  const role = (session.metadata?.reg_role || 'personal') as string;
+  let roles: string[];
+  try {
+    roles = JSON.parse(session.metadata?.reg_roles || `["${role}"]`);
+  } catch {
+    roles = [role];
+  }
+  const phone = session.metadata?.reg_phone || null;
+  const company = session.metadata?.reg_company || null;
+  const prefecture = session.metadata?.reg_prefecture || null;
+  const businessType = session.metadata?.reg_business_type || null;
+  const referredByCode = session.metadata?.reg_referred_by || null;
+
+  let customFields: Record<string, unknown> = {};
+  if (session.metadata?.reg_custom_fields) {
+    try {
+      customFields = JSON.parse(session.metadata.reg_custom_fields);
+    } catch {
+      console.warn('[Webhook] registration checkout: failed to parse reg_custom_fields');
+    }
+  }
+
+  // ── 紹介コード生成（組織の機能フラグが有効な場合） ──
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('features, settings')
+    .eq('id', organizationId)
+    .single();
+
+  const orgFeatures = (org?.features as Record<string, unknown>) || {};
+  const isReferralEnabled = !!orgFeatures.referral_code;
+
+  let newReferralCode: string | null = null;
+  if (isReferralEnabled) {
+    for (let i = 0; i < 5; i++) {
+      const candidate = 'REF-' + randomBytes(3).toString('hex').toUpperCase();
+      const { data: dup } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('referral_code', candidate)
+        .maybeSingle();
+      if (!dup) {
+        newReferralCode = candidate;
+        break;
+      }
+    }
+  }
+
+  // ── サブスク情報を取得（currentPeriodEnd 等） ──
+  let currentPeriodEnd: string | null = null;
+  if (session.subscription) {
+    try {
+      const subId = typeof session.subscription === 'string'
+        ? session.subscription
+        : session.subscription.id;
+      const retrieveOptions = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
+      const stripeSub = await stripe.subscriptions.retrieve(
+        subId,
+        retrieveOptions as Parameters<typeof stripe.subscriptions.retrieve>[1]
+      );
+      const periodEndUnix = extractCurrentPeriodEnd(stripeSub);
+      currentPeriodEnd = periodEndUnix ? new Date(periodEndUnix * 1000).toISOString() : null;
+    } catch (err) {
+      console.warn('[Webhook] registration checkout: failed to retrieve subscription:', err);
+    }
+  }
+
+  // ── プラン名を解決 ──
+  const plansSettings = readPlansSettings(org?.settings as Record<string, unknown> | null);
+  const planLabel = resolvePlanLabel(plansSettings, planId);
+
+  const now = new Date().toISOString();
+  const subscription = {
+    planId,
+    stripeSubscriptionId: session.subscription as string,
+    stripeCustomerId: session.customer as string,
+    status: 'active',
+    currentPeriodEnd,
+    cancelAtPeriodEnd: false,
+    startedAt: now,
+    updatedAt: now,
+  };
+
+  // ── 顧客レコードを status: active で作成 ──
+  const { data: newCustomer, error: insertError } = await supabase
+    .from('customers')
+    .insert({
+      organization_id: organizationId,
+      name: regName,
+      email: regEmail,
+      password_hash: regPasswordHash,
+      role,
+      roles,
+      status: 'active',
+      type: role === 'personal' ? 'individual' : 'business',
+      phone: phone || null,
+      company: company || null,
+      prefecture: prefecture || null,
+      business_type: businessType || null,
+      email_verified: false,
+      referral_code: newReferralCode,
+      referred_by_code: referredByCode || null,
+      custom_fields: {
+        ...customFields,
+        subscription,
+        // ステータスポーリング用: checkout_session_id で検索できるようにする
+        checkout_session_id: session.id,
+        ...(planLabel ? { plan: planLabel } : {}),
+      },
+    })
+    .select('id, name, email')
+    .single();
+
+  if (insertError || !newCustomer) {
+    console.error('[Webhook] registration checkout: failed to create customer:', insertError);
+    return;
+  }
+
+  // ── Stripe Subscription の metadata に akinai_customer_id を付与 ──
+  // これにより以降の customer.subscription.* / invoice.payment_succeeded が
+  // 既存の顧客サブスクハンドラで正しく処理される（更新メール・継続注文等）
+  if (session.subscription) {
+    try {
+      const subId = typeof session.subscription === 'string'
+        ? session.subscription
+        : session.subscription.id;
+      await stripe.subscriptions.update(
+        subId,
+        {
+          metadata: {
+            akinai_organization_id: organizationId,
+            akinai_customer_id: newCustomer.id,
+            akinai_plan_id: planId,
+          },
+        },
+        // Connect アカウント経由の場合のみ stripeAccount を指定
+        connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+      );
+    } catch (err) {
+      console.warn('[Webhook] registration checkout: failed to update subscription metadata:', err);
+    }
+  }
+
+  // ── 注文作成（冪等） ──
+  await ensureSubscriptionOrder(supabase, {
+    organizationId,
+    customerId: newCustomer.id,
+    customerName: newCustomer.name,
+    customerEmail: newCustomer.email,
+    planId,
+    stripeSubscriptionId: session.subscription as string,
+    plansSettings,
+  });
+
+  console.log(
+    `[Webhook] registration checkout: customer created and activated: ${newCustomer.id} (org=${organizationId})`
+  );
 }
 
 /**
