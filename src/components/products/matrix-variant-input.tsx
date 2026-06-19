@@ -119,10 +119,10 @@ function SortableSwatchItem({
     }
     setUploading(true);
     try {
-      const { uploadProductImage } = await import('@/lib/actions/storage');
+      const { uploadVariantImage } = await import('@/lib/actions/storage');
       const fd = new FormData();
       fd.append('file', file);
-      const result = await uploadProductImage(productId, fd);
+      const result = await uploadVariantImage(productId, fd);
       if (result.data?.url) onImageChange(result.data.url);
     } finally {
       setUploading(false);
@@ -648,10 +648,10 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
             return;
           }
           try {
-            const { uploadProductImage } = await import('@/lib/actions/storage');
+            const { uploadVariantImage } = await import('@/lib/actions/storage');
             const fd = new FormData();
             fd.append('file', file);
-            const result = await uploadProductImage(productId, fd);
+            const result = await uploadVariantImage(productId, fd);
             if (result.data?.url) {
               const url = result.data.url;
               onChange(variants.map((v) => v.id === matchedVariant.id ? { ...v, imageUrl: url } : v));
@@ -1159,10 +1159,10 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                                     return;
                                   }
                                   try {
-                                    const { uploadProductImage } = await import('@/lib/actions/storage');
+                                    const { uploadVariantImage } = await import('@/lib/actions/storage');
                                     const fd = new FormData();
                                     fd.append('file', file);
-                                    const result = await uploadProductImage(productId, fd);
+                                    const result = await uploadVariantImage(productId, fd);
                                     if (result.data?.url) updateVariant(variant.id, 'imageUrl', result.data.url);
                                   } catch {
                                     updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
@@ -1286,10 +1286,10 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                             return;
                           }
                           try {
-                            const { uploadProductImage } = await import('@/lib/actions/storage');
+                            const { uploadVariantImage } = await import('@/lib/actions/storage');
                             const fd = new FormData();
                             fd.append('file', file);
-                            const result = await uploadProductImage(productId, fd);
+                            const result = await uploadVariantImage(productId, fd);
                             if (result.data?.url) {
                               updateVariant(variant.id, 'imageUrl', result.data.url);
                             }

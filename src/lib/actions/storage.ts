@@ -92,6 +92,50 @@ export async function uploadProductImage(
   }
 }
 
+// バリアント専用画像アップロード（product_imagesギャラリーには登録しない）
+export async function uploadVariantImage(
+  productId: string,
+  formData: FormData
+): Promise<{
+  data: { url: string } | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+
+  try {
+    const file = formData.get('file') as File;
+    if (!file) {
+      return { data: null, error: 'ファイルが選択されていません' };
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      return { data: null, error: 'ファイルサイズは10MB以下にしてください' };
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      return { data: null, error: 'サポートされていないファイル形式です（JPG, PNG, WEBP, GIFのみ）' };
+    }
+
+    const inputBuffer = Buffer.from(await file.arrayBuffer());
+    let processed: { url: string; thumbnailUrl: string };
+    try {
+      processed = await processAndUploadImageBuffer(supabase, inputBuffer, {
+        bucket: BUCKET_NAME,
+        folder: `${productId}/variants`,
+      });
+    } catch (e) {
+      console.error('Variant image processing error:', e);
+      return { data: null, error: 'アップロードに失敗しました' };
+    }
+
+    return { data: { url: processed.url }, error: null };
+  } catch (error) {
+    console.error('Variant image upload error:', error);
+    return { data: null, error: 'アップロードに失敗しました' };
+  }
+}
+
 // 商品画像を削除
 export async function deleteProductImage(
   imageId: string,
@@ -119,8 +163,18 @@ export async function deleteProductImage(
     const pathParts = url.pathname.split('/');
     const storagePath = pathParts.slice(pathParts.indexOf(BUCKET_NAME) + 1).join('/');
 
-    // Storageから削除
-    if (storagePath) {
+    // バリアントがこのURLを使用中か確認（使用中はStorageファイルを削除しない）
+    const { data: referencingVariants } = await supabase
+      .from('product_variants')
+      .select('id')
+      .eq('product_id', productId)
+      .filter('options->>imageUrl', 'eq', image.url)
+      .limit(1);
+
+    const isUsedByVariant = referencingVariants && referencingVariants.length > 0;
+
+    // Storageから削除（バリアントが参照していない場合のみ）
+    if (storagePath && !isUsedByVariant) {
       const { error: storageError } = await supabase.storage
         .from(BUCKET_NAME)
         .remove([storagePath]);
