@@ -270,6 +270,9 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
   const [newItemValues, setNewItemValues] = useState<Record<string, string>>({});
   const [selectedItems, setSelectedItems] = useState<Record<string, string>>({});
   const hydratedRef = useRef(false);
+  // 非同期アップロード完了時に最新の variants を参照するための ref
+  const variantsRef = useRef(variants);
+  variantsRef.current = variants;
 
   // バリアント画像のプリロード（選択時にキャッシュ済みで即表示）
   useEffect(() => {
@@ -629,10 +632,17 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
         const matchedVariant = variants.find((v) => {
           // まず完全一致を試みる（高速）
           if (v.name === comboWithPrefix || v.name === comboPlain) return true;
-          // 完全一致しない場合は各選択値がバリアント名に含まれるか確認
           if (selectedCombo.length === 0) return false;
-          const nameLower = v.name.toLowerCase();
-          return selectedCombo.every((val) => nameLower.includes(val.toLowerCase()));
+          // バリアント名を「軸名:値」セグメントに分解し、値部分のみを抽出して完全一致で照合
+          // （部分一致だと「ホワイト」が「オフホワイト」にも誤ヒットするため）
+          const segments = v.name.split(/\s*[\/、]\s*/);
+          const segmentValues = segments.map((seg) => {
+            const colonIdx = Math.max(seg.lastIndexOf(':'), seg.lastIndexOf('：'));
+            return colonIdx >= 0 ? seg.slice(colonIdx + 1).trim() : seg.trim();
+          });
+          return selectedCombo.every((val) =>
+            segmentValues.some((sv) => sv.toLowerCase() === val.toLowerCase())
+          );
         });
 
         // おまかせが選択されている場合もマッチしたバリアントの画像を表示（空フレーム画像を設定可能）
@@ -641,10 +651,12 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
 
         const handleHeroImageChange = async (file: File) => {
           if (!matchedVariant) return;
+          // アップロード完了時に最新 variants を使うため id だけ閉包で保持
+          const variantId = matchedVariant.id;
           if (!productId) {
             // productId がない場合は blob URL を一時使用（保存時は blob: URL が除外される）
             const url = URL.createObjectURL(file);
-            onChange(variants.map((v) => v.id === matchedVariant.id ? { ...v, imageUrl: url } : v));
+            onChange(variantsRef.current.map((v) => v.id === variantId ? { ...v, imageUrl: url } : v));
             return;
           }
           try {
@@ -654,7 +666,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
             const result = await uploadVariantImage(productId, fd);
             if (result.data?.url) {
               const url = result.data.url;
-              onChange(variants.map((v) => v.id === matchedVariant.id ? { ...v, imageUrl: url } : v));
+              onChange(variantsRef.current.map((v) => v.id === variantId ? { ...v, imageUrl: url } : v));
             }
           } catch {
             // アップロード失敗時は何もしない
@@ -782,7 +794,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                         disabled={disabled}
                         onClick={() => {
                           onChange(
-                            variants.map((v) =>
+                            variantsRef.current.map((v) =>
                               v.id === matchedVariant.id
                                 ? { ...v, imageUrl: isLinked ? undefined : img.url }
                                 : v
