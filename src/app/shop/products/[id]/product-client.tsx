@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag, Heart, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,16 +24,20 @@ export default function ProductClient({ product }: ProductClientProps) {
   const { addItem: addToCart } = useCart();
   const { toggle: toggleWishlist, isInWishlist } = useWishlist();
   const sessionId = useShopSession();
+  const viewTrackedRef = useRef(false);
 
-  // 商品詳細ページ表示時に閲覧を記録
+  // 商品詳細ページ表示時に閲覧を記録（sessionId 確定後に1回だけ）
   useEffect(() => {
+    if (viewTrackedRef.current) return;
     if (!product.organizationId) return;
+    // sessionId が null の間はまだ localStorage 読み込み中なので待つ
+    if (sessionId === null) return;
+    viewTrackedRef.current = true;
     trackProductView(product.id, product.organizationId, {
       supplierId: product.supplierId ?? undefined,
-      sessionId: sessionId ?? undefined,
+      sessionId,
       referrer: document.referrer || undefined,
     });
-  // sessionId が確定したタイミングで一度だけ実行
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
