@@ -61,16 +61,6 @@ export async function getAnalyticsOverview(
 
   const bucketMap = new Map(buckets.map(b => [b.key, b]));
 
-  const buildViewsCount = () => {
-    let q = supabase.from('page_views').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).gte('viewed_at', since);
-    if (productId) q = q.eq('product_id', productId);
-    return q;
-  };
-  const buildClicksCount = () => {
-    let q = supabase.from('product_clicks').select('*', { count: 'exact', head: true }).eq('organization_id', organizationId).gte('clicked_at', since);
-    if (productId) q = q.eq('product_id', productId);
-    return q;
-  };
   const buildBucketViews = () => {
     let q = supabase.from('page_views').select('viewed_at').eq('organization_id', organizationId).gte('viewed_at', since).limit(10000);
     if (productId) q = q.eq('product_id', productId);
@@ -82,13 +72,21 @@ export async function getAnalyticsOverview(
     return q;
   };
 
-  const [{ count: totalViews }, { count: totalClicks }, { data: bucketViews }, { data: bucketClicks }, { data: topProducts }, { data: topClicks }] = await Promise.all([
-    buildViewsCount(),
-    buildClicksCount(),
+  const [{ data: bucketViews }, { data: bucketClicks }, { data: rpcRanking }, { data: summaryData }] = await Promise.all([
     buildBucketViews(),
     buildBucketClicks(),
-    supabase.from('page_views').select('product_id, session_id, products!inner(id, name)').eq('organization_id', organizationId).gte('viewed_at', since).not('product_id', 'is', null).limit(2000),
-    supabase.from('product_clicks').select('product_id, session_id, products!inner(id, name)').eq('organization_id', organizationId).gte('clicked_at', since).not('product_id', 'is', null).limit(2000),
+    // DB側でGROUP BY集計するRPCを使用（limit(2000)による打ち切りを回避）
+    supabase.rpc('get_product_ranking', {
+      org_id: organizationId,
+      since_date: since,
+      limit_count: 50,
+    }),
+    // セッション重複除去したサマリー（CTRが必ず100%以下になる）
+    supabase.rpc('get_analytics_summary', {
+      org_id: organizationId,
+      since_date: since,
+      product_id: productId ?? null,
+    }),
   ]);
 
   // バケット集計
@@ -108,48 +106,19 @@ export async function getAnalyticsOverview(
     if (b) b.clicks++;
   }
 
-  // 商品ランキング（同一セッションの重複を除去してカウント）
-  const productMap = new Map<string, { name: string; views: number; clicks: number }>();
-  const viewSessionSeen = new Set<string>();
-  for (const pv of topProducts || []) {
-    const pid = pv.product_id as string;
-    const sid = (pv as unknown as { session_id?: string | null }).session_id;
-    const product = ((pv as unknown) as { products: { id: string; name: string } }).products;
-    if (!product) continue;
-    // session_id がある場合は同一セッションの重複閲覧を除去
-    if (sid) {
-      const key = `${pid}:${sid}`;
-      if (viewSessionSeen.has(key)) continue;
-      viewSessionSeen.add(key);
-    }
-    const e = productMap.get(pid);
-    if (e) e.views++;
-    else productMap.set(pid, { name: product.name, views: 1, clicks: 0 });
-  }
-  const clickSessionSeen = new Set<string>();
-  for (const pc of topClicks || []) {
-    const pid = pc.product_id as string;
-    const sid = (pc as unknown as { session_id?: string | null }).session_id;
-    const product = ((pc as unknown) as { products: { id: string; name: string } }).products;
-    if (!product) continue;
-    // session_id がある場合は同一セッションの重複クリックを除去
-    if (sid) {
-      const key = `${pid}:${sid}`;
-      if (clickSessionSeen.has(key)) continue;
-      clickSessionSeen.add(key);
-    }
-    const e = productMap.get(pid);
-    if (e) e.clicks++;
-    else productMap.set(pid, { name: product.name, views: 0, clicks: 1 });
-  }
-  const productRanking = Array.from(productMap.entries())
-    .map(([id, d]) => ({ id, ...d }))
-    .sort((a, b) => b.views - a.views)
-    .slice(0, 20);
+  // RPC結果をランキング形式に変換
+  const productRanking = (rpcRanking || []).map((r: { product_id: string; product_name: string; views: number; clicks: number }) => ({
+    id: r.product_id,
+    name: r.product_name,
+    views: Number(r.views),
+    clicks: Number(r.clicks),
+  }));
+
+  const summary = Array.isArray(summaryData) ? summaryData[0] : null;
 
   return {
-    totalViews: totalViews ?? 0,
-    totalClicks: totalClicks ?? 0,
+    totalViews: Number(summary?.total_views ?? 0),
+    totalClicks: Number(summary?.total_clicks ?? 0),
     buckets,
     productRanking,
   };

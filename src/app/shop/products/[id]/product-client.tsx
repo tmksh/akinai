@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Minus, Plus, ShoppingBag, Heart, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { ShopProduct } from '@/lib/actions/shop';
+import { trackProductView, trackProductClick } from '@/lib/actions/shop';
 import { toast } from 'sonner';
 import { useCart } from '@/hooks/use-cart';
 import { useWishlist } from '@/hooks/use-wishlist';
+import { useShopSession } from '@/hooks/use-shop-session';
 
 interface ProductClientProps {
   product: ShopProduct;
@@ -21,6 +23,19 @@ export default function ProductClient({ product }: ProductClientProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { addItem: addToCart } = useCart();
   const { toggle: toggleWishlist, isInWishlist } = useWishlist();
+  const sessionId = useShopSession();
+
+  // 商品詳細ページ表示時に閲覧を記録
+  useEffect(() => {
+    if (!product.organizationId) return;
+    trackProductView(product.id, product.organizationId, {
+      supplierId: product.supplierId ?? undefined,
+      sessionId: sessionId ?? undefined,
+      referrer: document.referrer || undefined,
+    });
+  // sessionId が確定したタイミングで一度だけ実行
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   const selectedVariant = product.variants[selectedVariantIndex];
   const hasMultipleVariants = product.variants.length > 1;
@@ -55,6 +70,15 @@ export default function ProductClient({ product }: ProductClientProps) {
       variant: selectedVariant.options || {},
       sku: selectedVariant.sku,
     });
+
+    // カート追加クリックを記録
+    if (product.organizationId) {
+      trackProductClick(product.id, product.organizationId, {
+        supplierId: product.supplierId ?? undefined,
+        sessionId: sessionId ?? undefined,
+        clickType: 'buy',
+      });
+    }
 
     toast.success('カートに追加しました', {
       description: `${product.name}${hasMultipleVariants ? ` (${selectedVariant.name})` : ''} × ${quantity}`,
