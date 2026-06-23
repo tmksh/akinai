@@ -7,12 +7,16 @@ import {
   TrendingUp, Eye, MousePointerClick, Loader2,
   X, CheckCircle2, Users, Megaphone, ChevronDown,
   Inbox, Package, ArrowRight, Paperclip, Trash2,
+  Bell, Send, History, UserCheck,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +35,11 @@ import {
   deleteInquiryThread,
   type InquiryThreadListItem,
   type InquiryThreadDetail,
+  broadcastNotification,
+  getNotificationBroadcastHistory,
+  getCustomersForSelect,
+  type BroadcastTarget,
+  type BroadcastHistoryItem,
 } from '@/lib/actions/marketing';
 import { getEmailDomainStatus, type EmailDomainStatus } from '@/lib/actions/email-domain';
 import { toast } from 'sonner';
@@ -776,6 +785,266 @@ function InquiriesTab({
   );
 }
 
+// ─── お知らせ配信タブ ────────────────────────────────────
+const TARGET_OPTIONS: { value: BroadcastTarget; label: string; description: string }[] = [
+  { value: 'all',        label: '全ユーザー',        description: 'アクティブな全会員に配信' },
+  { value: 'supplier',   label: 'サプライヤー',       description: 'サプライヤーロールの会員のみ' },
+  { value: 'buyer',      label: 'バイヤー',           description: 'バイヤーロールの会員のみ' },
+  { value: 'personal',   label: '個人',               description: '個人ロールの会員のみ' },
+  { value: 'individual', label: '個別指定',           description: '特定の会員1名に配信' },
+];
+
+function NotificationsTab({ organizationId }: { organizationId: string }) {
+  const [target, setTarget] = useState<BroadcastTarget>('all');
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [sendEmail, setSendEmail] = useState(false);
+  const [customerQuery, setCustomerQuery] = useState('');
+  const [customerResults, setCustomerResults] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [history, setHistory] = useState<BroadcastHistoryItem[] | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(true);
+
+  const customerSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    getNotificationBroadcastHistory(organizationId).then((h) => {
+      setHistory(h);
+      setHistoryLoading(false);
+    });
+  }, [organizationId]);
+
+  useEffect(() => {
+    if (target !== 'individual') {
+      setCustomerQuery('');
+      setCustomerResults([]);
+      setSelectedCustomer(null);
+      return;
+    }
+    if (!customerQuery.trim()) { setCustomerResults([]); return; }
+    if (customerSearchTimer.current) clearTimeout(customerSearchTimer.current);
+    customerSearchTimer.current = setTimeout(async () => {
+      setCustomerSearchLoading(true);
+      const all = await getCustomersForSelect(organizationId);
+      const q = customerQuery.toLowerCase();
+      setCustomerResults(
+        all.filter((c) => c.name.toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)).slice(0, 10)
+      );
+      setCustomerSearchLoading(false);
+    }, 300);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerQuery, target]);
+
+  const canSend = title.trim() && body.trim() && (target !== 'individual' || !!selectedCustomer);
+
+  const handleSend = async () => {
+    if (!canSend) return;
+    setSending(true);
+    const result = await broadcastNotification(organizationId, {
+      target,
+      customerId: selectedCustomer?.id,
+      title: title.trim(),
+      body: body.trim(),
+      sendEmail,
+    });
+    setSending(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success(`配信完了：${result.data!.sentCount}名${sendEmail ? '（メール送信）' : '（通知BOX）'}に送信しました`);
+    setTitle('');
+    setBody('');
+    setSendEmail(false);
+    setSelectedCustomer(null);
+    setCustomerQuery('');
+    // 履歴を再取得
+    getNotificationBroadcastHistory(organizationId).then(setHistory);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* 作成フォーム */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Bell className="h-4 w-4 text-violet-500" />
+            お知らせを作成・配信
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* 送信先 */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">送信先</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+              {TARGET_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setTarget(opt.value)}
+                  className={[
+                    'flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2.5 text-left transition-colors',
+                    target === opt.value
+                      ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300'
+                      : 'border-input hover:border-muted-foreground/40 hover:bg-muted/40',
+                  ].join(' ')}
+                >
+                  <span className="text-xs font-semibold">{opt.label}</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight">{opt.description}</span>
+                </button>
+              ))}
+            </div>
+            {/* 個別指定の検索 */}
+            {target === 'individual' && (
+              <div className="relative mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <UserCheck className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="会員名・メールアドレスで検索..."
+                      value={selectedCustomer ? `${selectedCustomer.name} (${selectedCustomer.email})` : customerQuery}
+                      onChange={(e) => {
+                        if (selectedCustomer) { setSelectedCustomer(null); }
+                        setCustomerQuery(e.target.value);
+                      }}
+                      className="pl-8 text-sm"
+                    />
+                    {customerSearchLoading && (
+                      <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  {selectedCustomer && (
+                    <Button size="sm" variant="ghost" className="h-9 px-2 text-muted-foreground" onClick={() => { setSelectedCustomer(null); setCustomerQuery(''); }}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+                {customerResults.length > 0 && !selectedCustomer && (
+                  <div className="absolute z-10 mt-1 w-full rounded-lg border bg-popover shadow-md overflow-hidden">
+                    {customerResults.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/60 transition-colors"
+                        onClick={() => { setSelectedCustomer(c); setCustomerQuery(''); setCustomerResults([]); }}
+                      >
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/40 text-[10px] font-bold text-violet-700 dark:text-violet-300">
+                          {c.name.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium truncate">{c.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{c.email} · {c.role}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* タイトル */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">タイトル *</Label>
+            <Input
+              placeholder="例：新機能のご案内"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={100}
+            />
+          </div>
+
+          {/* 本文 */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">本文 *</Label>
+            <Textarea
+              placeholder="お知らせの内容を入力してください..."
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={5}
+              className="resize-none"
+            />
+          </div>
+
+
+          {/* メール通知 + 送信ボタン */}
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-2.5">
+              <Switch
+                id="send-email-toggle"
+                checked={sendEmail}
+                onCheckedChange={setSendEmail}
+              />
+              <Label htmlFor="send-email-toggle" className="text-sm cursor-pointer">
+                メール通知も送る
+              </Label>
+            </div>
+            <Button
+              onClick={handleSend}
+              disabled={!canSend || sending}
+              className="bg-sky-600 hover:bg-sky-700 text-white"
+              size="sm"
+            >
+              {sending ? (
+                <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />送信中...</>
+              ) : (
+                <><Send className="mr-1.5 h-3.5 w-3.5" />配信する</>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 配信履歴 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <History className="h-4 w-4 text-muted-foreground" />
+            配信履歴
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {historyLoading ? (
+            <LoadingState />
+          ) : !history || history.length === 0 ? (
+            <EmptyState
+              icon={Bell}
+              title="配信履歴がありません"
+              description="上のフォームからお知らせを配信してください"
+            />
+          ) : (
+            <div className="divide-y">
+              {history.map((item, i) => (
+                <div key={i} className="px-4 py-3 flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30 mt-0.5">
+                    <Bell className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-sm font-medium truncate">{item.title}</p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="secondary" className="text-[10px]">
+                          <Users className="mr-1 h-2.5 w-2.5" />{item.count}名
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(item.sentAt).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ─── 共通コンポーネント ──────────────────────────────────
 function LoadingState() {
   return (
@@ -840,7 +1109,7 @@ export default function MarketingClient({
       </div>
 
       <Tabs defaultValue="analytics">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="analytics" className="flex items-center gap-1.5">
             <BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">アナリティクス</span>
           </TabsTrigger>
@@ -852,6 +1121,9 @@ export default function MarketingClient({
           </TabsTrigger>
           <TabsTrigger value="events" className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4" /><span className="hidden sm:inline">イベント</span>
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-1.5">
+            <Bell className="h-4 w-4" /><span className="hidden sm:inline">お知らせ配信</span>
           </TabsTrigger>
         </TabsList>
 
@@ -870,6 +1142,9 @@ export default function MarketingClient({
         </TabsContent>
         <TabsContent value="events" className="mt-6">
           <EventsTab organizationId={organizationId} initialEvents={initialEvents} />
+        </TabsContent>
+        <TabsContent value="notifications" className="mt-6">
+          <NotificationsTab organizationId={organizationId} />
         </TabsContent>
       </Tabs>
     </div>

@@ -613,3 +613,114 @@ export async function deleteInquiryThread(
   }
   return { error: null };
 }
+
+// ─── お知らせ一斉配信 ────────────────────────────────────
+
+export type BroadcastTarget = 'all' | 'supplier' | 'buyer' | 'personal' | 'individual';
+
+export interface BroadcastHistoryItem {
+  title: string;
+  body: string;
+  sentAt: string;
+  count: number;
+}
+
+export async function broadcastNotification(
+  organizationId: string,
+  input: {
+    target: BroadcastTarget;
+    customerId?: string;
+    title: string;
+    body: string;
+    linkUrl?: string;
+    sendEmail: boolean;
+  }
+): Promise<{ data: { sentCount: number } | null; error: string | null }> {
+  const supabase = await createClient();
+
+  let recipients: { id: string; email: string; name: string }[] = [];
+
+  if (input.target === 'individual') {
+    if (!input.customerId) return { data: null, error: '送信先を指定してください' };
+    const { data } = await supabase
+      .from('customers')
+      .select('id, email, name')
+      .eq('id', input.customerId)
+      .eq('organization_id', organizationId)
+      .single();
+    if (!data) return { data: null, error: '送信先が見つかりませんでした' };
+    recipients = [data as typeof recipients[0]];
+  } else {
+    let q = supabase
+      .from('customers')
+      .select('id, email, name')
+      .eq('organization_id', organizationId)
+      .eq('status', 'active')
+      .not('email', 'is', null);
+    if (input.target !== 'all') q = q.eq('role', input.target);
+    const { data } = await q;
+    recipients = (data || []) as typeof recipients;
+  }
+
+  if (recipients.length === 0) {
+    return { data: null, error: '送信対象の会員が見つかりませんでした' };
+  }
+
+  const fullBody = input.linkUrl ? `${input.body}\n\n${input.linkUrl}` : input.body;
+
+  const notifInserts = recipients.map((c) => ({
+    organization_id: organizationId,
+    customer_id: c.id,
+    type: 'general' as const,
+    title: input.title,
+    body: fullBody,
+    related_id: input.linkUrl || null,
+    related_type: null,
+  }));
+
+  const { error: insertError } = await supabase.from('notifications').insert(notifInserts);
+  if (insertError) return { data: null, error: 'データベースエラーが発生しました' };
+
+  let emailSentCount = 0;
+  if (input.sendEmail) {
+    const html = `<div style="font-family:sans-serif;line-height:1.6"><h2 style="margin-bottom:8px">${input.title}</h2><p style="white-space:pre-wrap">${input.body}</p>${input.linkUrl ? `<p><a href="${input.linkUrl}" style="color:#0284c7">${input.linkUrl}</a></p>` : ''}</div>`;
+    for (const c of recipients) {
+      const { success } = await sendEmail({ to: c.email, subject: input.title, html, organizationId });
+      if (success) emailSentCount++;
+    }
+  }
+
+  return { data: { sentCount: input.sendEmail ? emailSentCount : recipients.length }, error: null };
+}
+
+export async function getNotificationBroadcastHistory(
+  organizationId: string
+): Promise<BroadcastHistoryItem[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from('notifications')
+    .select('title, body, created_at')
+    .eq('organization_id', organizationId)
+    .eq('type', 'general')
+    .order('created_at', { ascending: false })
+    .limit(500);
+
+  if (!data || data.length === 0) return [];
+
+  // 同一タイトル＋5分以内の送信をひとつのブロードキャストとしてグループ化
+  const groups = new Map<string, BroadcastHistoryItem>();
+  for (const n of data) {
+    const windowKey = `${n.title}__${Math.floor(new Date(n.created_at).getTime() / (5 * 60 * 1000))}`;
+    const existing = groups.get(windowKey);
+    if (existing) {
+      existing.count++;
+    } else {
+      groups.set(windowKey, { title: n.title, body: n.body || '', sentAt: n.created_at, count: 1 });
+    }
+  }
+
+  return Array.from(groups.values())
+    .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
+    .slice(0, 20);
+}
