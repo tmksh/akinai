@@ -254,11 +254,15 @@ function SortableSwatchItem({
   );
 }
 
-function generateSku(parts: string[]): string {
-  return parts
+function generateSku(parts: string[], index?: number): string {
+  const ascii = parts
     .map((p) => p.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, ''))
     .filter(Boolean)
     .join('-');
+  if (ascii) return ascii;
+  // 日本語などASCII変換できない場合はインデックスベースのSKUを生成
+  const suffix = index !== undefined ? String(index + 1).padStart(3, '0') : String(Date.now()).slice(-4);
+  return `VAR-${suffix}`;
 }
 
 const AXIS_PRESETS = ['色', 'サイズ', '素材', '外枠カラー', 'マットカラー', 'ベースカラー'] as const;
@@ -420,11 +424,68 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
   const onSwatchConfigChangeRef = useRef(onSwatchConfigChange);
   useEffect(() => { onSwatchConfigChangeRef.current = onSwatchConfigChange; });
 
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; });
+
   // 軸が変わったらプレビューに通知 + swatch config を保存
+  // スウォッチモードでは「組み合わせを生成」ボタンが非表示のため自動生成する
   useEffect(() => {
     onAxesChangeRef.current?.(axes);
     onSwatchConfigChangeRef.current?.(axes);
-  }, [axes]);
+
+    if (!showHeroPreview) return;
+    const validAxes = axes.filter((a) => a.items.length > 0);
+    if (validAxes.length === 0) return;
+    const combinations = generateCombinations(validAxes);
+    if (combinations.length === 0) return;
+    const currentVariants = variantsRef.current;
+
+    // 軸名付き・なし両方のフォーマットでバリアントを検索（imageUrl など既存データを保持）
+    const findExisting = (combo: string[]) => {
+      const comboPlain = combo.join(' / ');
+      const comboWithPrefix = validAxes
+        .filter((a) => a.items.length > 0)
+        .map((a, i) => `${a.name}:${combo[i]}`)
+        .join(' / ');
+      return currentVariants.find((v) => {
+        if (v.name === comboPlain || v.name === comboWithPrefix) return true;
+        const segments = v.name.split(/\s*[/、]\s*/);
+        const segmentValues = segments.map((seg) => {
+          const colonIdx = Math.max(seg.lastIndexOf(':'), seg.lastIndexOf('：'));
+          return colonIdx >= 0 ? seg.slice(colonIdx + 1).trim() : seg.trim();
+        });
+        return combo.every((val) =>
+          segmentValues.some((sv) => sv.toLowerCase() === val.toLowerCase())
+        );
+      });
+    };
+
+    const newVariants: ProductVariant[] = combinations.map((combo, idx) => {
+      const existing = findExisting(combo);
+      if (existing) return existing;
+      // 新規バリアントは軸名付きフォーマットで作成（既存バリアントと統一）
+      const name = validAxes
+        .filter((a) => a.items.length > 0)
+        .map((a, i) => `${a.name}:${combo[i]}`)
+        .join(' / ');
+      return {
+        id: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        name,
+        sku: generateSku(combo, idx),
+        price: currentVariants[0]?.price ?? 0,
+        stock: 0,
+      };
+    });
+
+    // 全て既存バリアントと一致していれば更新不要（IDで比較）
+    const unchanged =
+      newVariants.length === currentVariants.length &&
+      newVariants.every((nv) => currentVariants.some((cv) => cv.id === nv.id));
+    if (!unchanged) {
+      onChangeRef.current(newVariants);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [axes, showHeroPreview]);
 
   // スウォッチ選択 or バリエーション一覧が変わったらプレビューを更新
   useEffect(() => {
@@ -515,13 +576,13 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
     const validAxes = axes.filter((a) => a.items.length > 0);
     if (validAxes.length === 0) return;
     const combinations = generateCombinations(validAxes);
-    const newVariants: ProductVariant[] = combinations.map((combo) => {
+    const newVariants: ProductVariant[] = combinations.map((combo, idx) => {
       const name = combo.join(' / ');
       const existing = variants.find((v) => v.name === name);
       return existing ?? {
         id: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         name,
-        sku: generateSku(combo),
+        sku: generateSku(combo, idx),
         price: variants[0]?.price ?? 0,
         stock: 0,
       };
