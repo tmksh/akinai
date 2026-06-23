@@ -241,7 +241,7 @@ function AnalyticsTab({
                   </tr>
                 </thead>
                 <tbody>
-                  {data?.productRanking.map((p, i) => {
+                  {data?.productRanking.map((p: { id: string; name: string; views: number; clicks: number }, i: number) => {
                     const rawCtr = p.views > 0 ? (p.clicks / p.views) * 100 : 0;
                     const ctr = Math.round(Math.min(rawCtr, 100) * 10) / 10;
                     return (
