@@ -433,19 +433,41 @@ export async function createProduct(input: CreateProductInput): Promise<{
 
     // バリエーションを作成
     if (input.variants.length > 0) {
+      // 組織内の既存SKUと衝突しないよう一意化（同一組み合わせの別商品との衝突を解消）
+      const { data: otherVariants } = await supabase
+        .from('product_variants')
+        .select('sku')
+        .eq('organization_id', input.organizationId);
+      const usedSkus = new Set((otherVariants || []).map((v) => v.sku as string));
+
+      const variantInserts = input.variants.map(v => {
+        let sku = (v.sku || '').trim() || `VAR-${product.id.slice(0, 8)}`;
+        if (usedSkus.has(sku)) {
+          const base = `${sku}-${product.id.slice(0, 4).toUpperCase()}`;
+          let candidate = base;
+          let n = 1;
+          while (usedSkus.has(candidate)) {
+            candidate = `${base}${n}`;
+            n++;
+          }
+          sku = candidate;
+        }
+        usedSkus.add(sku);
+        return {
+          product_id: product.id,
+          organization_id: input.organizationId,
+          name: v.name,
+          sku,
+          price: v.price,
+          compare_at_price: v.compareAtPrice || null,
+          stock: v.stock,
+          options: v.options || {},
+        };
+      });
+
       const { error: variantsError } = await supabase
         .from('product_variants')
-        .insert(
-          input.variants.map(v => ({
-            product_id: product.id,
-            name: v.name,
-            sku: v.sku,
-            price: v.price,
-            compare_at_price: v.compareAtPrice || null,
-            stock: v.stock,
-            options: v.options || {},
-          }))
-        );
+        .insert(variantInserts);
 
       if (variantsError) {
         // バリアント挿入失敗時は孤立した商品を削除してロールバック
@@ -541,26 +563,47 @@ export async function updateProduct(input: UpdateProductInput): Promise<{
 
     if (productError) throw productError;
 
-    // バリエーションを更新（INSERT → DELETE の順序で失敗時のデータロスを防ぐ）
+    // バリエーションを更新
+    // 注意: (organization_id, sku) のユニーク制約があるため、
+    // 同じ組み合わせ名を持つ別商品が同一SKUを生成すると衝突する。
+    // サーバー側で組織内のSKU一意性を保証し、失敗時は既存データを復元する。
     if (input.variants !== undefined) {
-      // 既存バリエーションのIDを取得（INSERT成功後の削除対象として保持）
+      const orgId = product.organization_id as string;
+
+      // 既存バリエーションを全カラム取得（INSERT失敗時のロールバック用）
       const { data: existingVariants } = await supabase
         .from('product_variants')
-        .select('id, sku')
+        .select('*')
         .eq('product_id', input.id);
       const existingIds = (existingVariants || []).map((v) => v.id);
 
       if (input.variants.length > 0) {
-        // 既存SKUと被らないよう新規バリアントのSKUを確認・調整
-        const existingSkus = new Set((existingVariants || []).map((v) => v.sku));
-        const newInserts = input.variants.map((v, idx) => {
-          let sku = v.sku;
-          // 既存バリアントのSKUと被る場合はサフィックスを付けて回避
-          if (existingSkus.has(sku)) {
-            sku = `${sku}-U${(idx + 1).toString(36).toUpperCase()}`;
+        // 組織内の他商品が使用中のSKUを取得（衝突回避の対象）
+        const { data: otherVariants } = await supabase
+          .from('product_variants')
+          .select('sku')
+          .eq('organization_id', orgId)
+          .neq('product_id', input.id);
+        const usedSkus = new Set((otherVariants || []).map((v) => v.sku as string));
+
+        // 各バリアントのSKUを組織内で一意になるよう確定（バッチ内重複も回避）
+        const newInserts = input.variants.map((v) => {
+          let sku = (v.sku || '').trim() || `VAR-${product.id.slice(0, 8)}`;
+          if (usedSkus.has(sku)) {
+            // 商品IDを混ぜたサフィックスで一意化（同一組み合わせの別商品との衝突を解消）
+            const base = `${sku}-${product.id.slice(0, 4).toUpperCase()}`;
+            let candidate = base;
+            let n = 1;
+            while (usedSkus.has(candidate)) {
+              candidate = `${base}${n}`;
+              n++;
+            }
+            sku = candidate;
           }
+          usedSkus.add(sku);
           return {
             product_id: input.id,
+            organization_id: orgId,
             name: v.name,
             sku,
             price: v.price,
@@ -570,20 +613,27 @@ export async function updateProduct(input: UpdateProductInput): Promise<{
           };
         });
 
-        // まず新バリアントをINSERTする（失敗しても既存データは残る）
+        // 古いバリアントを削除してから新バリアントをINSERT
+        if (existingIds.length > 0) {
+          await supabase.from('product_variants').delete().in('id', existingIds);
+        }
+
         const { error: variantsError } = await supabase
           .from('product_variants')
           .insert(newInserts);
 
-        if (variantsError) throw variantsError;
-      }
-
-      // INSERT成功後に古いバリアントを削除
-      if (existingIds.length > 0) {
-        await supabase
-          .from('product_variants')
-          .delete()
-          .in('id', existingIds);
+        if (variantsError) {
+          // INSERT失敗時: 削除済みの既存バリアントを復元してデータロスを防ぐ
+          if (existingVariants && existingVariants.length > 0) {
+            await supabase.from('product_variants').insert(existingVariants);
+          }
+          throw variantsError;
+        }
+      } else {
+        // バリアントが空 → 既存を削除
+        if (existingIds.length > 0) {
+          await supabase.from('product_variants').delete().in('id', existingIds);
+        }
       }
     }
 
