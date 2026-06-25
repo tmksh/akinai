@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Trash2, RefreshCw, Upload, X, Search, Wand2, Palette, Image as ImageIcon, GripVertical } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Upload, X, Search, Wand2, Palette, Image as ImageIcon, GripVertical, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   DndContext,
   closestCenter,
@@ -254,15 +255,18 @@ function SortableSwatchItem({
   );
 }
 
-function generateSku(parts: string[], index?: number): string {
+function generateSku(parts: string[]): string {
   const ascii = parts
     .map((p) => p.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, ''))
     .filter(Boolean)
     .join('-');
   if (ascii) return ascii;
-  // 日本語などASCII変換できない場合はインデックスベースのSKUを生成
-  const suffix = index !== undefined ? String(index + 1).padStart(3, '0') : String(Date.now()).slice(-4);
-  return `VAR-${suffix}`;
+  // 日本語などASCII変換できない場合：組み合わせ文字列のDJB2ハッシュを使用
+  // 同じ組み合わせは常に同じSKUになり、異なる組み合わせは衝突しにくい
+  const str = parts.join('/');
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+  return `VAR-${h.toString(36).toUpperCase().padStart(6, '0').slice(-6)}`;
 }
 
 const AXIS_PRESETS = ['色', 'サイズ', '素材', '外枠カラー', 'マットカラー', 'ベースカラー'] as const;
@@ -273,6 +277,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
   const [showPresets, setShowPresets] = useState(false);
   const [newItemValues, setNewItemValues] = useState<Record<string, string>>({});
   const [selectedItems, setSelectedItems] = useState<Record<string, string>>({});
+  const [uploadingHeroImage, setUploadingHeroImage] = useState(false);
   const hydratedRef = useRef(false);
   // 非同期アップロード完了時に最新の variants を参照するための ref
   const variantsRef = useRef(variants);
@@ -460,7 +465,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
       });
     };
 
-    const newVariants: ProductVariant[] = combinations.map((combo, idx) => {
+    const newVariants: ProductVariant[] = combinations.map((combo) => {
       const existing = findExisting(combo);
       if (existing) return existing;
       // 新規バリアントは軸名付きフォーマットで作成（既存バリアントと統一）
@@ -471,7 +476,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
       return {
         id: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         name,
-        sku: generateSku(combo, idx),
+        sku: generateSku(combo),
         price: currentVariants[0]?.price ?? 0,
         stock: 0,
       };
@@ -576,13 +581,13 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
     const validAxes = axes.filter((a) => a.items.length > 0);
     if (validAxes.length === 0) return;
     const combinations = generateCombinations(validAxes);
-    const newVariants: ProductVariant[] = combinations.map((combo, idx) => {
+    const newVariants: ProductVariant[] = combinations.map((combo) => {
       const name = combo.join(' / ');
       const existing = variants.find((v) => v.name === name);
       return existing ?? {
         id: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         name,
-        sku: generateSku(combo, idx),
+        sku: generateSku(combo),
         price: variants[0]?.price ?? 0,
         stock: 0,
       };
@@ -712,25 +717,39 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
 
         const handleHeroImageChange = async (file: File) => {
           if (!matchedVariant) return;
-          // アップロード完了時に最新 variants を使うため id だけ閉包で保持
+          // 非同期完了後も同じバリアントを特定できるよう id と name の両方を保持
           const variantId = matchedVariant.id;
+          const variantName = matchedVariant.name;
           if (!productId) {
-            // productId がない場合は blob URL を一時使用（保存時は blob: URL が除外される）
             const url = URL.createObjectURL(file);
             onChange(variantsRef.current.map((v) => v.id === variantId ? { ...v, imageUrl: url } : v));
             return;
           }
+          setUploadingHeroImage(true);
           try {
             const { uploadVariantImage } = await import('@/lib/actions/storage');
             const fd = new FormData();
             fd.append('file', file);
             const result = await uploadVariantImage(productId, fd);
+            if (result.error) {
+              toast.error(`画像のアップロードに失敗しました: ${result.error}`);
+              return;
+            }
             if (result.data?.url) {
               const url = result.data.url;
-              onChange(variantsRef.current.map((v) => v.id === variantId ? { ...v, imageUrl: url } : v));
+              // ID一致を優先し、見つからない場合はname一致でフォールバック
+              // （非同期中に自動生成が再実行されてIDが変わるケースへの対応）
+              const updated = variantsRef.current.map((v) =>
+                (v.id === variantId || v.name === variantName) ? { ...v, imageUrl: url } : v
+              );
+              onChange(updated);
+              toast.success('画像を設定しました');
             }
-          } catch {
-            // アップロード失敗時は何もしない
+          } catch (err) {
+            console.error('Variant image upload error:', err);
+            toast.error('画像のアップロードに失敗しました');
+          } finally {
+            setUploadingHeroImage(false);
           }
         };
 
@@ -790,21 +809,27 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
               {/* 画像変更ボタン（右下に常時表示） */}
               {matchedVariant && (
                 <label
-                  className="absolute bottom-3 right-3 flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border border-white/60 dark:border-slate-600 shadow-md text-xs font-medium text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-colors"
+                  className={cn(
+                    "absolute bottom-3 right-3 flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border border-white/60 dark:border-slate-600 shadow-md text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors",
+                    uploadingHeroImage ? "opacity-60 cursor-wait" : "cursor-pointer hover:bg-white dark:hover:bg-slate-700"
+                  )}
                   title="この組み合わせの画像を変更"
                 >
                   <input
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    disabled={disabled}
+                    disabled={disabled || uploadingHeroImage}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) handleHeroImageChange(file);
+                      e.target.value = '';
                     }}
                   />
-                  <Upload className="h-3.5 w-3.5 shrink-0" />
-                  {previewImage ? '画像を変更' : '画像を設定'}
+                  {uploadingHeroImage
+                    ? <><Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />アップロード中...</>
+                    : <><Upload className="h-3.5 w-3.5 shrink-0" />{previewImage ? '画像を変更' : '画像を設定'}</>
+                  }
                 </label>
               )}
 

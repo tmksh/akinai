@@ -541,31 +541,49 @@ export async function updateProduct(input: UpdateProductInput): Promise<{
 
     if (productError) throw productError;
 
-    // バリエーションを更新
+    // バリエーションを更新（INSERT → DELETE の順序で失敗時のデータロスを防ぐ）
     if (input.variants !== undefined) {
-      // 既存のバリエーションを削除
-      await supabase
+      // 既存バリエーションのIDを取得（INSERT成功後の削除対象として保持）
+      const { data: existingVariants } = await supabase
         .from('product_variants')
-        .delete()
+        .select('id, sku')
         .eq('product_id', input.id);
+      const existingIds = (existingVariants || []).map((v) => v.id);
 
-      // 新しいバリエーションを作成
       if (input.variants.length > 0) {
+        // 既存SKUと被らないよう新規バリアントのSKUを確認・調整
+        const existingSkus = new Set((existingVariants || []).map((v) => v.sku));
+        const newInserts = input.variants.map((v, idx) => {
+          let sku = v.sku;
+          // 既存バリアントのSKUと被る場合はサフィックスを付けて回避
+          if (existingSkus.has(sku)) {
+            sku = `${sku}-U${(idx + 1).toString(36).toUpperCase()}`;
+          }
+          return {
+            product_id: input.id,
+            name: v.name,
+            sku,
+            price: v.price,
+            compare_at_price: v.compareAtPrice || null,
+            stock: v.stock,
+            options: v.options || {},
+          };
+        });
+
+        // まず新バリアントをINSERTする（失敗しても既存データは残る）
         const { error: variantsError } = await supabase
           .from('product_variants')
-          .insert(
-            input.variants.map(v => ({
-              product_id: input.id,
-              name: v.name,
-              sku: v.sku,
-              price: v.price,
-              compare_at_price: v.compareAtPrice || null,
-              stock: v.stock,
-              options: v.options || {},
-            }))
-          );
+          .insert(newInserts);
 
         if (variantsError) throw variantsError;
+      }
+
+      // INSERT成功後に古いバリアントを削除
+      if (existingIds.length > 0) {
+        await supabase
+          .from('product_variants')
+          .delete()
+          .in('id', existingIds);
       }
     }
 
