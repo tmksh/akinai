@@ -398,6 +398,7 @@ interface CreateProductInput {
     price: number;
     compareAtPrice?: number;
     stock: number;
+    imageUrl?: string;
     options?: Record<string, string>;
   }[];
 }
@@ -453,6 +454,8 @@ export async function createProduct(input: CreateProductInput): Promise<{
           sku = candidate;
         }
         usedSkus.add(sku);
+        const imageUrl = variantImageUrl(v);
+        const options = { ...(v.options || {}), ...(imageUrl ? { imageUrl } : {}) };
         return {
           product_id: product.id,
           organization_id: input.organizationId,
@@ -461,7 +464,8 @@ export async function createProduct(input: CreateProductInput): Promise<{
           price: v.price,
           compare_at_price: v.compareAtPrice || null,
           stock: v.stock,
-          options: v.options || {},
+          options,
+          image_url: imageUrl,
         };
       });
 
@@ -525,8 +529,15 @@ interface UpdateProductInput {
     price: number;
     compareAtPrice?: number;
     stock: number;
+    imageUrl?: string;
     options?: Record<string, string>;
   }[];
+}
+
+function variantImageUrl(v: { imageUrl?: string; options?: Record<string, string> }): string | null {
+  const url = v.imageUrl || v.options?.imageUrl;
+  if (!url || url.startsWith('blob:')) return null;
+  return url;
 }
 
 export async function updateProduct(input: UpdateProductInput): Promise<{
@@ -601,6 +612,8 @@ export async function updateProduct(input: UpdateProductInput): Promise<{
             sku = candidate;
           }
           usedSkus.add(sku);
+          const imageUrl = variantImageUrl(v);
+          const options = { ...(v.options || {}), ...(imageUrl ? { imageUrl } : {}) };
           return {
             product_id: input.id,
             organization_id: orgId,
@@ -609,7 +622,8 @@ export async function updateProduct(input: UpdateProductInput): Promise<{
             price: v.price,
             compare_at_price: v.compareAtPrice || null,
             stock: v.stock,
-            options: v.options || {},
+            options,
+            image_url: imageUrl,
           };
         });
 

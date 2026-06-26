@@ -255,15 +255,26 @@ function SortableSwatchItem({
   );
 }
 
-function generateSku(parts: string[]): string {
+function parseAxisPart(part: string): { axisName?: string; value: string } {
+  const colonIdx = Math.max(part.indexOf(':'), part.indexOf('：'));
+  if (colonIdx > 0) {
+    return {
+      axisName: part.slice(0, colonIdx).trim(),
+      value: part.slice(colonIdx + 1).trim(),
+    };
+  }
+  return { value: part.trim() };
+}
+
+function generateSku(parts: string[], productId?: string): string {
   const ascii = parts
     .map((p) => p.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, ''))
     .filter(Boolean)
     .join('-');
   if (ascii) return ascii;
   // 日本語などASCII変換できない場合：組み合わせ文字列のDJB2ハッシュを使用
-  // 同じ組み合わせは常に同じSKUになり、異なる組み合わせは衝突しにくい
-  const str = parts.join('/');
+  // productId を混ぜることで別商品とのSKU衝突を防ぐ
+  const str = [productId?.slice(0, 8) ?? '', ...parts].filter(Boolean).join('/');
   let h = 5381;
   for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
   return `VAR-${h.toString(36).toUpperCase().padStart(6, '0').slice(-6)}`;
@@ -361,16 +372,10 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
       if (parts.length === 0) { valid = false; break; }
 
       parts.forEach((part, idx) => {
-        const colonIdx = part.indexOf(':');
-        let axisName: string;
-        let value: string;
-        if (colonIdx > 0) {
-          axisName = part.slice(0, colonIdx).trim();
-          value = part.slice(colonIdx + 1).trim();
-        } else {
-          axisName = `項目${idx + 1}`;
-          value = part;
-        }
+        const parsed = parseAxisPart(part);
+        const axisName = parsed.axisName ?? `項目${idx + 1}`;
+        const value = parsed.value;
+        if (!value) return;
         if (!axisOrder.includes(axisName)) {
           axisOrder.push(axisName);
           axisItemsMap.set(axisName, new Map());
@@ -476,7 +481,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
       return {
         id: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         name,
-        sku: generateSku(combo),
+        sku: generateSku(combo, productId),
         price: currentVariants[0]?.price ?? 0,
         stock: 0,
       };
@@ -587,7 +592,7 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
       return existing ?? {
         id: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         name,
-        sku: generateSku(combo),
+        sku: generateSku(combo, productId),
         price: variants[0]?.price ?? 0,
         stock: 0,
       };

@@ -271,7 +271,7 @@ export default function ProductEditPage() {
             price: v.price,
             compareAtPrice: v.compareAtPrice,
             stock: v.stock,
-            // blob: URL は一時的なオブジェクトURLのため保存しない
+            imageUrl: v.imageUrl && !v.imageUrl.startsWith('blob:') ? v.imageUrl : undefined,
             options: (v.imageUrl && !v.imageUrl.startsWith('blob:')) ? { imageUrl: v.imageUrl } : undefined,
           })),
         });
