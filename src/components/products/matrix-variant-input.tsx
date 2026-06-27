@@ -114,7 +114,6 @@ function SortableSwatchItem({
 
   const handleImageUpload = async (file: File) => {
     if (!productId) {
-      // productId なければ blob URL を一時使用
       onImageChange(URL.createObjectURL(file));
       return;
     }
@@ -124,7 +123,14 @@ function SortableSwatchItem({
       const fd = new FormData();
       fd.append('file', file);
       const result = await uploadVariantImage(productId, fd);
-      if (result.data?.url) onImageChange(result.data.url);
+      if (result.error) {
+        toast.error(`画像のアップロードに失敗しました: ${result.error}`);
+      } else if (result.data?.url) {
+        onImageChange(result.data.url);
+      }
+    } catch (err) {
+      console.error('Image upload error:', err);
+      toast.error('画像のアップロードに失敗しました');
     } finally {
       setUploading(false);
     }
@@ -1266,9 +1272,14 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                                     const fd = new FormData();
                                     fd.append('file', file);
                                     const result = await uploadVariantImage(productId, fd);
-                                    if (result.data?.url) updateVariant(variant.id, 'imageUrl', result.data.url);
-                                  } catch {
-                                    updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
+                                    if (result.error) {
+                                      toast.error(`画像のアップロードに失敗しました: ${result.error}`);
+                                    } else if (result.data?.url) {
+                                      updateVariant(variant.id, 'imageUrl', result.data.url);
+                                    }
+                                  } catch (err) {
+                                    console.error('Image upload error:', err);
+                                    toast.error('画像のアップロードに失敗しました');
                                   }
                                 }}
                               />
@@ -1393,11 +1404,14 @@ export function MatrixVariantInput({ variants, onChange, onSelectedVariantChange
                             const fd = new FormData();
                             fd.append('file', file);
                             const result = await uploadVariantImage(productId, fd);
-                            if (result.data?.url) {
+                            if (result.error) {
+                              toast.error(`画像のアップロードに失敗しました: ${result.error}`);
+                            } else if (result.data?.url) {
                               updateVariant(variant.id, 'imageUrl', result.data.url);
                             }
-                          } catch {
-                            updateVariant(variant.id, 'imageUrl', URL.createObjectURL(file));
+                          } catch (err) {
+                            console.error('Image upload error:', err);
+                            toast.error('画像のアップロードに失敗しました');
                           }
                         }}
                       />

@@ -22,15 +22,15 @@ export async function uploadProductImage(
       return { data: null, error: 'ファイルが選択されていません' };
     }
 
-    // ファイルサイズチェック（10MB以下）
-    if (file.size > 10 * 1024 * 1024) {
-      return { data: null, error: 'ファイルサイズは10MB以下にしてください' };
+    // ファイルサイズチェック（30MB以下）
+    if (file.size > 30 * 1024 * 1024) {
+      return { data: null, error: 'ファイルサイズは30MB以下にしてください' };
     }
 
     // ファイルタイプチェック
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      return { data: null, error: 'サポートされていないファイル形式です（JPG, PNG, WEBP, GIFのみ）' };
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif', 'image/tiff', 'image/bmp'];
+    if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+      return { data: null, error: 'サポートされていないファイル形式です（JPG, PNG, WEBP, HEIC, GIF など）' };
     }
 
     // サーバー側でリサイズ(長辺1200px)+WebP変換し、サムネイル(400px)も生成して保存
@@ -108,13 +108,13 @@ export async function uploadVariantImage(
       return { data: null, error: 'ファイルが選択されていません' };
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      return { data: null, error: 'ファイルサイズは10MB以下にしてください' };
+    if (file.size > 30 * 1024 * 1024) {
+      return { data: null, error: 'ファイルサイズは30MB以下にしてください' };
     }
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      return { data: null, error: 'サポートされていないファイル形式です（JPG, PNG, WEBP, GIFのみ）' };
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif', 'image/tiff', 'image/bmp'];
+    if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+      return { data: null, error: 'サポートされていないファイル形式です（JPG, PNG, WEBP, HEIC, GIF など）' };
     }
 
     const inputBuffer = Buffer.from(await file.arrayBuffer());
@@ -126,7 +126,7 @@ export async function uploadVariantImage(
       });
     } catch (e) {
       console.error('Variant image processing error:', e);
-      return { data: null, error: 'アップロードに失敗しました' };
+      return { data: null, error: `画像の変換に失敗しました。別の形式（JPG/PNG）でお試しください` };
     }
 
     return { data: { url: processed.url }, error: null };
