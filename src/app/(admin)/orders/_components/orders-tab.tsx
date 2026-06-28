@@ -18,6 +18,7 @@ import {
   Calendar as CalendarIcon,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   X,
 } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
@@ -228,11 +229,15 @@ function mapInitialOrders(
   return raw.map((o) => mapOrderFromApi(o as unknown as Record<string, unknown>));
 }
 
+const PAGE_SIZE = 50;
+
 export function OrdersTab() {
   const router = useRouter();
   const { organization } = useOrganization();
   const organizationId = organization?.id;
   const [orders, setOrders] = useState<Order[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -249,7 +254,7 @@ export function OrdersTab() {
     }
     let cancelled = false;
     setOrdersLoading(true);
-    getOrders(organizationId).then(({ data, error }) => {
+    getOrders(organizationId, { limit: PAGE_SIZE, offset: currentPage * PAGE_SIZE }).then(({ data, totalCount: total, error }) => {
       if (cancelled) return;
       setOrdersLoading(false);
       if (error || !data) {
@@ -257,9 +262,10 @@ export function OrdersTab() {
         return;
       }
       setOrders(mapInitialOrders(data));
+      setTotalCount(total);
     });
     return () => { cancelled = true; };
-  }, [organizationId]);
+  }, [organizationId, currentPage]);
 
   const handlePresetChange = useCallback((preset: PresetType) => {
     setDatePreset(preset);
@@ -546,6 +552,38 @@ export function OrdersTab() {
           </TableBody>
         </Table>
       </div>
+
+      {/* ページネーション */}
+      {totalCount > PAGE_SIZE && (
+        <div className="flex items-center justify-between pt-1">
+          <p className="text-xs text-muted-foreground">
+            全{totalCount}件中 {currentPage * PAGE_SIZE + 1}〜{Math.min((currentPage + 1) * PAGE_SIZE, totalCount)}件を表示
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+              disabled={currentPage === 0 || ordersLoading}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              前へ
+            </Button>
+            <span className="px-3 text-sm text-muted-foreground">
+              {currentPage + 1} / {Math.ceil(totalCount / PAGE_SIZE)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => p + 1)}
+              disabled={(currentPage + 1) * PAGE_SIZE >= totalCount || ordersLoading}
+            >
+              次へ
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

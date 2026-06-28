@@ -10,6 +10,7 @@ import {
   handleOptions,
   corsHeaders,
 } from '@/lib/api/auth';
+import { invalidateOrgCache } from '@/lib/api/memory-cache';
 
 function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -495,9 +496,16 @@ export async function POST(request: NextRequest) {
       response.headers.set(key, value);
     });
     
+    // 注文作成後にメモリキャッシュを削除（管理画面に即時反映させるため）
+    if (auth.organizationId) {
+      invalidateOrgCache(auth.organizationId, 'orders');
+      invalidateOrgCache(auth.organizationId, 'dashboard');
+    }
+
     // クレカ以外（銀行振込・代引き）は注文作成時点でメール送信
     // akinai サーバー上で直接 sendOrderEmails を呼ぶ（自己HTTP呼び出しを避けるため）
-    if (body.paymentMethod !== 'credit_card') {      await sendOrderEmails(supabase, order.id, auth.organizationId ?? null);
+    if (body.paymentMethod !== 'credit_card') {
+      await sendOrderEmails(supabase, order.id, auth.organizationId ?? null);
     } else {
       console.log('[Order Email] Skipping email for credit_card (handled by Stripe webhook)');
     }

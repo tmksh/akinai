@@ -233,32 +233,34 @@ export async function createOrder(input: CreateOrderInput): Promise<{
 // 注文一覧を取得
 export async function getOrders(
   organizationId: string,
-  options?: { limit?: number }
+  options?: { limit?: number; offset?: number }
 ): Promise<{
   data: OrderWithItems[] | null;
+  totalCount: number;
   error: string | null;
 }> {
   const limit = options?.limit ?? 50;
+  const offset = options?.offset ?? 0;
 
   return getOrSetCached(
-    orgCacheKey(organizationId, 'orders', `l${limit}`),
+    orgCacheKey(organizationId, 'orders', `l${limit}o${offset}`),
     MEMORY_TTL.adminList,
     async () => {
       const supabase = await createClient();
       try {
-        const { data: orders, error: ordersError } = await supabase
+        const { data: orders, error: ordersError, count } = await supabase
           .from('orders')
           .select(`
             *,
             order_items (id, quantity, product_name, variant_name, unit_price, total_price, sku)
-          `)
+          `, { count: 'exact' })
           .eq('organization_id', organizationId)
           .order('created_at', { ascending: false })
-          .limit(limit);
+          .range(offset, offset + limit - 1);
 
         if (ordersError) throw ordersError;
         if (!orders || orders.length === 0) {
-          return { data: [], error: null };
+          return { data: [], totalCount: count ?? 0, error: null };
         }
 
         const ordersWithItems: OrderWithItems[] = orders.map(order => {
@@ -269,11 +271,12 @@ export async function getOrders(
           };
         });
 
-        return { data: ordersWithItems, error: null };
+        return { data: ordersWithItems, totalCount: count ?? 0, error: null };
       } catch (err) {
         console.error('Failed to fetch orders:', err);
         return {
           data: null,
+          totalCount: 0,
           error: err instanceof Error ? err.message : 'Failed to fetch orders',
         };
       }
