@@ -38,6 +38,7 @@ import {
   broadcastNotification,
   getNotificationBroadcastHistory,
   getCustomersForSelect,
+  deleteNotificationBroadcast,
   type BroadcastTarget,
   type BroadcastHistoryItem,
 } from '@/lib/actions/marketing';
@@ -47,7 +48,7 @@ import { toast } from 'sonner';
 type AnalyticsData = Awaited<ReturnType<typeof getAnalyticsOverview>>;
 type NewsletterItem = Awaited<ReturnType<typeof getNewsletterHistory>>[number];
 type EventItem = Awaited<ReturnType<typeof getEvents>>[number];
-type Customer = { id: string; name: string; email: string; role: string };
+type Customer = { id: string; name: string; email: string; role: string; status?: string };
 
 const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   sent:      { label: '送信済み',   variant: 'default' },
@@ -800,14 +801,15 @@ function NotificationsTab({ organizationId }: { organizationId: string }) {
   const [body, setBody] = useState('');
   const [sendEmail, setSendEmail] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
-  const [customerResults, setCustomerResults] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
+  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string; email: string } | null>(null);
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [history, setHistory] = useState<BroadcastHistoryItem[] | null>(null);
   const [historyLoading, setHistoryLoading] = useState(true);
 
-  const customerSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const customerSearchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getNotificationBroadcastHistory(organizationId).then((h) => {
@@ -816,26 +818,39 @@ function NotificationsTab({ organizationId }: { organizationId: string }) {
     });
   }, [organizationId]);
 
+  // target が individual になった時点で顧客を一括ロード
   useEffect(() => {
     if (target !== 'individual') {
       setCustomerQuery('');
-      setCustomerResults([]);
+      setAllCustomers([]);
       setSelectedCustomer(null);
+      setDropdownOpen(false);
       return;
     }
-    if (!customerQuery.trim()) { setCustomerResults([]); return; }
-    if (customerSearchTimer.current) clearTimeout(customerSearchTimer.current);
-    customerSearchTimer.current = setTimeout(async () => {
-      setCustomerSearchLoading(true);
-      const all = await getCustomersForSelect(organizationId);
-      const q = customerQuery.toLowerCase();
-      setCustomerResults(
-        all.filter((c) => c.name.toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)).slice(0, 10)
-      );
+    setCustomerSearchLoading(true);
+    getCustomersForSelect(organizationId).then((customers) => {
+      setAllCustomers(customers);
       setCustomerSearchLoading(false);
-    }, 300);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerQuery, target]);
+    });
+  }, [target, organizationId]);
+
+  // ドロップダウン外クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (customerSearchRef.current && !customerSearchRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredCustomers = customerQuery.trim()
+    ? allCustomers.filter((c) => {
+        const q = customerQuery.toLowerCase();
+        return c.name.toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q);
+      }).slice(0, 20)
+    : allCustomers.slice(0, 20);
 
   const canSend = title.trim() && body.trim() && (target !== 'individual' || !!selectedCustomer);
 
@@ -898,47 +913,75 @@ function NotificationsTab({ organizationId }: { organizationId: string }) {
             </div>
             {/* 個別指定の検索 */}
             {target === 'individual' && (
-              <div className="relative mt-2">
+              <div className="relative mt-2" ref={customerSearchRef}>
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
-                    <UserCheck className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="会員名・メールアドレスで検索..."
-                      value={selectedCustomer ? `${selectedCustomer.name} (${selectedCustomer.email})` : customerQuery}
-                      onChange={(e) => {
-                        if (selectedCustomer) { setSelectedCustomer(null); }
-                        setCustomerQuery(e.target.value);
-                      }}
-                      className="pl-8 text-sm"
-                    />
-                    {customerSearchLoading && (
+                    <UserCheck className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    {selectedCustomer ? (
+                      <div className="h-9 w-full pl-8 pr-9 flex items-center rounded-xl border bg-violet-50 dark:bg-violet-950/30 border-violet-300 dark:border-violet-700 text-sm text-violet-700 dark:text-violet-300 cursor-default select-none">
+                        <span className="truncate">{selectedCustomer.name}</span>
+                        <span className="ml-1 text-violet-400 dark:text-violet-500 truncate">({selectedCustomer.email})</span>
+                      </div>
+                    ) : (
+                      <Input
+                        placeholder={customerSearchLoading ? '顧客を読み込み中...' : '会員名・メールアドレスで絞り込み...'}
+                        value={customerQuery}
+                        onChange={(e) => setCustomerQuery(e.target.value)}
+                        onFocus={() => setDropdownOpen(true)}
+                        className="pl-8 pr-8 text-sm"
+                        disabled={customerSearchLoading}
+                      />
+                    )}
+                    {customerSearchLoading ? (
                       <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                    ) : !selectedCustomer && (
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                     )}
                   </div>
                   {selectedCustomer && (
-                    <Button size="sm" variant="ghost" className="h-9 px-2 text-muted-foreground" onClick={() => { setSelectedCustomer(null); setCustomerQuery(''); }}>
+                    <Button size="sm" variant="ghost" className="h-9 px-2 text-muted-foreground" onClick={() => { setSelectedCustomer(null); setCustomerQuery(''); setDropdownOpen(false); }}>
                       <X className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>
-                {customerResults.length > 0 && !selectedCustomer && (
-                  <div className="absolute z-10 mt-1 w-full rounded-lg border bg-popover shadow-md overflow-hidden">
-                    {customerResults.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/60 transition-colors"
-                        onClick={() => { setSelectedCustomer(c); setCustomerQuery(''); setCustomerResults([]); }}
-                      >
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/40 text-[10px] font-bold text-violet-700 dark:text-violet-300">
-                          {c.name.charAt(0)}
+                {dropdownOpen && !selectedCustomer && !customerSearchLoading && (
+                  <div className="absolute z-20 mt-1 w-full rounded-lg border bg-popover shadow-lg overflow-hidden">
+                    {filteredCustomers.length === 0 ? (
+                      <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+                        {customerQuery ? '一致する会員が見つかりません' : '会員が登録されていません'}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="px-3 py-1.5 border-b bg-muted/30">
+                          <p className="text-[10px] text-muted-foreground">
+                            {customerQuery ? `「${customerQuery}」の検索結果` : '全会員'} · {filteredCustomers.length}件{allCustomers.length > 20 && !customerQuery ? `（全${allCustomers.length}件中）` : ''}
+                          </p>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium truncate">{c.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{c.email} · {c.role}</p>
+                        <div className="max-h-56 overflow-y-auto">
+                          {filteredCustomers.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/60 transition-colors"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setSelectedCustomer(c);
+                                setCustomerQuery('');
+                                setDropdownOpen(false);
+                              }}
+                            >
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/40 text-[10px] font-bold text-violet-700 dark:text-violet-300">
+                                {c.name.charAt(0)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium truncate">{c.name}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{c.email} · {c.role}</p>
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                      </button>
-                    ))}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -1016,8 +1059,8 @@ function NotificationsTab({ organizationId }: { organizationId: string }) {
             />
           ) : (
             <div className="divide-y">
-              {history.map((item, i) => (
-                <div key={i} className="px-4 py-3 flex items-start gap-3">
+              {history.map((item) => (
+                <div key={item.windowKey} className="px-4 py-3 flex items-start gap-3 group">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30 mt-0.5">
                     <Bell className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                   </div>
@@ -1031,6 +1074,23 @@ function NotificationsTab({ organizationId }: { organizationId: string }) {
                         <span className="text-[10px] text-muted-foreground">
                           {new Date(item.sentAt).toLocaleString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                          onClick={async () => {
+                            if (!confirm(`「${item.title}」の配信履歴を削除しますか？\n（会員の通知BOXからも削除されます）`)) return;
+                            const result = await deleteNotificationBroadcast(organizationId, item.sentAt, item.title);
+                            if (result.error) {
+                              toast.error('削除に失敗しました');
+                            } else {
+                              toast.success('配信履歴を削除しました');
+                              setHistory((prev) => prev ? prev.filter((h) => h.windowKey !== item.windowKey) : prev);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.body}</p>

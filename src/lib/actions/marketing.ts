@@ -391,10 +391,11 @@ export async function getCustomersForSelect(organizationId: string, role?: strin
   const supabase = await createClient();
   let q = supabase
     .from('customers')
-    .select('id, name, email, role')
+    .select('id, name, email, role, status')
     .eq('organization_id', organizationId)
-    .eq('status', 'active')
-    .order('name');
+    .neq('status', 'suspended')
+    .order('name')
+    .limit(500);
   if (role) q = q.eq('role', role);
   const { data } = await q;
   return data || [];
@@ -619,6 +620,7 @@ export async function deleteInquiryThread(
 export type BroadcastTarget = 'all' | 'supplier' | 'buyer' | 'personal' | 'individual';
 
 export interface BroadcastHistoryItem {
+  windowKey: string;
   title: string;
   body: string;
   sentAt: string;
@@ -716,11 +718,39 @@ export async function getNotificationBroadcastHistory(
     if (existing) {
       existing.count++;
     } else {
-      groups.set(windowKey, { title: n.title, body: n.body || '', sentAt: n.created_at, count: 1 });
+      groups.set(windowKey, { windowKey, title: n.title, body: n.body || '', sentAt: n.created_at, count: 1 });
     }
   }
 
   return Array.from(groups.values())
     .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
     .slice(0, 20);
+}
+
+// ─── お知らせ配信履歴の削除 ──────────────────────────────
+// windowKey に含まれる sentAt と title で同一ブロードキャスト分を一括削除
+export async function deleteNotificationBroadcast(
+  organizationId: string,
+  sentAt: string,
+  title: string
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  const windowStart = new Date(Math.floor(new Date(sentAt).getTime() / (5 * 60 * 1000)) * (5 * 60 * 1000));
+  const windowEnd   = new Date(windowStart.getTime() + 5 * 60 * 1000);
+
+  const { error } = await supabase
+    .from('notifications')
+    .delete()
+    .eq('organization_id', organizationId)
+    .eq('type', 'general')
+    .eq('title', title)
+    .gte('created_at', windowStart.toISOString())
+    .lt('created_at', windowEnd.toISOString());
+
+  if (error) {
+    console.error('Failed to delete notification broadcast:', error);
+    return { error: error.message };
+  }
+  return { error: null };
 }
