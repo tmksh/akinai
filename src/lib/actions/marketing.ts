@@ -620,7 +620,7 @@ export async function deleteInquiryThread(
 export type BroadcastTarget = 'all' | 'supplier' | 'buyer' | 'personal' | 'individual';
 
 export interface BroadcastHistoryItem {
-  windowKey: string;
+  broadcastId: string;
   title: string;
   body: string;
   sentAt: string;
@@ -670,13 +670,15 @@ export async function broadcastNotification(
 
   const fullBody = input.linkUrl ? `${input.body}\n\n${input.linkUrl}` : input.body;
 
+  const broadcastId = crypto.randomUUID();
+
   const notifInserts = recipients.map((c) => ({
     organization_id: organizationId,
     customer_id: c.id,
     type: 'general' as const,
     title: input.title,
     body: fullBody,
-    related_id: input.linkUrl || null,
+    related_id: broadcastId,
     related_type: null,
   }));
 
@@ -702,7 +704,7 @@ export async function getNotificationBroadcastHistory(
 
   const { data } = await supabase
     .from('notifications')
-    .select('title, body, created_at')
+    .select('title, body, created_at, related_id')
     .eq('organization_id', organizationId)
     .eq('type', 'general')
     .order('created_at', { ascending: false })
@@ -710,15 +712,17 @@ export async function getNotificationBroadcastHistory(
 
   if (!data || data.length === 0) return [];
 
-  // 同一タイトル＋5分以内の送信をひとつのブロードキャストとしてグループ化
+  // related_id（UUID）がある場合はそれでグループ化、ない場合はタイトル＋5分ウィンドウで旧データに対応
   const groups = new Map<string, BroadcastHistoryItem>();
   for (const n of data) {
-    const windowKey = `${n.title}__${Math.floor(new Date(n.created_at).getTime() / (5 * 60 * 1000))}`;
-    const existing = groups.get(windowKey);
+    const groupKey = n.related_id && n.related_id.match(/^[0-9a-f-]{36}$/)
+      ? n.related_id
+      : `${n.title}__${Math.floor(new Date(n.created_at).getTime() / (5 * 60 * 1000))}`;
+    const existing = groups.get(groupKey);
     if (existing) {
       existing.count++;
     } else {
-      groups.set(windowKey, { windowKey, title: n.title, body: n.body || '', sentAt: n.created_at, count: 1 });
+      groups.set(groupKey, { broadcastId: groupKey, title: n.title, body: n.body || '', sentAt: n.created_at, count: 1 });
     }
   }
 
@@ -728,26 +732,41 @@ export async function getNotificationBroadcastHistory(
 }
 
 // ─── お知らせ配信履歴の削除 ──────────────────────────────
-// windowKey に含まれる sentAt と title で同一ブロードキャスト分を一括削除
+// broadcastId（related_id の UUID）で同一ブロードキャスト分を一括削除。
+// 旧データ（UUID なし）はタイトル＋時間ウィンドウで削除。
 export async function deleteNotificationBroadcast(
   organizationId: string,
-  sentAt: string,
-  title: string
+  broadcastId: string
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
 
-  const windowStart = new Date(Math.floor(new Date(sentAt).getTime() / (5 * 60 * 1000)) * (5 * 60 * 1000));
-  const windowEnd   = new Date(windowStart.getTime() + 5 * 60 * 1000);
+  const isUuid = /^[0-9a-f-]{36}$/.test(broadcastId);
 
-  const { error } = await supabase
-    .from('notifications')
-    .delete()
-    .eq('organization_id', organizationId)
-    .eq('type', 'general')
-    .eq('title', title)
-    .gte('created_at', windowStart.toISOString())
-    .lt('created_at', windowEnd.toISOString());
+  let query;
+  if (isUuid) {
+    // 新形式：related_id = UUID で一括削除
+    query = supabase
+      .from('notifications')
+      .delete()
+      .eq('organization_id', organizationId)
+      .eq('type', 'general')
+      .eq('related_id', broadcastId);
+  } else {
+    // 旧形式：タイトル＋5分ウィンドウで削除
+    const [titlePart, bucketPart] = broadcastId.split('__');
+    const windowStart = new Date(Number(bucketPart) * 5 * 60 * 1000);
+    const windowEnd   = new Date(windowStart.getTime() + 5 * 60 * 1000);
+    query = supabase
+      .from('notifications')
+      .delete()
+      .eq('organization_id', organizationId)
+      .eq('type', 'general')
+      .eq('title', titlePart)
+      .gte('created_at', windowStart.toISOString())
+      .lt('created_at', windowEnd.toISOString());
+  }
 
+  const { error } = await query;
   if (error) {
     console.error('Failed to delete notification broadcast:', error);
     return { error: error.message };

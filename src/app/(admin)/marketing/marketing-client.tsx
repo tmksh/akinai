@@ -1060,7 +1060,7 @@ function NotificationsTab({ organizationId }: { organizationId: string }) {
           ) : (
             <div className="divide-y">
               {history.map((item) => (
-                <div key={item.windowKey} className="px-4 py-3 flex items-start gap-3 group">
+                <div key={item.broadcastId} className="px-4 py-3 flex items-start gap-3 group">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30 mt-0.5">
                     <Bell className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                   </div>
@@ -1080,12 +1080,12 @@ function NotificationsTab({ organizationId }: { organizationId: string }) {
                           className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                           onClick={async () => {
                             if (!confirm(`「${item.title}」の配信履歴を削除しますか？\n（会員の通知BOXからも削除されます）`)) return;
-                            const result = await deleteNotificationBroadcast(organizationId, item.sentAt, item.title);
+                            const result = await deleteNotificationBroadcast(organizationId, item.broadcastId);
                             if (result.error) {
                               toast.error('削除に失敗しました');
                             } else {
                               toast.success('配信履歴を削除しました');
-                              setHistory((prev) => prev ? prev.filter((h) => h.windowKey !== item.windowKey) : prev);
+                              setHistory((prev) => prev ? prev.filter((h) => h.broadcastId !== item.broadcastId) : prev);
                             }
                           }}
                         >
