@@ -27,6 +27,7 @@ export interface EmailTemplateSettings {
     subject: string;
     bodyText: string;
     skipCustomerEmail: boolean;
+    hideShippingFeeForAgent: boolean;
   };
   upcoming_invoice: {
     enabled: boolean;
@@ -65,6 +66,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplateSettings = {
     bodyText:
       'お世話になっております。\nあなたのご紹介コード（{agentCode}）経由で新しい注文が入りました。\n\n引き続きよろしくお願いいたします。',
     skipCustomerEmail: false,
+    hideShippingFeeForAgent: true,
   },
   upcoming_invoice: {
     enabled: true,

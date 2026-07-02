@@ -131,7 +131,7 @@ export async function sendOrderEmails(
         phone: addr.phone || undefined,
       },
       shopName,
-      isAgentOrder: !!order.agent_id,
+      isAgentOrder: !!order.agent_id && agentCustom.hideShippingFeeForAgent !== false,
     };
 
     // --- 顧客向けメール ---

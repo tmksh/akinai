@@ -497,6 +497,23 @@ export default function EmailTemplatesPage() {
               />
             </div>
           </div>
+          <div className="rounded-lg border border-amber-200/60 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-950/20 p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 space-y-1">
+                <Label className="text-sm font-semibold">
+                  代理店注文のメールで送料を非表示にする
+                </Label>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  ONにすると、代理店コード経由の注文に送信するサンクスメール・注文通知メールから「送料」の行を削除します。<br />
+                  直販（代理店コードなし）の注文は通常通り表示されます。
+                </p>
+              </div>
+              <Switch
+                checked={templates.agent_notification.hideShippingFeeForAgent ?? true}
+                onCheckedChange={v => update('agent_notification', 'hideShippingFeeForAgent', v)}
+              />
+            </div>
+          </div>
           <div className="flex justify-end">
             <Button
               variant="outline"
