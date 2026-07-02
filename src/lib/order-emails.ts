@@ -131,6 +131,7 @@ export async function sendOrderEmails(
         phone: addr.phone || undefined,
       },
       shopName,
+      isAgentOrder: !!order.agent_id,
     };
 
     // --- 顧客向けメール ---

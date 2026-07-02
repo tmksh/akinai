@@ -30,6 +30,7 @@ export interface OrderEmailData {
   };
   shopName: string;
   paymentInstructions?: string | null;
+  isAgentOrder?: boolean;
 }
 
 export interface CustomTemplateSettings {
@@ -186,10 +187,10 @@ export function buildOrderConfirmationEmail(
                 <td style="font-size:13px;color:#64748b;padding:4px 0;">小計</td>
                 <td style="font-size:13px;color:#1e293b;text-align:right;padding:4px 0;">${formatPrice(data.subtotal)}</td>
               </tr>
-              <tr>
+              ${!data.isAgentOrder ? `<tr>
                 <td style="font-size:13px;color:#64748b;padding:4px 0;">送料</td>
                 <td style="font-size:13px;color:#1e293b;text-align:right;padding:4px 0;">${data.shippingFee === 0 ? '無料' : formatPrice(data.shippingFee)}</td>
-              </tr>
+              </tr>` : ''}
               <tr>
                 <td style="font-size:13px;color:#64748b;padding:4px 0;">消費税</td>
                 <td style="font-size:13px;color:#1e293b;text-align:right;padding:4px 0;">${formatPrice(data.tax)}</td>
@@ -385,10 +386,10 @@ export function buildBankTransferConfirmationEmail(
                 <td style="font-size:13px;color:#64748b;padding:4px 0;">小計</td>
                 <td style="font-size:13px;color:#1e293b;text-align:right;padding:4px 0;">${formatPrice(data.subtotal)}</td>
               </tr>
-              <tr>
+              ${!data.isAgentOrder ? `<tr>
                 <td style="font-size:13px;color:#64748b;padding:4px 0;">送料</td>
                 <td style="font-size:13px;color:#1e293b;text-align:right;padding:4px 0;">${data.shippingFee === 0 ? '無料' : formatPrice(data.shippingFee)}</td>
-              </tr>
+              </tr>` : ''}
               <tr>
                 <td style="font-size:13px;color:#64748b;padding:4px 0;">消費税</td>
                 <td style="font-size:13px;color:#1e293b;text-align:right;padding:4px 0;">${formatPrice(data.tax)}</td>
@@ -665,10 +666,10 @@ export function buildNewOrderNotificationEmail(
                 <td style="font-size:12px;color:#64748b;padding:4px 0;">小計</td>
                 <td style="font-size:12px;color:#1e293b;text-align:right;padding:4px 0;">${formatPrice(data.subtotal)}</td>
               </tr>
-              <tr>
+              ${!data.isAgentOrder ? `<tr>
                 <td style="font-size:12px;color:#64748b;padding:4px 0;">送料</td>
                 <td style="font-size:12px;color:#1e293b;text-align:right;padding:4px 0;">${data.shippingFee === 0 ? '無料' : formatPrice(data.shippingFee)}</td>
-              </tr>
+              </tr>` : ''}
               <tr>
                 <td style="font-size:12px;color:#64748b;padding:4px 0;">消費税</td>
                 <td style="font-size:12px;color:#1e293b;text-align:right;padding:4px 0;">${formatPrice(data.tax)}</td>
